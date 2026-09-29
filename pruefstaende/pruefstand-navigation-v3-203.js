@@ -194,13 +194,17 @@ const STUB=`window.supabase={createClient:()=>({
     .map(x=>x.dataset.a2Tu).filter(z=>z!=="klassisch"&&z!=="abmelden");
   return {koepfe,zeilen,alle};
  });
- p(m.koepfe.indexOf("Arbeiten")>=0&&m.koepfe.indexOf("Firma")>=0&&m.koepfe.indexOf("Verwaltung")>=0,
-   "drei Gruppen statt einer langen Liste",m.koepfe);
+ // v3.227: dazu "Dieses Ger\u00e4t" - der Fingerabdruck ist weder Arbeiten
+ // noch Firma noch Verwaltung, er gilt nur hier und nur fuer die Person,
+ // die gerade angemeldet ist.
+ p(m.koepfe.indexOf("Arbeiten")>=0&&m.koepfe.indexOf("Dieses Ger\u00e4t")>=0
+   &&m.koepfe.indexOf("Firma")>=0&&m.koepfe.indexOf("Verwaltung")>=0,
+   "Gruppen statt einer langen Liste",m.koepfe);
  p(m.zeilen===m.alle.length,
    "jeder Eintrag steht in einer Gruppe - keiner faellt heraus",{ingruppen:m.zeilen,gesamt:m.alle.length});
  // Gegenprobe zur Erreichbarkeit: die frueher vorhandenen Ziele gibt es noch
  ["suche","einstell","anleitung","feedback","konten","zaehlwerk","abwicklung",
-  "einrichtung","kontrollen","adminmeas","sysadmin"].forEach(z=>{
+  "einrichtung","kontrollen","adminmeas","sysadmin","fingerabdruck"].forEach(z=>{
   p(m.alle.indexOf(z)>=0,"„"+z+"“ ist weiterhin erreichbar",m.alle);
  });
 

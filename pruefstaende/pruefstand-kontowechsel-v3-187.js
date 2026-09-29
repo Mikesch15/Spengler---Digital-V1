@@ -261,6 +261,54 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  p(/function kwNeuLaden\(\)\{[\s\S]{0,120}location\.reload\(\)/.test(quelle),
    "und die Seite neu geladen - kwNeuLaden() ruft wirklich location.reload()");
 
+ // ---- K  Zustaendigkeit (v3.227) -------------------------------------------
+ // Ansage des Anwenders: "Die funktion konto wechseln soll es nur fuer mich
+ // als firmenadmin geben".
+ //
+ // Der Eintrag unter "Mehr" stand bis v3.226 ausdruecklich IMMER da (siehe
+ // Abschnitt A weiter oben, dort mit einem Firmenadministrator geprueft).
+ // Diese Aussage gilt unveraendert - aber nur noch fuer die
+ // Firmenadministration. Deshalb ist Abschnitt A nicht geaendert, sondern
+ // hier ergaenzt: er prueft den Administrator, K prueft die Gegenseite.
+ console.log("\nK · Nur fuer die Firmenadministration");
+ const K=await page.evaluate(()=>{
+  const merk=currentProfile;
+  const hol=rolle=>{
+   currentProfile={id:"u1",role:rolle,company_id:"c1",first_name:"X",last_name:"Y"};
+   const mehr=(typeof a2SeiteMehr==="function")?a2SeiteMehr():"";
+   $("kontenModal").hidden=true;
+   kwOeffnen();
+   const auf=!$("kontenModal").hidden;
+   $("kontenModal").hidden=true;
+   return {eintrag:/data-a2-tu="konten"/.test(mehr), auf, zustaendig:kwZustaendig()};
+  };
+  const mitarbeiter=hol("mitarbeiter");
+  const admin=hol("admin");
+  currentProfile=merk;
+  return {mitarbeiter,admin};
+ });
+ p(K.mitarbeiter.eintrag===false&&K.mitarbeiter.zustaendig===false,
+   "K1 ein Mitarbeiter sieht den Eintrag unter Mehr nicht",K.mitarbeiter);
+ p(K.mitarbeiter.auf===false,
+   "K2 GEGENPROBE: und der Dialog geht auch dann nicht auf, wenn kwOeffnen() direkt gerufen wird - "
+  +"ein bloss ausgeblendeter Eintrag waere keine Zustaendigkeit, sondern die Vermutung, dass niemand den Weg drumherum findet",K.mitarbeiter);
+ p(K.admin.eintrag===true&&K.admin.auf===true&&K.admin.zustaendig===true,
+   "K3 GEGENPROBE: fuer den Firmenadministrator ist alles unveraendert",K.admin);
+ // Eine Quelle fuer die Frage - nicht zwei, die nach der ersten Aenderung
+ // verschieden waeren.
+ p(/kwZustaendig\(\)/.test(lies("js/70-ansicht2.js")),
+   "K4 js/70 fragt dieselbe Funktion wie js/76 selbst - keine zweite Bedingung",null);
+ // Der Fingerabdruck ist mit dieser Einschraenkung ausgezogen (js/81,
+ // eigener Pruefstand) - hier nur die Gegenprobe, dass er hier weg ist.
+ // Gemessen am fertigen Baum, nicht am Text der Datei: wo ein Element
+ // wirklich haengt, beantwortet der Browser, nicht ein Suchmuster.
+ const K5=await page.evaluate(()=>{
+  const box=document.getElementById("faBox");
+  return {da:!!box, imKonten:!!(box&&box.closest("#kontenModal"))};
+ });
+ p(K5.da===true&&K5.imKonten===false,
+   "K5 der Fingerabdruck-Schalter steht nicht mehr in diesem Dialog - er gilt weiterhin fuer jeden",K5);
+
  // ---- J  Sauberkeit --------------------------------------------------------
  console.log("\nJ · Sauberkeit");
  p(fehler.length===0,"keine JavaScript-Fehler auf der Seite",fehler);

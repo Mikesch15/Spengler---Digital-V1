@@ -320,6 +320,63 @@ const SITZUNG={access_token:"AT",refresh_token:"RT",user:{id:"u1",email:"m@x.ch"
  p(z.token==="NEU"&&z.name==="Mike L",
    "G2 die frischen Angaben gewinnen trotzdem - gemischt wird, nicht angehängt",z);
 
+ // ---- J  Wo der Schalter steht (v3.227) ---------------------------------
+ // Ansage des Anwenders: "Die funktion konto wechseln soll es nur fuer mich
+ // als firmenadmin geben, daher muss die fingerabdruck einstellung einen
+ // anderen platz haben." Bis v3.226 stand der Schalter im
+ // Kontowechsel-Dialog - dort waere er fuer die Mitarbeitenden mit dieser
+ // Einschraenkung verschwunden, obwohl er ausdruecklich jedem einzeln
+ // offensteht.
+ console.log("\nJ · Der Schalter steht jetzt an seinem eigenen Platz");
+ const htmlJ=fs.readFileSync(path.join(process.cwd(),"index.html"),"utf8");
+ p(/id="faModal"/.test(htmlJ),"J1 es gibt einen eigenen Dialog #faModal",null);
+ z=await page.evaluate(()=>{
+  const box=$("faBox");
+  return {inFaModal:!!(box&&box.closest("#faModal")),
+          inKonten:!!(box&&box.closest("#kontenModal"))};
+ });
+ p(z.inFaModal===true&&z.inKonten===false,
+   "J2 GEGENPROBE: der Schalter haengt nicht mehr am Kontowechsel-Dialog",z);
+
+ // Ein MITARBEITER (kein Firmenadministrator) - der entscheidende Fall.
+ z=await page.evaluate(async()=>{
+  const merk=currentProfile;
+  currentProfile={id:"u1",role:"mitarbeiter",first_name:"Hans",last_name:"M",company_id:"c1"};
+  const mehr=(typeof a2SeiteMehr==="function")?a2SeiteMehr():"";
+  $("faModal").hidden=true; $("kontenModal").hidden=true;
+  faDialogOeffnen();
+  const faAuf=!$("faModal").hidden;
+  kwOeffnen();                       // darf sich gar nicht oeffnen
+  const kontenAuf=!$("kontenModal").hidden;
+  currentProfile=merk;
+  return {fa:/data-a2-tu="fingerabdruck"/.test(mehr),
+          konten:/data-a2-tu="konten"/.test(mehr),
+          faAuf, kontenAuf, box:$("faBox").innerHTML.length>0};
+ });
+ p(z.fa===true,"J3 ein Mitarbeiter findet den Fingerabdruck unter Mehr",z);
+ p(z.faAuf===true&&z.box===true,"J4 und der Dialog geht auf und ist gezeichnet",z);
+ p(z.konten===false,
+   "J5 GEGENPROBE: 'Konto wechseln' steht fuer ihn NICHT da - genau deshalb musste der Fingerabdruck umziehen",z);
+ p(z.kontenAuf===false,
+   "J6 GEGENPROBE: und der Dialog geht auch dann nicht auf, wenn man kwOeffnen() direkt ruft - ein ausgeblendeter Eintrag allein waere keine Zustaendigkeit",z);
+
+ // Und beim Firmenadministrator steht beides da.
+ z=await page.evaluate(()=>{
+  const merk=currentProfile;
+  currentProfile={id:"u1",role:"admin",first_name:"Mike",last_name:"L",company_id:"c1"};
+  const mehr=(typeof a2SeiteMehr==="function")?a2SeiteMehr():"";
+  $("kontenModal").hidden=true;
+  kwOeffnen();
+  const auf=!$("kontenModal").hidden;
+  $("kontenModal").hidden=true;
+  currentProfile=merk;
+  return {fa:/data-a2-tu="fingerabdruck"/.test(mehr),
+          konten:/data-a2-tu="konten"/.test(mehr), auf};
+ });
+ p(z.konten===true&&z.auf===true,
+   "J7 GEGENPROBE: der Firmenadministrator hat 'Konto wechseln' unveraendert",z);
+ p(z.fa===true,"J8 und den Fingerabdruck ebenso",z);
+
  // ---- H  Abmelden vom Sperrbildschirm -----------------------------------
  // Bewusst als LETZTES: location.reload() lässt sich nicht nachstellen, der
  // Test läuft hier also in ein echtes Neuladen der Seite hinein.
