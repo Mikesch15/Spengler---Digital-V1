@@ -290,38 +290,51 @@ const tab=(page,k)=>page.evaluate(k=>{
  await aufraeumen();
  await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
  await page.waitForTimeout(300);
- // v3.226, ECHTER FEHLER IM PRUEFSTAND - so ist er aufgetreten: hier stand
- // page.on("popup",x=>{neuesFenster=x.url()}) und darunter ein festes
- // Warten von 900 ms. Die Adresse wurde damit in dem Augenblick gelesen, in
- // dem das Fenster ENTSTEHT - und da hat es seine Adresse noch nicht
- // zwingend. Auf diesem Rechner war sie schnell genug da, auf dem Laeufer
- // von GitHub Actions nicht: dort kam "" heraus, F2 war rot, und die CI
- // stand deswegen seit v3.225 auf Fehlschlag, waehrend hier alles gruen
- // aussah. Gewartet wird jetzt auf die ADRESSE statt auf eine Anzahl
- // Millisekunden. Die Erwartung darunter ist unveraendert.
- const fensterKommt=page.waitForEvent("popup",{timeout:10000}).catch(()=>null);
- await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="anleitung"]');if(k)k.click()});
- const fenster=await fensterKommt;
- let neuesFenster=fenster?fenster.url():null;
- for(let i=0;i<60&&fenster&&!neuesFenster;i++){
-  await page.waitForTimeout(100);
-  neuesFenster=fenster.url();
- }
- await page.waitForTimeout(300);
- const nachAnleitung=await page.evaluate(()=>!$("settingsModal").hidden);
- p(!nachAnleitung,"F1 'Anleitung' oeffnet nicht die Einstellungen",{settingsOffen:nachAnleitung});
- p(!!neuesFenster&&/Anleitung-v[0-9.]+\.pdf$/.test(neuesFenster),
-   "F2 sondern die Anleitung selbst",{fenster:neuesFenster});
- // GEGENPROBE, neu: es ist die Anleitung, die index.html AUCH anbietet -
- // nicht irgendeine. Ein Versionswechsel, bei dem eine der beiden Stellen
- // stehenbleibt, faellt damit hier auf, statt als toter Verweis beim
- // Anwender zu landen.
+ // v3.226, ZWEI FEHLER IM PRUEFSTAND nacheinander - beide hier, nicht in
+ // der App:
+ //
+ // Urspruenglich stand hier page.on("popup",x=>{neuesFenster=x.url()}) mit
+ // einem festen Warten von 900 ms darunter. In der CI kam "" heraus und F2
+ // war rot, seit es diesen Fall gibt - waehrend hier alles gruen aussah.
+ //
+ // Erster Anlauf: auf die Adresse warten statt auf Millisekunden. Half
+ // nicht, die Adresse blieb auch nach sechs Sekunden leer. Der Grund ist
+ // nicht Langsamkeit: die CI benutzt chrome-headless-shell, und der hat
+ // keinen PDF-Betrachter. Das Fenster geht dort auf und bleibt leer, weil
+ // die PDF gar nicht angezeigt werden kann. Die Adresse eines geoeffneten
+ // PDF-Fensters ist in diesem Browser schlicht nicht messbar.
+ //
+ // Gemessen wird deshalb, was die APP TUT, nicht was der Browser daraus
+ // macht: js/70 ruft window.open(HILFE_PDF,"_blank","noopener"). Das ist
+ // browserunabhaengig und zugleich genauer als vorher - das Ziel "_blank"
+ // wird jetzt mitgeprueft, also dass die Anleitung NEBEN der App aufgeht
+ // und sie nicht verdraengt.
+ const ruf=await page.evaluate(()=>{
+  const echt=window.open;
+  let g=null;
+  window.open=(u,ziel,merk)=>{ g={adresse:String(u||""),ziel:String(ziel||""),merk:String(merk||"")}; return null };
+  const k=document.querySelector('[data-a2-tu="anleitung"]');
+  if(k)k.click();
+  window.open=echt;
+  return {gerufen:g, settingsOffen:!$("settingsModal").hidden};
+ });
+ p(!ruf.settingsOffen,"F1 'Anleitung' oeffnet nicht die Einstellungen",{settingsOffen:ruf.settingsOffen});
+ p(!!ruf.gerufen&&/^anleitung\/Spengler-DIGITAL-Anleitung-v[0-9.]+\.pdf$/.test(ruf.gerufen.adresse),
+   "F2 sondern die Anleitung selbst",{gerufen:ruf.gerufen});
+ p(!!ruf.gerufen&&ruf.gerufen.ziel==="_blank",
+   "F2a und zwar NEBEN der App, nicht an ihrer Stelle - sonst waere die Arbeit weg",{gerufen:ruf.gerufen});
+ // GEGENPROBE, neu: js/41 (HILFE_PDF - die eine Quelle fuer den Pfad) und
+ // index.html meinen dieselbe Datei, und index.html verweist ueberall auf
+ // dieselbe. Ein Versionswechsel, bei dem eine der Stellen stehenbleibt,
+ // faellt damit hier auf, statt als toter Verweis beim Anwender zu landen.
  const html=fs.readFileSync(path.join(process.cwd(),"index.html"),"utf8");
- const ausHtml=(html.match(/anleitung\/Spengler-DIGITAL-Anleitung-v[0-9.]+\.pdf/g)||[]);
- const einDatei=ausHtml.length&&ausHtml.every(x=>x===ausHtml[0]);
- p(!!einDatei&&!!neuesFenster&&neuesFenster.endsWith(ausHtml[0]),
-   "F2b GEGENPROBE: es ist genau die Anleitung, auf die index.html verweist - und index.html verweist ueberall auf dieselbe",
-   {geoeffnet:neuesFenster,inHtml:ausHtml});
+ const hilfe=fs.readFileSync(path.join(process.cwd(),"js/41-hilfe.js"),"utf8");
+ const ausHtml=html.match(/anleitung\/Spengler-DIGITAL-Anleitung-v[0-9.]+\.pdf/g)||[];
+ const ausJs=(hilfe.match(/const HILFE_PDF="([^"]+)"/)||[])[1]||"";
+ const einheitlich=ausHtml.length>0&&ausHtml.every(x=>x===ausHtml[0]);
+ p(einheitlich&&ausJs===ausHtml[0]&&(!!ruf.gerufen&&ruf.gerufen.adresse===ausJs),
+   "F2b GEGENPROBE: js/41 und index.html meinen dieselbe Anleitung, index.html ueberall dieselbe - und genau die wird geoeffnet",
+   {geoeffnet:ruf.gerufen&&ruf.gerufen.adresse,inJs:ausJs,inHtml:ausHtml});
  // Gegenprobe: "Einstellungen" fuehrt weiterhin in die Einstellungen.
  await aufraeumen();
  await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
