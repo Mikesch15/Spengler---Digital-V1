@@ -1192,11 +1192,66 @@ function zxingLaden(){
 
 let barcodeScanCodeReader=null, barcodeScanControls=null, barcodeScanAktuellerCallback=null;
 
-// Dieselbe Wunsch-Vorgabe wie beim ersten Oeffnen (siehe barcodeScannen) -
-// eigene Funktion, damit sie an genau einer Stelle steht.
+// ---- Kamerawahl, Zoom und Diagnose (v3.222) ------------------------------
+//
+// STAND DER DINGE, ehrlich: der Anwender meldet zu v3.221 "Klappt nicht,
+// stellt nicht scharf und erkennt nichts... in der migros app klappt das
+// aber auf dem selben gerät problemlos in ca 0.5 sekunden". Er SIEHT, dass
+// das Bild unscharf ist - kein Barcode-Leser der Welt liest ein unscharfes
+// Bild, also ist der Fokus die Ursache und nicht die Erkennung.
+//
+// Seit v3.107 habe ich daran fuenfzehn Mal geraten, weil aus der
+// Entwicklungsumgebung kein Zugriff auf eine echte Kamera moeglich ist.
+// Damit ist jetzt Schluss. Diese Fassung raet nicht, sie macht drei Dinge:
+//
+// 1. KAMERAWAHL. Ein modernes Android-Handy hat drei bis vier Kameras
+//    hinten. facingMode:"environment" laesst die Wahl dem Browser - und der
+//    nimmt regelmaessig die Ultraweitwinkel-Kamera, die einen FESTEN Fokus
+//    hat und naeher als etwa 10 cm grundsaetzlich nicht scharf werden KANN.
+//    Genau das passt zu "stellt nicht scharf". Die App zaehlt die Kameras
+//    jetzt auf und laesst den Anwender selbst waehlen; die Wahl wird
+//    gemerkt. Eine native App wie die von Migros waehlt die Kamera
+//    ebenfalls gezielt - das ist der Unterschied, nicht die Erkennung.
+//
+// 2. ZOOM. Der ueblich gewordene Weg im Browser, wenn eine Kamera nicht nah
+//    scharf wird: nicht naeher herangehen, sondern aus 20-30 cm mit Zoom
+//    arbeiten. Dort wird jede Kamera scharf. Chrome/Android unterstuetzt
+//    zoom ueber applyConstraints; wo es das nicht gibt, bleibt der Regler
+//    weg.
+//
+// 3. DIAGNOSE. Das Overlay zeigt auf Wunsch, was das Geraet wirklich
+//    liefert: welche Kameras es gibt, welche laeuft, mit welcher Auflösung,
+//    welche Fokus-/Zoom-Faehigkeiten sie meldet, ob der eingebaute
+//    Barcode-Leser da ist und wie viele Leseversuche pro Sekunde laufen.
+//    Damit muss nicht mehr geraten werden - die Angaben lassen sich
+//    kopieren und weitergeben.
+//
+// AUSSERDEM GEAENDERT: die Wunsch-Vorgabe fuer getUserMedia enthaelt kein
+// "advanced" mehr. Eine advanced-Vorgabe beeinflusst, WELCHE Kamera-
+// Konfiguration der Browser waehlt - beim Versuch, focusMode:"continuous"
+// zu erfuellen, kann er auf eine andere Kamera ausweichen. Der Fokuswunsch
+// wird deshalb erst NACH dem Start auf dem laufenden Track gesetzt (siehe
+// barcodeScanDauerfokus), wo er nichts mehr umlenken kann. Die angefragte
+// Auflösung sinkt von 1920x1080 auf 1280x720: das reicht fuer jeden
+// Barcode, ist bei der Erkennung schneller und laesst dem Geraet mehr
+// Kamera-Konfigurationen mit Autofokus offen.
+const BARCODE_KAMERA_MERKER="spenglerBarcodeKamera";
+const BARCODE_ZOOM_MERKER="spenglerBarcodeZoom";
+
+function barcodeScanGemerkt(schluessel){
+ try{ return localStorage.getItem(schluessel)||""; }catch(e){ return ""; }
+}
+function barcodeScanMerken(schluessel,wert){
+ try{ if(wert)localStorage.setItem(schluessel,String(wert)); else localStorage.removeItem(schluessel); }catch(e){}
+}
+
+// Die Wunsch-Vorgabe. Mit gemerkter Kamera wird DIESE genommen (exact waere
+// zu hart - ist die Kamera weg, soll die App trotzdem oeffnen).
 function barcodeScanWunschKonstraint(){
- return {video:{facingMode:{ideal:"environment"},
-  width:{ideal:1920},height:{ideal:1080},advanced:[{focusMode:"continuous"}]}};
+ const id=barcodeScanGemerkt(BARCODE_KAMERA_MERKER);
+ const v={width:{ideal:1280},height:{ideal:720}};
+ if(id)v.deviceId={ideal:id}; else v.facingMode={ideal:"environment"};
+ return {video:v};
 }
 
 // Kamera stoppen und Overlay schliessen. Sicher mehrfach aufrufbar (z. B.
@@ -1205,6 +1260,7 @@ function barcodeScanSchliessen(){
  // v3.221: auch der eingebaute Leser des Geraets muss aufhoeren - sonst
  // laeuft sein Takt weiter, nachdem die Kamera schon freigegeben ist.
  barcodeScanDetektorStoppen();
+ if(barcodeScanDiagnoseTakt){ clearInterval(barcodeScanDiagnoseTakt); barcodeScanDiagnoseTakt=null; }
  try{ if(barcodeScanControls&&barcodeScanControls.stop)barcodeScanControls.stop(); }catch(e){}
  try{ if(barcodeScanCodeReader&&barcodeScanCodeReader.reset)barcodeScanCodeReader.reset(); }catch(e){}
  try{
@@ -1399,6 +1455,7 @@ async function barcodeScanDetektorStarten(){
   if(laeuft)return;
   if(!video.srcObject||video.readyState<2)return;
   laeuft=true;
+  barcodeScanLeseversuche++;   // v3.222: sichtbar in der Diagnose
   try{
    const codes=await detektor.detect(video);
    if(codes&&codes.length&&codes[0].rawValue)barcodeScanTreffer(codes[0].rawValue);
@@ -1407,6 +1464,159 @@ async function barcodeScanDetektorStarten(){
  },200);
  return true;
 }
+
+// ---- Kameraliste, Zoom-Regler und Diagnose (v3.222) ----------------------
+let barcodeScanLeseversuche=0, barcodeScanDiagnoseTakt=null, barcodeScanDetektorDa=false;
+
+// Alle Kameras des Geraets. Vor einer erteilten Freigabe liefert der Browser
+// die Namen leer - deshalb wird die Liste erst NACH dem Start gefuellt, wo
+// die Freigabe schon vorliegt und die Namen ("Kamera hinten, Ultraweit") da
+// sind. Genau diese Namen braucht der Anwender, um zu waehlen.
+async function barcodeScanKameras(){
+ try{
+  if(!navigator.mediaDevices||!navigator.mediaDevices.enumerateDevices)return [];
+  const alle=await navigator.mediaDevices.enumerateDevices();
+  return alle.filter(g=>g.kind==="videoinput");
+ }catch(e){ return []; }
+}
+
+function barcodeScanKameraName(geraet,nr){
+ const name=(geraet&&geraet.label||"").trim();
+ return name||("Kamera "+nr);
+}
+
+// Die Kameraliste als Knopfreihe. Der laufende Eintrag ist markiert. Ein
+// Klick merkt die Kamera und startet den Scan mit ihr neu.
+async function barcodeScanKamerawahlZeichnen(){
+ const feld=$("barcodeScanKamerawahl");
+ if(!feld)return;
+ const kameras=await barcodeScanKameras();
+ // Eine einzige Kamera braucht keine Wahl.
+ if(kameras.length<2){ feld.hidden=true; feld.innerHTML=""; return; }
+ const laufend=barcodeScanAktuelleEinstellungen().deviceId||"";
+ feld.hidden=false;
+ feld.innerHTML='<span class="barcode-scan-wahl-titel">Kamera:</span>'+
+  kameras.map((g,i)=>{
+   const aktiv=g.deviceId&&g.deviceId===laufend;
+   return '<button type="button" class="barcode-scan-wahl-knopf'+(aktiv?" aktiv":"")+
+    '" data-barcode-kamera="'+esc(g.deviceId)+'">'+esc(barcodeScanKameraName(g,i+1))+'</button>';
+  }).join("");
+}
+
+// Der laufende Track und seine echten Werte - an einer Stelle, damit die
+// Diagnose und die Kamerawahl dieselbe Quelle benutzen.
+function barcodeScanTrack(){
+ const video=$("barcodeScanVideo");
+ const stream=video&&video.srcObject;
+ if(!stream||!stream.getVideoTracks)return null;
+ return stream.getVideoTracks()[0]||null;
+}
+function barcodeScanAktuelleEinstellungen(){
+ const track=barcodeScanTrack();
+ try{ return (track&&track.getSettings)?track.getSettings():{}; }catch(e){ return {}; }
+}
+function barcodeScanFaehigkeiten(){
+ const track=barcodeScanTrack();
+ try{ return (track&&track.getCapabilities)?track.getCapabilities():{}; }catch(e){ return {}; }
+}
+
+// Zoom. Der einzige Weg, der im Browser verlaesslich hilft, wenn eine
+// Kamera nah nicht scharf wird: Abstand halten und heranzoomen.
+function barcodeScanZoomZeichnen(){
+ const zeile=$("barcodeScanZoomZeile"), regler=$("barcodeScanZoom");
+ if(!zeile||!regler)return;
+ const z=barcodeScanFaehigkeiten().zoom;
+ if(!z||!(Number(z.max)>Number(z.min))){ zeile.hidden=true; return; }
+ zeile.hidden=false;
+ regler.min=z.min; regler.max=z.max; regler.step=z.step||0.1;
+ const gemerkt=Number(barcodeScanGemerkt(BARCODE_ZOOM_MERKER));
+ const start=(gemerkt>=z.min&&gemerkt<=z.max)?gemerkt:Number(barcodeScanAktuelleEinstellungen().zoom||z.min);
+ regler.value=start;
+ barcodeScanZoomSetzen(start);
+}
+
+async function barcodeScanZoomSetzen(wert){
+ const track=barcodeScanTrack();
+ const anzeige=$("barcodeScanZoomWert");
+ if(anzeige)anzeige.textContent=(Number(wert)).toFixed(1).replace(".",",")+"×";
+ if(!track||!track.applyConstraints)return;
+ try{ await track.applyConstraints({advanced:[{zoom:Number(wert)}]}); barcodeScanMerken(BARCODE_ZOOM_MERKER,wert); }
+ catch(e){/* Zoom nicht unterstuetzt - Regler bleibt ohne Wirkung */}
+}
+if($("barcodeScanZoom"))$("barcodeScanZoom").addEventListener("input",e=>barcodeScanZoomSetzen(e.target.value));
+
+// Die Diagnose. Reiner Text, damit er sich kopieren und weitergeben laesst.
+async function barcodeScanDiagnoseText(){
+ const e=barcodeScanAktuelleEinstellungen(), f=barcodeScanFaehigkeiten();
+ const kameras=await barcodeScanKameras();
+ let formate="nicht vorhanden";
+ if(typeof BarcodeDetector!=="undefined"){
+  try{ const l=await BarcodeDetector.getSupportedFormats(); formate=(l&&l.length)?l.join(", "):"vorhanden, aber kein Format"; }
+  catch(err){ formate="vorhanden, Abfrage fehlgeschlagen"; }
+ }
+ const zeilen=[
+  "App-Version: "+(($("appVersion")&&$("appVersion").textContent)||"?"),
+  "Gerät/Browser: "+navigator.userAgent,
+  "",
+  "Eingebauter Barcode-Leser: "+formate,
+  "Läuft mit: "+(barcodeScanDetektorDa?"eingebautem Leser + ZXing":"nur ZXing"),
+  "Leseversuche (eingebauter Leser): "+barcodeScanLeseversuche,
+  "",
+  "Kameras am Gerät: "+kameras.length,
+  ...kameras.map((g,i)=>"  "+(i+1)+". "+barcodeScanKameraName(g,i+1)+
+   (g.deviceId===e.deviceId?"   <-- läuft gerade":"")),
+  "",
+  "Laufende Kamera:",
+  "  Auflösung: "+(e.width||"?")+" x "+(e.height||"?")+"  bei "+(e.frameRate?Math.round(e.frameRate):"?")+" Bildern/s",
+  "  facingMode: "+(e.facingMode||"—"),
+  "  focusMode: "+(e.focusMode||"—")+"   (Gerät kann: "+((f.focusMode&&f.focusMode.join(", "))||"keine Angabe")+")",
+  "  focusDistance: "+(e.focusDistance!==undefined?e.focusDistance:"—")+
+   "   (Bereich: "+(f.focusDistance?f.focusDistance.min+"–"+f.focusDistance.max:"keine Angabe")+")",
+  "  Zoom: "+(e.zoom!==undefined?e.zoom:"—")+
+   "   (Bereich: "+(f.zoom?f.zoom.min+"–"+f.zoom.max:"keine Angabe")+")",
+  "  Bild im <video>: "+(($("barcodeScanVideo")&&$("barcodeScanVideo").videoWidth)||0)+" x "+
+   (($("barcodeScanVideo")&&$("barcodeScanVideo").videoHeight)||0)
+ ];
+ return zeilen.join("\n");
+}
+
+async function barcodeScanDiagnoseZeichnen(){
+ const feld=$("barcodeScanDiagnoseText");
+ if(!feld)return;
+ // Nur rechnen, wenn der Anwender die Angaben ueberhaupt aufgeklappt hat.
+ const kasten=$("barcodeScanDiagnose");
+ if(kasten&&!kasten.open)return;
+ feld.textContent=await barcodeScanDiagnoseText();
+}
+if($("barcodeScanDiagnose"))$("barcodeScanDiagnose").addEventListener("toggle",barcodeScanDiagnoseZeichnen);
+if($("barcodeScanDiagnoseKopieren"))$("barcodeScanDiagnoseKopieren").onclick=async()=>{
+ const text=await barcodeScanDiagnoseText();
+ const sagen=t=>{ const s=$("barcodeScanStatus"); if(s){s.textContent=t;s.style.color="#fff"} };
+ try{ await navigator.clipboard.writeText(text); sagen("Angaben kopiert - jetzt einfügen und schicken."); }
+ catch(e){
+  // Kein Zugriff auf die Zwischenablage (kommt vor): dann wenigstens
+  // markierbar hinlegen statt nichts zu tun.
+  const feld=$("barcodeScanDiagnoseText");
+  if(feld){ feld.textContent=text; const r=document.createRange(); r.selectNodeContents(feld);
+   const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+  sagen("Kopieren nicht erlaubt - der Text ist markiert, bitte von Hand kopieren.");
+ }
+};
+
+// Kamera wechseln: merken und denselben Weg neu gehen (barcodeScannen ist
+// die einzige Stelle, die eine Kamera oeffnet - keine zweite Wahrheit).
+async function barcodeScanKameraWechseln(id){
+ const cb=barcodeScanAktuellerCallback;
+ barcodeScanMerken(BARCODE_KAMERA_MERKER,id);
+ // Der Zoom gehoert zur Kamera, nicht zum Geraet - bei einem Wechsel weg.
+ barcodeScanMerken(BARCODE_ZOOM_MERKER,"");
+ barcodeScanSchliessen();
+ if(cb)await barcodeScannen(cb);
+}
+document.addEventListener("click",e=>{
+ const k=e.target&&e.target.closest&&e.target.closest("[data-barcode-kamera]");
+ if(k)barcodeScanKameraWechseln(k.getAttribute("data-barcode-kamera"));
+});
 
 // v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
 // jeder Kamera-Eigenheit - falls die Kamera einen Code partout nicht
@@ -1491,6 +1701,7 @@ async function barcodeScannen(callback){
  if(!overlay||!video)return;
  overlay.hidden=false;
  barcodeScanAktuellerCallback=callback;
+ barcodeScanLeseversuche=0;
  // v3.220: Gescannt wird im LAUFENDEN BILD. Ansage des Anwenders: "ich
  // moechte das der barcodescanner als livebild scanner funktioniert und man
  // nicht vorher erst ein foto machen muss und dieses dan ausgewertet wird."
@@ -1534,7 +1745,13 @@ async function barcodeScannen(callback){
   // bereits erteilte Kamera-Freigabe darf dabei nicht zu einem zweiten
   // Berechtigungsdialog fuehren.
   const wunschKonstraint=barcodeScanWunschKonstraint();
-  const engerKonstraint={video:{facingMode:{ideal:"environment"}}};
+  // Rueckfall bei einer zu engen Vorgabe: alles fallen lassen ausser der
+  // Kamerawahl selbst - die ist das Einzige, was der Anwender ausdruecklich
+  // gesetzt hat und was wir ihm nicht stillschweigend wegnehmen duerfen.
+  const gemerkteKamera=barcodeScanGemerkt(BARCODE_KAMERA_MERKER);
+  const engerKonstraint=gemerkteKamera
+   ?{video:{deviceId:{ideal:gemerkteKamera}}}
+   :{video:{facingMode:{ideal:"environment"}}};
   if(typeof barcodeScanCodeReader.decodeFromConstraints==="function"){
    try{
     await barcodeScanCodeReader.decodeFromConstraints(wunschKonstraint,video,aufTreffer);
@@ -1559,7 +1776,17 @@ async function barcodeScannen(callback){
   // v3.221: zusaetzlich den eingebauten Barcode-Leser des Geraets mitlesen
   // lassen (siehe Kommentar bei barcodeScanDetektorStarten). Gibt es ihn
   // nicht, bleibt alles wie in v3.220.
-  await barcodeScanDetektorStarten();
+  barcodeScanDetektorDa=await barcodeScanDetektorStarten();
+
+  // v3.222: Kamerawahl und Zoom erst JETZT - die Kameranamen gibt der
+  // Browser erst heraus, wenn die Freigabe erteilt ist, und die
+  // Zoom-Grenzen kennt nur der laufende Track.
+  await barcodeScanKamerawahlZeichnen();
+  barcodeScanZoomZeichnen();
+  await barcodeScanDiagnoseZeichnen();
+  if(barcodeScanDiagnoseTakt)clearInterval(barcodeScanDiagnoseTakt);
+  barcodeScanDiagnoseTakt=setInterval(barcodeScanDiagnoseZeichnen,1000);
+
   if(status)status.textContent="Code in den Rahmen halten …";
  }catch(err){
   const meldung=(err&&err.name==="NotAllowedError")

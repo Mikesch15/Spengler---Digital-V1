@@ -890,6 +890,179 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(z.gestartet===false&&z.taktLaeuft===false,
    "GEGENPROBE: ohne eingebauten Leser laeuft kein Takt - es bleibt bei ZXing allein",z);
 
+ // ---- 13c · Kamerawahl, Zoom und Diagnose (v3.222) -----------------------
+ console.log("\n13c · Kamerawahl, Zoom und Diagnose");
+ // Der Anwender meldet zu v3.221: "Klappt nicht, stellt nicht scharf und
+ // erkennt nichts... in der migros app klappt das aber auf dem selben gerät
+ // problemlos in ca 0.5 sekunden". Er SIEHT das unscharfe Bild - also ist
+ // der Fokus die Ursache, nicht die Erkennung. Statt ein sechzehntes Mal zu
+ // raten, gibt v3.222 die Kamerawahl und den Zoom in seine Hand und zeigt,
+ // was das Geraet wirklich kann.
+ z=await page.evaluate(()=>{
+  try{ localStorage.removeItem("spenglerBarcodeKamera"); }catch(e){}
+  const ohne=barcodeScanWunschKonstraint();
+  try{ localStorage.setItem("spenglerBarcodeKamera","KAM-7"); }catch(e){}
+  const mit=barcodeScanWunschKonstraint();
+  try{ localStorage.removeItem("spenglerBarcodeKamera"); }catch(e){}
+  return {ohne,mit};
+ });
+ p(z.ohne.video.advanced===undefined&&z.mit.video.advanced===undefined,
+   "GEGENPROBE zum alten Verhalten: die Vorgabe fuer getUserMedia enthaelt KEIN 'advanced' mehr - eine advanced-Vorgabe lenkt die Kamera-Auswahl des Browsers um, der Fokuswunsch gehoert auf den laufenden Track",z);
+ p(z.ohne.video.width.ideal===1280&&z.ohne.video.height.ideal===720,
+   "angefragt werden 1280x720 statt 1920x1080 - reicht fuer jeden Barcode, ist schneller und laesst mehr Kamera-Konfigurationen mit Autofokus zu",z);
+ p(z.ohne.video.facingMode&&z.ohne.video.facingMode.ideal==="environment"&&!z.ohne.video.deviceId,
+   "ohne gemerkte Kamera waehlt weiterhin der Browser die Kamera hinten",z);
+ p(z.mit.video.deviceId&&z.mit.video.deviceId.ideal==="KAM-7"&&!z.mit.video.facingMode,
+   "mit gemerkter Kamera wird GENAU DIESE genommen - die Wahl des Anwenders sticht",z);
+
+ // Die Kamerawahl: nur zeigen, wenn es etwas zu waehlen gibt.
+ z=await page.evaluate(async()=>{
+  const echt=navigator.mediaDevices.enumerateDevices;
+  navigator.mediaDevices.enumerateDevices=async()=>[
+   {kind:"videoinput",deviceId:"a",label:"Kamera vorne"},
+   {kind:"audioinput",deviceId:"m",label:"Mikrofon"}
+  ];
+  await barcodeScanKamerawahlZeichnen();
+  const eine={zu:$("barcodeScanKamerawahl").hidden,inhalt:$("barcodeScanKamerawahl").innerHTML};
+  // Der laufende Track meldet deviceId "b" - dieser Eintrag muss markiert sein.
+  const stream=document.createElement("canvas").captureStream();
+  stream.getVideoTracks()[0].getSettings=()=>({deviceId:"b",width:1280,height:720});
+  $("barcodeScanVideo").srcObject=stream;
+  navigator.mediaDevices.enumerateDevices=async()=>[
+   {kind:"videoinput",deviceId:"a",label:"Kamera hinten, Ultraweit"},
+   {kind:"videoinput",deviceId:"b",label:"Kamera hinten"},
+   {kind:"videoinput",deviceId:"c",label:""}
+  ];
+  await barcodeScanKamerawahlZeichnen();
+  const feld=$("barcodeScanKamerawahl");
+  const knoepfe=[...feld.querySelectorAll("[data-barcode-kamera]")];
+  navigator.mediaDevices.enumerateDevices=echt;
+  return {eine,zu:feld.hidden,
+   anzahl:knoepfe.length,
+   namen:knoepfe.map(k=>k.textContent),
+   aktiv:knoepfe.filter(k=>k.classList.contains("aktiv")).map(k=>k.getAttribute("data-barcode-kamera"))};
+ });
+ p(z.eine.zu===true&&z.eine.inhalt==="",
+   "GEGENPROBE: bei nur EINER Kamera bleibt die Kamerawahl weg - kein Knopf, der nichts zu waehlen hat",z);
+ p(z.zu===false&&z.anzahl===3,"bei mehreren Kameras steht je Kamera ein Knopf da",z);
+ p(z.namen[0]==="Kamera hinten, Ultraweit"&&z.namen[2]==="Kamera 3",
+   "die Knoepfe tragen die Namen des Geraets; eine Kamera ohne Namen bekommt eine Nummer statt leer zu bleiben",z);
+ p(z.aktiv.length===1&&z.aktiv[0]==="b",
+   "genau die laufende Kamera ist markiert - abgeleitet aus dem Track, nicht aus einem zweiten Merker",z);
+
+ // Ein Wechsel merkt die Kamera, verwirft den Zoom der alten und geht
+ // denselben Weg neu.
+ z=await page.evaluate(async()=>{
+  try{ localStorage.setItem("spenglerBarcodeZoom","2.5"); }catch(e){}
+  const echt=window.barcodeScannen;
+  let neuGeoeffnet=0;
+  window.barcodeScannen=async()=>{neuGeoeffnet++};
+  barcodeScanAktuellerCallback=()=>{};
+  await barcodeScanKameraWechseln("KAM-NEU");
+  window.barcodeScannen=echt;
+  const gemerkt=localStorage.getItem("spenglerBarcodeKamera");
+  const zoom=localStorage.getItem("spenglerBarcodeZoom");
+  try{ localStorage.removeItem("spenglerBarcodeKamera"); }catch(e){}
+  return {gemerkt,zoom,neuGeoeffnet};
+ });
+ p(z.gemerkt==="KAM-NEU","ein Kamerawechsel merkt die Kamera - beim naechsten Scan ist sie wieder da",z);
+ p(z.zoom===null,"der Zoom der alten Kamera wird dabei verworfen - er gehoert zur Kamera, nicht zum Geraet",z);
+ p(z.neuGeoeffnet===1,"und der Scan wird ueber barcodeScannen() neu geoeffnet - die EINZIGE Stelle, die eine Kamera oeffnet",z);
+
+ // Der Zoom-Regler: nur da, wenn das Geraet Zoom anbietet.
+ z=await page.evaluate(async()=>{
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  const gesetzt=[];
+  track.getSettings=()=>({deviceId:"b",zoom:1});
+  track.getCapabilities=()=>({});
+  track.applyConstraints=async c=>{gesetzt.push(c)};
+  $("barcodeScanVideo").srcObject=stream;
+  barcodeScanZoomZeichnen();
+  const ohne={zu:$("barcodeScanZoomZeile").hidden,gesetzt:gesetzt.length};
+
+  track.getCapabilities=()=>({zoom:{min:1,max:5,step:0.5}});
+  try{ localStorage.setItem("spenglerBarcodeZoom","3"); }catch(e){}
+  barcodeScanZoomZeichnen();
+  await new Promise(r=>setTimeout(r,80));
+  const regler=$("barcodeScanZoom");
+  const mit={zu:$("barcodeScanZoomZeile").hidden,min:regler.min,max:regler.max,step:regler.step,
+   wert:regler.value,anzeige:$("barcodeScanZoomWert").textContent,
+   gesetzt:gesetzt.map(c=>c.advanced&&c.advanced[0]&&c.advanced[0].zoom)};
+  try{ localStorage.removeItem("spenglerBarcodeZoom"); }catch(e){}
+  return {ohne,mit};
+ });
+ p(z.ohne.zu===true&&z.ohne.gesetzt===0,
+   "GEGENPROBE: kann das Geraet keinen Zoom, bleibt der Regler weg und es wird nichts gesetzt",z);
+ p(z.mit.zu===false&&z.mit.min==="1"&&z.mit.max==="5"&&z.mit.step==="0.5",
+   "kann es Zoom, uebernimmt der Regler die Grenzen des Geraets - nicht erfundene Werte",z);
+ p(z.mit.wert==="3"&&z.mit.gesetzt.indexOf(3)>=0,
+   "ein gemerkter Zoom wird beim Oeffnen wieder gesetzt - einmal eingestellt, bleibt es eingestellt",z);
+ p(/3,0/.test(z.mit.anzeige),"und steht als Zahl daneben, damit man weiss, wo man ist",z);
+
+ // Ein gemerkter Zoom ausserhalb der Grenzen dieser Kamera darf nicht
+ // uebernommen werden.
+ z=await page.evaluate(async()=>{
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.getSettings=()=>({deviceId:"b",zoom:1});
+  track.getCapabilities=()=>({zoom:{min:1,max:2,step:0.1}});
+  track.applyConstraints=async()=>{};
+  $("barcodeScanVideo").srcObject=stream;
+  try{ localStorage.setItem("spenglerBarcodeZoom","9"); }catch(e){}
+  barcodeScanZoomZeichnen();
+  const wert=$("barcodeScanZoom").value;
+  try{ localStorage.removeItem("spenglerBarcodeZoom"); }catch(e){}
+  return {wert};
+ });
+ p(z.wert==="1","GEGENPROBE: ein gemerkter Zoom, den diese Kamera nicht kann, wird verworfen statt hart gesetzt",z);
+
+ // Die Diagnose: die Angaben, mit denen sich ein Kameraproblem klaeren
+ // laesst, ohne zu raten.
+ z=await page.evaluate(async()=>{
+  const echt=navigator.mediaDevices.enumerateDevices;
+  navigator.mediaDevices.enumerateDevices=async()=>[
+   {kind:"videoinput",deviceId:"a",label:"Kamera hinten, Ultraweit"},
+   {kind:"videoinput",deviceId:"b",label:"Kamera hinten"}
+  ];
+  const stream=document.createElement("canvas").captureStream();
+  const track=stream.getVideoTracks()[0];
+  track.getSettings=()=>({deviceId:"b",width:1280,height:720,frameRate:29.97,
+   facingMode:"environment",focusMode:"continuous",zoom:2});
+  track.getCapabilities=()=>({focusMode:["continuous","single-shot"],zoom:{min:1,max:5},
+   focusDistance:{min:0.1,max:1}});
+  $("barcodeScanVideo").srcObject=stream;
+  const text=await barcodeScanDiagnoseText();
+  navigator.mediaDevices.enumerateDevices=echt;
+  return {text};
+ });
+ p(/Kameras am Gerät: 2/.test(z.text)&&/Kamera hinten\s+<-- läuft gerade/.test(z.text),
+   "die Diagnose zaehlt die Kameras auf und sagt, welche laeuft",z);
+ p(/1280 x 720/.test(z.text)&&/30 Bildern\/s/.test(z.text),
+   "sie nennt die tatsaechliche Auflösung und Bildrate - nicht die gewuenschte",z);
+ p(/focusMode: continuous/.test(z.text)&&/Gerät kann: continuous, single-shot/.test(z.text),
+   "sie nennt den laufenden Fokusmodus UND was das Geraet ueberhaupt kann - genau die Angabe, die bisher gefehlt hat",z);
+ p(/Zoom: 2/.test(z.text)&&/Bereich: 1–5/.test(z.text)&&/focusDistance/.test(z.text),
+   "dazu Zoom und Fokusabstand mit ihren Bereichen",z);
+ p(/Eingebauter Barcode-Leser: /.test(z.text)&&/Leseversuche/.test(z.text),
+   "und ob der eingebaute Leser da ist und wie viele Leseversuche gelaufen sind - daran sieht man, ob ueberhaupt gelesen wird",z);
+
+ // Gegenprobe: zugeklappt wird nicht gerechnet - eine Diagnose, die jede
+ // Sekunde die Geraeteliste abfragt, obwohl sie niemand sieht, waere Unsinn.
+ z=await page.evaluate(async()=>{
+  const kasten=$("barcodeScanDiagnose"), feld=$("barcodeScanDiagnoseText");
+  kasten.open=false; feld.textContent="";
+  await barcodeScanDiagnoseZeichnen();
+  const zu=feld.textContent;
+  kasten.open=true;
+  await barcodeScanDiagnoseZeichnen();
+  const offen=feld.textContent;
+  kasten.open=false;
+  return {zu,offenLeer:offen===""};
+ });
+ p(z.zu===""&&z.offenLeer===false,
+   "GEGENPROBE: zugeklappt rechnet die Diagnose nichts - erst beim Aufklappen",z);
+
  // v3.114: manuelle Code-Eingabe als garantierter Rueckweg, unabhaengig von
  // jeder Kamera-Eigenheit. barcodeScanAktuellerCallback ist in dieser
  // Testumgebung nie gesetzt (barcodeScannen() wird hier nie echt

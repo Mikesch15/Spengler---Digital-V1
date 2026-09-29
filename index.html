@@ -175,7 +175,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.221</div>
+<div id="appVersion">Version 3.222</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2440,7 +2440,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.221.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
 </div>
 </div>
 
@@ -3097,7 +3097,29 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 </div>
 <video id="barcodeScanVideo" playsinline muted></video>
 <div id="barcodeScanStatus" class="barcode-scan-status"></div>
-<div class="small" style="color:#cfd8dc;text-align:center;margin-top:2px">Code in den Rahmen halten – er wird von selbst erkannt und scharf gestellt. Hilft nachhelfen: kurz auf das Bild tippen.</div>
+<div class="small" style="color:#cfd8dc;text-align:center;margin-top:2px">Code in den Rahmen halten – er wird von selbst erkannt. Wird er nicht scharf: Abstand halten (20–30 cm) und heranzoomen.</div>
+<!-- v3.222: Kamerawahl. Ein Handy hat hinten mehrere Kameras; die
+     Ultraweitwinkel-Kamera hat einen FESTEN Fokus und wird nah grundsaetzlich
+     nicht scharf. Welche der Browser nimmt, entscheidet er selbst - deshalb
+     darf der Anwender hier waehlen. Die Liste wird erst nach dem Kamerastart
+     gefuellt (vorher gibt der Browser die Namen nicht heraus) und bleibt bei
+     nur einer Kamera weg. -->
+<div id="barcodeScanKamerawahl" class="barcode-scan-wahl" hidden></div>
+<!-- v3.222: Zoom. Der verlaessliche Weg im Browser, wenn eine Kamera nah
+     nicht scharf wird: nicht naeher heran, sondern aus 20-30 cm zoomen.
+     Nur da, wenn das Geraet Zoom ueber den Track anbietet. -->
+<div id="barcodeScanZoomZeile" class="barcode-scan-zoom" hidden>
+ <label for="barcodeScanZoom">Zoom</label>
+ <input type="range" id="barcodeScanZoom" min="1" max="1" step="0.1" value="1">
+ <span id="barcodeScanZoomWert">1,0×</span>
+</div>
+<!-- v3.222: Was das Geraet wirklich liefert - zugeklappt, damit es im Weg
+     nicht stoert, aber da, damit bei einem Problem nicht geraten werden muss. -->
+<details id="barcodeScanDiagnose" class="barcode-scan-diagnose">
+ <summary>Technische Angaben zur Kamera</summary>
+ <pre id="barcodeScanDiagnoseText"></pre>
+ <button type="button" id="barcodeScanDiagnoseKopieren" class="gray">Angaben kopieren</button>
+</details>
 <!-- v3.115: alternative Kamera-Oeffnung ueber die ECHTE native Kamera-App
      des Geraets statt der Web-Vorschau oben - komplett unabhaengig von
      getUserMedia/ImageCapture und deren Eigenheiten. capture="environment"
@@ -3153,7 +3175,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.221.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

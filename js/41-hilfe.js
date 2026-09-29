@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.221.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2188,6 +2188,17 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
+<div class="hin"><b>Wird der Code nicht scharf?</b> (ab 3.222) Ein Handy hat
+hinten mehrere Kameras. Die Ultraweitwinkel-Kamera hat einen <b>festen
+Fokus</b> und wird näher als etwa 10 cm grundsätzlich nicht scharf – und
+welche Kamera der Browser nimmt, entscheidet er selbst. Im Scanner steht
+deshalb unter dem Bild eine <b>Kamerawahl</b>: einfach die nächste
+durchprobieren, die Wahl wird gemerkt. Darunter ein <b>Zoom-Regler</b>, wo
+das Gerät Zoom kann – der verlässlichste Weg ist, nicht näher heranzugehen,
+sondern aus 20–30 cm zu zoomen. Ganz unten stehen unter „Technische Angaben
+zur Kamera“ die Werte des Geräts (welche Kameras es gibt, welche läuft, was
+sie kann); die lassen sich kopieren und weitergeben, damit bei einem Problem
+nicht geraten werden muss.</div>
 <div class="hin"><b>Die Seite auf einen Blick</b> (ab 3.220). Ganz oben steht
 der Stand des Lagers in einer Zeile: wie viele Positionen, wie viele Produkte
 und – rot, solange es welche gibt – wie viele <b>ohne Bestand</b> sind. Darunter
@@ -2219,9 +2230,7 @@ von selbst erkannt – man muss nicht mehr zuerst ein Foto aufnehmen und es
 dann auswerten lassen. <i>Seit 3.221</i> liest dabei auch der <b>eingebaute
 Barcode-Leser des Geräts</b> mit, wo es ihn gibt (Android/Chrome) – dieselbe
 Erkennung, die native Scanner-Apps benutzen; sie ist schneller und kommt mit
-unschärferen und schrägen Codes zurecht. Die Kamera stellt von selbst
-dauernd scharf; ein Tippen aufs Bild stösst zusätzlich einmal scharf, ohne
-das Bild zu unterbrechen. Danach
+unschärferen und schrägen Codes zurecht. Danach
 sucht die App den erkannten Barcode unter den Produkten und öffnet den
 Buchen-Dialog direkt mit der passenden Richtung – nur die Menge muss noch
 bestätigt werden. Will ein Code partout nicht erkannt werden, nimmt

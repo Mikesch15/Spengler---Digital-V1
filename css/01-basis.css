@@ -1765,3 +1765,24 @@ html.dark .rmat-unsicher{color:#e0a35c}
  font-size:15px;font-weight:800}
 .off-pdf-rahmen{width:100%;height:70vh;min-height:340px;margin-top:8px;
  border:1px solid var(--card-line);border-radius:10px;background:#fff}
+
+/* Barcode-Scan: Kamerawahl, Zoom und Diagnose (v3.222) ---------------------
+   Alles im Overlay liegt auf Schwarz - deshalb eigene helle Farben statt der
+   Variablen aus der App. */
+.barcode-scan-wahl{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px}
+.barcode-scan-wahl[hidden]{display:none}
+.barcode-scan-wahl-titel{color:#cfd8dc;font-size:12px}
+.barcode-scan-wahl-knopf{background:#2b3640;color:#e8eef2;border:1px solid #3d4b57;
+ border-radius:8px;padding:6px 10px;font-size:12px;line-height:1.2;max-width:100%;
+ overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.barcode-scan-wahl-knopf.aktiv{background:#1565c0;border-color:#1565c0;color:#fff;font-weight:700}
+.barcode-scan-zoom{display:flex;align-items:center;gap:8px;margin-top:8px;color:#cfd8dc;font-size:12px}
+.barcode-scan-zoom[hidden]{display:none}
+/* Der Regler nimmt den Platz, der uebrig bleibt - die Beschriftung und der
+   Wert behalten ihre Breite, damit nichts springt, wenn man schiebt. */
+.barcode-scan-zoom input[type=range]{flex:1 1 auto;min-width:0}
+.barcode-scan-zoom span{flex:0 0 auto;min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.barcode-scan-diagnose{margin-top:10px;color:#cfd8dc;font-size:12px}
+.barcode-scan-diagnose summary{cursor:pointer;padding:4px 0}
+.barcode-scan-diagnose pre{white-space:pre-wrap;word-break:break-word;background:#11181e;
+ border:1px solid #2b3640;border-radius:8px;padding:8px;margin:6px 0;font-size:11px;line-height:1.45}
