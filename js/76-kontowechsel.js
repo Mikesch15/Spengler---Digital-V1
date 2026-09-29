@@ -89,8 +89,18 @@ async function kwMerken(){
   refresh_token:s.refresh_token,
   zuletzt:new Date().toISOString()
  };
+ // v3.226, ECHTER FEHLER - so ist er aufgetreten: bis hierher wurde der alte
+ // Eintrag ERSETZT. Damit warf jede Anmeldung alles weg, was ein anderes
+ // Modul an diesem Konto vermerkt hatte - konkret den
+ // Fingerabdruck-Schluessel aus js/81 ("webauthn"). Wer sich einmal mit dem
+ // Passwort anmeldete, hatte den Fingerabdruck danach still verloren.
+ // Gemischt wird deshalb, statt zu ersetzen: die Felder von HIER sind die
+ // frischen und gewinnen, alles andere am Eintrag bleibt stehen. Diese
+ // Stelle muss dafuer nicht wissen, welche Felder das sind - sonst waere
+ // sie eine zweite Wahrheit ueber js/81.
+ const alt=kwListe().find(k=>String(k.id)===eintrag.id)||null;
  const liste=kwListe().filter(k=>String(k.id)!==eintrag.id);
- liste.push(eintrag);
+ liste.push(Object.assign({},alt,eintrag));
  return kwSpeichern(liste);
 }
 
