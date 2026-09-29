@@ -1,0 +1,4227 @@
+{
+"lieferant": "B-Team / Arthur Weber AG",
+"stand": "2026-09-29",
+"artikel": [
+{
+"artikelnr": "409373",
+"bezeichnung": "Dachrinnen 330x0.5 mm, 5 m, 18/20 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"dicke": "0.5",
+"laenge": "5",
+"wulst": "18/20",
+"vpe": "5",
+"ean": "3661587017460"
+},
+{
+"artikelnr": "409586",
+"bezeichnung": "Dachrinnen 250x0.5 mm, 5 m, 16/18 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"dicke": "0.5",
+"laenge": "5",
+"wulst": "16/18",
+"vpe": "5",
+"ean": "2720003476531"
+},
+{
+"artikelnr": "422640",
+"bezeichnung": "Rinnenseiher 60 mm Stahl verzinkt",
+"gruppe": "Rinnenseiher",
+"material": "Stahl verzinkt",
+"vpe": "1",
+"ean": "1019006000005"
+},
+{
+"artikelnr": "422641",
+"bezeichnung": "Rinnenseiher 75 mm Stahl verzinkt",
+"gruppe": "Rinnenseiher",
+"material": "Stahl verzinkt",
+"vpe": "1",
+"ean": "1019007500009"
+},
+{
+"artikelnr": "422642",
+"bezeichnung": "Rinnenseiher 100 mm Stahl verzinkt",
+"gruppe": "Rinnenseiher",
+"material": "Stahl verzinkt",
+"vpe": "1",
+"ean": "1019010000008"
+},
+{
+"artikelnr": "438953",
+"bezeichnung": "Dachrinnen 250x0.62 mm, 6 m, 16/18 mm Stahl verzinkt",
+"gruppe": "Dachrinnen",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"dicke": "0.62",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017149"
+},
+{
+"artikelnr": "438954",
+"bezeichnung": "Dachrinnen 330x0.62 mm, 6 m, 18/20 mm Stahl verzinkt",
+"gruppe": "Dachrinnen",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"dicke": "0.62",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017163"
+},
+{
+"artikelnr": "438955",
+"bezeichnung": "Dachrinnen 400x0.62 mm, 6 m, 18/20 mm Stahl verzinkt",
+"gruppe": "Dachrinnen",
+"material": "Stahl verzinkt",
+"zuschnitt": "400",
+"dicke": "0.62",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017170"
+},
+{
+"artikelnr": "438956",
+"bezeichnung": "Dachrinnen 200x0.6 mm, 6 m, 14/16 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "200",
+"dicke": "0.6",
+"laenge": "6",
+"wulst": "14/16",
+"vpe": "6",
+"ean": "3661587253462"
+},
+{
+"artikelnr": "438960",
+"bezeichnung": "Dachrinnen 200x0.5 mm, 6 m, 14/16 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "14/16",
+"vpe": "6",
+"ean": "3661587017354"
+},
+{
+"artikelnr": "438961",
+"bezeichnung": "Dachrinnen 250x0.5 mm, 6 m, 16/18 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017385"
+},
+{
+"artikelnr": "438962",
+"bezeichnung": "Dachrinnen 330x0.5 mm, 6 m, 18/20 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017415"
+},
+{
+"artikelnr": "438963",
+"bezeichnung": "Dachrinnen 400x0.5 mm, 6 m, 18/20 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017422"
+},
+{
+"artikelnr": "438966",
+"bezeichnung": "Dachrinnen 250x0.5 mm, 6 m, 16/18 mm Uginox",
+"gruppe": "Dachrinnen",
+"material": "Uginox",
+"zuschnitt": "250",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017507"
+},
+{
+"artikelnr": "438967",
+"bezeichnung": "Dachrinnen 330x0.5 mm, 6 m, 18/20 mm Uginox",
+"gruppe": "Dachrinnen",
+"material": "Uginox",
+"zuschnitt": "330",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017521"
+},
+{
+"artikelnr": "438968",
+"bezeichnung": "Dachrinnen 200x0.7 mm, 6 m, 14/16 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "200",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "14/16",
+"vpe": "6",
+"ean": "2020001851287"
+},
+{
+"artikelnr": "438969",
+"bezeichnung": "Dachrinnen 250x0.7 mm, 6 m, 16/18 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017644"
+},
+{
+"artikelnr": "438970",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 6 m, 18/20 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017729"
+},
+{
+"artikelnr": "438972",
+"bezeichnung": "Dachrinnen 250x0.7 mm, 6 m, 16/18 mm CuTi-Zink Quartz",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017804"
+},
+{
+"artikelnr": "438973",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 6 m, 18/20 mm CuTi-Zink Quartz",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017828"
+},
+{
+"artikelnr": "438974",
+"bezeichnung": "Dachrinnen 200x0.6 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "200",
+"dicke": "0.6",
+"vpe": "6",
+"ean": "3661587253547"
+},
+{
+"artikelnr": "438975",
+"bezeichnung": "Dachrinnen 250x0.6 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"dicke": "0.6",
+"vpe": "6",
+"ean": "3661587253554"
+},
+{
+"artikelnr": "438976",
+"bezeichnung": "Dachrinnen 330x0.6 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"dicke": "0.6",
+"vpe": "6",
+"ean": "3661587253561"
+},
+{
+"artikelnr": "438977",
+"bezeichnung": "Dachrinnen 400x0.6 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "400",
+"dicke": "0.6",
+"vpe": "6",
+"ean": "3661587253578"
+},
+{
+"artikelnr": "438978",
+"bezeichnung": "Dachrinnen 250x0.5 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024321"
+},
+{
+"artikelnr": "438979",
+"bezeichnung": "Dachrinnen 330x0.5 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024338"
+},
+{
+"artikelnr": "438982",
+"bezeichnung": "Dachrinnen 250x0.5 mm Uginox",
+"gruppe": "Dachrinnen",
+"material": "Uginox",
+"zuschnitt": "250",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024383"
+},
+{
+"artikelnr": "438983",
+"bezeichnung": "Dachrinnen 330x0.5 mm Uginox",
+"gruppe": "Dachrinnen",
+"material": "Uginox",
+"zuschnitt": "330",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024390"
+},
+{
+"artikelnr": "438984",
+"bezeichnung": "Dachrinnen 250x0.7 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024420"
+},
+{
+"artikelnr": "438985",
+"bezeichnung": "Dachrinnen 330x0.7 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024437"
+},
+{
+"artikelnr": "438986",
+"bezeichnung": "Dachrinnen 250x0.7 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024451"
+},
+{
+"artikelnr": "438987",
+"bezeichnung": "Dachrinnen 330x0.7 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024468"
+},
+{
+"artikelnr": "438990",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink --",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587245191"
+},
+{
+"artikelnr": "438991",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink --",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587021474"
+},
+{
+"artikelnr": "438992",
+"bezeichnung": "Rinnenhaken 400x30/6 mm CuTi-Zink --",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021498"
+},
+{
+"artikelnr": "438993",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink vorbew. --",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587245214"
+},
+{
+"artikelnr": "438994",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink vorbew. --",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587021511"
+},
+{
+"artikelnr": "438995",
+"bezeichnung": "Rinnenhaken profiliert 250x27x5 mm Stahl verzinkt",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "5",
+"ean": "2020001851553"
+},
+{
+"artikelnr": "438996",
+"bezeichnung": "Rinnenhaken profiliert 330x27x5 mm Stahl verzinkt",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "5",
+"ean": "2020001851560"
+},
+{
+"artikelnr": "438997",
+"bezeichnung": "Rinnenhaken profiliert 400x30x5 mm Stahl verzinkt",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Stahl verzinkt",
+"zuschnitt": "400",
+"vpe": "5",
+"ean": "2020001851577"
+},
+{
+"artikelnr": "438998",
+"bezeichnung": "Rinnenhaken profiliert 200x25x5 mm Kupfer",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587021610"
+},
+{
+"artikelnr": "438999",
+"bezeichnung": "Rinnenhaken profiliert 250x25x5 mm Kupfer",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587021627"
+},
+{
+"artikelnr": "439001",
+"bezeichnung": "Rinnenhaken profiliert 330x27x5 mm Kupfer",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587021641"
+},
+{
+"artikelnr": "439003",
+"bezeichnung": "Rinnenhaken profiliert 400x30x6 mm Kupfer",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021672"
+},
+{
+"artikelnr": "439004",
+"bezeichnung": "Rinnenhaken profiliert 400x27x5 mm Kupfer",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021665"
+},
+{
+"artikelnr": "439006",
+"bezeichnung": "Rinnenhaken profiliert 200x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken profiliert",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587021689"
+},
+{
+"artikelnr": "439007",
+"bezeichnung": "Rinnenhaken profiliert 250x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken profiliert",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587021696"
+},
+{
+"artikelnr": "439008",
+"bezeichnung": "Rinnenhaken profiliert 330x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken profiliert",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3700346498758"
+},
+{
+"artikelnr": "439009",
+"bezeichnung": "Rinnenhaken profiliert 400x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken profiliert",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021726"
+},
+{
+"artikelnr": "439017",
+"bezeichnung": "Rinnenhaken eckig 200x25x5 mm Kupfer",
+"gruppe": "Rinnenhaken eckig",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587021733"
+},
+{
+"artikelnr": "439018",
+"bezeichnung": "Rinnenhaken eckig 250x27x5 mm Kupfer",
+"gruppe": "Rinnenhaken eckig",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587021740"
+},
+{
+"artikelnr": "439019",
+"bezeichnung": "Rinnenhaken eckig 330x27x5 mm Kupfer",
+"gruppe": "Rinnenhaken eckig",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587021757"
+},
+{
+"artikelnr": "439020",
+"bezeichnung": "Rinnenhaken eckig 400x30x6 mm Kupfer",
+"gruppe": "Rinnenhaken eckig",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021764"
+},
+{
+"artikelnr": "439021",
+"bezeichnung": "Rinnenhaken eckig 250x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken eckig",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587021788"
+},
+{
+"artikelnr": "439022",
+"bezeichnung": "Rinnenhaken eckig 330x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken eckig",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587021795"
+},
+{
+"artikelnr": "439023",
+"bezeichnung": "Rinnenhaken eckig 400x30x6 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken eckig",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587021801"
+},
+{
+"artikelnr": "439083",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587024994",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439084",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025007",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439085",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025014",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439086",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025021",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439087",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025052",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439088",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025069",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439089",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025076",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439090",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025083",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439092",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025106",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439093",
+"bezeichnung": "Rinnenböden / Anklemmböden Uginox 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025120",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439094",
+"bezeichnung": "Rinnenböden / Anklemmböden Uginox 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025137",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439095",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025151",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439096",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025168",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439097",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025175",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439098",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025182",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439099",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink vorbew. 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025199",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439100",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink vorbew. 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025205",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439104",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025281",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439105",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025298",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439106",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025304",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439107",
+"bezeichnung": "Rinnenböden / Anklemmböden Kupfer 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025311",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439108",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025342",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439109",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025359",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439110",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025366",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439111",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025373",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439113",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025397",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439114",
+"bezeichnung": "Rinnenböden / Anklemmböden Uginox 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025410",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439115",
+"bezeichnung": "Rinnenböden / Anklemmböden Uginox 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025427",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439116",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025441",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439117",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025458",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439118",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025465",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439119",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink 400 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025472",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439120",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink vorbew. 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025489",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439121",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink vorbew. 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025496",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439122",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 200 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025540",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439123",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 200 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025557",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439124",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025564",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439125",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025571",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439126",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025588",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439127",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025595",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439128",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025601",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439129",
+"bezeichnung": "Rinnenböden / Ansteckböden Kupfer 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025618",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439130",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025649",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439131",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025656",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439132",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025663",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439133",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025670",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439134",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025700",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439135",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025717",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439136",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025724",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439137",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025731",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439138",
+"bezeichnung": "Rinnenböden / Ansteckböden Uginox 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025748",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439139",
+"bezeichnung": "Rinnenböden / Ansteckböden Uginox 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025755",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439140",
+"bezeichnung": "Rinnenböden / Ansteckböden Uginox 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025762",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439141",
+"bezeichnung": "Rinnenböden / Ansteckböden Uginox 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025779",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439142",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025786",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439143",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025793",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439144",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025809",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439145",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025816",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439150",
+"bezeichnung": "Rinnenkugelböden Stahl verzinkt 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "1013025000008"
+},
+{
+"artikelnr": "439151",
+"bezeichnung": "Rinnenkugelböden Stahl verzinkt 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "1013033000007"
+},
+{
+"artikelnr": "439152",
+"bezeichnung": "Rinnenkugelböden Kupfer 200 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001853120"
+},
+{
+"artikelnr": "439153",
+"bezeichnung": "Rinnenkugelböden Kupfer 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853137",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439154",
+"bezeichnung": "Rinnenkugelböden Kupfer 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853144",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439155",
+"bezeichnung": "Rinnenkugelböden CrNi-Stahl 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4013025000005"
+},
+{
+"artikelnr": "439156",
+"bezeichnung": "Rinnenkugelböden CrNi-Stahl 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4013033000004"
+},
+{
+"artikelnr": "439159",
+"bezeichnung": "Rinnenkugelböden Uginox 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4413025000003"
+},
+{
+"artikelnr": "439160",
+"bezeichnung": "Rinnenkugelböden Uginox 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4413033000002"
+},
+{
+"artikelnr": "439161",
+"bezeichnung": "Rinnenkugelböden CuTi-Zink 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "5013025000004"
+},
+{
+"artikelnr": "439162",
+"bezeichnung": "Rinnenkugelböden CuTi-Zink 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "5013033000003"
+},
+{
+"artikelnr": "439163",
+"bezeichnung": "Rinnenkugelböden Kupfer 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853236",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439164",
+"bezeichnung": "Rinnenkugelböden Kupfer 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853243",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439165",
+"bezeichnung": "Dehnungselemente 250x375 mm Stahl verzinkt",
+"gruppe": "Dehnungselemente",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853250"
+},
+{
+"artikelnr": "439166",
+"bezeichnung": "Dehnungselemente 330x375 mm Stahl verzinkt",
+"gruppe": "Dehnungselemente",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853267"
+},
+{
+"artikelnr": "439167",
+"bezeichnung": "Dehnungselemente 250x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853274",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439168",
+"bezeichnung": "Dehnungselemente 330x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853281",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439169",
+"bezeichnung": "Dehnungselemente 400x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001853298",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439170",
+"bezeichnung": "Dehnungselemente 250x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853304",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439171",
+"bezeichnung": "Dehnungselemente 330x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853311",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439172",
+"bezeichnung": "Dehnungselemente 400x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001853328",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439175",
+"bezeichnung": "Dehnungselemente 250x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853359",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439176",
+"bezeichnung": "Dehnungselemente 330x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853366",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439177",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853373",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439178",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853380",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439179",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853397",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439180",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853403",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439181",
+"bezeichnung": "Dehnungselemente 250x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853410",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439182",
+"bezeichnung": "Dehnungselemente 330x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853427",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439183",
+"bezeichnung": "Dehnungselemente 250x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853434",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439184",
+"bezeichnung": "Dehnungselemente 330x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853441",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439185",
+"bezeichnung": "Dehnungselemente 250x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853458",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439186",
+"bezeichnung": "Dehnungselemente 330x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853465",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439187",
+"bezeichnung": "Dehnungselemente 250x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853472",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439188",
+"bezeichnung": "Dehnungselemente 330x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853489",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439189",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853496",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439190",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853502",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439191",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001853519",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439192",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001853526",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439193",
+"bezeichnung": "Rinnenwinkel 250 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026332",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439194",
+"bezeichnung": "Rinnenwinkel 330 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026349",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439196",
+"bezeichnung": "Rinnenwinkel 200 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587026363",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439197",
+"bezeichnung": "Rinnenwinkel 250 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026370",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439198",
+"bezeichnung": "Rinnenwinkel 330 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026387",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439199",
+"bezeichnung": "Rinnenwinkel 400 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587026394",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439200",
+"bezeichnung": "Rinnenwinkel 250 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026417",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439201",
+"bezeichnung": "Rinnenwinkel 330 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026424",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439202",
+"bezeichnung": "Rinnenwinkel 400 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587026431",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439205",
+"bezeichnung": "Rinnenwinkel 250 mm Uginox",
+"gruppe": "Rinnenwinkel",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3700346498840",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439206",
+"bezeichnung": "Rinnenwinkel 330 mm Uginox",
+"gruppe": "Rinnenwinkel",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3700346498857",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439207",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026493",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439208",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026509",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439209",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink vorbew.",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026516",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439210",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink vorbew.",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026523",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439211",
+"bezeichnung": "Rinnenwinkel 250 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026578",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439212",
+"bezeichnung": "Rinnenwinkel 330 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026585",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439214",
+"bezeichnung": "Rinnenwinkel 200 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587026608",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439215",
+"bezeichnung": "Rinnenwinkel 250 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026615",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439216",
+"bezeichnung": "Rinnenwinkel 330 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026622",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439217",
+"bezeichnung": "Rinnenwinkel 400 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587026639",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439218",
+"bezeichnung": "Rinnenwinkel 250 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026653",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439219",
+"bezeichnung": "Rinnenwinkel 330 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026660",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439220",
+"bezeichnung": "Rinnenwinkel 400 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587026677",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439223",
+"bezeichnung": "Rinnenwinkel 250 mm Uginox",
+"gruppe": "Rinnenwinkel",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3700346498864",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439224",
+"bezeichnung": "Rinnenwinkel 330 mm Uginox",
+"gruppe": "Rinnenwinkel",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3700346498871",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439225",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026738",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439226",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026745",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439227",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink vorbew.",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026752",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439228",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink vorbew.",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026769",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439233",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm rechts Kupfer",
+"gruppe": "Gehrschildwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026806"
+},
+{
+"artikelnr": "439234",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm links Kupfer",
+"gruppe": "Gehrschildwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026813"
+},
+{
+"artikelnr": "439235",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm rechts Kupfer",
+"gruppe": "Gehrschildwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026820"
+},
+{
+"artikelnr": "439236",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm links Kupfer",
+"gruppe": "Gehrschildwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026837"
+},
+{
+"artikelnr": "439237",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm rechts CrNi-Stahl",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026844"
+},
+{
+"artikelnr": "439238",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm links CrNi-Stahl",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026851"
+},
+{
+"artikelnr": "439239",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm rechts CrNi-Stahl",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026868"
+},
+{
+"artikelnr": "439240",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm links CrNi-Stahl",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026875"
+},
+{
+"artikelnr": "439241",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm rechts CrNi-Stahl mattplus",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026882"
+},
+{
+"artikelnr": "439242",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm links CrNi-Stahl mattplus",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026899"
+},
+{
+"artikelnr": "439243",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm rechts CrNi-Stahl mattplus",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026905"
+},
+{
+"artikelnr": "439244",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm links CrNi-Stahl mattplus",
+"gruppe": "Gehrschildwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026912"
+},
+{
+"artikelnr": "439245",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm rechts CuTi-Zink",
+"gruppe": "Gehrschildwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026929"
+},
+{
+"artikelnr": "439246",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 250 mm links CuTi-Zink",
+"gruppe": "Gehrschildwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026936"
+},
+{
+"artikelnr": "439247",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm rechts CuTi-Zink",
+"gruppe": "Gehrschildwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026943"
+},
+{
+"artikelnr": "439248",
+"bezeichnung": "Gehrschildwinkel 100 ° Abw. 330 mm links CuTi-Zink",
+"gruppe": "Gehrschildwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026950"
+},
+{
+"artikelnr": "439249",
+"bezeichnung": "Rinnenwinkel 250x75 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587230166",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439250",
+"bezeichnung": "Rinnenwinkel 330x100 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026967",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439251",
+"bezeichnung": "Rinnenwinkel 250x75 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026974",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439252",
+"bezeichnung": "Rinnenwinkel 330x75 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026981",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439253",
+"bezeichnung": "Rinnenwinkel 330x100 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026998",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439254",
+"bezeichnung": "Rinnenwinkel 250x75 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587027001",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439255",
+"bezeichnung": "Rinnenwinkel 330x75 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027018",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439256",
+"bezeichnung": "Rinnenwinkel 330x100 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027025",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439257",
+"bezeichnung": "Rinnenwinkel 250x75 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587027032",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439258",
+"bezeichnung": "Rinnenwinkel 330x100 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027049",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439259",
+"bezeichnung": "Rinnenwinkel 250x75 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587230173",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439260",
+"bezeichnung": "Rinnenwinkel 330x100 mm Stahl verzinkt",
+"gruppe": "Rinnenwinkel",
+"material": "Stahl verzinkt",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587230180",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439261",
+"bezeichnung": "Rinnenwinkel 250x75 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587027056",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439262",
+"bezeichnung": "Rinnenwinkel 330x75 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027063",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439263",
+"bezeichnung": "Rinnenwinkel 330x100 mm Kupfer",
+"gruppe": "Rinnenwinkel",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027070",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439264",
+"bezeichnung": "Rinnenwinkel 250x75 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587230197",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439265",
+"bezeichnung": "Rinnenwinkel 330x75 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587230203",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439266",
+"bezeichnung": "Rinnenwinkel 330x100 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027087",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439267",
+"bezeichnung": "Rinnenwinkel 250x75 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587027094",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439268",
+"bezeichnung": "Rinnenwinkel 330x100 mm CuTi-Zink",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587027100",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "439306",
+"bezeichnung": "Rinnenstutzen 75 mm 10.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016340"
+},
+{
+"artikelnr": "439308",
+"bezeichnung": "Rinnenstutzen 75 mm 10.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016463"
+},
+{
+"artikelnr": "439309",
+"bezeichnung": "Rinnenstutzen 100 mm 10.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016555"
+},
+{
+"artikelnr": "439310",
+"bezeichnung": "Rinnenstutzen 50 mm 20.160.200.050",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587016234"
+},
+{
+"artikelnr": "439311",
+"bezeichnung": "Rinnenstutzen 60 mm 20.160.200.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587016241"
+},
+{
+"artikelnr": "439312",
+"bezeichnung": "Rinnenstutzen 60 mm 20.160.250.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016265"
+},
+{
+"artikelnr": "439313",
+"bezeichnung": "Rinnenstutzen 75 mm 20.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587257514"
+},
+{
+"artikelnr": "439314",
+"bezeichnung": "Rinnenstutzen 100 mm 20.160.250.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016388"
+},
+{
+"artikelnr": "439315",
+"bezeichnung": "Rinnenstutzen 75 mm 20.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587257491"
+},
+{
+"artikelnr": "439316",
+"bezeichnung": "Rinnenstutzen 100 mm 20.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587257507"
+},
+{
+"artikelnr": "439317",
+"bezeichnung": "Rinnenstutzen 120 mm 20.160.330.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016593"
+},
+{
+"artikelnr": "439318",
+"bezeichnung": "Rinnenstutzen 75 mm 40.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016357"
+},
+{
+"artikelnr": "439319",
+"bezeichnung": "Rinnenstutzen 75 mm 40.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016470"
+},
+{
+"artikelnr": "439320",
+"bezeichnung": "Rinnenstutzen 100 mm 40.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016562"
+},
+{
+"artikelnr": "439321",
+"bezeichnung": "Rinnenstutzen 120 mm 40.160.330.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016616"
+},
+{
+"artikelnr": "439325",
+"bezeichnung": "Rinnenstutzen 75 mm 44.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016364"
+},
+{
+"artikelnr": "439326",
+"bezeichnung": "Rinnenstutzen 75 mm 44.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016487"
+},
+{
+"artikelnr": "439327",
+"bezeichnung": "Rinnenstutzen 100 mm 44.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016579"
+},
+{
+"artikelnr": "439328",
+"bezeichnung": "Rinnenstutzen 75 mm 50.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016302"
+},
+{
+"artikelnr": "439329",
+"bezeichnung": "Rinnenstutzen 100 mm 50.160.250.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016395"
+},
+{
+"artikelnr": "439330",
+"bezeichnung": "Rinnenstutzen 75 mm 50.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016425"
+},
+{
+"artikelnr": "439331",
+"bezeichnung": "Rinnenstutzen 100 mm 50.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016517"
+},
+{
+"artikelnr": "439332",
+"bezeichnung": "Rinnenstutzen 120 mm 50.160.330.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016609"
+},
+{
+"artikelnr": "439333",
+"bezeichnung": "Rinnenstutzen 75 mm 51.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016333"
+},
+{
+"artikelnr": "439334",
+"bezeichnung": "Rinnenstutzen 75 mm 51.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016456"
+},
+{
+"artikelnr": "439335",
+"bezeichnung": "Rinnenstutzen 100 mm 51.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016548"
+},
+{
+"artikelnr": "439336",
+"bezeichnung": "Schrägstutzen 75 mm Kupfer 250 mm",
+"gruppe": "Schrägstutzen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001854974"
+},
+{
+"artikelnr": "439337",
+"bezeichnung": "Schrägstutzen 75 mm Kupfer 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001854981"
+},
+{
+"artikelnr": "439338",
+"bezeichnung": "Schrägstutzen 100 mm Kupfer 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "Kupfer",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "2020001854998"
+},
+{
+"artikelnr": "439339",
+"bezeichnung": "Schrägstutzen 75 mm CrNi-Stahl 250 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4017025007507"
+},
+{
+"artikelnr": "439340",
+"bezeichnung": "Schrägstutzen 75 mm CrNi-Stahl 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4017033007506"
+},
+{
+"artikelnr": "439341",
+"bezeichnung": "Schrägstutzen 100 mm CrNi-Stahl 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "4017033010001"
+},
+{
+"artikelnr": "439342",
+"bezeichnung": "Schrägstutzen 75 mm CuTi-Zink 250 mm",
+"gruppe": "Schrägstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "5017025007506"
+},
+{
+"artikelnr": "439343",
+"bezeichnung": "Schrägstutzen 75 mm CuTi-Zink 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "5017033007505"
+},
+{
+"artikelnr": "439344",
+"bezeichnung": "Schrägstutzen 100 mm CuTi-Zink 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "5017033010000"
+},
+{
+"artikelnr": "439345",
+"bezeichnung": "Rinnenseiher 120 mm Stahl verzinkt",
+"gruppe": "Rinnenseiher",
+"material": "Stahl verzinkt",
+"vpe": "1",
+"ean": "1019012000006"
+},
+{
+"artikelnr": "439346",
+"bezeichnung": "Rinnenseiher 60 mm Kupfer",
+"gruppe": "Rinnenseiher",
+"material": "Kupfer",
+"vpe": "1",
+"ean": "2020001855070"
+},
+{
+"artikelnr": "439347",
+"bezeichnung": "Rinnenseiher 75 mm Kupfer",
+"gruppe": "Rinnenseiher",
+"material": "Kupfer",
+"vpe": "1",
+"ean": "2020001855087"
+},
+{
+"artikelnr": "439348",
+"bezeichnung": "Rinnenseiher 100 mm Kupfer",
+"gruppe": "Rinnenseiher",
+"material": "Kupfer",
+"vpe": "1",
+"ean": "2020001855094"
+},
+{
+"artikelnr": "439349",
+"bezeichnung": "Rinnenseiher 120 mm Kupfer",
+"gruppe": "Rinnenseiher",
+"material": "Kupfer",
+"vpe": "1",
+"ean": "2020001855100"
+},
+{
+"artikelnr": "439350",
+"bezeichnung": "Rinnenseiher 150 mm Kupfer",
+"gruppe": "Rinnenseiher",
+"material": "Kupfer",
+"vpe": "1",
+"ean": "2020001855117"
+},
+{
+"artikelnr": "439351",
+"bezeichnung": "Rinnenseiher 60 mm CrNi-Stahl",
+"gruppe": "Rinnenseiher",
+"material": "CrNi-Stahl",
+"vpe": "1",
+"ean": "2020001855124"
+},
+{
+"artikelnr": "439352",
+"bezeichnung": "Rinnenseiher 75 mm CrNi-Stahl",
+"gruppe": "Rinnenseiher",
+"material": "CrNi-Stahl",
+"vpe": "1",
+"ean": "4019007500006"
+},
+{
+"artikelnr": "439353",
+"bezeichnung": "Rinnenseiher 100 mm CrNi-Stahl",
+"gruppe": "Rinnenseiher",
+"material": "CrNi-Stahl",
+"vpe": "1",
+"ean": "4019010000005"
+},
+{
+"artikelnr": "439354",
+"bezeichnung": "Rinnenseiher 120 mm CrNi-Stahl",
+"gruppe": "Rinnenseiher",
+"material": "CrNi-Stahl",
+"vpe": "1",
+"ean": "4019012000003"
+},
+{
+"artikelnr": "439427",
+"bezeichnung": "Dehnungselemente 400x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2720003014801",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "440818",
+"bezeichnung": "Dehnungselemente 200x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "7611801240385",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "441008",
+"bezeichnung": "Dehnungselemente 200x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "7611801280800",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "441009",
+"bezeichnung": "Dehnungselemente 200x375 mm Kupfer",
+"gruppe": "Dehnungselemente",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "7611801280817",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "441010",
+"bezeichnung": "Dehnungselemente 200x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "7611801280824"
+},
+{
+"artikelnr": "441282",
+"bezeichnung": "Dachrinnen 250x0.6 mm, 5 m, 16/18 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"dicke": "0.6",
+"laenge": "5",
+"wulst": "16/18",
+"vpe": "5",
+"ean": "3661587227104"
+},
+{
+"artikelnr": "441283",
+"bezeichnung": "Dachrinnen 330x0.6 mm, 5 m, 18/20 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"dicke": "0.6",
+"laenge": "5",
+"wulst": "18/20",
+"vpe": "5",
+"ean": "3661587017293"
+},
+{
+"artikelnr": "441284",
+"bezeichnung": "Dachrinnen 250x0.5 mm, 5 m, 16/18 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"dicke": "0.5",
+"laenge": "5",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017378"
+},
+{
+"artikelnr": "441285",
+"bezeichnung": "Dachrinnen 330x0.5 mm, 5 m, 18/20 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"dicke": "0.5",
+"laenge": "5",
+"wulst": "18/20",
+"vpe": "5",
+"ean": "3661587017408"
+},
+{
+"artikelnr": "441286",
+"bezeichnung": "Dachrinnen 250x0.7 mm, 5 m, 16/18 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"dicke": "0.7",
+"laenge": "5",
+"wulst": "16/18",
+"vpe": "5",
+"ean": "2020001863464"
+},
+{
+"artikelnr": "441287",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 5 m, 18/20 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "5",
+"wulst": "18/20",
+"vpe": "5",
+"ean": "2020001863471"
+},
+{
+"artikelnr": "441295",
+"bezeichnung": "Rinnenstutzen 100 mm 20.160.400.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016623"
+},
+{
+"artikelnr": "441296",
+"bezeichnung": "Rinnenstutzen 120 mm 20.160.400.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016678"
+},
+{
+"artikelnr": "441297",
+"bezeichnung": "Rinnenstutzen 100 mm 40.160.400.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016654"
+},
+{
+"artikelnr": "441298",
+"bezeichnung": "Rinnenstutzen 120 mm 40.160.400.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016708"
+},
+{
+"artikelnr": "441299",
+"bezeichnung": "Rinnenstutzen 100 mm 50.160.400.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016630"
+},
+{
+"artikelnr": "441300",
+"bezeichnung": "Rinnenstutzen 120 mm 50.160.400.120",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "120",
+"vpe": "1",
+"ean": "3661587016685"
+},
+{
+"artikelnr": "441307",
+"bezeichnung": "Dachrinnen 250x0.5 mm, 6 m, 16/18 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017446"
+},
+{
+"artikelnr": "441308",
+"bezeichnung": "Dachrinnen 330x0.5 mm, 6 m, 18/20 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017477"
+},
+{
+"artikelnr": "441309",
+"bezeichnung": "Dehnungselemente 400x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001864218",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "443039",
+"bezeichnung": "Rinnenhaken eckig 200x27x4 mm CrNi-Stahl",
+"gruppe": "Rinnenhaken eckig",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587021771"
+},
+{
+"artikelnr": "443040",
+"bezeichnung": "Rinnenstutzen 60 mm 40.160.250.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016289"
+},
+{
+"artikelnr": "443041",
+"bezeichnung": "Rinnenstutzen 60 mm 50.160.200.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587016258"
+},
+{
+"artikelnr": "443042",
+"bezeichnung": "Rinnenstutzen 60 mm 50.160.250.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016272"
+},
+{
+"artikelnr": "443144",
+"bezeichnung": "Dachrinnen 400x0.7 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024444"
+},
+{
+"artikelnr": "443145",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025830",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "443146",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025823",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "443147",
+"bezeichnung": "Rinnenstutzen 200 / Ø 60 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001888412"
+},
+{
+"artikelnr": "443148",
+"bezeichnung": "Rinnenstutzen 250 / Ø 75 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001888429"
+},
+{
+"artikelnr": "443149",
+"bezeichnung": "Rinnenstutzen 330 / Ø 75 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001888436"
+},
+{
+"artikelnr": "443150",
+"bezeichnung": "Rinnenstutzen 330 / Ø 100 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001888443"
+},
+{
+"artikelnr": "443151",
+"bezeichnung": "Rinnenstutzen 400 / Ø 100 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001888450"
+},
+{
+"artikelnr": "443152",
+"bezeichnung": "Rinnenstutzen 400 / Ø 120 mm CuTi-Zink",
+"gruppe": "Rinnenstutzen",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001888467"
+},
+{
+"artikelnr": "443214",
+"bezeichnung": "Dachrinnen 250x0.7 mm, 6 m, 16/18 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "250",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017767"
+},
+{
+"artikelnr": "443215",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 6 m, 18/20 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017781"
+},
+{
+"artikelnr": "443225",
+"bezeichnung": "Dachrinnen 200x0.5 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024314"
+},
+{
+"artikelnr": "443367",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025090",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "443368",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025380",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "445088",
+"bezeichnung": "Rinnenstutzen 60 mm 40.160.200.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587226749"
+},
+{
+"artikelnr": "445143",
+"bezeichnung": "Rinnenwinkel 200 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001919635",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "445144",
+"bezeichnung": "Rinnenwinkel 200 mm CrNi-Stahl",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001919642",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "445315",
+"bezeichnung": "Rinnenstutzen 100 mm 40.160.250.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587226787"
+},
+{
+"artikelnr": "445345",
+"bezeichnung": "Dachrinnen 250x0.6 mm, 4 m, 16/18 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"dicke": "0.6",
+"laenge": "4",
+"wulst": "16/18",
+"vpe": "4",
+"ean": "3661587227098"
+},
+{
+"artikelnr": "445369",
+"bezeichnung": "Dachrinnen 330x0.6 mm, 4 m, 18/20 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"dicke": "0.6",
+"laenge": "4",
+"wulst": "18/20",
+"vpe": "4",
+"ean": "3661587227227"
+},
+{
+"artikelnr": "446628",
+"bezeichnung": "Dachrinnen 400x0.5 mm CrNi-Stahl",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024345"
+},
+{
+"artikelnr": "446629",
+"bezeichnung": "Dehnungselemente 400x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001964024",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "446630",
+"bezeichnung": "Rinnenstutzen 200 / Ø 60 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001964031"
+},
+{
+"artikelnr": "446631",
+"bezeichnung": "Rinnenstutzen 250 / Ø 75 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001964048"
+},
+{
+"artikelnr": "446632",
+"bezeichnung": "Rinnenstutzen 330 / Ø 75 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001964055"
+},
+{
+"artikelnr": "446633",
+"bezeichnung": "Rinnenstutzen 330 / Ø 100 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001964062"
+},
+{
+"artikelnr": "446634",
+"bezeichnung": "Rinnenstutzen 400 / Ø 100 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001964079"
+},
+{
+"artikelnr": "446635",
+"bezeichnung": "Rinnenstutzen 400 / Ø 120 mm Kupfer",
+"gruppe": "Rinnenstutzen",
+"material": "Kupfer",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001964086"
+},
+{
+"artikelnr": "446636",
+"bezeichnung": "Rinnenstutzen 200 / Ø 60 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001964093"
+},
+{
+"artikelnr": "446637",
+"bezeichnung": "Rinnenstutzen 250 / Ø 75 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001964109"
+},
+{
+"artikelnr": "446638",
+"bezeichnung": "Rinnenstutzen 330 / Ø 75 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001964116"
+},
+{
+"artikelnr": "446639",
+"bezeichnung": "Rinnenstutzen 330 / Ø 100 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2020001964130"
+},
+{
+"artikelnr": "446640",
+"bezeichnung": "Rinnenstutzen 400 / Ø 100 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001964147"
+},
+{
+"artikelnr": "446641",
+"bezeichnung": "Rinnenstutzen 400 / Ø 120 mm CrNi-Stahl",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001964154"
+},
+{
+"artikelnr": "446680",
+"bezeichnung": "Dachrinnen 200x0.5 mm, 6 m, 14/16 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "200",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "14/16",
+"vpe": "6",
+"ean": "2020001966004"
+},
+{
+"artikelnr": "446691",
+"bezeichnung": "Dachrinnen 400x0.5 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587230043"
+},
+{
+"artikelnr": "446692",
+"bezeichnung": "Dehnungselemente 400x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020001966790",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "446693",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025687",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "446694",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587025694",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "446696",
+"bezeichnung": "Dachrinnen 250x0.5 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024369"
+},
+{
+"artikelnr": "446697",
+"bezeichnung": "Dachrinnen 330x0.5 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"dicke": "0.5",
+"vpe": "6",
+"ean": "3661587024376"
+},
+{
+"artikelnr": "446698",
+"bezeichnung": "Rinnenstutzen 250 / Ø 75 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2020001967285"
+},
+{
+"artikelnr": "446707",
+"bezeichnung": "Rinnenhaken profiliert 200x25x5 mm Stahl verzinkt",
+"gruppe": "Rinnenhaken profiliert",
+"material": "Stahl verzinkt",
+"zuschnitt": "200",
+"vpe": "5",
+"ean": "2020001967506"
+},
+{
+"artikelnr": "446753",
+"bezeichnung": "Dehnungselemente 200x375 mm CrNi-Stahl",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "2020001968015",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "447210",
+"bezeichnung": "Dachrinnen 330x0.6 mm, 6 m, 18/20 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "330",
+"dicke": "0.6",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017309"
+},
+{
+"artikelnr": "449098",
+"bezeichnung": "Dachrinnen 250x0.6 mm, 6 m, 16/18 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "250",
+"dicke": "0.6",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017194"
+},
+{
+"artikelnr": "449155",
+"bezeichnung": "Dachrinnen 400x0.6 mm, 6 m, 18/20 mm Kupfer",
+"gruppe": "Dachrinnen",
+"material": "Kupfer",
+"zuschnitt": "400",
+"dicke": "0.6",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3700346498482"
+},
+{
+"artikelnr": "449287",
+"bezeichnung": "Dehnungselemente 400x375 mm CuTi-Zink",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2020002016517",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451844",
+"bezeichnung": "Dehnungselemente 250x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2720003174673",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451845",
+"bezeichnung": "Dehnungselemente 330x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2720003174680",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451846",
+"bezeichnung": "Dehnungselemente 400x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2720003174697",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451853",
+"bezeichnung": "Rinnenkugelböden CrNi-Stahl mattplus 250 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4313025000006"
+},
+{
+"artikelnr": "451855",
+"bezeichnung": "Rinnenstutzen 60 mm 43.160.200.060",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "200",
+"vpe": "25",
+"ean": "2720003174789"
+},
+{
+"artikelnr": "451856",
+"bezeichnung": "Rinnenstutzen 75 mm 43.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016371"
+},
+{
+"artikelnr": "451857",
+"bezeichnung": "Rinnenstutzen 75 mm 43.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016494"
+},
+{
+"artikelnr": "451858",
+"bezeichnung": "Rinnenstutzen 100 mm 43.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016586"
+},
+{
+"artikelnr": "451859",
+"bezeichnung": "Schrägstutzen 75 mm Uginox 250 mm",
+"gruppe": "Schrägstutzen",
+"material": "Uginox",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4417025007505"
+},
+{
+"artikelnr": "451860",
+"bezeichnung": "Schrägstutzen 75 mm Uginox 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "Uginox",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4417033007504"
+},
+{
+"artikelnr": "451861",
+"bezeichnung": "Schrägstutzen 100 mm Uginox 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "Uginox",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "4417033010009"
+},
+{
+"artikelnr": "451862",
+"bezeichnung": "Rinnenwinkel 250 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026448",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451863",
+"bezeichnung": "Rinnenwinkel 330 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026455",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451864",
+"bezeichnung": "Rinnenwinkel 250 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026684",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "451865",
+"bezeichnung": "Rinnenwinkel 330 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenwinkel",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026691",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "453069",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587266233",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "453070",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl mattplus 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587266240",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "453071",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 200 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025625",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "453072",
+"bezeichnung": "Rinnenböden / Ansteckböden CrNi-Stahl 200 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CrNi-Stahl",
+"zuschnitt": "200",
+"vpe": "1",
+"ean": "3661587025632",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "453073",
+"bezeichnung": "Rinnenstutzen 330 / Ø 100 mm CrNi-Stahl mattplus",
+"gruppe": "Rinnenstutzen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "2720003220394"
+},
+{
+"artikelnr": "453484",
+"bezeichnung": "Schrägstutzen 75 mm CrNi-Stahl mattplus 250 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "4317025007508"
+},
+{
+"artikelnr": "453485",
+"bezeichnung": "Schrägstutzen 75 mm CrNi-Stahl mattplus 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4317033007507"
+},
+{
+"artikelnr": "453486",
+"bezeichnung": "Schrägstutzen 100 mm CrNi-Stahl mattplus 330 mm",
+"gruppe": "Schrägstutzen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "4317033010002"
+},
+{
+"artikelnr": "454331",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink Quartz mit CrNi Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587250584"
+},
+{
+"artikelnr": "454332",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink Quartz mit CrNi Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587250607"
+},
+{
+"artikelnr": "454333",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Quartz 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025212",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454334",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Quartz 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025229",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454335",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Quartz 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025502",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454336",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Quartz 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025519",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454368",
+"bezeichnung": "Rinnenstutzen 75 mm 52.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016326"
+},
+{
+"artikelnr": "454369",
+"bezeichnung": "Rinnenstutzen 75 mm 52.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016449"
+},
+{
+"artikelnr": "454370",
+"bezeichnung": "Rinnenstutzen 100 mm 52.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016531"
+},
+{
+"artikelnr": "454375",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026776",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454376",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026783",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454377",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026530",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454378",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026547",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454379",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink vorbew. VM Quartz",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew. VM Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587356590"
+},
+{
+"artikelnr": "454380",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink vorbew. VM Quartz",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew. VM Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587356606"
+},
+{
+"artikelnr": "454386",
+"bezeichnung": "Dachrinnen 250x0.7 mm, 6 m, 16/18 mm CuTi-Zink Anthra",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "16/18",
+"vpe": "6",
+"ean": "3661587017842"
+},
+{
+"artikelnr": "454387",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 6 m, 18/20 mm CuTi-Zink Anthra",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587017859"
+},
+{
+"artikelnr": "454388",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink Anthra mit Anthra Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587258405"
+},
+{
+"artikelnr": "454389",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink Anthra mit Anthra Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587258368"
+},
+{
+"artikelnr": "454390",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Anthra 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025236",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454391",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Anthra 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025243",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454392",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Anthra 250 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025526",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454393",
+"bezeichnung": "Rinnenböden / Anklemmböden CuTi-Zink Anthra 330 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025533",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454394",
+"bezeichnung": "Dehnungselemente 250x375 mm CuTi-Zink vorbew. VM Anthra",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew. VM Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587355968"
+},
+{
+"artikelnr": "454395",
+"bezeichnung": "Dehnungselemente 330x375 mm CuTi-Zink vorbew. VM Anthra",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew. VM Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587355975"
+},
+{
+"artikelnr": "454396",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587026554",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454397",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026561",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454398",
+"bezeichnung": "Rinnenwinkel 250 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587230159",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454399",
+"bezeichnung": "Rinnenwinkel 330 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenwinkel",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587026790",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "454402",
+"bezeichnung": "Rinnenstutzen 75 mm 53.160.250.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587016319"
+},
+{
+"artikelnr": "454403",
+"bezeichnung": "Rinnenstutzen 75 mm 53.160.330.075",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587016432"
+},
+{
+"artikelnr": "454404",
+"bezeichnung": "Rinnenstutzen 100 mm 53.160.330.100",
+"gruppe": "Rinnenstutzen",
+"zuschnitt": "100",
+"vpe": "1",
+"ean": "3661587016524"
+},
+{
+"artikelnr": "456868",
+"bezeichnung": "Dachrinnen 400x0.5 mm, 6 m, 18/20 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "400",
+"dicke": "0.5",
+"laenge": "6",
+"wulst": "18/20",
+"vpe": "6",
+"ean": "3661587227548"
+},
+{
+"artikelnr": "456869",
+"bezeichnung": "Dachrinnen 250x0.7 mm CuTi-Zink Anthra",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024512"
+},
+{
+"artikelnr": "456870",
+"bezeichnung": "Dachrinnen 330x0.7 mm CuTi-Zink Anthra",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024529"
+},
+{
+"artikelnr": "456871",
+"bezeichnung": "Dachrinnen 400x0.7 mm CuTi-Zink Anthra",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "400",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587282080"
+},
+{
+"artikelnr": "456872",
+"bezeichnung": "Dachrinnen 250x0.7 mm CuTi-Zink Quartz",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024482"
+},
+{
+"artikelnr": "456873",
+"bezeichnung": "Dachrinnen 330x0.7 mm CuTi-Zink Quartz",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024499"
+},
+{
+"artikelnr": "456874",
+"bezeichnung": "Dachrinnen 400x0.7 mm CuTi-Zink Quartz",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "400",
+"dicke": "0.7",
+"vpe": "6",
+"ean": "3661587024505"
+},
+{
+"artikelnr": "456875",
+"bezeichnung": "Rinnenhaken 400x30/6 mm CuTi-Zink Anthra mit Anthra Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587282035"
+},
+{
+"artikelnr": "456876",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink Anthra mit CrNi Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587250614"
+},
+{
+"artikelnr": "456877",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink Anthra mit CrNi Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587250621"
+},
+{
+"artikelnr": "456878",
+"bezeichnung": "Rinnenhaken 250x27/5 mm CuTi-Zink Quartz mit Quartz Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587258399"
+},
+{
+"artikelnr": "456879",
+"bezeichnung": "Rinnenhaken 330x27/5 mm CuTi-Zink Quartz mit Quartz Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587258351"
+},
+{
+"artikelnr": "456880",
+"bezeichnung": "Rinnenhaken 400x30/6 mm CuTi-Zink Quartz mit Quartz Feder",
+"gruppe": "Rinnenhaken",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587037895"
+},
+{
+"artikelnr": "456881",
+"bezeichnung": "Rinnenhaken eckig 250x27x5 mm CuTi-Zink",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587265823"
+},
+{
+"artikelnr": "456882",
+"bezeichnung": "Rinnenhaken eckig 330x27x5 mm CuTi-Zink",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587265816"
+},
+{
+"artikelnr": "456883",
+"bezeichnung": "Rinnenhaken eckig 400x27x5 mm CuTi-Zink",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2720003615411"
+},
+{
+"artikelnr": "456884",
+"bezeichnung": "Rinnenhaken eckig 250x27x5 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587265786"
+},
+{
+"artikelnr": "456885",
+"bezeichnung": "Rinnenhaken eckig 330x27x5 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587265779"
+},
+{
+"artikelnr": "456886",
+"bezeichnung": "Rinnenhaken eckig 400x30x6 mm CuTi-Zink Quartz",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2720003615442"
+},
+{
+"artikelnr": "456887",
+"bezeichnung": "Rinnenhaken eckig 250x27x5 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587265809"
+},
+{
+"artikelnr": "456888",
+"bezeichnung": "Rinnenhaken eckig 330x27x5 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587265793"
+},
+{
+"artikelnr": "456889",
+"bezeichnung": "Rinnenhaken eckig 400x30x6 mm CuTi-Zink Anthra",
+"gruppe": "Rinnenhaken eckig",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "2720003615473"
+},
+{
+"artikelnr": "460374",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025885",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460375",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025908",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460376",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587267643",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460377",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587025892",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460378",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587025915",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460379",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Quartz 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Quartz",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587267636",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460380",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "2720003881373",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460381",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587056704",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460382",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587282110",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460383",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 250 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "250",
+"vpe": "1",
+"ean": "3661587251741",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460384",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 330 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "3661587056711",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "460385",
+"bezeichnung": "Rinnenböden / Ansteckböden CuTi-Zink Anthra 400 mm",
+"gruppe": "Rinnenböden / Ansteckböden",
+"material": "CuTi-Zink Anthra",
+"zuschnitt": "400",
+"vpe": "1",
+"ean": "3661587282127",
+"hinweis": "gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "462110",
+"bezeichnung": "Dachrinnen 330x0.7 mm, 4 m, 18/20 mm CuTi-Zink",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink",
+"zuschnitt": "330",
+"dicke": "0.7",
+"laenge": "4",
+"wulst": "18/20",
+"vpe": "4",
+"ean": "3661587017682"
+},
+{
+"artikelnr": "481854",
+"bezeichnung": "Rinnenkugelböden CrNi-Stahl mattplus 330 mm",
+"gruppe": "Rinnenkugelböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "330",
+"vpe": "1",
+"ean": "4313033000005"
+},
+{
+"artikelnr": "HT53012",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "200",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette; gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "HT53032",
+"bezeichnung": "Rinnenböden / Anklemmböden CrNi-Stahl mattplus 200 mm",
+"gruppe": "Rinnenböden / Anklemmböden",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "200",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette; gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "HT53161",
+"bezeichnung": "Dehnungselemente 200x375 mm CrNi-Stahl mattplus",
+"gruppe": "Dehnungselemente",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "200",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53164",
+"bezeichnung": "Dehnungselemente 200x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "200",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53165",
+"bezeichnung": "Dehnungselemente 400x375 mm CuTi-Zink vorbew.",
+"gruppe": "Dehnungselemente",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "400",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53169",
+"bezeichnung": "Dehnungselemente 200x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "200",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53171",
+"bezeichnung": "Dehnungselemente 400x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "400",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette; gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "HT53180",
+"bezeichnung": "Dehnungselemente 400x375 mm Uginox",
+"gruppe": "Dehnungselemente",
+"material": "Uginox",
+"zuschnitt": "400",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette; gleiche Bezeichnung wie andere Artikelnr."
+},
+{
+"artikelnr": "HT53185",
+"bezeichnung": "Dehnungselemente 400x375 mm Stahl verzinkt",
+"gruppe": "Dehnungselemente",
+"material": "Stahl verzinkt",
+"zuschnitt": "400",
+"vpe": "1",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53218",
+"bezeichnung": "Dachrinnen 200x0.7 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "200",
+"dicke": "0.7",
+"vpe": "6",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT53233",
+"bezeichnung": "Dachrinnen 200x0.5 mm CrNi-Stahl mattplus",
+"gruppe": "Dachrinnen",
+"material": "CrNi-Stahl mattplus",
+"zuschnitt": "200",
+"dicke": "0.5",
+"vpe": "6",
+"hinweis": "kein Barcode auf Etikette"
+},
+{
+"artikelnr": "HT55798",
+"bezeichnung": "Dachrinnen 400x0.7 mm CuTi-Zink vorbew.",
+"gruppe": "Dachrinnen",
+"material": "CuTi-Zink vorbew.",
+"zuschnitt": "400",
+"dicke": "0.7",
+"vpe": "6",
+"hinweis": "kein Barcode auf Etikette"
+}
+]
+}

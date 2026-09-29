@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.228.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.229.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1576,6 +1576,35 @@ Massaufnahme stehen bei jeder Einfassung <b>⭕ Abwicklung Rohr</b> und
 <b>gespeicherten</b> Aufnahme „Einfassung rund“ – übernommen wird in das
 oben gewählte Bauteil. Die Materialstärke kommt dabei aus dem gespeicherten
 Datensatz, nicht aus einem zufällig offenen Formular.</div>`},
+
+"bteam-lager":{titel:"Lager B-Team",text:`
+<p>Ein <b>zweites, eigenes Lager</b> f\u00fcr die Handelsware eines Lieferanten \u2013
+Rinnen, Stutzen, Haken, B\u00f6den. Es steht vollst\u00e4ndig <b>neben</b> der normalen
+Lagerverwaltung: eigene Artikel, eigene Buchungen, eigene Zahlen.</p>
+<div class="hin"><b>Warum getrennt?</b> Der Materialkatalog der Firma tr\u00e4gt
+<i>eure</i> EDV-Nummern und f\u00fcllt Regierapport, Ausmass und Zuschnitt. Das
+Sortiment des Lieferanten hat <i>seine</i> Artikelnummern. Beides in eine Liste
+zu werfen, w\u00fcrde zwei Nummernkreise vermischen. Die bestehende
+Lagerverwaltung und die Regiematerial-Liste bleiben unber\u00fchrt.</div>
+<p><b>Neue Positionen</b> kommen als <b>Excel- oder CSV-Datei</b> herein. Das ist
+derselbe Import wie beim Materialkatalog: Spalten frei zuordnen, vor dem
+Speichern steht da, was neu ist und was sich \u00e4ndert. Eine Artikel-Nr., die es
+schon gibt, wird <b>aktualisiert</b> statt doppelt angelegt; <b>gel\u00f6scht wird
+nie</b> \u2013 was in der Datei fehlt, bleibt stehen.</p>
+<p><b>\u2b07 Startsortiment einlesen</b> holt die Artikelliste, die mit der App
+ausgeliefert wird \u2013 f\u00fcr den ersten Start, ohne selbst eine Datei zu suchen.</p>
+<p><b>\U0001f4e5 Einscannen</b> und <b>\U0001f4e4 Ausscannen</b> \u00f6ffnen die Kamera. Der
+erkannte Barcode f\u00fchrt direkt zum Buchen-Dialog \u2013 zu best\u00e4tigen ist nur noch
+die Menge, vorgeschlagen ist die Verpackungseinheit. Ein Code, der hier nicht
+bekannt ist, legt <b>nichts</b> an: dieses Lager ist das Sortiment des
+Lieferanten, kein Ort f\u00fcr selbst erfundene Artikel. Geh\u00f6rt er zum eigenen
+Material, ist er in der normalen Lagerverwaltung richtig.</p>
+<div class="hin">Der <b>Bestand ist kein Feld</b>, sondern immer die Summe der
+Buchungen. Eine Buchung l\u00e4sst sich nicht \u00e4ndern und nicht l\u00f6schen \u2013 ein
+Fehler wird mit einer <b>Korrektur</b> ausgeglichen. So bleibt nachvollziehbar,
+was wirklich passiert ist.</div>
+<p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
+Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
 
 "fingerabdruck":{titel:"Fingerabdruck",text:`
 <p>Ist er eingeschaltet, ist die App auf <b>diesem Gerät</b> gesperrt: beim
