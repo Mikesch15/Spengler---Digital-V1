@@ -239,14 +239,36 @@ function kwMeldung(text){
  if(m)m.textContent=text||"";
  else if(text&&typeof alert==="function")alert(text);
 }
+// v3.227: Wer diesen Dialog ueberhaupt sehen darf. Ansage des Anwenders:
+// "Die funktion konto wechseln soll es nur fuer mich als firmenadmin geben".
+//
+// Die Frage steht HIER und nicht nur in der Liste unter "Mehr" (js/70): ein
+// bloss ausgeblendeter Eintrag ist keine Zustaendigkeit, sondern eine
+// Vermutung darueber, dass niemand den Weg drumherum findet. Beide Stellen
+// fragen dieselbe Funktion - zwei Bedingungen waeren nach der ersten
+// Aenderung verschieden.
+//
+// Was das NICHT ist: eine Sicherheitsgrenze. Die liegt darin, dass jedes
+// Konto sein eigenes Passwort braucht, und in der RLS. Hier geht es darum,
+// wem die App diesen Weg anbietet.
+function kwZustaendig(){
+ return (typeof isAdmin==="function") ? !!isAdmin() : false;
+}
+
 function kwOeffnen(){
  if(typeof $!=="function")return;
+ if(!kwZustaendig()){
+  // Stumm nichts tun waere das Schlimmste - auch hier.
+  kwMeldung("");
+  if(typeof alert==="function")
+   alert("Konto wechseln ist der Firmenadministration vorbehalten.");
+  return;
+ }
  kwZeichnen();
- // v3.225: Der Fingerabdruck steht in diesem Dialog (js/81). Er wird hier
- // mitgezeichnet, weil er denselben gespeicherten Zugang schuetzt, den
- // dieser Dialog verwaltet - und weil ein Schalter, der den Stand von
- // gestern zeigt, schlimmer ist als keiner.
- if(typeof faEinstellungZeichnen==="function")faEinstellungZeichnen();
+ // v3.227: Der Fingerabdruck wurde hier herausgeloest und hat einen eigenen
+ // Dialog (js/81, faDialogOeffnen). Grund: er steht ausdruecklich jedem
+ // einzeln offen, dieser Dialog dagegen nur der Firmenadministration - an
+ // der alten Stelle waere er fuer die Mitarbeitenden verschwunden.
  const modal=$("kontenModal");
  if(modal)modal.hidden=false;
 }

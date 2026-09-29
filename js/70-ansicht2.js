@@ -858,13 +858,27 @@ function a2SeiteMehr(){
   {id:"einstell",gruppe:"firma",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
   {id:"anleitung",gruppe:"arbeiten",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
   {id:"feedback",gruppe:"arbeiten",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
-  // v3.187: Konto wechseln. Steht immer da - auch mit nur einem gemerkten
-  // Konto, denn von hier aus wird das zweite ueberhaupt erst hinzugefuegt.
-  {id:"konten",gruppe:"verwaltung",     zeichen:"🔄", text:"Konto wechseln",        unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"},
+  // v3.227: Der Fingerabdruck. Steht IMMER da, fuer jeden - er ist das
+  // einzige, was jede Person auf ihrem eigenen Geraet fuer sich einstellt.
+  // Ob das Geraet einen Sensor hat, entscheidet der Dialog selbst (js/81);
+  // hier laesst sich das nicht fragen, weil die Antwort erst nach einer
+  // Rueckfrage beim Betriebssystem feststeht und diese Liste sofort steht.
+  {id:"fingerabdruck",gruppe:"geraet", zeichen:"🔒", text:"Fingerabdruck",          unter:"Die App auf diesem Gerät mit dem Finger entsperren"},
   {id:"zaehlwerk",gruppe:"firma",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
   {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
  ];
+ // v3.227: Konto wechseln nur fuer die Firmenadministration. Ansage des
+ // Anwenders: "Die funktion konto wechseln soll es nur fuer mich als
+ // firmenadmin geben". Gefragt wird kwZustaendig() aus js/76 - dieselbe
+ // Funktion, die auch kwOeffnen() selbst fragt. Ein bloss ausgeblendeter
+ // Eintrag waere keine Zustaendigkeit, sondern eine Vermutung darueber,
+ // dass niemand den Weg drumherum findet.
+ // Er steht dort weiterhin auch mit nur EINEM gemerkten Konto (v3.187) -
+ // von dort aus wird das zweite ja ueberhaupt erst hinzugefuegt.
+ if(typeof kwZustaendig==="function"&&kwZustaendig())
+  eintraege.push({id:"konten",gruppe:"verwaltung",zeichen:"🔄",text:"Konto wechseln",
+   unter:"Zwischen Firmen wechseln, ohne sich neu anzumelden"});
  // v3.183: Nur fuer Administratoren - alle Punkte der Liste fuehren in
  // Bereiche, die ohnehin nur sie aendern duerfen.
  if(typeof einrZustaendig==="function"&&einrZustaendig())
@@ -883,7 +897,10 @@ function a2SeiteMehr(){
  // v3.203: gruppiert statt als eine Liste von elf Zeilen, in der die Suche
  // neben der System-Administration stand. Die Gruppe steht am Eintrag, nicht
  // in einer zweiten Liste - sonst muesste man sie an zwei Stellen pflegen.
- const gruppen=[["Arbeiten","arbeiten"],["Firma","firma"],["Verwaltung","verwaltung"]];
+ // v3.227: "Dieses Gerät" als eigene Gruppe. Der Fingerabdruck ist weder
+ // Arbeiten noch Firma noch Verwaltung - er gilt nur hier und nur fuer die
+ // Person, die gerade angemeldet ist.
+ const gruppen=[["Arbeiten","arbeiten"],["Dieses Gerät","geraet"],["Firma","firma"],["Verwaltung","verwaltung"]];
  const zeile=e=>`
   <button type="button" class="a2-zeile" data-a2-tu="${esc(e.id)}">
    <span class="a2-zeile-nr">${e.zeichen}</span>
@@ -1167,6 +1184,7 @@ document.addEventListener("click",async e=>{
   if(was==="einrichtung"&&typeof einrAnzeigen==="function"){einrAnzeigen();return}
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
  if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
+ if(was==="fingerabdruck"&&typeof faDialogOeffnen==="function"){faDialogOeffnen();return}
  if(was==="abwicklung"&&typeof abwOeffnen==="function"){
   a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
   return;
