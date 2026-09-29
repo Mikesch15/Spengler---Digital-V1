@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.228";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.229";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.228<br>
+  Version 3.229<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2422,6 +2422,37 @@ Dann wird <strong>archiviert</strong>: das Produkt ist überall weg, wo gebucht 
 gewählt wird, die Buchungen bleiben stehen, und es lässt sich jederzeit wieder
 aktivieren.</p>
 
+<h3>Lager B-Team – das Lager des Lieferanten</h3>
+<p>Neben der Lagerverwaltung steht ein <strong>zweites, eigenes Lager</strong> für die
+Handelsware eines Lieferanten – Rinnen, Stutzen, Haken, Böden. Zu finden unter
+<strong>Mehr → Lager B-Team</strong>, sichtbar für alle mit Lager-Zugriff.</p>
+<div class="hin"><strong>Warum getrennt?</strong> Der Materialkatalog der Firma trägt
+<em>eure</em> EDV-Nummern und füllt Regierapport, Ausmass und Zuschnitt. Das
+Sortiment des Lieferanten hat <em>seine</em> Artikelnummern. Beides in eine Liste zu
+werfen, würde zwei Nummernkreise vermischen. Die bestehende Lagerverwaltung und
+die Regiematerial-Liste bleiben davon unberührt.</div>
+<p><strong>Neue Positionen kommen als Excel- oder CSV-Datei herein</strong> –
+<span class="tasten">📄 Neue Positionen hochladen</span>. Das ist derselbe
+Import wie beim Materialkatalog: die Spalten lassen sich frei zuordnen, vor dem
+Speichern steht da, was neu ist und was sich ändert, und eine Artikel-Nr., die es
+schon gibt, wird <strong>aktualisiert</strong> statt doppelt angelegt.
+<strong>Gelöscht wird nie</strong> – was in der Datei fehlt, bleibt stehen.
+Gelesen werden Artikel-Nr., Bezeichnung, Produktgruppe, Werkstoff, Zuschnitt,
+Dicke, Länge, Wulst, VPE, EAN und ein Hinweis.</p>
+<p>Daneben steht <span class="tasten">⬇ Startsortiment einlesen</span>: die
+Artikelliste, die mit der App ausgeliefert wird – für den ersten Start, ohne
+selbst eine Datei zu suchen.</p>
+<p><span class="tasten">📥 Einscannen</span> und
+<span class="tasten">📤 Ausscannen</span> öffnen die Kamera. Der erkannte
+Barcode führt direkt zum Buchen; vorgeschlagen ist die Verpackungseinheit, zu
+bestätigen nur noch die Menge. Ein Code, der hier nicht bekannt ist, legt
+<strong>nichts</strong> an – die App sagt stattdessen, dass er in die normale
+Lagerverwaltung gehört, wenn es eigenes Material ist.</p>
+<div class="hin">Der <strong>Bestand ist kein Feld</strong>, sondern immer die Summe
+der Buchungen. Eine Buchung lässt sich nicht ändern und nicht löschen – ein Fehler
+wird mit einer <strong>Korrektur</strong> ausgeglichen. So bleibt nachvollziehbar,
+was wirklich passiert ist.</div>
+
 <h3>Ein Mitarbeiterkonto anlegen</h3>
 <p>Vorname und Nachname genügen. Zusätzlich lässt sich eine
 <strong>E-Mail-Adresse</strong> angeben – freiwillig. Sie bewirkt zweierlei: die Person
@@ -2782,7 +2813,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.228</strong>, Stand 29. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.229</strong>, Stand 29. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
