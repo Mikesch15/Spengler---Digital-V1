@@ -1,0 +1,146 @@
+ABSCHLUSSBERICHT v3.224
+Materialposition ohne Produkt im Lager
+=======================================================================
+
+MELDUNG DES ANWENDERS
+---------------------
+"Aber wiso gibt es positionen wie diese wo steht, noch kein produkt
+erfasst? Das hab ich noch bei keinem gemacht"
+
+Auf dem Bildschirmfoto: Position 222.15 "Einkopf-Dehnungselemente
+Dilastar Kupfer L1500" mit rotem Hinweis und ohne Buchen-Knopf, mitten
+zwischen 222.13 und 222.14, die beide normal aussehen.
+
+
+BEFUND (nur gelesen, in der Datenbank nachgesehen)
+--------------------------------------------------
+  Positionen MIT Standard-Produkt   371   alle angelegt am 24.08.2026
+  Positionen OHNE Standard-Produkt  389   angelegt 16.09. bis 27.09.2026
+
+Nach Firma:
+  PETER KUENZI AG    9   alle vom 16.09.2026
+  Testfirma        380   vom 27.09.2026 (Beispielkatalog)
+
+Die neun bei PETER KUENZI AG:
+  104.02 Walzblei pliss
+  222.15 Einkopf-Dehnungselemente Dilastar Kupfer L1500
+  801.01 Loetzinn Stangen a 260g
+  801.02 Zinn + Nieten per m1
+  801.11 Phosphor-Silberlot 1a 5% 16g
+  801.12 Schutzgas Argon + Schweissstaebe per h
+  802.01 Nieten Cu/Inox 3.2
+  802.03 Nieten Inox 4.8
+  802.04 Nieten Stahl 4.8
+
+Der Schnitt liegt exakt zwischen "am 24.08. vorhanden" und "danach
+dazugekommen".
+
+
+URSACHE
+-------
+Beim Umstieg auf das zweistufige Modell (Materialposition aus dem
+Katalog -> Produkte im Regal, v3.106) hat eine EINMALIGE Migration jeder
+damals vorhandenen Position ein Standard-Produkt gegeben. Daraus wurde
+nie eine dauerhafte Regel.
+
+Es gibt keinen Trigger auf materials (nachgesehen in pg_trigger: nur
+enforce_lager_variante_firma und set_creator_editor_meta, beide auf
+lager_varianten). katalogPositionAnlegen() in js/59-lagerbestand.js
+schreibt ausschliesslich nach materials, der Excel-Import in
+js/08-katalog-blitzschutz.js ebenso. Jede seither angelegte Position
+blieb deshalb ohne Produkt - und damit ohne Buchen-Knopf und ohne
+Bestand.
+
+Der Anwender hat also nichts falsch gemacht. Er hat am 16.09. Positionen
+importiert, mehr nicht.
+
+
+BEHEBUNG
+--------
+1. Die Regel gehoert in die Datenbank, nicht in die App. Es gibt
+   mehrere Wege, eine Position anzulegen (Formular, Excel-Import,
+   Beispielkatalog bei der Registrierung); der naechste Weg wuerde es
+   wieder vergessen. Neue Migration:
+
+     Funktion  public.lager_standard_variante()
+     Trigger   lager_standard_variante_trg  AFTER INSERT ON materials
+
+   Sie legt genau dann eine Variante an, wenn zur Position noch keine
+   existiert ("where not exists"), mit bezeichnung = getrimmter
+   Positionsname und company_id aus der NEUEN Zeile.
+
+   WARUM SECURITY DEFINER: auf lager_varianten liegt
+   feature_boundary_lager_varianten, die fuer JEDEN Zugriff die
+   Lager-Freigabe verlangt. Ohne SECURITY DEFINER wuerde der Trigger bei
+   jemandem ohne Lager-Freigabe fehlschlagen und damit das Anlegen der
+   Materialposition komplett abbrechen, obwohl er dazu berechtigt ist.
+   Die Funktion vergibt keinerlei neuen Zugriff: sie schreibt nur eine
+   Zeile zu der gerade eingefuegten Position und nimmt die Firma aus
+   DIESER Zeile, nicht aus der Sitzung. Eine fremde Firma ist damit
+   konstruktiv unerreichbar; enforce_lager_variante_firma prueft
+   dieselbe Zuordnung noch einmal. search_path ist gesetzt.
+
+   Bewusst KEIN exception-Handler: schluege das Anlegen des Produkts
+   fehl, soll die ganze Position scheitern und sich melden.
+
+2. Nachzug der bestehenden Faelle, vom Anwender ausdruecklich
+   freigegeben (zuerst die neun, danach auf seine Ansage hin alle):
+   389 fehlende Standard-Produkte angelegt. KEINE Buchung, kein
+   Bestand angefasst, nichts geloescht, nichts geaendert.
+
+3. Neue Kontrolle "Position ohne Produkt im Lager" (js/75-kontrollen.js,
+   Gruppe Material-Katalog, Schwere Hinweis, abweisbar).
+
+   Sie ist NICHT die Behebung, sondern die Gegenprobe fuer den ZWEITEN
+   Weg in denselben Zustand: wer das letzte Produkt einer Position
+   loescht, wird gefragt, ob die Position auch aus dem Katalog soll -
+   sagt er nein, steht sie absichtlich ohne Produkt da. Dieser Fall darf
+   NICHT automatisch repariert werden (ein geloeschtes Produkt, das von
+   selbst zurueckkommt, waere schlimmer als der jetzige Zustand), aber
+   er soll nie wieder stillschweigend dastehen.
+
+4. Textangleichung in js/68: der rote Hinweis nannte
+   "＋ Weiteres Produkt", der Knopf direkt darunter heisst aber
+   "＋ Produkt zu dieser Position erfassen" - zwei Namen fuer dasselbe.
+
+
+PRUEFUNG
+--------
+Trigger, am echten Projekt geprueft und wieder zurueckgerollt: eine
+Testposition angelegt, Ergebnis "1 Variante, Bezeichnung getrimmt, Firma
+stimmt", danach die ganze Transaktion per raise exception verworfen.
+Gegenprobe: 0 Testzeilen uebrig.
+
+Nach dem Nachzug:
+  Positionen ohne Produkt          0
+  Produkte mit falscher Firma      0
+  neue Buchungen in der Stunde     0
+
+pruefstand-kontrollen-v3-186.js, neuer Abschnitt L mit Gegenproben:
+  L1 ohne geladene Lagerdaten meldet die Kontrolle NICHTS
+  L2 fehlt zu genau einer Position das Produkt, meldet sie genau diese
+  L3 hat jede Position ihr Produkt, meldet sie nichts
+81 Pruefungen, alle gruen.
+
+
+ZWEI EIGENE FEHLER, DABEI GEFUNDEN UND BEHOBEN
+-----------------------------------------------
+1. Die Kontrolle meldete beim ersten Lauf den GESAMTEN Katalog. Grund:
+   sie unterschied nicht zwischen "keine Produkte vorhanden" und
+   "Lagerdaten gar nicht geladen". Die Liste haengt an der
+   Lager-Freigabe und ist vorher leer - jeder ohne Lager-Zugriff haette
+   seinen ganzen Katalog als fehlerhaft dastehen gehabt. Jetzt meldet
+   sie bei leerer Liste nichts.
+
+2. Der neue Pruefstand setzte window.lagerVarianten. lagerVarianten ist
+   ein let auf Modulebene und liegt damit NICHT am window-Objekt: die
+   Zuweisung legte eine zweite Eigenschaft an, die die Kontrolle nie
+   sah. L1 und L3 waren dadurch nur zufaellig gruen. Jetzt wird die
+   Bindung selbst gesetzt.
+
+
+NICHT GEAENDERT
+---------------
+Bestaende, Buchungen, Preise, Bezeichnungen im Katalog. Der Nachzug legt
+ausschliesslich fehlende Produkte an; der Bestand ergibt sich aus den
+Buchungen und bleibt damit ueberall, wo er war.

@@ -128,6 +128,41 @@ const KON_PRUEFUNGEN=[
   finden:()=>konKatalog().filter(p=>!(konZahl(p.price)>0))
               .map(p=>({id:p.edv_nr,text:p.name+" · "+p.edv_nr})) },
 
+ // v3.224: ECHTER FEHLER, vom Anwender gemeldet - in der Lagerverwaltung
+ // standen Positionen mit "Noch kein Produkt erfasst", ohne dass er je
+ // etwas daran gemacht hatte. Ursache war eine Luecke beim Anlegen: die
+ // Migration von v3.106 gab jeder DAMALS vorhandenen Position ein
+ // Standard-Produkt, aber daraus wurde nie eine dauerhafte Regel. Behoben
+ // ist das seit v3.224 in der Datenbank (Trigger lager_standard_variante_trg
+ // auf materials), und die bestehenden Faelle sind nachgezogen.
+ //
+ // Diese Kontrolle ist NICHT die Behebung, sondern die Gegenprobe. Es gibt
+ // einen zweiten Weg in denselben Zustand: wer das letzte Produkt einer
+ // Position loescht, bekommt die Frage, ob die Position auch aus dem
+ // Katalog soll - sagt er nein, steht sie absichtlich ohne Produkt da.
+ // Dieser Fall darf NICHT automatisch repariert werden (ein geloeschtes
+ // Produkt, das von selbst zurueckkommt, waere schlimmer), aber er soll
+ // nie wieder stillschweigend dastehen. Deshalb ein Hinweis, kein Fehler,
+ // und abweisbar - wer es so will, hakt es ab.
+ {schluessel:"position-ohne-produkt", gruppe:"Material-Katalog",
+  schwere:"hinweis", abweisbar:true, tab:"protected", abschnitt:"materials",
+  titel:"Position ohne Produkt im Lager",
+  warum:"Zu dieser Katalogposition liegt kein Produkt im Regal – sie lässt sich deshalb nicht buchen und zeigt in der Lagerverwaltung keinen Bestand. Beim Anlegen kann das seit Version 3.224 nicht mehr passieren; es bleibt, wenn das letzte Produkt gelöscht und die Position behalten wurde. Gewollt? Dann hier abhaken.",
+  finden:()=>{
+   // Ohne geladene Lagerverwaltung ist die Frage nicht beantwortbar - dann
+   // lieber nichts melden als raten. Die LEERE Liste ist dabei genau so ein
+   // Fall und nicht etwa "kein einziges Produkt": sie haengt an der
+   // Lager-Freigabe und wird erst gefuellt, wenn die Lagerverwaltung
+   // geladen wurde. Ohne diese Bedingung meldete die Kontrolle bei jedem
+   // ohne Lager-Zugriff den gesamten Katalog als fehlerhaft - beim ersten
+   // Lauf im Pruefstand genau so passiert.
+   if(typeof lagerVarianten==="undefined"||!Array.isArray(lagerVarianten))return [];
+   if(!lagerVarianten.length)return [];
+   const mitProdukt=new Set(lagerVarianten.map(v=>String(v.material_id)));
+   return konKatalog().filter(p=>p.id!=null&&!mitProdukt.has(String(p.id)))
+                      .map(p=>({id:p.edv_nr,text:p.name+" · "+p.edv_nr}));
+  } },
+
  // ---- Gruppe C: Mehrdeutiges --------------------------------------------
  {schluessel:"blech-mehrdeutig", gruppe:"Mehrdeutiges",
   schwere:"fehler", abweisbar:false, tab:"lager", abschnitt:"lagerbestand",

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.223.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.224.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2188,6 +2188,15 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
+<div class="hin"><b>Jede Position hat ein Produkt</b> (ab 3.224). Die
+Lagerverwaltung ist zweistufig: oben die <b>Materialposition</b> aus dem
+Katalog, darunter die <b>Produkte</b>, die tatsächlich im Regal liegen.
+Gebucht wird immer auf ein Produkt. Damit eine neu angelegte Position nicht
+ohne Produkt dasteht, legt die Datenbank es seit 3.224 selbst an – egal ob
+die Position über das Formular, den Excel-Import oder den Beispielkatalog
+entsteht. Löschst du das letzte Produkt einer Position und behältst die
+Position, bleibt sie absichtlich ohne; das meldet dann die Kontrolle
+„Position ohne Produkt im Lager“, damit es nicht unbemerkt bleibt.</div>
 <div class="hin"><b>Die Seite beginnt zugeklappt</b> (ab 3.223). Oben stehen
 die Kennzahlen, darunter gross <b>📥 Einscannen</b> und <b>📤 Ausscannen</b> –
 das sind die beiden Handlungen, für die man hierherkommt. Danach das

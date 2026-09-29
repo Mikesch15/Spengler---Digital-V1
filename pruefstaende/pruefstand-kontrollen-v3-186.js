@@ -501,6 +501,51 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
    "js/70 holt die Entscheidungen, bevor es die Karte zeichnet");
 
  // ---- I  Sauberkeit --------------------------------------------------------
+ // ---- L · Position ohne Produkt im Lager (v3.224) -----------------------
+ console.log("\nL · Position ohne Produkt im Lager");
+ // ECHTER FEHLER, vom Anwender gemeldet: in der Lagerverwaltung standen
+ // Positionen mit "kein Produkt erfasst", ohne dass er je etwas daran
+ // gemacht hatte. Behoben ist die Ursache in der Datenbank (Trigger
+ // lager_standard_variante_trg auf materials, v3.224). Diese Kontrolle ist
+ // die Gegenprobe fuer den zweiten Weg in denselben Zustand: wer das letzte
+ // Produkt loescht und die Position behaelt.
+ const L=await page.evaluate(()=>{
+  // WICHTIG: ohne den window-Vorsatz zuweisen. lagerVarianten ist ein let
+  // auf Modulebene - eine Zuweisung ueber das window-Objekt legt daneben
+  // eine ZWEITE Eigenschaft an, die die Kontrolle nie sieht. Beim ersten
+  // Anlauf genau so passiert: L1 und L3 waren dadurch nur zufaellig gruen.
+  const vorher=(typeof lagerVarianten!=="undefined"&&Array.isArray(lagerVarianten))?lagerVarianten.slice():null;
+  // Die Kontrolle schaut durch konKatalog() - dort sind Beispielpositionen
+  // schon heraus. Die Ausgangsliste muss deshalb von DORT kommen und nicht
+  // aus materialIds, sonst prueft man an einer Zeile, die gar nicht zaehlt.
+  const katalog=konKatalog().filter(x=>x.id!=null);
+  const ids=katalog.map(x=>x.id);
+  const ohneMich=katalog[0];
+
+  // 1) Lagerdaten NICHT geladen (leere Liste): darf nichts melden.
+  lagerVarianten=[];
+  const leer=window.__offen("position-ohne-produkt");
+
+  // 2) Lagerdaten da, aber zu GENAU EINER Position fehlt das Produkt.
+  lagerVarianten=ids.filter(id=>String(id)!==String(ohneMich.id))
+    .map((id,i)=>({id:900+i,material_id:id,bezeichnung:"x",archiviert:false}));
+  const eineFehlt=window.__offen("position-ohne-produkt");
+
+  // 3) Gegenprobe: zu JEDER Position ein Produkt -> keine Meldung mehr.
+  lagerVarianten=ids
+    .map((id,i)=>({id:800+i,material_id:id,bezeichnung:"x",archiviert:false}));
+  const alleDa=window.__offen("position-ohne-produkt");
+
+  if(vorher)lagerVarianten=vorher;
+  return {leer,eineFehlt,alleDa,erwartet:ohneMich.edv_nr,anzahlKatalog:katalog.length};
+ });
+ p(L.leer.length===0,
+   "L1 GEGENPROBE: ohne geladene Lagerdaten meldet die Kontrolle NICHTS - sonst haette jeder ohne Lager-Zugriff den ganzen Katalog als Fehler dastehen",L);
+ p(L.eineFehlt.length===1&&L.eineFehlt[0]===L.erwartet,
+   "L2 fehlt zu genau einer Position das Produkt, meldet sie genau diese eine - und keine andere",L);
+ p(L.alleDa.length===0,
+   "L3 GEGENPROBE: hat jede Position ihr Produkt, meldet sie nichts",L);
+
  console.log("\nI · Sauberkeit");
  p(fehler.length===0,"keine JavaScript-Fehler auf der Seite",fehler);
 

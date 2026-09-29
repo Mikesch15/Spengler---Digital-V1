@@ -351,7 +351,7 @@ function renderLagerverwaltung(){
     return `<div class="lager-karte"><div class="lager-karte-kopf"><div class="lager-karte-info">
  <div class="lager-zeile-titel">${lagerNrChip(a)}<b>${esc(a.name||"")}</b></div>
  ${lagerUnterzeile(a)}
- <span class="small" style="color:var(--red)">Noch kein Produkt erfasst - "＋ Weiteres Produkt" unten anlegen.</span>
+ <span class="small" style="color:var(--red)">Kein Produkt im Regal - mit dem Knopf darunter eines erfassen.</span>
 </div></div>
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" data-lager-neues-produkt="${a.id}">＋ Produkt zu dieser Position erfassen</button></div>
 </div>`;
