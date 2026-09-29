@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.227</div>
+<div id="appVersion">Version 3.228</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -1263,7 +1263,7 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="systemAdminRegisterModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>🏢 Neue Firma registrieren</h2>
+<h2>🏢 Neue Firma registrieren <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-neue-firma">i</button></h2>
 <div class="info">Legt eine neue Firma mit 30 Tagen Testphase an. Der eigene System-Admin-Zugang bleibt dabei unverändert bestehen – es findet keine automatische Anmeldung als neue Firma statt. Das Passwort wird automatisch erzeugt und an die angegebene E-Mail-Adresse verschickt.</div>
 <div class="grid">
 <div class="wide"><label>Firmenname</label><input id="regCompanyName" data-pflicht="1" autocomplete="organization"></div>
@@ -1283,7 +1283,7 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="systemAdminCompanyModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2 id="systemAdminCompanyName">Firma</h2>
+<h2><span id="systemAdminCompanyName">Firma</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-firma">i</button></h2>
 <div class="grid" style="margin-bottom:10px">
 <div><label>Status</label><div id="systemAdminCompanyStatus" class="small"></div></div>
 <div><label>Registriert am</label><div id="systemAdminCompanyCreated" class="small"></div></div>
@@ -1351,7 +1351,7 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 <div id="systemAdminDeleteModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2 style="color:var(--red)">⚠️ Firma endgültig löschen</h2>
+<h2 style="color:var(--red)">⚠️ Firma endgültig löschen <button type="button" class="hilfe-knopf no-print" data-hilfe="sysadmin-loeschen">i</button></h2>
 <div class="info" id="sysAdminDeleteCompanyLine" style="font-weight:600"></div>
 <div class="info" style="color:var(--red)">
 Diese Aktion löscht unwiderruflich:
@@ -2010,7 +2010,7 @@ zur Vorlage.</div>
 <div id="vorlageWahlModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2 id="vorlageWahlTitel">📄 Massaufnahme aus Vorlage</h2>
+<h2 id="vorlageWahlTitel">📄 Massaufnahme aus Vorlage <button type="button" class="hilfe-knopf no-print" data-hilfe="vorlage">i</button></h2>
 <div class="info">Die Masse der Vorlage werden in eine <b>neue, eigenständige</b>
 Massaufnahme übernommen. Bezeichnung, Datum und Fotos bleiben leer.</div>
 <div id="vorlageWahlBody"></div>
@@ -2149,7 +2149,7 @@ einer wirkt nicht auf die anderen.</div>
 <div id="amMassPickModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2>📐 Aus Massaufnahme übernehmen</h2>
+<h2>📐 Aus Massaufnahme übernehmen <button type="button" class="hilfe-knopf no-print" data-hilfe="am-uebernehmen">i</button></h2>
 <div><label>Massaufnahme</label><select id="amMassPickSelect"></select></div>
 <div id="amMassPickRows" style="margin-top:8px"></div>
 <label style="display:block;margin-top:8px"><input type="checkbox" id="amMassPickAddieren"> Zur vorhandenen Menge addieren (statt zu ersetzen)</label>
@@ -2474,7 +2474,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.227.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 116 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.228.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
 </div>
 </div>
 
@@ -3089,7 +3089,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 
 <div id="sheetModal" class="modal" hidden>
 <div class="modalbox"><div class="card">
-<h2>📐 Blechverbrauch</h2>
+<h2>📐 Blechverbrauch <button type="button" class="hilfe-knopf no-print" data-hilfe="rapport-blech">i</button></h2>
 <div class="info">Material auswählen und danach beliebig viele Zuschnitte erfassen. Länge und Breite in mm. Die Gesamtfläche wird direkt als m² in den Regierapport übernommen.</div>
 <div class="grid" style="margin-top:10px">
 <div><label>Material suchen</label><div class="search"><input id="sheetSearch" placeholder="EDV-Nr. oder Bezeichnung" autocomplete="off"><div id="sheetResults" class="suggest"></div></div></div>
@@ -3221,7 +3221,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.227.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.228.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3374,7 +3374,7 @@ nicht neu installieren.</div>
      irgendwo haengt. Die Vorgabe ist der schonendste Weg (behalten). -->
 <div id="beispielKatalogModal" class="modal no-print" hidden>
  <div class="modal-box">
-  <h2>Beispiel-Positionen</h2>
+  <h2>Beispiel-Positionen <button type="button" class="hilfe-knopf no-print" data-hilfe="beispielkatalog">i</button></h2>
   <p class="small">Die App hat bei der Registrierung ein paar Beispiel-Positionen
   mitgeliefert, damit sich Rapport, Lager und Zuschnitt sofort ausprobieren lassen.
   Jetzt, wo Sie Ihren eigenen Katalog führen, werden sie nicht mehr gebraucht.</p>

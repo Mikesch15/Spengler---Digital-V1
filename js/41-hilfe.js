@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.227.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.228.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1607,9 +1607,9 @@ Verschlüsselung. Es macht die App sicherer als vorher, denn davor stand gar
 nichts.</div>`},
 
 "kontowechsel":{titel:"Konto wechseln",text:`
-<div class="hin"><b>Der Firmenadministration vorbehalten</b> (ab 3.227).
-Mitarbeitende sehen diesen Punkt nicht mehr. Der <b>Fingerabdruck</b>, der
-bis 3.226 hier mit drinstand, hat dafür einen eigenen Punkt bekommen:
+<div class="hin"><b>Der Firmenadministration vorbehalten.</b>
+Mitarbeitende sehen diesen Punkt nicht. Der <b>Fingerabdruck</b> hat einen
+eigenen Punkt:
 <b>Mehr → Dieses Gerät → Fingerabdruck</b> – den stellt weiterhin jeder
 für sich ein.</div>
 <p>Wer zwei Konten hat – etwa das eigene und eines in einer Testfirma –,
@@ -1696,6 +1696,59 @@ Werten, die beim Erfassen galten.</p>
 <p>Die Vorgabemasse gelten je Gerät, nicht firmenweit. Die Zählung der
 eigenen Messungen dagegen gilt für die <b>ganze Firma</b>: sie kommt aus den
 gespeicherten Massaufnahmen, nicht vom Gerät.</p>`},
+
+"am-uebernehmen":{titel:"Aus Massaufnahme \u00fcbernehmen",text:`
+<p>Holt die <b>fertig gerechneten Massen</b> einer Massaufnahme dieses Projekts
+ins Ausmass \u2013 L\u00e4ngen, St\u00fcckzahlen, Fl\u00e4chen. Getippt werden muss nichts.</p>
+<p>Ausgew\u00e4hlt wird <b>zeilenweise</b>: was nicht gebraucht wird, bleibt stehen.
+Nichts wird automatisch \u00fcbernommen \u2013 was im Ausmass steht, wird verrechnet,
+und das soll bewusst entschieden sein.</p>
+<div class="hin">Die \u00fcbernommene Zeile ist danach eine <b>eigene</b>
+Ausmasszeile. \u00c4ndert die Massaufnahme sp\u00e4ter, \u00e4ndert sie sich nicht mit \u2013
+dann noch einmal \u00fcbernehmen.</div>`},
+
+"rapport-blech":{titel:"Blechverbrauch",text:`
+<p>Rechnet mehrere Zuschnitte zu <b>einer Fl\u00e4che in m\u00b2</b> zusammen und schreibt
+sie als eine Zeile in den Regierapport. Material w\u00e4hlen, dann beliebig viele
+L\u00e4ngen und Breiten in Millimetern erfassen.</p>
+<p>Gedacht f\u00fcr Blech, das <b>nicht</b> aus einer Massaufnahme kommt \u2013 der
+Zuschnitt von Hand auf der Baustelle. Was aus einer Massaufnahme stammt, kommt
+besser \u00fcber <b>Material aus den Massaufnahmen \u00fcbernehmen</b> in den Rapport:
+dort rechnet die App die Fl\u00e4che ohnehin schon.</p>`},
+
+"beispielkatalog":{titel:"Beispiel-Positionen",text:`
+<p>Bei der Registrierung legt die App ein paar Beispiel-Positionen an, damit sich
+Rapport, Lager und Zuschnitt sofort ausprobieren lassen, bevor der eigene Katalog
+steht.</p>
+<p>Hier lassen sie sich wieder entfernen, sobald der eigene Katalog da ist.
+Entfernt werden <b>nur Positionen, die nirgends benutzt werden</b> \u2013 wurde auf
+eine davon schon gebucht oder verweist ein Rapport darauf, bleibt sie stehen und
+die App sagt, warum.</p>`},
+
+"sysadmin-neue-firma":{titel:"Neue Firma registrieren",text:`
+<p>Legt eine Firma mit <b>30 Tagen Testphase</b> an, samt erstem
+Administratorkonto. Das Passwort erzeugt die App selbst und schickt es an die
+angegebene E-Mail-Adresse \u2013 es wird hier nicht angezeigt und ist auch sp\u00e4ter
+nirgends nachlesbar.</p>
+<div class="hin">Der eigene System-Admin-Zugang bleibt dabei unver\u00e4ndert: es
+findet <b>keine</b> automatische Anmeldung als neue Firma statt.</div>`},
+
+"sysadmin-firma":{titel:"Eine Firma verwalten",text:`
+<p>Zeigt Status und Testphase einer Firma und l\u00e4sst beides \u00e4ndern \u2013 Testphase
+verl\u00e4ngern, auf Abo setzen, sperren oder wieder freigeben. Eine gesperrte Firma
+kommt nicht mehr hinein; ihre Daten bleiben unber\u00fchrt.</p>
+<p>Es gibt hier bewusst <b>keinen</b> Zugriff auf Projekte, Massaufnahmen oder
+Rapporte dieser Firma. Das ist keine Anzeigefrage, sondern in der Datenbank so
+abgesichert.</p>`},
+
+"sysadmin-loeschen":{titel:"Firma endg\u00fcltig l\u00f6schen",text:`
+<p>L\u00f6scht die Firma mit <b>allem, was daran h\u00e4ngt</b>: Konten, Projekte,
+Massaufnahmen, Rapporte, Offerten, Lagerbuchungen, Fotos und Dateien.</p>
+<div class="warn"><b>Das l\u00e4sst sich nicht r\u00fcckg\u00e4ngig machen.</b> Es gibt keinen
+Papierkorb und keine Wiederherstellung aus der App heraus. Deshalb muss der
+Firmenname von Hand eingetippt werden \u2013 ein Klick allein gen\u00fcgt nicht.</div>
+<p>Gedacht f\u00fcr Testfirmen und f\u00fcr Betriebe, die ihre L\u00f6schung ausdr\u00fccklich
+verlangen. F\u00fcr alles andere ist <b>sperren</b> der richtige Weg.</p>`},
 
 "vorlage":{titel:"Als Vorlage",text:`
 <p>Übernimmt <b>Typ, Material und alle Masse</b> einer bestehenden Massaufnahme

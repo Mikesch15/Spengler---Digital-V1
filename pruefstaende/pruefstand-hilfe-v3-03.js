@@ -331,6 +331,40 @@ const ARTEN=[
    .filter(f=>/^Spengler-DIGITAL-Anleitung-v.*\.pdf$/.test(f)&&f.indexOf("-v"+appVersion+".pdf")<0);
  p(alte.length===0,"keine veraltete Anleitung mehr im Ordner",alte);
 
+ // ------------------------------------------- J Jeder Schirm hat seinen Knopf
+ // v3.228. Ansage des Anwenders: "ausserdem schauen, dass in der app die info
+ // buttons in der neuen version ueberall da sind."
+ //
+ // "Ueberall" wird hier zur REGEL statt zur Stichprobe: jeder Schirm der App
+ // (.modal) traegt einen Info-Knopf. Die Ausnahmen stehen namentlich da, mit
+ // Grund - sonst waere "ueberall" eine Behauptung, die beim naechsten neuen
+ // Dialog still nicht mehr stimmt.
+ console.log("\nJ · Jeder Schirm hat seinen Info-Knopf");
+ const OHNE_KNOPF={
+  // Vor der Anmeldung. Das Hilfesystem erklaert die App - und die ist hier
+  // noch zu. Ein Knopf, der in eine Erklaerung fuehrt, die man erst drinnen
+  // braucht, waere an dieser Stelle nur im Weg.
+  authScreen:1, passwordResetScreen:1, companyInviteScreen:1,
+  companyLockedScreen:1, passwortModal:1, faSperrScreen:1,
+  // Diese beiden SIND die Erklaerung.
+  hilfeModal:1, wasIstNeuModal:1
+ };
+ const schirme=await page.evaluate(()=>
+  [...document.querySelectorAll(".modal")].filter(m=>m.id).map(m=>({
+   id:m.id, knopf:!!m.querySelector(".hilfe-knopf[data-hilfe]")})));
+ const fehlt=schirme.filter(x=>!x.knopf&&!OHNE_KNOPF[x.id]).map(x=>x.id);
+ const unnoetig=schirme.filter(x=>x.knopf&&OHNE_KNOPF[x.id]).map(x=>x.id);
+ p(schirme.length>=50,"alle Schirme der App gefunden",schirme.length);
+ p(fehlt.length===0,
+   "J1 jeder Schirm hat einen Info-Knopf - ausser den namentlich begruendeten",fehlt);
+ p(unnoetig.length===0,
+   "J2 GEGENPROBE: und die Ausnahmeliste traegt nichts mit sich herum, das laengst einen hat",unnoetig);
+ // Jeder dieser Knoepfe muss auch wirklich etwas oeffnen.
+ const tote=await page.evaluate(()=>
+  [...document.querySelectorAll(".modal .hilfe-knopf[data-hilfe]")]
+   .map(b=>b.dataset.hilfe).filter(k=>!HILFE_TEXTE[k]));
+ p(tote.length===0,"J3 und hinter jedem steht ein Text",tote);
+
  // ------------------------------------------------------- H Keine JS-Fehler
  console.log("\nH · Sauberkeit");
  p(jsFehler.length===0,"keine JavaScript-Fehler",jsFehler.slice(0,3));

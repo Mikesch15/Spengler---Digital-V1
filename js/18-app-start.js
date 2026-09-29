@@ -6,6 +6,19 @@
 markierePflichtfelder();
 // Info-Knoepfe fuer Tastatur und Screenreader beschriften (js/41-hilfe.js).
 if(typeof hilfeKnoepfeBeschriften==="function")hilfeKnoepfeBeschriften();
+// v3.228, ECHTER FEHLER: diese Datei laeuft WAEHREND des Einlesens von
+// index.html - alles, was im Dokument UNTER dem Skriptblock steht, gibt es
+// zu diesem Zeitpunkt noch gar nicht. Ein Info-Knopf dort blieb deshalb
+// dauerhaft ohne Beschriftung fuer Tastatur und Screenreader; sichtbar war
+// er, vorlesbar nicht. Aufgefallen ist es am Dialog "Beispiel-Positionen",
+// dem einzigen Markup unterhalb der Skripte.
+// Ein zweiter Durchgang, sobald das Dokument vollstaendig ist: bereits
+// beschriftete Knoepfe laesst die Funktion in Ruhe, es ist also kein
+// Doppeln, sondern ein Nachziehen.
+if(typeof document!=="undefined"&&document.readyState==="loading")
+ document.addEventListener("DOMContentLoaded",()=>{
+  if(typeof hilfeKnoepfeBeschriften==="function")hilfeKnoepfeBeschriften();
+ });
 
 // ---- Start: bestehende Sitzung prüfen -------------------------
 // v3.103: ?reset=... bzw. ?einladung=... in der URL zeigen einen der
