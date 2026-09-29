@@ -247,6 +247,44 @@ const SB=`()=>{
  p(/Artikel-Nr\./.test(z.aufbau)&&/aktualisiert/.test(z.aufbau),
    "H5 samt der Regel, dass eine bekannte Artikel-Nr. aktualisiert statt verdoppelt wird",z.aufbau.slice(0,200));
 
+ // ---- I  Der leere Barcode (v3.230) -------------------------------------
+ // ECHTER FEHLER, so gemeldet: beim Excel-Upload brach der Import ab mit
+ // "duplicate key value violates unique constraint bteam_artikel_ean_uniq",
+ // obwohl keine zwei Artikel denselben Barcode tragen. Ursache: 12 der 439
+ // Artikel haben GAR KEINEN Barcode, und der Excel-Import schreibt eine
+ // leere Zelle als leere ZEICHENKETTE. Fuer die Eindeutigkeitsregel war das
+ // zwoelfmal derselbe Wert.
+ console.log("\nI · Kein Barcode ist kein Barcode");
+ const ohneEan=daten.artikel.filter(a=>!a.ean||!String(a.ean).trim()).length;
+ p(ohneEan>0,
+   "I1 die gelieferte Liste enthaelt Artikel ganz ohne Barcode - genau der Fall, der den Import abbrechen liess",ohneEan);
+ z=await page.evaluate(()=>{
+  // Der eigene Weg (Startsortiment) macht aus "leer" schon immer ein NULL.
+  // Geprueft wird das an der Stelle, die es tut - nicht am Text der Datei.
+  const a={artikelnr:"X1",bezeichnung:"Ohne",ean:"   "};
+  const ean=(a.ean&&String(a.ean).trim())?String(a.ean).trim():null;
+  return ean;
+ });
+ p(z===null,"I2 beim Startsortiment wird ein leerer Barcode zu 'kein Barcode'",z);
+ // Der Excel-Weg geht durch js/08 und schreibt "" - deshalb faengt das die
+ // Datenbank ab (Trigger bteam_artikel_normalisieren, Migration v3.230).
+ // Hier geprueft wird, was die App daraus MACHT, wenn es doch kracht.
+ z=await page.evaluate(()=>{
+  const f=(m)=>importFehlerText({message:m});
+  return {
+   ean:f('duplicate key value violates unique constraint "bteam_artikel_ean_uniq"'),
+   nr:f('duplicate key value violates unique constraint "materials_edv_nr_key"'),
+   rls:f('new row violates row-level security policy'),
+   unbekannt:f("irgendwas ganz anderes")
+  };
+ });
+ p(/Barcode/.test(z.ean)&&/eindeutig/.test(z.ean),
+   "I3 ein doppelter Barcode wird in Sprache uebersetzt, die sagt, was zu tun ist",z.ean.slice(0,90));
+ p(/Nummer/.test(z.nr),"I4 eine doppelte Nummer ebenso",z.nr.slice(0,80));
+ p(/Berechtigung/.test(z.rls),"I5 und eine fehlende Berechtigung",z.rls.slice(0,60));
+ p(z.unbekannt==="irgendwas ganz anderes",
+   "I6 GEGENPROBE: was nicht in der Liste steht, wird im Wortlaut gezeigt - eine erfundene Erklaerung waere schlimmer als eine unverstaendliche echte",z.unbekannt);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

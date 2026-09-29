@@ -147,6 +147,33 @@ function importAutoZuordnen(felder,kopf){
  });
  return zu;
 }
+// v3.230, ECHTER FEHLER - so hat der Anwender ihn gesehen: beim Hochladen
+// der Lieferantenliste stand im Dialog
+//   "Fehler beim Import: duplicate key value violates unique constraint
+//    bteam_artikel_ean_uniq"
+// Das ist die Sprache der Datenbank, nicht die des Spenglers. Sie sagt nicht,
+// WAS zu tun ist, und nennt einen Namen, den es in der App nirgends gibt.
+//
+// Uebersetzt wird deshalb hier, an der einen Stelle, an der jeder Import
+// seinen Fehler meldet - nicht je Katalog neu. Was nicht in die Liste passt,
+// wird weiterhin im Wortlaut gezeigt: eine erfundene Erklaerung waere
+// schlimmer als eine unverstaendliche echte.
+function importFehlerText(error){
+ const t=String((error&&error.message)||error||"");
+ if(/duplicate key/i.test(t)&&/ean/i.test(t))
+  return "Zwei Zeilen der Datei tragen denselben Barcode. Ein Barcode muss eindeutig "
+   +"auf einen Artikel zeigen - sonst wäre beim Scannen nicht entscheidbar, welcher "
+   +"gemeint ist. Bitte die doppelte Zeile in der Datei bereinigen.\n\n(" + t + ")";
+ if(/duplicate key/i.test(t))
+  return "Zwei Zeilen der Datei tragen dieselbe Nummer. Jede Nummer darf in der Datei "
+   +"nur einmal vorkommen - sonst ist nicht entscheidbar, welche Zeile gilt.\n\n(" + t + ")";
+ if(/violates not-null|null value in column/i.test(t))
+  return "In einer Zeile fehlt ein Pflichtfeld. Bitte die Spaltenzuordnung prüfen.\n\n(" + t + ")";
+ if(/row-level security|policy|permission denied/i.test(t))
+  return "Dafür fehlt die Berechtigung.\n\n(" + t + ")";
+ return t;
+}
+
 function initExcelImport(cfg){
  // cfg: {inputId,buttonId,previewId,headerCheckId,countId,tableId,mappingId,
  //       fehlerId,confirmId,cancelId,tableName,felder:[{key,label,zahl,pflicht,alias}],
@@ -440,7 +467,7 @@ die Vorschau weist darauf hin.`:""}</div>`;
   const {data,error}=await sb.from(cfg.tableName)
     .upsert(eintraege,{onConflict:"company_id,"+cfg.schluessel}).select();
   $(cfg.confirmId).disabled=false;
-  if(error){ alert("Fehler beim Import: "+error.message); return; }
+  if(error){ alert("Der Import wurde nicht gespeichert.\n\n"+importFehlerText(error)); return; }
   // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft
   // still 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
   if(!data||!data.length){ alert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
