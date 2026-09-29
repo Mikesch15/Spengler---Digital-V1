@@ -306,6 +306,10 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    {id:3,variante_id:501,art:"korrektur",menge:-1,grund:"Inventur",created_at:"2026-09-10T08:00:00Z"}
   ];
   lagerBewegungen=window.__lese.lagerbestand_bewegungen.slice();
+  // v3.223: die App startet die Liste ZUGEKLAPPT (Ansage des Anwenders,
+  // geprueft in pruefstand-lager-ansicht-v3-220 Abschnitt H). Wer sich die
+  // Zeilen anschauen will, klappt sie auf - genau wie der Anwender.
+  lagerListeVersteckt=false;
   renderLagerverwaltung();
  });
  z=await page.evaluate(()=>({

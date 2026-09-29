@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.223.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2188,6 +2188,20 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
+<div class="hin"><b>Die Seite beginnt zugeklappt</b> (ab 3.223). Oben stehen
+die Kennzahlen, darunter gross <b>📥 Einscannen</b> und <b>📤 Ausscannen</b> –
+das sind die beiden Handlungen, für die man hierherkommt. Danach das
+Suchfeld, und erst ganz unten die selteneren Knöpfe (neues Material,
+Archiv). Die Liste selbst ist eingeklappt: bei über dreihundert Positionen
+ist sie keine Übersicht, sondern eine Wand. Wer sie ganz sehen will, drückt
+<b>„Alle anzeigen“</b>; wer eine bestimmte Position sucht, tippt sie ins
+Suchfeld – eine Suche zeigt die Treffer immer, auch bei eingeklappter
+Liste.</div>
+<div class="hin"><b>Aus der Kamera zurück</b> (ab 3.223). Der Scanner
+verhält sich jetzt wie jeder andere Schirm der App: die Zurück-Taste des
+Geräts schliesst ihn und bringt dich zurück, statt die App zu beenden.
+Oben links steht zusätzlich <b>‹ Zurück</b>. In beiden Fällen wird die
+Kamera dabei richtig abgeschaltet.</div>
 <div class="hin"><b>Wird der Code nicht scharf?</b> (ab 3.222) Ein Handy hat
 hinten mehrere Kameras. Die Ultraweitwinkel-Kamera hat einen <b>festen
 Fokus</b> und wird näher als etwa 10 cm grundsätzlich nicht scharf – und

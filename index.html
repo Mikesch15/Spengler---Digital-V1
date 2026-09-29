@@ -175,7 +175,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.222</div>
+<div id="appVersion">Version 3.223</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2440,7 +2440,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.223.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
 </div>
 </div>
 
@@ -2801,24 +2801,32 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
      Abgeleitet aus denselben Daten wie die Liste (js/68) - kein zweiter,
      gespeicherter Zaehler. -->
 <div id="lagerKennzahlen" class="lager-kennzahlen" hidden></div>
-<!-- v3.220: Gesucht wird zuerst. Bei ueber dreihundert Positionen ist das
-     die haeufigste Handlung auf dieser Seite - das Feld steht deshalb ueber
-     den Knoepfen, nicht darunter. -->
-<input id="lagerSuche" type="search" placeholder="🔍 Material suchen (EDV-Nr., Bezeichnung, Dim., Produkt, Barcode) …">
-<div class="small" id="lagerSucheStand" style="color:var(--muted);margin:4px 0" hidden></div>
-<div class="bar lager-werkzeuge">
-<!-- v3.140: Der Anlege-Knopf steht VORN und ist kein grauer Nebenknopf mehr.
-     Ueber ihn ist neues Material erreichbar, ohne die Einstellungen zu
-     oeffnen - er fuehrt in denselben Dialog (v3.138). -->
-<button type="button" id="lagerNeuesProduktStart" class="blue">＋ Neues Material / Produkt</button>
+<!-- v3.223: Ein- und Ausscannen sind DIE zwei Handlungen auf dieser Seite -
+     Ansage des Anwenders: "die ein un ausscannen buttons sollen prominent
+     sein und die anderen im hintergrund". Sie stehen deshalb allein, gross
+     und zuoberst; alles andere tritt darunter zurueck.
+
+     Damit wird v3.140 bewusst zurueckgenommen: dort stand "＋ Neues Material
+     / Produkt" vorn und blau, weil er neu war und gefunden werden musste. Er
+     ist gefunden. Gescannt wird jeden Tag, neues Material angelegt selten -
+     die Gewichtung folgt jetzt der Haeufigkeit. Erreichbar bleibt er
+     unveraendert. -->
+<div class="bar lager-scan">
 <button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
 <button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
-<button type="button" id="lagerAlleZuklappen" class="gray">⯆ Alle zuklappen</button>
+</div>
+<!-- v3.124: Suche ueber Position UND Produkt. Bei ueber dreihundert
+     Materialpositionen ist Scrollen kein Bedienweg mehr; seit v3.223 ist
+     die Liste zudem zugeklappt, damit ist die Suche der zweite Weg hinein
+     (der erste ist Scannen, direkt darueber). -->
+<input id="lagerSuche" type="search" placeholder="🔍 Material suchen (EDV-Nr., Bezeichnung, Dim., Produkt, Barcode) …">
+<div class="small" id="lagerSucheStand" style="color:var(--muted);margin:4px 0" hidden></div>
+<!-- v3.223: die Nebenknoepfe - grau, klein, ganz unten. -->
+<div class="bar lager-werkzeuge">
+<button type="button" id="lagerNeuesProduktStart" class="gray">＋ Neues Material / Produkt</button>
+<button type="button" id="lagerAlleZuklappen" class="gray">⯈ Alle anzeigen</button>
 <button type="button" id="lagerArchivZeigen" class="gray" hidden>📦 Archiv anzeigen</button>
 </div>
-<!-- v3.124: Suche ueber Position UND Produkt. Bei 372 Materialpositionen
-     ist Scrollen kein Bedienweg mehr. Sie steht seit v3.220 oben, gleich
-     unter den Kennzahlen. -->
 <div id="lagerverwaltungListe"></div>
 <div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>
 </div>
@@ -3091,9 +3099,13 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
      Buchen-Dialog vergessen ging). -->
 <div id="barcodeScanOverlay" class="barcode-scan-overlay" hidden>
 <div class="barcode-scan-box">
+<!-- v3.223: der Rueckweg steht LINKS und heisst "Zurueck" - wie ueberall
+     sonst in der App. Vorher stand rechts "Abbrechen", was nach Verwerfen
+     klingt; gemeldet wurde, dass man aus der Kamera nicht herausfand, ohne
+     die App zu schliessen. Die id bleibt, alles was daran haengt auch. -->
 <div class="bar" style="justify-content:space-between;align-items:center">
+<button type="button" id="barcodeScanAbbrechen" class="gray">‹ Zurück</button>
 <span style="color:#fff;font-weight:700">📷 Barcode scannen</span>
-<button type="button" id="barcodeScanAbbrechen" class="gray">Abbrechen</button>
 </div>
 <video id="barcodeScanVideo" playsinline muted></video>
 <div id="barcodeScanStatus" class="barcode-scan-status"></div>
@@ -3175,7 +3187,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.222.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.223.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

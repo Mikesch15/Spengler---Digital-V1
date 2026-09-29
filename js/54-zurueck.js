@@ -23,7 +23,18 @@
 const ZURUECK_NICHT=["authScreen","companyLockedScreen","appRoot"];
 
 // Schirme, die keinen .modal-Rahmen haben, aber trotzdem einer sind.
-const ZURUECK_EXTRA=["reportScreen"];
+//
+// v3.223, ECHTER FEHLER - gemeldet: "Und ich will von der kamera irgendwie
+// zutückkommen ohne das es die ganze app schliesst". Das Scan-Overlay traegt
+// die Klasse .barcode-scan-overlay und keine der drei oben gesuchten. Fuer
+// diesen Mechanismus existierte es deshalb gar nicht: es lag kein
+// Platzhalter dafuer in der Verlaufsliste, und die Zurueck-Taste tat, was
+// sie ohne Platzhalter tut - die Seite verlassen, also die App schliessen.
+//
+// Dieselbe Luecke erklaert, warum auch der Zurueck-Knopf oben links dort
+// nicht griff: der fragt ueber a2SchirmDarueber() (js/70) denselben Stapel
+// und sah das Overlay nicht - er schloss den Bereich DARUNTER.
+const ZURUECK_EXTRA=["reportScreen","barcodeScanOverlay"];
 
 // Sonderwege: diese Schirme haben einen eigenen Rueckweg, der zusaetzlich
 // die richtige Liste wiederherstellt. Ohne sie wuerde ein blosses
@@ -37,7 +48,12 @@ const ZURUECK_WEG={
  // wurden (das Cockpit bzw. die Uebersicht). Ihr Abbrechen-Knopf stellt
  // ihn wieder her - blosses Ausblenden liesse einen leeren Hintergrund.
  measTypeChooserModal:()=>$("cancelMeasTypeChooser").click(),
- amTypeChooserModal:  ()=>$("cancelAmTypeChooser").click()
+ amTypeChooserModal:  ()=>$("cancelAmTypeChooser").click(),
+ // v3.223: MUSS ueber barcodeScanSchliessen() gehen. Blosses Ausblenden
+ // liesse die Kamera weiterlaufen (Stream, ZXing und der eingebaute Leser
+ // haengen nicht am hidden-Attribut) - ein laufendes Kamerabild hinter
+ // einer unsichtbaren Seite ist genau das, was man nicht will.
+ barcodeScanOverlay:  ()=>barcodeScanSchliessen()
 };
 
 let zurueckSchirme=[];   // ids in der Reihenfolge, in der sie geoeffnet wurden

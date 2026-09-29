@@ -179,7 +179,13 @@ function lagerBewegungZeile(b){
 // Gruppen-Koepfe den Schluessel "m"+materialId (eigener Namensraum, damit
 // er nie mit einer Varianten-ID kollidiert).
 let lagerOffenArtikel=new Set();
-let lagerListeVersteckt=false;
+// v3.223: standardmaessig ZUGEKLAPPT. Ansage des Anwenders: "zusätzlich soll
+// standartmässig alles zugeklappt sein". Mit ueber dreihundert Positionen ist
+// die aufgeklappte Liste keine Uebersicht, sondern eine Wand - und der
+// haeufigste Weg ist ohnehin Scannen oder Suchen, nicht Scrollen. Wer die
+// ganze Liste will, bekommt sie mit einem Knopfdruck; die Wahl haelt dann
+// fuer die laufende Sitzung.
+let lagerListeVersteckt=true;
 
 // ---- v3.124: Suche ueber die ganze Lagerliste ----------------------------
 // Bei 372 Materialpositionen ist Scrollen kein Bedienweg mehr. Gesucht wird
@@ -332,7 +338,8 @@ function renderLagerverwaltung(){
  }
  // Die Suche schlaegt das Zuklappen: wer sucht, will die Treffer sehen.
  if(lagerListeVersteckt&&!suchtext){
-  box.innerHTML=`<div class="small" style="color:var(--muted);margin:6px 0">Liste eingeklappt (${alle.length} Artikel) - "Alle anzeigen" zeigt sie wieder.</div>`;
+  box.innerHTML=`<div class="lager-zu">${alle.length} Positionen im Lager.<br>
+   <span class="small">Oben scannen, im Feld suchen – oder unten „Alle anzeigen“.</span></div>`;
   return;
  }
  box.innerHTML=liste.map(a=>{

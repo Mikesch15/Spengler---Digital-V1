@@ -47,6 +47,9 @@ const AUFBAU=()=>{
  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;
  if($("lagerverwaltungSection"))$("lagerverwaltungSection").hidden=false;
  lagerSuche=""; if($("lagerSuche"))$("lagerSuche").value="";
+ // v3.223: die App startet die Liste jetzt ZUGEKLAPPT (siehe Abschnitt H,
+ // der genau das prueft). Die Abschnitte A-F schauen sich die Zeilen an -
+ // dafuer muss die Liste da sein, also wird hier ausdruecklich aufgeklappt.
  lagerListeVersteckt=false; lagerArchivZeigen=false;
  openSettingsTo("lager");
  const sec=document.querySelector('[data-section="lagerverwaltung"]');
@@ -138,21 +141,49 @@ const AUFBAU=()=>{
    "C2 Gegenprobe: ein Bestand > 0 ist NICHT rot - die Marke sitzt nicht an jeder Zeile",z);
 
  // ---- D  Werkzeugleiste --------------------------------------------------
- console.log("\nD . Eine Leiste, keine Wand");
+ console.log("\nD . Scannen ist die Handlung, alles andere Beiwerk");
+ // GEAENDERTER VERTRAG (v3.223). Bis v3.222 lagen alle fuenf Knoepfe in
+ // EINER Leiste und wurden gleich gewichtet; "＋ Neues Material" stand seit
+ // v3.140 sogar vorn und blau. Ansage des Anwenders: "die ein un ausscannen
+ // buttons sollen prominent sein und die anderen im hintergrund". Die
+ // Pruefungen sind deshalb nicht geloescht, sondern gedreht - samt
+ // Gegenproben, damit die alte Gleichgewichtung nicht zurueckkommt.
  z=await page.evaluate(()=>{
+  const scan=document.querySelector(".lager-scan");
   const leiste=document.querySelector(".lager-werkzeuge");
-  const knoepfe=[...leiste.querySelectorAll("button")].filter(x=>!x.hidden);
-  const breite=leiste.getBoundingClientRect().width;
-  const vollbreit=knoepfe.filter(x=>x.getBoundingClientRect().width>breite*0.9).length;
-  const suche=$("lagerSuche");
-  return {anzahl:knoepfe.length, vollbreit,
-          sucheUeberLeiste:!!(suche.compareDocumentPosition(leiste)&4),
-          reihen:new Set(knoepfe.map(x=>Math.round(x.getBoundingClientRect().top))).size};
+  const sicht=el=>[...el.querySelectorAll("button")].filter(x=>!x.hidden);
+  const scanK=sicht(scan), nebenK=sicht(leiste);
+  const gr=el=>el.getBoundingClientRect();
+  const schrift=el=>parseFloat(getComputedStyle(el).fontSize);
+  const breite=gr(leiste).width;
+  return {
+   scanIds:scanK.map(x=>x.id),
+   nebenIds:nebenK.map(x=>x.id),
+   scanHoehe:Math.min(...scanK.map(x=>gr(x).height)),
+   nebenHoehe:Math.max(...nebenK.map(x=>gr(x).height)),
+   scanSchrift:Math.min(...scanK.map(schrift)),
+   nebenSchrift:Math.max(...nebenK.map(schrift)),
+   scanAnteil:Math.min(...scanK.map(x=>gr(x).width/gr(scan).width)),
+   nebenGrau:nebenK.every(x=>x.classList.contains("gray")),
+   scanNichtGrau:scanK.every(x=>!x.classList.contains("gray")),
+   scanUeberSuche:!!($("lagerSuche").compareDocumentPosition(scan)&2),
+   sucheUeberLeiste:!!($("lagerSuche").compareDocumentPosition(leiste)&4),
+   vollbreit:nebenK.filter(x=>gr(x).width>breite*0.9).length,
+   reihen:new Set(nebenK.map(x=>Math.round(gr(x).top))).size
+  };
  });
- p(z.anzahl>=4,"D1 die Leiste traegt ihre Knoepfe",z);
- p(z.vollbreit===0,"D2 kein Knopf nimmt die ganze Breite - es ist eine Leiste",z);
- p(z.reihen<=2,"D3 sie braucht hoechstens zwei Reihen",z);
- p(z.sucheUeberLeiste,"D4 gesucht wird ueber den Knoepfen - das ist die haeufigste Handlung",z);
+ p(z.scanIds.length===2&&z.scanIds.indexOf("lagerEinscannen")>=0&&z.scanIds.indexOf("lagerAusscannen")>=0,
+   "D1 Ein- und Ausscannen stehen ALLEIN in ihrer eigenen Zeile",z);
+ p(z.nebenIds.indexOf("lagerEinscannen")<0&&z.nebenIds.indexOf("lagerAusscannen")<0,
+   "D2 GEGENPROBE: sie liegen NICHT mehr zwischen den Nebenknoepfen",z);
+ p(z.scanHoehe>z.nebenHoehe&&z.scanSchrift>z.nebenSchrift,
+   "D3 sie sind messbar groesser als die Nebenknoepfe - prominent sieht man, statt es zu raten",z);
+ p(z.scanAnteil>0.4,"D4 jeder der beiden nimmt seine halbe Zeile - sie teilen sie sich",z);
+ p(z.scanNichtGrau&&z.nebenGrau,
+   "D5 die Scan-Knoepfe sind farbig, ALLE Nebenknoepfe grau - auch '＋ Neues Material', das bis v3.222 blau war",z);
+ p(z.scanUeberSuche,"D6 die Scan-Zeile steht zuoberst, noch ueber der Suche",z);
+ p(z.sucheUeberLeiste,"D7 die Nebenknoepfe stehen unter der Suche - sie sind der Rest, nicht der Weg",z);
+ p(z.vollbreit===0&&z.reihen<=2,"D8 die Nebenzeile bleibt eine Leiste: kein Knopf in voller Breite, hoechstens zwei Reihen",z);
 
  // ---- E  Bereich statt Einstellungs-Abschnitt ---------------------------
  console.log("\nE . Im Bereich kein Einstellungs-Abschnitt");
@@ -201,6 +232,82 @@ const AUFBAU=()=>{
  p(z.marken,"F1 die Marken data-lager-karte und data-lager-buchen sind unveraendert da",z);
  p(z.offen&&z.zuNachZweitemTipp,"F2 auf- und zuklappen geht wie bisher",z);
  p(z.bestand===12,"F3 und der Bestand wird unveraendert gerechnet",z);
+
+ // ---- H  Zugeklappt ist der Normalzustand (v3.223) ----------------------
+ console.log("\nH . Zugeklappt ist der Normalzustand");
+ // Ansage des Anwenders: "zusätzlich soll standartmässig alles zugeklappt
+ // sein". Bis v3.222 stand die Liste offen da; bei ueber dreihundert
+ // Positionen ist das keine Uebersicht, sondern eine Wand.
+ // Die Vorgabe steht im Quelltext - im Node gelesen, nicht in der Seite:
+ // die Pruefseite laeuft ueber file://, dort ist fetch() gesperrt.
+ {
+  const frisch=fs.readFileSync(path.join(process.cwd(),"js/68-lagerverwaltung.js"),"utf8");
+  const vorgabe=/let lagerListeVersteckt\s*=\s*(true|false)/.exec(frisch);
+  z={vorgabe:vorgabe?vorgabe[1]:null};
+ }
+ p(z.vorgabe==="true",
+   "H1 die App startet mit zugeklappter Liste - GEGENPROBE zum alten Zustand, wo sie offen stand",z);
+
+ z=await page.evaluate(()=>{
+  lagerListeVersteckt=true; lagerSuche=""; $("lagerSuche").value="";
+  renderLagerverwaltung();
+  const zu={text:$("lagerverwaltungListe").innerText,
+   karten:document.querySelectorAll("#lagerverwaltungListe [data-lager-karte]").length,
+   knopf:$("lagerAlleZuklappen").textContent, knopfDa:!$("lagerAlleZuklappen").hidden,
+   kennzahlenDa:!$("lagerKennzahlen").hidden, sucheDa:!!$("lagerSuche")};
+  $("lagerAlleZuklappen").click();
+  const auf={karten:document.querySelectorAll("#lagerverwaltungListe [data-lager-karte]").length,
+   knopf:$("lagerAlleZuklappen").textContent};
+  // Und die Suche muss das Zuklappen weiterhin schlagen.
+  lagerListeVersteckt=true; lagerSuche="rinnen"; $("lagerSuche").value="rinnen";
+  renderLagerverwaltung();
+  const gesucht=document.querySelectorAll("#lagerverwaltungListe [data-lager-karte]").length;
+  lagerSuche=""; $("lagerSuche").value=""; lagerListeVersteckt=false; renderLagerverwaltung();
+  return {zu,auf,gesucht};
+ });
+ p(z.zu.karten===0&&/Positionen im Lager/.test(z.zu.text),
+   "H2 zugeklappt steht keine einzige Zeile da - nur, wie viele Positionen es gibt",z);
+ p(z.zu.kennzahlenDa&&z.zu.sucheDa&&z.zu.knopfDa,
+   "H3 Kennzahlen, Suche und der Weg zur Liste bleiben sichtbar - zugeklappt heisst nicht weg",z);
+ p(/anzeigen/i.test(z.zu.knopf),"H4 der Knopf bietet an, sie zu zeigen",z);
+ p(z.auf.karten>0&&/zuklappen/i.test(z.auf.knopf),
+   "H5 GEGENPROBE: ein Druck zeigt die ganze Liste, und der Knopf bietet wieder das Zuklappen an",z);
+ p(z.gesucht>0,
+   "H6 GEGENPROBE: eine Suche schlaegt das Zuklappen - wer sucht, will die Treffer sehen (unveraendert seit v3.124)",z);
+
+ // ---- I  Zurueck aus der Kamera (v3.223) --------------------------------
+ console.log("\nI . Zurueck aus der Kamera");
+ // ECHTER FEHLER, gemeldet: "Und ich will von der kamera irgendwie
+ // zutückkommen ohne das es die ganze app schliesst". Das Scan-Overlay
+ // traegt .barcode-scan-overlay und keine der Klassen, die js/54 sucht -
+ // es lag also kein Platzhalter in der Verlaufsliste, und die
+ // Zurueck-Taste verliess die Seite.
+ const zurueckQuelle=fs.readFileSync(path.join(process.cwd(),"js/54-zurueck.js"),"utf8");
+ z=await page.evaluate(async()=>{
+  $("barcodeScanOverlay").hidden=false;
+  await new Promise(r=>setTimeout(r,60));
+  const imStapel=typeof zurueckSchirme!=="undefined"&&zurueckSchirme.indexOf("barcodeScanOverlay")>=0;
+  // Der Rueckweg muss die Kamera wirklich stoppen, nicht bloss ausblenden.
+  const stream=document.createElement("canvas").captureStream();
+  let gestoppt=false; stream.getVideoTracks()[0].stop=()=>{gestoppt=true};
+  $("barcodeScanVideo").srcObject=stream;
+  zurueckSchliesse("barcodeScanOverlay");
+  await new Promise(r=>setTimeout(r,60));
+  return {imStapel, zu:$("barcodeScanOverlay").hidden, gestoppt};
+ });
+ z.extra=/ZURUECK_EXTRA=\[[^\]]*barcodeScanOverlay/.test(zurueckQuelle);
+ z.ueberSchliessen=/barcodeScanOverlay:\s*\(\)=>barcodeScanSchliessen\(\)/.test(zurueckQuelle);
+ p(z.extra,"I1 das Scan-Overlay ist als Schirm eingetragen - vorher kannte der Zurueck-Mechanismus es gar nicht",z);
+ p(z.imStapel,"I2 und landet beim Oeffnen tatsaechlich im Schirm-Stapel, bekommt also einen Platz in der Verlaufsliste",z);
+ p(z.zu===true,"I3 Zurueck schliesst das Overlay statt die App",z);
+ p(z.ueberSchliessen&&z.gestoppt===true,
+   "I4 GEGENPROBE gegen blosses Ausblenden: der Rueckweg geht ueber barcodeScanSchliessen() und stoppt die Kamera wirklich",z);
+ z=await page.evaluate(()=>({
+  links:!!(document.querySelector(".barcode-scan-box .bar button#barcodeScanAbbrechen")&&
+   $("barcodeScanAbbrechen").compareDocumentPosition($("barcodeScanAbbrechen").parentElement.querySelector("span"))&4),
+  text:$("barcodeScanAbbrechen").textContent}));
+ p(z.links&&/zur/i.test(z.text),
+   "I5 im Overlay selbst steht der Rueckweg links und heisst 'Zurueck' - wie ueberall sonst in der App",z);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

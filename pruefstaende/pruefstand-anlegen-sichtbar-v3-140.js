@@ -100,20 +100,40 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "GEGENPROBE: und VOR den Blaetter-Knoepfen - nicht dahinter wie bis v3.139",stellung);
 
  console.log("\nC · Die Lagerverwaltung kommt ohne die Einstellungen aus");
+ // GEAENDERTER VERTRAG (v3.223). Der Kern von v3.140 gilt unveraendert: neues
+ // Material muss aus der Lagerverwaltung heraus erreichbar sein, ohne den
+ // Umweg ueber die Einstellungen, und der Knopf darf nicht hinten
+ // verschwinden. Was sich geaendert hat, ist die GEWICHTUNG: bis v3.222 war
+ // er der einzige farbige Knopf der Leiste, weil er neu war und gefunden
+ // werden musste. Ansage des Anwenders zu v3.223: "die ein un ausscannen
+ // buttons sollen prominent sein und die anderen im hintergrund". Gescannt
+ // wird jeden Tag, Material angelegt selten - die Farbe wandert dorthin, wo
+ // die taegliche Handlung ist.
+ //
+ // Die Pruefung ist deshalb nicht geloescht, sondern gedreht: sie haelt
+ // jetzt fest, dass er grau ist UND dass die Prominenz nicht verschwunden,
+ // sondern an eine bestimmte Stelle gewandert ist.
  const lager=await page.evaluate(()=>{
   const leiste=$("lagerNeuesProduktStart")?$("lagerNeuesProduktStart").parentNode:null;
   const knoepfe=leiste?Array.from(leiste.querySelectorAll("button")).map(k=>k.id):[];
+  const scan=document.querySelector(".lager-scan");
+  const scanK=scan?Array.from(scan.querySelectorAll("button")):[];
   return {ersterKnopf:knoepfe[0]||null, knoepfe,
-    klasse:$("lagerNeuesProduktStart")?$("lagerNeuesProduktStart").className:null};
+    klasse:$("lagerNeuesProduktStart")?$("lagerNeuesProduktStart").className:null,
+    scanIds:scanK.map(k=>k.id), scanGrau:scanK.some(k=>k.classList.contains("gray")),
+    scanUeberLeiste:!!(scan&&leiste&&(scan.compareDocumentPosition(leiste)&4))};
  });
  p(lager.ersterKnopf==="lagerNeuesProduktStart",
-   "er steht an erster Stelle der Leiste",lager);
- // Gegenprobe auf den Zustand bis v3.139: grau, hinter "Alle zuklappen".
- p(!/gray/.test(lager.klasse||""),
-   "GEGENPROBE: er ist kein grauer Nebenknopf mehr",lager.klasse);
+   "er steht an erster Stelle seiner Leiste - vorne, nicht hinten wie bis v3.139",lager);
+ p(/gray/.test(lager.klasse||""),
+   "seit v3.223 ist er grau: die Farbe gehoert der taeglichen Handlung, nicht der seltenen",lager.klasse);
+ p(lager.scanIds.join(",")==="lagerEinscannen,lagerAusscannen"&&lager.scanGrau===false,
+   "GEGENPROBE: die Prominenz ist nicht weg, sondern bei Ein- und Ausscannen - die sind farbig und stehen allein",lager);
+ p(lager.scanUeberLeiste===true,
+   "GEGENPROBE: und zwar UEBER dieser Leiste - der Anlege-Knopf ist der Nebenweg, nicht der Hauptweg",lager);
  p((lager.knoepfe.indexOf("lagerNeuesProduktStart"))
      <(lager.knoepfe.indexOf("lagerAlleZuklappen")),
-   "GEGENPROBE: er steht VOR „Alle zuklappen\"",lager.knoepfe);
+   "GEGENPROBE: er steht weiterhin VOR „Alle anzeigen\" - unter den Nebenknoepfen ist er der erste",lager.knoepfe);
  // Und er muss wirklich in den gemeinsamen Dialog fuehren.
  await page.evaluate(()=>$("lagerNeuesProduktStart").click());
  await page.waitForTimeout(400);

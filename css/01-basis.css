@@ -1786,3 +1786,16 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .barcode-scan-diagnose summary{cursor:pointer;padding:4px 0}
 .barcode-scan-diagnose pre{white-space:pre-wrap;word-break:break-word;background:#11181e;
  border:1px solid #2b3640;border-radius:8px;padding:8px;margin:6px 0;font-size:11px;line-height:1.45}
+
+/* Lagerverwaltung v3.223: Scannen ist die Handlung, alles andere Beiwerk ----
+   Die beiden Scan-Knoepfe teilen sich eine Zeile und sind deutlich groesser
+   als die Nebenknoepfe darunter - "prominent" soll man sehen, nicht raten. */
+.lager-scan{gap:8px;margin-top:10px}
+.lager-scan button{flex:1 1 0;min-width:0;font-size:17px;font-weight:700;
+ padding:14px 10px;border-radius:12px}
+/* Die Nebenzeile tritt zurueck: kleiner, grau, nicht ueber die ganze Breite. */
+.lager-werkzeuge{margin-top:6px}
+.lager-werkzeuge button{font-size:13px;padding:7px 10px}
+/* Die zugeklappte Liste ist kein Fehlerfall, sondern der Normalzustand -
+   sie sagt, wie viel da ist und wie man hinkommt. */
+.lager-zu{color:var(--muted);text-align:center;padding:14px 8px;line-height:1.5}
