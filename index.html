@@ -49,16 +49,17 @@
      Die laufende Sitzung ist dann noch gueltig - "Zurück" fuehrt ohne
      Abmelden wieder hinein. -->
 <div class="small" id="kwLoginHinweis" hidden style="margin-bottom:6px;color:var(--muted)">Das bisher angemeldete Konto bleibt auf diesem Gerät gespeichert. Nach dem Anmelden lässt sich zwischen beiden wechseln.</div>
-<!-- v3.225: Fingerabdruck. Der Kasten ist da, wenn auf diesem Geraet ein
-     Schluessel hinterlegt ist UND das Geraet einen Sensor anbietet -
-     js/81-fingerabdruck.js entscheidet das, nicht das HTML.
-     Das Passwortfeld darueber und der Knopf darunter bleiben IMMER stehen:
-     ein defekter Sensor darf niemanden aus seiner eigenen App aussperren. -->
-<div id="faLoginBox" hidden style="margin-bottom:8px">
-<div class="bar"><button type="button" id="faLoginKnopf" class="blue" style="width:100%" data-fa-konto="">🔒 Mit Fingerabdruck anmelden</button></div>
-<div class="small" id="faLoginMeldung" style="color:var(--muted)"></div>
-<div class="small" style="color:var(--muted);margin-top:2px">… oder wie gewohnt mit Passwort:</div>
-</div>
+<!-- v3.225 stand hier ein Knopf "Mit Fingerabdruck anmelden". Er konnte an
+     dieser Stelle gar nicht funktionieren: eine vorhandene Sitzung stellt
+     die App beim Start selbst wieder her (js/18) - dieser Bildschirm
+     erscheint also nur, wenn KEINE Sitzung mehr da ist, und dann gibt es
+     auch nichts zu entsperren. Genau das war der gemeldete Fehler
+     ("passiert nichts und er ist wieder deaktiviert"), ausfuehrlich in
+     js/81-fingerabdruck.js.
+     Seit v3.226 sitzt der Fingerabdruck als Schloss vor der laufenden
+     Sitzung (#faSperrScreen weiter unten). Hier bleibt nur der Satz, der
+     die Frage beantwortet, die man sich sonst stellt. -->
+<div class="small" id="faLoginHinweis" hidden style="margin-bottom:8px;color:var(--muted)">🔒 Auf diesem Gerät ist ein Fingerabdruck hinterlegt. Er entsperrt die App beim Öffnen – nach dem Abmelden braucht es einmal das Passwort.</div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
 <button type="button" id="kwZurueck" class="gray" hidden data-kw-zu-abbrechen="1">↩ Zurück</button>
@@ -143,6 +144,29 @@
 </div>
 </div>
 
+<!-- Schloss vor der laufenden Sitzung (v3.226). Wird NUR von
+     js/81-fingerabdruck.js gezeigt, und nur wenn fuer das Konto der
+     laufenden Sitzung auf diesem Geraet ein Schluessel hinterlegt ist.
+     Der Weg ueber das Passwort steht daneben immer offen - ein Sensor,
+     der nicht mehr antwortet, darf niemanden aus seiner eigenen App
+     aussperren. -->
+<div id="faSperrScreen" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<div class="brand">SPENGLER-DIGITAL</div>
+<h1>Gesperrt</h1>
+<div class="small" id="faSperrName" style="margin-bottom:8px;color:var(--muted)"></div>
+<div class="bar"><button type="button" id="faSperrKnopf" class="blue" style="width:100%" data-fa-entsperren="1">🔒 Mit Fingerabdruck entsperren</button></div>
+<!-- Diese Meldung steht AUSSERHALB von allem, was beim Zeichnen aus- und
+     eingeblendet wird. In v3.225 verschwand sie zusammen mit ihrem Kasten,
+     und ein Fehlschlag sah aus wie "es passiert nichts". -->
+<div class="small" id="faSperrMeldung" style="margin-top:6px;color:var(--red)"></div>
+<div class="small" style="margin-top:12px;color:var(--muted)">Sensor antwortet nicht oder Finger wird nicht erkannt? Dieser Weg steht immer offen:</div>
+<div class="bar"><button type="button" id="faSperrPasswort" class="gray" data-fa-passwort="1">🔓 Abmelden und mit Passwort anmelden</button></div>
+</div>
+</div>
+</div>
+
 <div class="app" id="appRoot" hidden>
 
 <!-- Offline-Hinweis (v2.70): erscheint, sobald keine Verbindung besteht. -->
@@ -185,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.225</div>
+<div id="appVersion">Version 3.226</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2450,7 +2474,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.225.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 116 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.226.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 116 Seiten)</a></div>
 </div>
 </div>
 
@@ -3197,7 +3221,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.225.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.226.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

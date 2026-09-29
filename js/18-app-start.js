@@ -14,7 +14,17 @@ if(typeof hilfeKnoepfeBeschriften==="function")hilfeKnoepfeBeschriften();
 (async()=>{
  if(typeof emailAuthBootWeiche==="function"&&emailAuthBootWeiche())return;
  const {data:{session}}=await sb.auth.getSession();
- if(session)await afterLogin();
+ if(!session)return;
+ // v3.226: Ist fuer dieses Konto auf diesem Geraet ein Fingerabdruck
+ // hinterlegt, kommt das Schloss VOR die App (js/81-fingerabdruck.js).
+ // faSperreZeigen() gibt true zurueck, wenn es uebernommen hat - afterLogin()
+ // ruft dann erst der entsperrte Bildschirm auf.
+ // Hier steht die Weiche, weil hier die Sitzung bekannt wird: der
+ // Fingerabdruck schuetzt genau diese. Fehlt die Datei oder der Bildschirm,
+ // geht die App wie bisher auf - ein Schloss ohne Tuer waere schlimmer als
+ // gar keins.
+ if(typeof faSperreZeigen==="function"&&await faSperreZeigen(session))return;
+ await afterLogin();
 })();
 
 // ---- Service Worker registrieren (macht die App installierbar) ----

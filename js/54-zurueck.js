@@ -20,7 +20,13 @@
 
 // Grundschirme: Anmeldung und die Sperrmeldung sind kein Rueckweg, sie
 // sind der Boden. #appRoot ebenfalls nicht - das ist die App selbst.
-const ZURUECK_NICHT=["authScreen","companyLockedScreen","appRoot"];
+//
+// v3.226: #faSperrScreen (Fingerabdruck-Schloss, js/81) gehoert ZWINGEND
+// hierher. Er traegt die Klasse .modal, waere also von selbst ein Schirm
+// wie jeder andere - und die Zurueck-Taste haette das Schloss mit einem
+// einzigen Tippen weggeschoben und die App dahinter geoeffnet. Ein
+// Schloss, an dem die Zurueck-Taste vorbeifuehrt, ist keins.
+const ZURUECK_NICHT=["authScreen","companyLockedScreen","faSperrScreen","appRoot"];
 
 // Schirme, die keinen .modal-Rahmen haben, aber trotzdem einer sind.
 //

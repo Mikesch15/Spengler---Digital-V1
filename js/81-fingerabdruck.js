@@ -1,4 +1,4 @@
-// ---- Anmeldung per Fingerabdruck (v3.225) ---------------------------------
+// ---- Fingerabdruck: Schloss vor der App (v3.225, umgebaut in v3.226) ------
 //
 // Wunsch des Anwenders: "Können wir eine anmeldung per fingerabdruck
 // einrichten?" - entschieden wurde: Entsperren auf dem Geraet, freiwillig
@@ -137,7 +137,7 @@ async function faEinschalten(){
 
  if(!faSchluesselSetzen(ich,faB64(cred.rawId)))
   return {ok:false,meldung:"Der Schlüssel liess sich auf diesem Gerät nicht speichern."};
- return {ok:true,meldung:"Ab jetzt geht die Anmeldung auf diesem Gerät mit dem Fingerabdruck. Das Passwort funktioniert weiterhin."};
+ return {ok:true,meldung:"Eingeschaltet. Beim nächsten Öffnen ist die App gesperrt und geht mit dem Fingerabdruck wieder auf. Das Passwort funktioniert weiterhin."};
 }
 
 // Der Eintrag zu dieser Kennung, egal ob schon mit Schluessel oder nicht.
@@ -154,18 +154,48 @@ function faAusschalten(id){
  return {ok:true,meldung:"Der Fingerabdruck ist für dieses Konto ausgeschaltet. Angemeldet wird wieder mit dem Passwort."};
 }
 
-// ---- Anmelden -------------------------------------------------------------
-// Fragt den Sensor und stellt bei Erfolg die gespeicherte Sitzung her.
-// Das Setzen der Sitzung geht ueber kwSitzungSetzen() in js/76 - dieselbe
-// Stelle wie beim Kontowechsel, samt dem Aufraeumen eines Zugangs, der
-// nicht mehr gilt.
-async function faAnmelden(id){
- const konten=faKonten();
- const ziel=id?faEintrag(id):konten[0];
- if(!ziel)return {ok:false,meldung:"Auf diesem Gerät ist kein Fingerabdruck hinterlegt."};
- if(!(await faMoeglich()))
-  return {ok:false,meldung:"Dieses Gerät bietet gerade keinen Sensor an. Bitte mit dem Passwort anmelden."};
+// ---- Entsperren -----------------------------------------------------------
+// v3.226, ECHTER FEHLER - so wurde er gemeldet: "Ich kann den fingerabdruck
+// zwar aktivieren, aber wenn ich mich das erste mal so anmelden will,
+// passiert nichts und er ist wieder deaktiviert."
+//
+// Zwei Ursachen, beide aus v3.225:
+//
+//  1. "wieder deaktiviert": Abmelden ruft sb.auth.signOut() (js/03). Das
+//     gilt bei Supabase standardmaessig GLOBAL und macht dabei genau den
+//     refresh_token ungueltig, den js/81 danach wieder einsetzen wollte.
+//     Der Versuch scheiterte, kwSitzungSetzen() (js/76) raeumte den toten
+//     Eintrag weg - und mit ihm den Schluessel, der daran haengt.
+//     Der Kontowechsel lief da nie hinein: dort wird bewusst NICHT
+//     abgemeldet ("KEIN signOut", js/76), und es geht um ein ANDERES
+//     Konto, dessen Token niemand angefasst hat.
+//  2. "passiert nichts": die Meldung dazu stand in genau dem Kasten, den
+//     das Neuzeichnen unmittelbar danach ausblendete. Sichtbar blieb
+//     nichts - und damit war Regel 2 von oben gebrochen.
+//
+// Dazu kommt der Grund, warum das nicht mit einer kleinen Korrektur getan
+// war: die App stellt eine vorhandene Sitzung beim Start von selbst wieder
+// her (js/18). Der Anmeldebildschirm erscheint also ueberhaupt nur, wenn
+// KEINE Sitzung mehr da ist - also genau dann, wenn ein Fingerabdruck
+// nichts herzustellen hat. Ein Fingerabdruck-Knopf AUF dem
+// Anmeldebildschirm konnte deshalb nie funktionieren.
+//
+// Seit v3.226 steht er dort, wo er hingehoert: als SCHLOSS vor der
+// laufenden Sitzung - das, was ausgewaehlt wurde ("Entsperren auf dem
+// Geraet"). Der Sensor entscheidet nur noch, ob die App aufgeht. Es wird
+// KEINE Sitzung gesetzt, also kann auch kein Token dabei veralten. Nach
+// dem Abmelden braucht es einmal das Passwort - beim Abmelden ist das
+// genau das Erwartete.
 
+// Welches Konto der Sperrbildschirm gerade festhaelt. Kommt aus der
+// laufenden Sitzung, nicht aus currentProfile: das ist beim Sperren noch
+// gar nicht geladen.
+let faSperrId="";
+
+// Fragt den Sensor. Gibt {ok, meldung} zurueck - mehr tut er nicht.
+async function faEntsperren(uid){
+ const ziel=faEintrag(uid);
+ if(!ziel)return {ok:false,meldung:"Für dieses Konto ist auf dem Gerät kein Fingerabdruck hinterlegt."};
  try{
   const antwort=await navigator.credentials.get({publicKey:{
    challenge:faBytes(32),
@@ -177,39 +207,71 @@ async function faAnmelden(id){
  }catch(e){
   const n=e&&e.name;
   if(n==="NotAllowedError")
-   return {ok:false,meldung:"Abgebrochen – bitte erneut versuchen oder das Passwort benutzen."};
+   return {ok:false,meldung:"Abgebrochen – bitte erneut versuchen oder unten abmelden und das Passwort benutzen."};
   return {ok:false,meldung:"Der Fingerabdruck liess sich nicht prüfen: "+((e&&e.message)||n||"unbekannter Fehler")};
- }
-
- if(typeof kwSitzungSetzen!=="function")
-  return {ok:false,meldung:"Der Kontowechsel steht nicht bereit – bitte mit dem Passwort anmelden."};
- const gesetzt=await kwSitzungSetzen(ziel);
- if(!gesetzt.ok){
-  // kwSitzungSetzen hat den Eintrag entfernt - mit ihm ist auch der
-  // Schluessel weg, er schuetzte ja nichts mehr.
-  return gesetzt;
  }
  return {ok:true};
 }
 
-// ---- Anzeige auf dem Anmeldebildschirm ------------------------------------
-// Der Knopf erscheint nur, wenn es wirklich etwas zu entsperren gibt UND das
-// Geraet einen Sensor hat. Das Passwortfeld bleibt daneben immer stehen.
-async function faLoginZeichnen(){
- if(typeof $!=="function")return;
- const box=$("faLoginBox"), knopf=$("faLoginKnopf");
- if(!box||!knopf)return;
- const konten=faKonten();
- if(!konten.length||!(await faMoeglich())){ box.hidden=true; return }
- const k=konten[0];
- box.hidden=false;
- knopf.textContent="🔒 Als "+(k.name||"gemerktes Konto")+" mit Fingerabdruck anmelden";
- knopf.setAttribute("data-fa-konto",String(k.id));
+// ---- Der Sperrbildschirm --------------------------------------------------
+// Wird aus js/18 aufgerufen, BEVOR afterLogin() die App aufbaut. Gibt true
+// zurueck, wenn er uebernommen hat - dann wartet die App auf den Finger.
+async function faSperreZeigen(session){
+ if(typeof $!=="function")return false;
+ const uid=session&&session.user&&session.user.id;
+ if(!uid)return false;
+ if(!faEintrag(uid))return false;          // kein Schluessel fuer dieses Konto
+ const schirm=$("faSperrScreen");
+ // Fehlt der Bildschirm - etwa eine alte index.html aus dem
+ // Zwischenspeicher -, geht die App AUF statt zu. Ein Schloss ohne Tuer
+ // waere eine Aussperrung, und das waere schlimmer als die fehlende Sperre.
+ if(!schirm)return false;
+ faSperrId=String(uid);
+ const k=faEintrag(uid);
+ const name=$("faSperrName");
+ if(name)name.textContent=(k&&k.name?k.name:"Dieses Konto")+((k&&k.firma)?" · "+k.firma:"");
+ faSperreMeldung("");
+ if($("authScreen"))$("authScreen").hidden=true;
+ if($("appRoot"))$("appRoot").hidden=true;
+ schirm.hidden=false;
+ return true;
 }
-function faLoginMeldung(text){
+// Die Meldung steht AUSSERHALB von allem, was hier aus- und eingeblendet
+// wird. Genau daran ist v3.225 gescheitert.
+function faSperreMeldung(text){
  if(typeof $!=="function")return;
- const m=$("faLoginMeldung");
+ const m=$("faSperrMeldung");
  if(m)m.textContent=text||"";
+}
+async function faSperreOeffnen(){
+ if(typeof $!=="function")return;
+ faSperreMeldung("");
+ if($("faSperrScreen"))$("faSperrScreen").hidden=true;
+ if(typeof afterLogin==="function")await afterLogin();
+}
+// Regel 1: der Weg ueber das Passwort steht IMMER offen. Ein Sensor, der
+// nicht mehr antwortet, darf niemanden aus seiner eigenen App aussperren.
+// Abgemeldet wird dafuer wie ueberall sonst - samt Zwischenspeicher, es
+// darf keine Firma auf dem Geraet zurueckbleiben (js/03).
+async function faSperreAufgeben(){
+ if(typeof confirm==="function"&&!confirm(
+   "Abmelden und mit Benutzername und Passwort anmelden?\n\n"
+  +"Der Fingerabdruck bleibt eingerichtet und entsperrt die App wieder, "
+  +"sobald du angemeldet bist."))return;
+ if(typeof offlineCacheLeeren==="function")offlineCacheLeeren();
+ try{ await sb.auth.signOut() }catch(e){}
+ if(typeof location!=="undefined"&&location.reload)location.reload();
+}
+
+// ---- Hinweis auf dem Anmeldebildschirm ------------------------------------
+// KEIN Knopf: nach dem Abmelden gibt es nichts zu entsperren (siehe oben).
+// Ein Knopf, der dort nicht funktionieren kann, war der gemeldete Fehler.
+// Stattdessen der Satz, der die Frage beantwortet, die man sich sonst
+// stellt: "wo ist mein Fingerabdruck hin?"
+function faLoginHinweisZeichnen(){
+ if(typeof $!=="function")return;
+ const h=$("faLoginHinweis");
+ if(h)h.hidden=!faKonten().length;
 }
 
 if(typeof document!=="undefined")document.addEventListener("click",async e=>{
@@ -228,19 +290,18 @@ if(typeof document!=="undefined")document.addEventListener("click",async e=>{
   faEinstellungZeichnen();
   return;
  }
- const login=e.target.closest&&e.target.closest("[data-fa-konto]");
- if(login){
-  faLoginMeldung("Sensor wird gefragt …");
-  const r=await faAnmelden(login.getAttribute("data-fa-konto"));
-  if(r.ok){
-   faLoginMeldung("");
-   if(typeof afterLogin==="function")await afterLogin();
-   return;
-  }
-  faLoginMeldung(r.meldung||"Hat nicht geklappt – bitte das Passwort benutzen.");
-  await faLoginZeichnen();   // ein entfernter Zugang nimmt den Knopf mit
+ const ent=e.target.closest&&e.target.closest("[data-fa-entsperren]");
+ if(ent){
+  faSperreMeldung("Sensor wird gefragt …");
+  const r=await faEntsperren(faSperrId);
+  if(r.ok){ await faSperreOeffnen(); return }
+  // Der Schluessel bleibt liegen: ein verweigerter Finger ist kein Grund,
+  // das Schloss abzuschrauben. Beim naechsten Versuch geht es wieder.
+  faSperreMeldung(r.meldung||"Hat nicht geklappt – bitte unten abmelden und das Passwort benutzen.");
   return;
  }
+ const pw=e.target.closest&&e.target.closest("[data-fa-passwort]");
+ if(pw){ await faSperreAufgeben(); return }
 });
 
 // ---- Anzeige in den Einstellungen -----------------------------------------
@@ -259,9 +320,9 @@ async function faEinstellungZeichnen(){
  }
  const ich=(typeof kwId==="function")?kwId():"";
  box.innerHTML=faAn()
-  ? `<p class="small">Die Anmeldung auf diesem Gerät geht mit dem Fingerabdruck. Das Passwort funktioniert weiterhin.</p>
+  ? `<p class="small">Die App ist auf diesem Gerät gesperrt und geht mit dem Fingerabdruck auf. Das Passwort funktioniert weiterhin.</p>
      <div class="bar"><button type="button" class="gray" data-fa-aus="${esc(ich)}">Fingerabdruck ausschalten</button></div>`
-  : `<p class="small">Statt Benutzername und Passwort einzutippen: App öffnen, Finger auflegen. Der Abdruck verlässt das Gerät nie – die App bekommt vom Betriebssystem nur ein Ja oder Nein.</p>
+  : `<p class="small">Die App öffnet sich dann nur noch mit dem Finger: beim Start steht ein Schloss davor. Der Abdruck verlässt das Gerät nie – die App bekommt vom Betriebssystem nur ein Ja oder Nein. Nach dem Abmelden braucht es einmal das Passwort.</p>
      <div class="bar"><button type="button" class="blue" data-fa-an="1">🔒 Fingerabdruck einrichten</button></div>`;
  faEinstellungHinweis();
 }
@@ -275,12 +336,11 @@ function faEinstellungHinweis(){
 }
 
 // ---- Start ----------------------------------------------------------------
-// Diese Datei ist das letzte Skript in index.html, der Baum steht also. Der
-// Knopf wird einmal beim Hochkommen gezeichnet; faLoginZeichnen() entscheidet
-// selbst, ob er ueberhaupt erscheint. Nach dem Abmelden laedt die Seite neu
-// (js/03), damit ist auch dieser Fall abgedeckt - es braucht keinen zweiten
-// Aufruf an einer Stelle, die man beim naechsten Umbau vergessen wuerde.
+// Diese Datei ist das letzte Skript in index.html, der Baum steht also.
+// Gezeichnet wird hier nur der HINWEIS auf dem Anmeldebildschirm. Das
+// Schloss selbst ruft js/18 auf, und zwar erst, wenn feststeht, dass
+// ueberhaupt eine Sitzung da ist - vorher gibt es nichts zu sperren.
 if(typeof document!=="undefined"){
- if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{faLoginZeichnen()});
- else faLoginZeichnen();
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",faLoginHinweisZeichnen);
+ else faLoginHinweisZeichnen();
 }
