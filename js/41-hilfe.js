@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.226.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.227.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1577,7 +1577,41 @@ Massaufnahme stehen bei jeder Einfassung <b>⭕ Abwicklung Rohr</b> und
 oben gewählte Bauteil. Die Materialstärke kommt dabei aus dem gespeicherten
 Datensatz, nicht aus einem zufällig offenen Formular.</div>`},
 
+"fingerabdruck":{titel:"Fingerabdruck",text:`
+<p>Ist er eingeschaltet, ist die App auf <b>diesem Gerät</b> gesperrt: beim
+Öffnen steht ein Schloss davor, Finger auflegen, drin – ohne Benutzername und
+Passwort zu tippen.</p>
+<p>Der Abdruck <b>verlässt das Gerät nie</b>. Die App bekommt vom
+Betriebssystem nur ein Ja oder Nein; gespeichert wird lediglich, dass zu
+diesem Konto auf diesem Gerät ein Schlüssel hinterlegt ist. Der Schalter
+erscheint nur, wenn das Gerät wirklich einen Sensor anbietet – sonst steht
+hier, dass es das Gerät nicht kann, statt eines Knopfes, der nichts tut.</p>
+<div class="hin"><b>Jeder für sich.</b> Das ist keine Firmeneinstellung: wer
+den Fingerabdruck will, schaltet ihn auf seinem eigenen Gerät ein, und wer
+nicht, lässt es. Niemand schaltet ihn für jemand anderen ein oder aus.</div>
+<div class="hin"><b>Der Weg über das Passwort bleibt immer offen.</b> Am
+Schloss steht auch <b>Abmelden und mit Passwort anmelden</b> – ein zickiger
+Sensor darf niemanden aus seiner eigenen App aussperren. Wird der Finger
+nicht erkannt, steht der Grund sichtbar auf dem Schloss.</div>
+<div class="hin"><b>Nach dem Abmelden braucht es einmal das Passwort.</b> Das
+ist Absicht und keine Störung: Abmelden macht den gespeicherten Zugang
+ungültig, und der Fingerabdruck kann ihn nicht ersetzen – er sperrt die
+laufende Anmeldung nur auf und zu. Eingerichtet bleibt er dabei und sperrt
+nach der nächsten Anmeldung wieder.</div>
+<div class="warn"><b>Nur für ein persönliches Gerät.</b> Wer das entsperrte
+Gerät in der Hand hat, kommt damit in dein Konto. Auf einem geteilten
+Werkstatt-Tablet deshalb ausgeschaltet lassen.<br><br>
+Ehrlich dazugesagt, damit die Einschätzung stimmt: es ist ein <i>Schloss</i>
+vor einem Zugang, den die App ohnehin schon auf dem Gerät speichert – keine
+Verschlüsselung. Es macht die App sicherer als vorher, denn davor stand gar
+nichts.</div>`},
+
 "kontowechsel":{titel:"Konto wechseln",text:`
+<div class="hin"><b>Der Firmenadministration vorbehalten</b> (ab 3.227).
+Mitarbeitende sehen diesen Punkt nicht mehr. Der <b>Fingerabdruck</b>, der
+bis 3.226 hier mit drinstand, hat dafür einen eigenen Punkt bekommen:
+<b>Mehr → Dieses Gerät → Fingerabdruck</b> – den stellt weiterhin jeder
+für sich ein.</div>
 <p>Wer zwei Konten hat – etwa das eigene und eines in einer Testfirma –,
 musste sich bisher jedes Mal ab- und wieder anmelden. Hier lässt sich
 zwischen Konten wechseln, die auf diesem Gerät <b>schon einmal angemeldet
@@ -2188,21 +2222,6 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
-<div class="hin"><b>Fingerabdruck: ein Schloss vor der App</b> (ab 3.225,
-seit 3.226 in dieser Form). Unter <b>Konto wechseln</b> lässt sich
-einschalten, dass die App auf diesem Gerät gesperrt ist: beim Öffnen steht
-ein Schloss davor, Finger auflegen, drin. Der Schalter erscheint nur, wenn
-das Gerät wirklich einen Sensor anbietet. Der Abdruck verlässt das Gerät nie
-– die App bekommt vom Betriebssystem nur ein Ja oder Nein.<br>
-Am Schloss steht immer auch <b>Abmelden und mit Passwort anmelden</b>: ein
-zickiger Sensor darf niemanden aus seiner eigenen App aussperren. Geht der
-Finger nicht, steht der Grund sichtbar da.<br>
-<b>Nach dem Abmelden braucht es einmal das Passwort.</b> Das Abmelden macht
-den gespeicherten Zugang mit Absicht ungültig – der Fingerabdruck kann ihn
-nicht ersetzen, er sperrt nur auf und zu. Eingerichtet bleibt er dabei.<br>
-<b>Nur für ein persönliches Gerät:</b> wer das entsperrte Gerät in der Hand
-hat, kommt damit in dein Konto. Auf einem geteilten Werkstatt-Tablet
-ausgeschaltet lassen.</div>
 <div class="hin"><b>Jede Position hat ein Produkt</b> (ab 3.224). Die
 Lagerverwaltung ist zweistufig: oben die <b>Materialposition</b> aus dem
 Katalog, darunter die <b>Produkte</b>, die tatsächlich im Regal liegen.

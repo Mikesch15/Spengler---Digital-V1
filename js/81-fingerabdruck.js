@@ -304,7 +304,25 @@ if(typeof document!=="undefined")document.addEventListener("click",async e=>{
  if(pw){ await faSperreAufgeben(); return }
 });
 
-// ---- Anzeige in den Einstellungen -----------------------------------------
+// ---- Der eigene Dialog (v3.227) -------------------------------------------
+// Bis v3.226 stand der Schalter im Kontowechsel-Dialog (js/76) - fachlich
+// naheliegend, weil der Fingerabdruck denselben gespeicherten Zugang
+// schuetzt. Seit v3.227 ist "Konto wechseln" der Firmenadministration
+// vorbehalten, der Fingerabdruck steht dagegen jedem einzeln offen ("Jeder
+// fuer sich, freiwillig"). An der alten Stelle waere er fuer die
+// Mitarbeitenden schlicht verschwunden.
+//
+// Gezeichnet wird beim Oeffnen, nicht auf Vorrat: ein Schalter, der den
+// Stand von gestern zeigt, ist schlimmer als keiner.
+function faDialogOeffnen(){
+ if(typeof $!=="function")return;
+ faEinstellungMeldung("");
+ faEinstellungZeichnen();
+ const modal=$("faModal");
+ if(modal)modal.hidden=false;
+}
+
+// ---- Anzeige im Dialog ----------------------------------------------------
 function faEinstellungMeldung(text){
  if(typeof $!=="function")return;
  const m=$("faMeldung");
