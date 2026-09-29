@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.227";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.228";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -41,6 +41,8 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 .klein{font-size:9pt;color:#5c6b78}
 .tasten{display:inline-block;border:0.6pt solid #b7c2cb;border-radius:1.5mm;
   padding:0.3mm 1.6mm;font-size:9pt;background:#f6f9fb}
+nav ol{margin:2px 0 10px}
+.inhalt-gruppe{margin:14px 0 2px;color:#33506b;font-size:10.5pt;letter-spacing:.04em;text-transform:uppercase}
 </style></head><body>
 
 <div class="titel">
@@ -48,7 +50,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.227<br>
+  Version 3.228<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -56,35 +58,56 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
 </div>
 
 <h1>Inhalt</h1>
-<nav><ol>
+<nav>
+<p class="inhalt-gruppe"><strong>Einsteigen</strong></p>
+<ol>
 <li><span class="nr">1</span>Wofür die App gedacht ist</li>
 <li><span class="nr">2</span>Anmelden</li>
 <li><span class="nr">3</span>Der Startbildschirm</li>
 <li><span class="nr">4</span>Hilfe in der App</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Projekte und Offerte</strong></p>
+<ol>
 <li><span class="nr">5</span>Projekte</li>
 <li><span class="nr">6</span>Das Projekt-Cockpit</li>
 <li><span class="nr">7</span>Offerte</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Massaufnahme</strong></p>
+<ol>
 <li><span class="nr">8</span>Massaufnahme – die dreizehn Funktionen</li>
 <li><span class="nr">9</span>Eine Massaufnahme Schritt für Schritt</li>
+<li><span class="nr">14</span>Zwei weitere Beispiele: Rinne und Kehle</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Von der Freigabe bis zur Montage</strong></p>
+<ol>
 <li><span class="nr">10</span>Freigeben, Rüsten, Montieren</li>
 <li><span class="nr">11</span>Der erweiterte Ablauf: Material, Zuschnitt, Werkstatt, Vorlagen</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Rapport, Ausmass, Fotos</strong></p>
+<ol>
 <li><span class="nr">12</span>Fotos und Skizzen</li>
 <li><span class="nr">13</span>PDF erstellen</li>
-<li><span class="nr">14</span>Zwei weitere Beispiele: Rinne und Kehle</li>
 <li><span class="nr">15</span>Ausmass</li>
 <li><span class="nr">16</span>Regierapport</li>
 <li><span class="nr">17</span>Suche</li>
 <li><span class="nr">18</span>Änderungsverlauf</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Einrichten und verwalten</strong></p>
+<ol>
 <li><span class="nr">19</span>Einstellungen</li>
 <li><span class="nr">20</span>Was die App gelernt hat</li>
 <li><span class="nr">21</span>Feedback</li>
 <li><span class="nr">22</span>System-Administration (nur Betreiber)</li>
+</ol>
+<p class="inhalt-gruppe"><strong>Werkzeuge und Randfälle</strong></p>
+<ol>
 <li><span class="nr">23</span>Auf Handy und Tablet</li>
 <li><span class="nr">24</span>Ohne Internet</li>
 <li><span class="nr">25</span>Begriffe</li>
 <li><span class="nr">26</span>Abwicklung: Rundrohr mit schrägem Anschnitt</li>
 <li><span class="nr">27</span>Zu diesem Dokument</li>
-</ol></nav>
+</ol>
+</nav>
 
 <h2 class="seite">1 · Wofür die App gedacht ist</h2>
 <p>Spengler-DIGITAL nimmt auf der Baustelle Masse auf, rechnet daraus Abwicklungen,
@@ -113,7 +136,7 @@ Mitarbeiterkonto ein eigenes Passwort. Erst danach steht die App offen.</p>
 in den Einstellungen unter „Mitarbeiter“ zurück. Der Mitarbeiter wählt beim nächsten
 Anmelden wieder selbst eines.</div>
 
-<h3>Fingerabdruck: ein Schloss vor der App (ab 3.225, seit 3.226 in dieser Form)</h3>
+<h3>Fingerabdruck: ein Schloss vor der App</h3>
 <p>Ist er eingeschaltet, ist die App auf diesem Gerät <strong>gesperrt</strong>: beim
 Öffnen steht ein Schloss davor, Finger auflegen, drin – ohne Benutzername und
 Passwort zu tippen. Eingeschaltet wird das unter
@@ -146,8 +169,8 @@ ohnehin schon auf dem Gerät speichert – keine Verschlüsselung. Er macht die
 Anmeldung damit <strong>sicherer als vorher</strong>, nicht unsicherer: vor
 diesem gespeicherten Zugang stand bisher gar nichts.</div>
 
-<h3>Zwischen zwei Konten wechseln (ab 3.187)</h3>
-<div class="hin"><strong>Der Firmenadministration vorbehalten</strong> (ab 3.227).
+<h3>Zwischen zwei Konten wechseln</h3>
+<div class="hin"><strong>Der Firmenadministration vorbehalten</strong>.
 Mitarbeitende sehen diesen Punkt nicht mehr. Der Fingerabdruck, der bis 3.226
 hier mit drinstand, hat dafür einen eigenen Punkt bekommen (siehe oben) – den
 stellt weiterhin jeder für sich ein.</div>
@@ -182,15 +205,6 @@ unangetastet.</div>
 <p>Die App ist <strong>nach dem Arbeitsablauf</strong> gegliedert, nicht nach
 Modulen. Es gibt genau <strong>eine</strong> Ansicht: unten eine Leiste mit bis zu
 fünf Einträgen, oben die Seite, die dazu gehört.</p>
-<div class="hin"><strong>Seit Version 3.218</strong> ist die alte, nach Modulen
-gegliederte Startseite („Was möchtest du tun?“ mit den grossen Knöpfen) weg – und
-mit ihr der Umschalter <span class="tasten">✨ Neue Ansicht testen</span> und der
-Weg zurück. Alles, was dort stand, ist weiterhin erreichbar: Projekte und
-Werkstatt über die Leiste, Suche, Einstellungen, Feedback, Abwicklung, Anleitung,
-Konto wechseln, „Was die App gelernt hat“, „Alle Massaufnahmen“ und die
-System-Administration über <strong>Mehr</strong>. An den Formularen, den Daten und
-den Rechten ändert sich nichts.</div>
-
 <h3>3.1 · Die Seiten und die Leiste</h3>
 <figure><img src="bilder/44-ansicht2-heute.png"><figcaption>Die Startseite „Heute“: zuoberst, was dringend ist, darunter die eigenen Aufgaben, die Werkstatt in drei Zahlen, die anstehenden Montagen und die offenen Projekte mit ihrem Produktionsstand.</figcaption></figure>
 <p>Unten steht eine Leiste mit bis zu fünf Einträgen:</p>
@@ -205,12 +219,12 @@ Firma das Werkstattmodul eingeschaltet hat.</td></tr>
 <tr><td>Lager</td><td>Öffnet die Lagerverwaltung. Nur da, wenn du dafür
 freigeschaltet bist.</td></tr>
 <tr><td>Mehr</td><td>Suche, Einstellungen, Anleitung, Feedback, Abmelden und
-alles Übrige. Seit Version 3.203 in drei Gruppen:
+alles Übrige, in drei Gruppen:
 <strong>Arbeiten</strong>, <strong>Firma</strong> und <strong>Verwaltung</strong>.
 Nicht zu verwechseln mit dem früheren Register „Mehr …“ <em>im Projekt</em> –
 das gibt es nicht mehr, sein Inhalt hat eigene Register.</td></tr>
 </table>
-<div class="hin"><strong>Die Leiste bleibt überall stehen.</strong> Seit 3.162 gilt das
+<div class="hin"><strong>Die Leiste bleibt überall stehen.</strong> Das gilt
 auch, während ein Formular offen ist – Massaufnahme, Ausmass, Offerte, Leistung und
 Regierapport. Man kann also mitten aus einer Erfassung heraus auf „Heute“ oder
 „Projekte“ wechseln, ohne vorher zurückzugehen. Sind dabei ungespeicherte Eingaben
@@ -249,10 +263,8 @@ zu einem Projekt; dafür fehlt bis heute das Feld.</div>
 
 <h3>3.2 · Die Projektseite</h3>
 <p>In der neuen Ansicht öffnet ein Projekt eine eigene Seite mit
-<strong>sieben Registern</strong> (seit Version 3.204; vorher waren es sechs,
-dann acht, und was heute ein eigenes Register hat, steckte einmal in einem
-Sammelpunkt „Mehr …“):</p>
-<figure><img src="bilder/46-ansicht2-projektseite.png"><figcaption>Die Projektseite: oben die Register, darunter die Ablaufleiste, dann der eine Schritt, der als Nächstes ansteht. (Bild aus Version 3.151, damals mit sechs Registern.)</figcaption></figure>
+<strong>sieben Registern</strong>:</p>
+<figure><img src="bilder/46-ansicht2-projektseite.png"><figcaption>Die Projektseite: oben die Register, darunter die Ablaufleiste, dann der eine Schritt, der als Nächstes ansteht.</figcaption></figure>
 <table>
 <tr><th>Register</th><th>Was darin steht</th></tr>
 <tr><td>Übersicht</td><td>Die Ablaufleiste, der eine Schritt, der als Nächstes
@@ -277,17 +289,10 @@ dort wird hochgeladen und gelöscht, dort stehen die Fotowand mit Ausdruck und
 der Verlauf.</td></tr>
 </table>
 
-<h4>Warum aus zwei Registern eines wurde (Version 3.204)</h4>
-<p>Bis Version 3.203 gab es hier zwei Register: „Material“ und
-„Rüsten &amp; Montage“. Beide zeigten dieselben Massaufnahmen, nur anders
-geordnet – einmal nach Zuschnitt, einmal nach Arbeitsstand –, und beide
-begannen mit einem grossen blauen Knopf, der aus dem Projekt hinausführte.
-Wer „Material“ las, erwartete Material und bekam Zuschnitt-Balken; das Material
-selbst lag hinter dem Knopf. Gemeldet wurde das als
-<em>„da ist unklar was wozu gehört und was für was dient“</em>.</p>
-<p>Jetzt steht beides auf einer Seite, in der Reihenfolge der Werkstatt, und
-über jedem Abschnitt steht ein Satz, der sagt, wofür er da ist. Dazu eine
-Regel, die auf der ganzen Projektseite gilt:</p>
+<h4>Blau bleibt im Projekt, Grau führt hinaus</h4>
+<p>Material und Rüsten stehen auf <strong>einer</strong> Seite, in der Reihenfolge
+der Werkstatt, und über jedem Abschnitt steht ein Satz, der sagt, wofür er da ist.
+Dazu eine Regel, die auf der ganzen Projektseite gilt:</p>
 <table>
 <tr><th>Knopf</th><th>Was er bedeutet</th></tr>
 <tr><td><strong>Blau</strong></td><td>Bleibt im Projekt. Beispiel:
@@ -297,7 +302,7 @@ Regel, die auf der ganzen Projektseite gilt:</p>
 Teile aller Projekte nebeneinander stehen. Dieser Knopf steht deshalb
 zuunterst, nicht oben.</td></tr>
 </table>
-<h4>Die Ablaufkette ist die Navigation (seit Version 3.203)</h4>
+<h4>Die Ablaufkette ist die Navigation</h4>
 <p>In der Übersicht steht die Kette <strong>Offerte → Massaufnahme → Freigabe →
 Rüsten → Montage → Ausmass</strong>. Sie zeigt nicht nur, wie weit das Projekt
 ist – <strong>jede Station ist ein Knopf</strong> und führt in ihr Register.</p>
@@ -307,11 +312,11 @@ Jetzt sind sie dasselbe. Eine Station, die auf ein abgeschaltetes Modul führen
 würde, bleibt eine reine Anzeige – ein Knopf, der nichts tut, wäre schlimmer als
 keiner.</div>
 <div class="hin"><strong>Zu den Bildern in dieser Anleitung:</strong> Sie zeigen
-die Ansicht, mit der die App startet – seit Version 3.218 die einzige. Sie werden
+die Ansicht, mit der die App startet – die einzige. Sie werden
 nicht von Hand gemacht, sondern aus der echten App erzeugt; was auf dem Bild steht,
 steht so auch auf dem Bildschirm.</div>
 <div class="hin"><strong>Der gedruckte Regierapport ändert sich dadurch nicht.</strong>
-Seit Version 3.154 sehen auch Regierapport, Ausmass, Offerte und Leistung am
+Auch Regierapport, Ausmass, Offerte und Leistung sehen am
 Bildschirm nach der neuen Ansicht aus – grössere Felder, rundere Knöpfe. Das gilt
 ausdrücklich <em>nur am Bildschirm</em>. Was auf Papier geht oder als PDF an den
 Kunden, ist Zeichen für Zeichen dasselbe Dokument wie vorher, in beiden Ansichten.
@@ -320,12 +325,11 @@ Kunden, ist Zeichen für Zeichen dasselbe Dokument wie vorher, in beiden Ansicht
 Dort stehen sechs bis sieben Felder nebeneinander; grössere Felder würden aus
 jeder Zeile zwei machen. Sie bleiben deshalb schmal.</div>
 <div class="hin">Das Projekt-Cockpit ist damit nicht verschwunden. Es steht im
-Register <strong>Dateien</strong>. Sein Zurück-Knopf führt auf die Projektseite. Seit Version 3.203
-sind die Dateien schon im Register selbst zu sehen – mit Name, Datum und Grösse;
+Register <strong>Dateien</strong>. Sein Zurück-Knopf führt auf die Projektseite. Die Dateien
+sind schon im Register selbst zu sehen – mit Name, Datum und Grösse;
 nur Hochladen, Löschen und die Fotowand liegen weiterhin in der vollständigen
 Ansicht, weil das eigene Wege mit Kamera, Vorschau und Ausdruck sind.
-Seit Version 3.204 führt dorthin <em>ein</em> beschrifteter Knopf statt vier
-Zeilen, die alle am selben Ort endeten.</div>
+Dorthin führt <em>ein</em> beschrifteter Knopf.</div>
 <p>Im Projekt-Cockpit steht über dem Arbeitsstand eine
 <strong>Ablaufleiste</strong>. Sie beantwortet die Frage, die beim Öffnen eines
 Projekts zuerst kommt: <em>wo steht das hier?</em> Sechs Stationen – Offerte,
@@ -335,13 +339,6 @@ mittleren drei gilt: <strong>die schwächste Massaufnahme entscheidet</strong>. 
 von acht Massaufnahmen eine noch nicht gerüstet, steht das ganze Projekt auf
 «Rüsten». Ist der Arbeitsablauf für die Firma ausgeschaltet, zeigt die Leiste nur
 die drei Stationen, die es dann gibt.</p>
-<div class="hin"><strong>Seit Version 3.218 gibt es nur noch diese eine
-Ansicht.</strong> Die zweite, nach Modulen gegliederte Startseite und der
-Umschalter dazu sind weg. Ein Gerät, auf dem früher einmal „lieber die gewohnte
-Ansicht“ eingestellt wurde, startet trotzdem normal – der gemerkte Wunsch wird
-nicht mehr gelesen. An den Formularen, den Daten und den Rechten ändert das
-nichts.</div>
-
 <h2 class="seite">4 · Hilfe in der App</h2>
 <p>Fast jede Karte und jede Überschrift trägt einen kleinen runden
 <span class="tasten">i</span>-Knopf. Ein Tippen darauf erklärt in zwei, drei Sätzen,
@@ -402,7 +399,7 @@ und erleichtern das Wiederfinden.</p>
 Ohne sie lässt sich nicht speichern.</div>
 
 <h3>Die Auftrags-Nr. gibt es je Firma nur einmal</h3>
-<p>Seit 3.164 prüft die App beim Anlegen und beim Bearbeiten der Stammdaten, ob die
+<p>Die App prüft beim Anlegen und beim Bearbeiten der Stammdaten, ob die
 eingegebene Auftrags-Nr. in der Firma schon vergeben ist. Ist sie das, wird
 <strong>nicht gespeichert</strong>; stattdessen meldet die App, zu welchem Projekt die
 Nummer gehört – mit Adresse und Projektname, damit es sich sofort finden lässt.</p>
@@ -464,7 +461,7 @@ Adresse, Auftrags-Nr. und Auftraggeber ändern. Es gibt dafür bewusst nur diese
 Stelle. Für die Auftrags-Nr. gilt dabei dieselbe Regel wie beim Anlegen (Abschnitt 5):
 sie darf je Firma nur einmal vorkommen. Die eigene Nummer unverändert zu speichern ist
 selbstverständlich kein Konflikt.</p>
-<p>Im selben Formular steht seit 3.160 das Feld <strong>Wichtige Hinweise</strong> –
+<p>Im selben Formular steht das Feld <strong>Wichtige Hinweise</strong> –
 eine freie Notiz zum Projekt: „Baustellenzufahrt nur bis 16:00 Uhr“, „Schlüssel beim
 Hauswart“, „Anfahrt über den Hinterhof“. Gemeint ist, was für <em>jeden</em> gilt, der
 auf diese Baustelle fährt; was nur eine einzelne Massaufnahme betrifft, gehört in
@@ -518,7 +515,7 @@ getrennt von allem Weiteren:</p>
 <p>Die Offerte steht deshalb als <strong>eigener Bereich im Projekt-Cockpit</strong>,
 neben Massaufnahmen, Ausmass und Regierapport – nicht als eine weitere Massaufnahme-
 oder Ausmass-Art.</p>
-<h3>Zwei Karten, zwei verschiedene Vorgänge (seit Version 3.200)</h3>
+<h3>Zwei Karten, zwei verschiedene Vorgänge</h3>
 <p>Im Cockpit stehen <strong>zwei</strong> Offerten-Karten. Sie sehen ähnlich aus,
 tun aber Gegensätzliches:</p>
 <table>
@@ -551,7 +548,7 @@ als PDF ablegen – so, wie es dem Kunden vorliegt oder geschickt wurde. Das ist
 bewusst etwas anderes als die Fotos oben: die Fotos dienen der
 Positionserkennung, das PDF ist zunächst einmal das fertige Dokument selbst,
 zum Aufbewahren und wieder Öffnen.</p>
-<figure><img src="bilder/39-offerte-pdf.png"><figcaption>Ein hochgeladenes PDF, mit Öffnen-, Entfernen- und (seit Version 3.39) Erkennen-Knopf.</figcaption></figure>
+<figure><img src="bilder/39-offerte-pdf.png"><figcaption>Ein hochgeladenes PDF, mit Öffnen-, Entfernen- und Erkennen-Knopf.</figcaption></figure>
 <p><span class="tasten">📄 PDF hochladen</span> öffnet die Dateiauswahl des
 Geräts; ausgewählt werden kann nur eine <strong>einzelne PDF-Datei</strong> mit
 höchstens 50 MB. Die Datei wird <strong>nicht sofort</strong> hochgeladen,
@@ -563,7 +560,7 @@ einem neuen Tab ansehen; das Kreuz entfernt es wieder aus der Offerte.</p>
 neues hochgeladen, ersetzt es beim Speichern das vorherige. Fotos und PDF sind
 unabhängig voneinander – eine Offerte kann Fotos ohne PDF haben, ein PDF ohne
 Fotos, oder beides zusammen.</div>
-<h3>Positionen auch aus dem PDF erkennen (seit Version 3.39)</h3>
+<h3>Positionen auch aus dem PDF erkennen</h3>
 <p>Sobald ein PDF ausgewählt oder bereits gespeichert ist, erscheint neben
 <span class="tasten">Öffnen</span> und <span class="tasten">✕</span> ein
 dritter Knopf: <span class="tasten">🔎 Positionen erkennen</span>. Er nutzt
@@ -576,7 +573,7 @@ werden dabei nie verändert oder gelöscht. Darunter steht, wie viele Positionen
 gefunden wurden; sie stehen wie bei den Fotos <strong>zur Prüfung</strong> in
 der Liste und lassen sich vor dem Speichern noch von Hand korrigieren.</p>
 <figure><img src="bilder/40-offerte-pdf-erkannt.png"><figcaption>Nach „Positionen erkennen“: eine neue Position ist dazugekommen, die Meldung nennt die Anzahl.</figcaption></figure>
-<p><strong>Seit Version 3.41</strong> ist die Erkennung auf deutlich
+<p>Die Erkennung ist auf deutlich
 umfangreichere Dokumente ausgelegt: auch eine Offerte mit mehreren hundert
 Positionen wird normalerweise vollständig ausgelesen, nicht nur teilweise.
 Nur wenn ein Dokument diesen (sehr grosszügig bemessenen) Rahmen doch einmal
@@ -588,18 +585,15 @@ hochladen, aber nicht zur Erkennung schicken – das ist eine eigene, engere
 Grenze nur für die Erkennung selbst und unabhängig von der 50-MB-Grenze für
 das Hochladen. Die App sagt das an Ort und Stelle, statt den Versuch einfach
 scheitern zu lassen.</div>
-<p><strong>Seit Version 3.42</strong> läuft die Erkennung zuverlässig durch:
-ein interner Fehler, der bei manchen Anfragen sofort mit einer Fehlermeldung
-abbrach statt überhaupt erst zu versuchen zu lesen, ist behoben. An der
+<p>An der
 Bedienung selbst ändert sich dadurch nichts.</p>
-<p><strong>Seit Version 3.43</strong> ist ein zweiter, seltenerer Fall behoben:
-bei manchen Mobilverbindungen brach die Erkennung mit „Failed to fetch“ ab,
+<p>Auf manchen Mobilverbindungen brach die Erkennung früher ab,
 bevor überhaupt eine Antwort ankam – die KI brauchte für ihre eigene,
 unsichtbare Vorüberlegung länger, als die mobile Verbindung offen blieb. Die
 Erkennung ist jetzt gezielt auf schnelles Lesen einer Tabelle statt auf
 langes Nachdenken eingestellt; auch das ändert an der Bedienung selbst
 nichts.</p>
-<p><strong>Seit Version 3.44</strong> erfasst die Erkennung jede Position
+<p>Die Erkennung erfasst jede Position
 vollständig: eine Position besteht in vielen Offerten aus einer ersten Zeile
 mit Positionsnummer und einem oder mehreren Fliesstext-Zeilen darunter
 (Material, Ausführung, Masse, Bemerkungen) – vorher wurde oft nur die erste
@@ -609,7 +603,7 @@ oder „Spenglerarbeiten Dach Nord“) werden dabei erkannt und nicht mehr als
 eigene, unbrauchbare Position ausgegeben – ihr Text wird stattdessen den
 darunterstehenden Positionen als Bezug vorangestellt, bis der nächste
 Zwischentitel folgt. Auch das ändert an der Bedienung selbst nichts.</p>
-<h3>Massaufnahmen aus der Offerte ableiten (seit Version 3.149)</h3>
+<h3>Massaufnahmen aus der Offerte ableiten</h3>
 <p>Der Ablauf des Betriebs ist <strong>Projekt → Offerte → Massaufnahme</strong>.
 Bis hierher endete die Offerte bei sich selbst: was in ihr als Position stand,
 musste danach als Massaufnahme von Hand noch einmal angelegt und benannt
@@ -650,11 +644,11 @@ Massaufnahmen oben. Was am Ende ausgeführt und verrechnet wird, wird nach wie
 vor im Ausmass selbst erfasst (Abschnitt 15): eine Offerte sagt, was angeboten
 wurde, nicht was gemacht wurde.</div>
 
-<h3>7.5 · Eine eigene Offerte erstellen (seit Version 3.200)</h3>
+<h3>7.5 · Eine eigene Offerte erstellen</h3>
 <p>Auf der Karte <strong>„🧾 Offerte erstellen“</strong> öffnet
 <span class="tasten">＋ Neue Offerte</span> das Formular für ein Angebot, das du
 dem Kunden schickst.</p>
-<p><strong>Seit Version 3.201</strong> steht sie auch in der neuen Ansicht: auf
+<p>Sie steht auch in der neuen Ansicht: auf
 der Projektseite im Register <strong>„Mehr“</strong>, zuoberst – noch vor dem
 Import, weil die eigene Offerte im Ablauf des Betriebs zuerst kommt. Jede Zeile
 zeigt Nummer, Datum und Total; der Knopf darunter legt eine neue an.</p>
@@ -693,7 +687,7 @@ Positionen des Abschnitts wandern dabei mit.</p>
 <p>Das Material wird wie im Regierapport <strong>gesucht</strong>, nach EDV-Nr.
 oder Bezeichnung. Was schon eine Menge hat, bleibt dabei oben stehen: eine
 Eingabe geht beim Weitersuchen nicht verloren.</p>
-<h4>EDV-Nr. direkt in der Liste (seit Version 3.201)</h4>
+<h4>EDV-Nr. direkt in der Liste</h4>
 <p>Der Dialog ist nicht der einzige Weg. Tippst du in der Positionsliste eine
 <strong>EDV-Nr.</strong> ins Feld „Pos.“, erscheinen die passenden
 Materialpositionen sofort darunter – mit Nummer, Bezeichnung und Preis. Ein
@@ -736,7 +730,7 @@ es noch einmal ab. Das vorherige bleibt als Beleg dessen, was verschickt
 wurde.</p>
 
 <h3>7.1 · Leistungen und Ausmass-Vorbereitung</h3>
-<p>Zwischen der Offerte und der Massaufnahme steht seit Version 3.37 eine eigene,
+<p>Zwischen der Offerte und der Massaufnahme steht eine eigene,
 schlanke Ebene: die <strong>Leistung</strong>. Eine Leistung ist die konkrete
 Arbeit, die auf der Baustelle ausgeführt wird – nicht das kaufmännische
 Offertenangebot und nicht die technische Massaufnahme, sondern das Bindeglied
@@ -813,24 +807,23 @@ auseinanderzuhalten waren:</p>
     <td>Preis und Einheit. Steuert die Verrechnung. Ein Werkstoff hat oft
         mehrere Artikel.</td></tr>
 <tr><td><strong>Format</strong><br>0,6 mm · Blank · Rolle</td>
-    <td>Steht seit 3.177 <strong>am Artikel</strong><br>Lager → Materialbestand</td>
+    <td>Steht <strong>am Artikel</strong><br>Lager → Materialbestand</td>
     <td>Stärke, Ausführung, Rolle/Tafel. Steuert den Zuschnitt.</td></tr>
 </table>
-<p>Seit 3.176 heisst in der Massaufnahme <strong>Werkstoff</strong>, was ein
+<p>In der Massaufnahme heisst <strong>Werkstoff</strong>, was ein
 Werkstoff ist. Zusammengelegt werden die drei bewusst nicht: ein Werkstoff
 muss wählbar sein, auch wenn er gerade nicht am Lager liegt, und die
 Dehnungswerte gehören zum Werkstoff – nicht an jede einzelne
 Katalogposition.</p>
-<div class="hin">Der <strong>Name</strong> eines Blechs steht seit 3.176 nur
+<div class="hin">Der <strong>Name</strong> eines Blechs steht nur
 noch an einer Stelle: im Katalog. Die Lagerzeile zeigt ihn nur noch an.
 Vorher trug sie eine eigene Kopie – und die war bereits auseinandergelaufen.
 Im Materialkatalog trägt jede Position ausserdem ein Feld
 <strong>Werkstoff</strong>; nötig ist es nur bei Blech.</div>
 
-<h3>Ein Blech ist ein Eintrag (ab 3.177)</h3>
-<p>Bis Version 3.176 war ein Blech <strong>zweimal</strong> erfasst: der Artikel
-im Katalog trug den Namen, eine eigene Zeile im Materialbestand trug Stärke,
-Ausführung und Rolle/Tafel. Seit 3.177 steht beides am Artikel.</p>
+<h3>Ein Blech ist ein Eintrag</h3>
+<p>Ein Blech steht <strong>an einer Stelle</strong>: der Katalogartikel trägt den
+Namen und dazu Stärke, Ausführung und Rolle/Tafel.</p>
 <p><strong>Woran die App ein Blech erkennt:</strong> an der Form. Ein
 Katalogartikel mit <strong>Rolle</strong> oder <strong>Tafel</strong> ist ein
 geführtes Blech. Schrauben und Dichtband haben keine Form und tauchen im
@@ -850,7 +843,7 @@ finden damit auch nach Stärke und Form.</p>
 Eintrag braucht deshalb einen Artikel – ohne ihn hätte das Format keinen Ort.
 Beim Bearbeiten steht der Artikel fest; ihn zu wechseln wäre ein neuer Eintrag,
 kein geänderter.</p>
-<div class="hin"><strong>Ein neues Blech, ein Dialog</strong> (ab 3.179). Bis
+<div class="hin"><strong>Ein neues Blech, ein Dialog</strong>. Bis
 3.178 musste eine neue Position zuerst im Materialkatalog angelegt und danach
 hier ihr Format gesetzt werden – zweimal erfassen für ein Blech. Jetzt steht in
 der Artikel-Auswahl <strong>„＋ neue Katalogposition anlegen …“</strong>: damit
@@ -858,12 +851,12 @@ erscheinen EDV-Nr., Bezeichnung und Einheit im selben Dialog, und einmal
 speichern erledigt beides. Die EDV-Nr. wird aus der passenden Katalogruppe
 vorgeschlagen; eine schon vergebene wird abgewiesen, bevor etwas geschrieben
 wird.</div>
-<p>Fehlt auch der <strong>Werkstoff</strong> noch, geht es genauso (ab 3.180):
+<p>Fehlt auch der <strong>Werkstoff</strong> noch, geht es genauso:
 in der Werkstoff-Auswahl steht <strong>„＋ neuen Werkstoff anlegen …“</strong>,
 mit Name und den beiden Dehnungswerten. Einmal speichern legt Werkstoff,
 Katalogposition und Format an – in dieser Reihenfolge, weil die beiden anderen
 auf den Werkstoff zeigen.</p>
-<h3>Bestehende Positionen nachtragen (ab 3.181)</h3>
+<h3>Bestehende Positionen nachtragen</h3>
 <p>Über der Liste im Materialbestand steht aufklappbar, welche
 Katalogpositionen <strong>nach Blech aussehen, aber nicht geführt werden</strong>
 – bei uns 42 Stück. Erkannt wird an der Einheit <strong>m²</strong> zusammen mit
@@ -878,7 +871,7 @@ abtippen.</p>
 nirgends in den Daten, und eine Vermutung würde den Zuschnitt falsch rechnen.
 Bei einer <strong>Tafel</strong> öffnet sich der Dialog, weil dort noch Länge
 und Breite fehlen – halb angelegt wird nichts.</div>
-<p>Den <strong>Werkstoff schlägt die App vor</strong> (ab 3.182). Er steht in
+<p>Den <strong>Werkstoff schlägt die App vor</strong>. Er steht in
 aller Regel schon im Positionstext: „Kupferblech 0.6mm“ ist Kupfer, „Alublech
 0.8mm“ ist Aluminium. Der Vorschlag ist in der Zeile vorausgewählt und lässt
 sich ändern – bei 42 nachzutragenden Positionen spart das 42 Auswahlen.</p>
@@ -902,7 +895,7 @@ der Werte und den Überblick.</div>
 Artikel nur sein Format, sodass der Zuschnitt nicht mehr mit ihm rechnet. Der
 Katalogartikel bleibt vollständig erhalten – mit EDV-Nr., Preis, Barcode und
 allen Buchungen.</div>
-<div class="hin"><strong>Umgekehrt gilt das nicht</strong> (ab 3.178): Wird die
+<div class="hin"><strong>Umgekehrt gilt das nicht</strong>: Wird die
 <em>Katalogposition</em> selbst gelöscht – in der Lagerverwaltung, wenn ihr
 letztes Produkt entfernt wurde –, verschwindet das Format mit ihr. Es gehört ja
 zu dieser Zeile. Die Rückfrage dort sagt das ausdrücklich und nennt das Format,
@@ -914,7 +907,7 @@ nicht aus. Sie sagt es und verwendet für diesen Fall kein Reststück
 automatisch. Raten wäre hier teurer als fragen.</p>
 
 <h3>Vorschläge bei der Auswahl</h3>
-<div class="hin"><strong>Aus eigener Gewohnheit</strong> (ab 3.173): Neben einer
+<div class="hin"><strong>Aus eigener Gewohnheit</strong>: Neben einer
 noch leeren Auswahl steht, was dieser Betrieb an derselben Stelle üblicherweise
 nimmt – „3× gewählt: Prefa 0.7 braun“. Antippen übernimmt es. Das gilt fürs
 <strong>Material in jeder Art</strong> und zusätzlich für Abwicklung und
@@ -927,10 +920,10 @@ wird nicht kommentiert.</div>
 <h3>Richtwerte neben dem leeren Feld</h3>
 <p>Wo ein Feld einen <strong>Richtwert</strong> aus den Einstellungen hat, steht
 dieser als kleiner Knopf daneben, solange das Feld leer ist. Erst ein Antippen
-trägt ihn ein. Die App füllt seit 3.65 <strong>nichts von selbst</strong> vor –
+trägt ihn ein. Die App füllt <strong>nichts von selbst</strong> vor –
 sonst stünde am Ende ein Mass im Datensatz, das für diesen Bau nie jemand
 gemessen hat.</p>
-<div class="hin"><strong>Aus echten Aufnahmen</strong> (ab 3.172): Daneben steht,
+<div class="hin"><strong>Aus echten Aufnahmen</strong>: Daneben steht,
 was dieser Betrieb an derselben Stelle <strong>wirklich gemessen</strong> hat –
 „3× so gemessen“. Weichen der hinterlegte Richtwert und die eigene Messung
 voneinander ab, sind es <strong>zwei</strong> Knöpfe in unterschiedlicher Farbe;
@@ -974,7 +967,7 @@ Einstellungen auf ihre Länge.</p>
 <strong>einmal</strong>. Zwei Haken sind nicht zwei Gehrungen, sondern eine Ecke mit
 zwei Seiten. Ein Haken ohne Gegenstück – am äusseren Ende der Reihe – ist dagegen eine
 Gehrung für sich.</div>
-<p>Beim <strong>Einlaufblech konisch</strong> gilt seit Version 3.19 genau dasselbe.</p>
+<p>Beim <strong>Einlaufblech konisch</strong> gilt genau dasselbe.</p>
 <figure><img src="bilder/09-eb-3-stuecke-b.png"><figcaption>Darunter: der Grundriss, die Haltebleche und die Übernahme von Längen aus einer bereits erfassten Rinne Halbrund.</figcaption></figure>
 
 <h3 class="seite">5 · Zuschnitt aus Rollenblech</h3>
@@ -1002,7 +995,7 @@ Längsschnitt fehlten bis Version 3.25 in der Rechnung.</p>
 
 <h4>Die Materialbilanz</h4>
 <figure><img src="bilder/47-materialbilanz.png"><figcaption>Wohin das Blech geht: Zuschnitte, Schnittfugen, Reste – die Summe ist das Ausgangsmaterial.</figcaption></figure>
-<p>Unter der Zuschnittliste steht seit Version 3.26, <strong>wohin das Material
+<p>Unter der Zuschnittliste steht, <strong>wohin das Material
 geht</strong>:</p>
 <ul>
 <li><strong>Ausgangsmaterial</strong> – die Fläche ab Rolle, also Rollenbreite mal
@@ -1041,7 +1034,7 @@ der vor dem Blech steht.</div>
 
 <h4>Wo ein verwendeter Rest wieder auftaucht</h4>
 <figure><img src="bilder/50-rest-verwenden.png"><figcaption>Beim Verwenden lässt sich angeben, welche Stücke aus dem Rest geschnitten werden. Die Angabe ist freiwillig.</figcaption></figure>
-<p>Seit Version 3.29 fragt <span class="tasten">Hier verwenden</span> zuerst,
+<p><span class="tasten">Hier verwenden</span> fragt zuerst,
 <strong>welche Stücke</strong> aus diesem Rest geschnitten werden. Vorgewählt sind die,
 die von Länge und Breite her überhaupt hineinpassen; ein zu langes Stück steht daneben
 und ist als <em>passt nicht</em> gekennzeichnet. Die Angabe ist
@@ -1074,17 +1067,15 @@ vorher, und die Reste werden nur gespeichert und vorgeschlagen.</p>
 sucht die App im Lager nach passenden Resten. Was hineinpasst, fällt aus dem
 Rollenbedarf – die Rolle wird dadurch kleiner. Unter der Zuschnittliste steht dann, welche
 Stücke aus welchem Rest kommen.</p>
-<p>Diese Stücke stehen seit Version 3.29 <strong>in der Zuschnittliste selbst</strong>,
+<p>Diese Stücke stehen <strong>in der Zuschnittliste selbst</strong>,
 mit Kästchen zum Abhaken und mit dem Vermerk <em>aus Rest …</em>. Sie werden dabei
 <strong>nicht</strong> mit einem gleich langen Stück von der Rolle zusammengefasst – es
-sind zwei verschiedene Zuschnitte. Bis Version 3.28 fehlten sie im gespeicherten Plan
-ganz; wer damals mit eingeschaltetem Schalter gerechnet hat, sollte die betroffenen
-Massaufnahmen einmal öffnen und neu speichern.</p>
+sind zwei verschiedene Zuschnitte.</p>
 <div class="hin"><strong>Das Material muss exakt stimmen.</strong> Ein Rest wird nur
 verwendet, wenn <strong>Materialart, Stärke und Ausführung</strong> genau passen –
 0,70 mm Titanzink blank ist <strong>kein</strong> Ersatz für 0,80 mm Titanzink oder für
 vorbewittertes. Woher die App Stärke und Ausführung des Bedarfs kennt, steht im
-<strong>Materialbestand</strong> (Abschnitt 19) und – seit Version 3.31 – in der
+<strong>Materialbestand</strong> (Abschnitt 19) und in der
 <strong>Materialstärke der Massaufnahme selbst</strong> (siehe unten). Ist die Stärke
 erfasst, ist der Bedarf eindeutig, auch wenn der Betrieb dasselbe Material in mehreren
 Stärken führt. Fehlt sie und stehen mehrere Stärken im Bestand, <strong>rät die App
@@ -1273,7 +1264,7 @@ oder weiss, dass die Montage erst in einem Monat stattfindet, will die Aufgabe b
 dahin nicht bei jedem Öffnen der App sehen. An jeder Aufgabe steht deshalb
 <span class="tasten">🗓 Terminieren</span>. Ein Datum gewählt und gespeichert – und
 die Aufgabe verschwindet aus der Liste, bis dieser Tag da ist.</p>
-<p>Seit Version 3.214 stehen unter dem Datumsfeld drei Knöpfe:
+<p>Unter dem Datumsfeld stehen drei Knöpfe:
 <span class="tasten">In einer Woche</span>, <span class="tasten">In zwei Wochen</span>
 und <span class="tasten">In einem Monat</span>. Sie setzen nur das Feld – geschrieben
 wird erst mit <span class="tasten">Speichern</span>, man sieht also vorher, welches
@@ -1423,7 +1414,7 @@ der Ablauf erneut eingeschaltet wird.</div>
 projektweite Zusammenfassung, sondern auch das <strong>Abhaken einzelner
 Zuschnitte</strong> – in der Massaufnahme, auf der Seite „Material &amp; Zuschnitt“
 und in der Werkstatt. Ist es aus, steht die Zuschnittliste zwar überall da, die
-Positionsnummern lassen sich aber nicht antippen. Die App sagt das seit Version 3.22
+Positionsnummern lassen sich aber nicht antippen. Die App sagt das
 an Ort und Stelle und bietet einem Administrator dort gleich den Schalter an
 (<span class="tasten">Jetzt einschalten</span>).</div>
 
@@ -1450,7 +1441,7 @@ ihrer Art, ihrem Titel, ihrem Material, der Zahl der Zuschnitte und dem Fortschr
 zuoberst</strong>, vollständige darunter. Ist die Freigabe nach einer Änderung verfallen
 (Kapitel 9), steht das rot auf der Karte – ein überholter Stand darf nicht unbemerkt als
 aktueller Zuschnitt gelten.</p>
-<p><strong>Seit Version 3.25 steht die Zuschnittliste gleich auf der Karte</strong> –
+<p><strong>Die Zuschnittliste steht gleich auf der Karte</strong> –
 genauso wie in der Werkstatt. Man muss also nicht mehr erst in die Massaufnahme wechseln,
 um ein Stück abzuhaken: Seite öffnen, Stück antippen, fertig. Es ist <strong>dieselbe</strong>
 Liste wie im Register „Zuschnitt“ und in der Werkstatt – keine zweite Darstellung, keine
@@ -1584,7 +1575,7 @@ ausgeschlossen ist.</div>
 <p>Dieselbe Arbeitsliste wie auf der Startseite, nur aus Sicht der Werkstatt: nach
 Projekt statt nach Person. Rüsten und Montieren werden hier genauso bestätigt wie auf
 der Startseite; es ist derselbe Arbeitsablauf, nur eine zweite Sicht darauf.</p>
-<p>Erreichbar ist sie seit Version 3.24 über den grossen Knopf
+<p>Erreichbar ist sie über den grossen Knopf
 <span class="tasten">🔧 Werkstatt</span> auf dem Startbildschirm, gleich neben
 <span class="tasten">📁 Projekte</span>. Er erscheint nur, wenn die Firma das
 Werkstattmodul eingeschaltet hat.</p>
@@ -1594,7 +1585,7 @@ auf <span class="tasten">Nur meine</span>. Mit <span class="tasten">Alle</span> 
 man, was im Betrieb sonst noch ansteht; diese Wahl wird auf dem Gerät gemerkt.</div>
 
 <h4>Zwei Blicke: nach Projekt oder nach Material</h4>
-<p>Unter dem Filter steht seit Version 3.153 ein zweiter Umschalter:
+<p>Unter dem Filter steht ein zweiter Umschalter:
 <span class="tasten">Nach Projekt</span> und <span class="tasten">Nach Material</span>.
 Beide zeigen dieselben Massaufnahmen, nur anders sortiert – der Filter darüber
 wirkt auf beide.</p>
@@ -1632,7 +1623,7 @@ trägt der Streifen einen Knopf, der genau das für das ganze Projekt auf einmal
 <span class="tasten">📦 Alle reservieren (5)</span>. Es ist derselbe Vorgang wie im Projekt
 selbst, nur ohne den Umweg dorthin.</p>
 <div class="hin">Die <strong>Zuschnittliste erscheint auch dann</strong>, wenn das
-Modul „Zuschnitt und Abhaken“ aus ist – seit Version 3.22. Abhaken lässt sie sich in
+Modul „Zuschnitt und Abhaken“ aus ist. Abhaken lässt sie sich in
 diesem Fall nicht; warum, steht unter der Liste, und ein Administrator kann das Modul
 dort mit einem Tipp einschalten.</div>
 
@@ -1644,24 +1635,24 @@ Stationen stehen dann auf „–" und werden nicht als nächster Schritt verlang
 
 <h4>Eine Liste – und ein Tipp öffnet, was zum Rüsten gebraucht wird</h4>
 <figure><img src="bilder/43-werkstatt-abhaken.png"><figcaption>Ein Tipp auf die Zeile öffnet Skizze, Grundriss und die abhakbare Zuschnittliste.</figcaption></figure>
-<p>Die Werkstatt ist seit Version 3.30 zuerst eine <strong>Liste</strong>: je Projekt
+<p>Die Werkstatt ist zuerst eine <strong>Liste</strong>: je Projekt
 seine Massaufnahmen, jede mit Art, Bezeichnung, Status und Zuschnittstand – mehr nicht.
 So sieht man mit einem Blick, was ansteht, ohne durch geöffnete Listen zu scrollen.
-Seit Version 3.212 ist eine zugeklappte Zeile <strong>gleich gross wie auf der
+Eine zugeklappte Zeile ist <strong>gleich gross wie auf der
 Projektseite</strong>: zwei Zeilen hoch, der Knopf zum Bestätigen schmal daneben.
 Material und Stärke stehen zugeklappt nicht mehr dabei – der Platz gehört der
 Bezeichnung; im aufgeklappten Rüstblatt stehen sie weiterhin.</p>
-<p>Seit Version 3.213 lässt sich auch das <strong>ganze Projekt</strong> zuklappen:
+<p>Auch das <strong>ganze Projekt</strong> lässt sich zuklappen:
 ein Tipp auf den Projektkopf, und die Karte schrumpft auf Objekt, Projekt und die
 Anzahl dessen, was hier ansteht – die Knöpfe „Rüstliste“ und „Projekt“ bleiben
 erreichbar. Über der Liste stehen dafür zwei Schalter: einer für alle Projekte,
 einer für alle Massaufnahmen.</p>
-<p>Über der Liste steht seit Version 3.217 ein <strong>Suchfeld</strong>.
+<p>Über der Liste steht ein <strong>Suchfeld</strong>.
 Gesucht wird in dem, was auf der Karte steht: Objekt, Projektname,
 Auftrags-Nr., Kunde, Bezeichnung und Art. Mehrere Wörter suchen zusammen, und
 eine reine Zahl muss als ganze Zahl vorkommen – „Musterstrasse 3“ findet also
 nicht jede Adresse mit Postleitzahl 3000. Das ✕ leert die Suche.</p>
-<p>Seit Version 3.215 startet die Werkstatt <strong>mit allen Projekten
+<p>Die Werkstatt startet <strong>mit allen Projekten
 zugeklappt</strong> – sie ist damit zuerst eine Liste der Baustellen, und
 aufgeklappt wird, woran gerade gearbeitet wird. Es verschwindet dabei nichts:
 <em>„Jetzt dran“</em> steht weiterhin über der Liste, der Zähler oben nennt alle
@@ -1682,9 +1673,8 @@ Skizze / Foto hält das Foto selbst – dort steht das ausdrücklich da, statt e
 Rahmen zu zeigen. Es sind dieselben Zeichnungen wie im PDF, aus derselben Quelle.</div>
 
 <h4>Die Skizze trägt ihre Masse</h4>
-<p>Bis Version 3.31 zeigten mehrere Zeichnungen nur ihre Bezeichnungen – „A", „Restbreite",
-„Umschlag", die Buchstaben des Rinnenprofils. Man sah die Form, aber nicht die Zahl, und
-musste dafür ins Formular zurück. Seit Version 3.32 steht das Mass in der Zeichnung:</p>
+<p>Jede Zeichnung ist bemasst – man sieht die Form <em>und</em> die Zahl, ohne ins
+Formular zurückzugehen:</p>
 <table>
 <tr><th>Zeichnung</th><th>Was angeschrieben wird</th></tr>
 <tr><td>Einlaufblech gerade · Schnitt</td><td>Mass A, Winkel, Restbreite, beide Umschläge</td></tr>
@@ -1760,7 +1750,7 @@ PDF der App.</div>
 
 <h4>Der Filter bleibt gemerkt</h4>
 <p>Oben stehen vier Filter: <em>Alle</em>, <em>Zu rüsten</em>, <em>Zu montieren</em> und
-<em>Nur meine</em>. Vorgewählt ist seit Version 3.24 <em>Nur meine</em>. Der zuletzt
+<em>Nur meine</em>. Vorgewählt ist <em>Nur meine</em>. Der zuletzt
 gewählte wird auf dem Gerät gemerkt – wer immer nur rüstet, sieht beim nächsten Öffnen
 wieder seine Liste.</p>
 
@@ -1831,8 +1821,8 @@ Kachel), eine Skizze lässt sich frei aufziehen.</p>
 Speichern</span> springt direkt dorthin. Bei „Skizze/Foto“ steht er von Anfang an da.</div>
 <p>Notiz und <span class="tasten">💾 Speichern</span> sind immer erreichbar, egal in
 welchem Register du gerade bist.</p>
-<div class="hin"><strong>Seit Version 3.35:</strong> „📷 Fotos aufnehmen oder wählen“
-öffnet auf dem Handy jetzt wieder die volle Auswahl – Kamera <em>und</em> Galerie.
+<div class="hin">„📷 Fotos aufnehmen oder wählen“
+öffnet auf dem Handy die volle Auswahl – Kamera <em>und</em> Galerie.
 Vorher zwang ein Browser-Hinweis am Feld manche Geräte direkt in die Kamera-App, ohne
 zurück in die Galerie zu können. Betroffen waren Fotos bei Massaufnahme, Ausmass,
 Regierapport und Offerte gleichermassen.</div>
@@ -1918,7 +1908,7 @@ Biegewinkel <strong>d</strong> – sowie alle weiteren Resultate.</p>
 zu erfinden.</p>
 
 <h2 class="seite">15 · Ausmass</h2>
-<div class="hin"><strong>Das Zählwerk im Ausmass</strong> (ab 3.169): An einer
+<div class="hin"><strong>Das Zählwerk im Ausmass</strong>: An einer
 Position, die in früheren Ausmassen fast nie eine Menge bekommen hat, steht
 ein Hinweis – „⚠️ in 7 von 8 Ausmassen nicht gebraucht“. Es ist ein
 <em>Hinweis, keine Sperre</em>: die Zeile bleibt sichtbar, an ihrem Platz und
@@ -1936,14 +1926,14 @@ geraten.</div>
 drucken.</p>
 
 <h2>16 · Regierapport</h2>
-<div class="hin"><strong>Arbeitstexte</strong> (ab 3.171): Beim Tippen in das
+<div class="hin"><strong>Arbeitstexte</strong>: Beim Tippen in das
 Feld „Arbeit“ schlägt die App die Sätze vor, die <strong>in diesem Rapport</strong>
 schon stehen. In einem Rapport wiederholt sich dieselbe Arbeit oft über mehrere
 Tage – genau dort spart das Tipparbeit. Bewusst nur dieser Rapport und nicht
 alle; ein frischer Rapport hat deshalb noch keine Vorschläge. Das Feld bleibt
 frei: ein neuer Text lässt sich wie bisher einfach eintippen.</div>
 <h3>Das Zählwerk</h3>
-<p>Seit 3.168 ordnet die App die Materialvorschläge nach der <strong>eigenen
+<p>Die App ordnet die Materialvorschläge nach der <strong>eigenen
 Benutzung</strong>: was dieser Betrieb häufig verbaut, steht oben, und daneben
 steht, worauf sich das stützt – „5× benutzt“. Gezählt wird über die
 Regierapporte und über das Material an den Massaufnahmen, immer nur innerhalb
@@ -1956,7 +1946,7 @@ ordnet an, es entscheidet nicht. Und die Zahl steht <strong>immer dabei</strong>
 damit ein Vorschlag nachprüfbar ist statt nur behauptet.</div>
 <p>Am Anfang ist das Zählwerk fast still: solange wenig erfasst ist, gibt es
 wenig zu zählen. Es fängt an zu helfen, sobald es etwas weiß.</p>
-<div class="hin">In der Rapportliste eines Projekts steht seit 3.165 unter den
+<div class="hin">In der Rapportliste eines Projekts steht unter den
 Kopfdaten eine Zeile, <strong>worum es in diesem Rapport geht</strong>: die
 Arbeitstexte, die Stundensumme und die Anzahl Materialzeilen. Vorher sahen
 fünf Rapporte zur selben Baustelle alle gleich aus – man musste jeden einzeln
@@ -1989,7 +1979,7 @@ schlägt beim Tippen die nächste noch freie Nummer vor.</div>
 <p><span class="tasten">🧱 Aus Massaufnahmen übernehmen</span> zeigt alles, was in den
 Massaufnahmen <strong>dieses Projekts</strong> steht, nach Massaufnahme gruppiert.
 Angehakt wird, was in den Rapport soll; <span class="tasten">Übernehmen</span> legt
-daraus Materialzeilen an. Seit Version 3.24 sind das <strong>drei</strong> Arten:</p>
+daraus Materialzeilen an – <strong>drei</strong> Arten:</p>
 <table>
 <tr><th>Art</th><th>Woher</th></tr>
 <tr><td>Von Hand erfasst</td><td>Die Liste <em>Material für den Regierapport</em> aus
@@ -2042,7 +2032,7 @@ Rapport direkt auf der Baustelle gegenzeichnen, statt ihn auszudrucken, untersch
 zu lassen und wieder einzuscannen.</p>
 
 <h2 class="seite">17 · Suche</h2>
-<div class="hin">Seit 3.167 springt ein Treffer an die richtige Stelle: die
+<div class="hin">Ein Treffer springt an die richtige Stelle: die
 Projektseite schlägt das passende Register auf – Massaufnahme, Ausmass oder
 Regierapport – und hebt die getroffene Zeile kurz hervor. Gibt es den Eintrag
 nicht mehr, geht das Projekt trotzdem auf, nur ohne Hervorhebung.</div>
@@ -2084,8 +2074,8 @@ verschwindet nicht mit ihm. Wurde ein Mitarbeiter entfernt, steht dort
 „Unbekannter Benutzer“.</p>
 
 <h2 class="seite">19 · Einstellungen</h2>
-<h3>Was eine neue Firma mitbekommt (ab 3.184)</h3>
-<p>Seit Version 3.184 startet ein neuer Betrieb nicht mehr bei null. Bei der
+<h3>Was eine neue Firma mitbekommt</h3>
+<p>Ein neuer Betrieb startet nicht bei null. Bei der
 Registrierung legt die App an:</p>
 <table class="eb-table">
 <tr><th>Was</th><th>Warum das mitgegeben werden darf</th></tr>
@@ -2131,7 +2121,7 @@ bis Version 3.183 gab – unschön, aber voll funktionsfähig. Eine Firma, die
 wegen eines Beispiel-Blechs gar nicht erst entsteht, wäre der schlechtere
 Tausch.</div>
 
-<h3>Der geführte Start (ab 3.183)</h3>
+<h3>Der geführte Start</h3>
 <p>Ein Betrieb, der die App frisch bekommt, findet sie vollständig vor – aber
 leer. Kein Material im Katalog, keine Werkstoffe mit Dehnungswerten, keine
 Rollenbreiten, keine Rinne-Ansetztypen. Die Auswahlfelder sind da, sie haben
@@ -2174,17 +2164,13 @@ ohnehin nur sie ändern dürfen.</p>
 der App heraus erreichbar.</p>
 <p>Die Einstellungen sind in Register geteilt. Was hier steht, gilt entweder für die
 ganze Firma oder nur für dieses Gerät – das ist jeweils angeschrieben.</p>
-<div class="hin"><strong>Wie in den Katalogen gespeichert wird</strong> (ab
-3.182): Die Felder in den Listen – Leistungen, Material, Profile,
+<div class="hin"><strong>Wie in den Katalogen gespeichert wird</strong>: Die Felder in den Listen – Leistungen, Material, Profile,
 Blitzschutz-Material und die Werkstoffe mit ihren Dehnungswerten – haben keinen
 eigenen Speichern-Knopf. Geschrieben wird kurz nach der letzten Eingabe, und
 unten am Bildschirm erscheint dann <em>„✓ Gespeichert.“</em>. Klappt es nicht –
 etwa weil die Berechtigung fehlt –, steht dort stattdessen der Grund, und der
 Hinweis bleibt länger stehen.
-<br><br>Bis Version 3.181 schrieben genau diese Felder <strong>gar nichts</strong>:
-die Änderung blieb im Feld stehen, es kam keine Fehlermeldung, und beim nächsten
-Laden war sie weg. Wer dort einmal etwas geändert hat und sich wundert, warum es
-nicht mehr da ist, kann es jetzt einfach noch einmal eintragen.</div>
+</div>
 <figure><img src="bilder/22-einstellungen-allgemein.png"><figcaption>Allgemein: Darstellung, Anzahl der letzten Einträge, Fotoqualität und das Blechlager.</figcaption></figure>
 <div class="hin"><strong>Das Blechlager</strong> (die Rollenbreiten) gilt für die ganze
 Firma und wird von allen Massaufnahmen mit Rollenblech-Zuschnitt verwendet.
@@ -2206,19 +2192,17 @@ genau einer Länge und einer Breite, meistens von einer bestimmten Massaufnahme.
 Bestand sagt der App, welche Stärken und Ausführungen es im Betrieb überhaupt gibt – und
 damit auch, was in der Massaufnahme als Materialstärke zur Auswahl steht; die
 Reststücke sind das, was sie beim Rechnen tatsächlich abziehen kann. Vom Bestand wird
-<strong>nichts</strong> abgebucht (er führt seit Version 3.31 gar keine Menge mehr), ein
+<strong>nichts</strong> abgebucht (er führt gar keine Menge mehr), ein
 Reststück dagegen ist nach der Verwendung verbraucht.</div>
 
 <p>Das Register <strong>📦 Lager</strong> hat zwei Karten. Unter
 <strong>Materialbestand</strong> steht, was an neuem Material im Betrieb liegt – je Zeile
 Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong>,
-<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …) und – seit Version 3.33 –
-die <strong>Form</strong>: <strong>Rolle</strong> oder <strong>Tafel</strong>. Bei einer
+<strong>Ausführung</strong> (blank, vorbewittert, verzinkt …) und die <strong>Form</strong>: <strong>Rolle</strong> oder <strong>Tafel</strong>. Bei einer
 Tafel kommen <strong>Tafellänge</strong> und <strong>Tafelbreite</strong> dazu; bei
 Rollenmaterial sind diese beiden Felder ausgeblendet, weil es sie dort nicht gibt.
 Das ist <strong>keine Lagerverwaltung</strong>: es wird nichts abgebucht und nichts
-bestellt. Die Liste legt fest, <strong>welche</strong> Materialien der Betrieb führt –
-seit Version 3.31 deshalb <strong>ohne Menge, Länge und Breite</strong>. Sie hatte nie
+bestellt. Die Liste legt fest, <strong>welche</strong> Materialien der Betrieb führt – deshalb <strong>ohne Menge, Länge und Breite</strong>. Sie hatte nie
 eine Wirkung, und eine Zahl, die niemand pflegt, ist schlechter als keine. Der Bestand
 hat dafür drei klare Aufgaben: er sagt der App, welche <strong>Stärken</strong> in der
 Massaufnahme zur Auswahl stehen (Abschnitt 5), er entscheidet beim Zuschnitt, ob ein
@@ -2259,7 +2243,7 @@ erfasste Massaufnahmen.</p>
 <p>Dieses Register sehen nur Firmenadministratoren. Dort werden Firmenname, Adresse,
 Logo und MWST gepflegt, Mitarbeiter angelegt und Passwörter zurückgesetzt, Funktionen
 und Ansätze definiert und die Materialkataloge verwaltet.</p>
-<h3>Kontrolle der Stammdaten (ab 3.186)</h3>
+<h3>Kontrolle der Stammdaten</h3>
 <p>Der geführte Start fragt, <strong>ob</strong> etwas da ist. Diese Liste
 fragt, ob das, was da ist, auch <strong>stimmt</strong>. Sie steht unter
 <strong>Einstellungen → Allgemein → Kontrolle der Stammdaten</strong> und in
@@ -2338,7 +2322,7 @@ und nichts überschrieben – eine bereits vorhandene Nummer käme ein zweites M
 <p>Der Bereich <span class="tasten">🏭 Lagerverwaltung</span> führt den
 Lagerbestand. Er ist eine <strong>eigene Freigabe</strong>: wer sie nicht hat, sieht
 ihn gar nicht.</p>
-<p><i>Seit Version 3.223</i> beginnt die Seite <strong>zugeklappt</strong>: oben
+<p>Die Seite beginnt <strong>zugeklappt</strong>: oben
 die Kennzahlen, darunter gross <span class="tasten">📥 Einscannen</span> und
 <span class="tasten">📤 Ausscannen</span> – die beiden Handlungen, für die man
 hierherkommt –, dann das Suchfeld, und erst ganz unten die selteneren Knöpfe.
@@ -2346,8 +2330,7 @@ Die Liste selbst ist eingeklappt; bei über dreihundert Positionen ist sie keine
 Übersicht, sondern eine Wand. <span class="tasten">Alle anzeigen</span> zeigt
 sie ganz, und eine Suche zeigt ihre Treffer wie immer, auch bei eingeklappter
 Liste.</p>
-<p><i>Seit Version 3.220</i> ist er als Arbeitsplatz aufgebaut und nicht mehr
-als Einstellungsseite. Ganz oben steht der <strong>Stand des Lagers</strong> in
+<p>Er ist als Arbeitsplatz aufgebaut, nicht als Einstellungsseite. Ganz oben steht der <strong>Stand des Lagers</strong> in
 einer Zeile: wie viele Positionen, wie viele Produkte und – rot, solange es
 welche gibt – wie viele <strong>ohne Bestand</strong> sind. Darunter das Suchfeld,
 dann die Knöpfe. In der Liste steht die <strong>EDV-Nr.</strong> als eigenes
@@ -2366,15 +2349,15 @@ Lieferanten; jeder wird einzeln gebucht und trägt seinen eigenen Barcode.</p>
 <tr><td><span class="tasten">📷 Barcode scannen</span></td><td>Öffnet die Kamera und
 sucht das Produkt über seinen Barcode.</td></tr>
 </table>
-<div class="hin"><strong>Zurück aus der Kamera</strong> (seit Version 3.223).
+<div class="hin"><strong>Zurück aus der Kamera</strong>.
 Der Scanner verhält sich wie jeder andere Schirm der App: die Zurück-Taste des
 Geräts schliesst ihn und bringt dich zurück, statt die App zu beenden. Oben
 links steht zusätzlich <span class="tasten">‹ Zurück</span>. In beiden Fällen
 wird die Kamera richtig abgeschaltet.</div>
-<p><strong>Gescannt wird im laufenden Bild</strong> (seit Version 3.220): Code in
+<p><strong>Gescannt wird im laufenden Bild</strong>: Code in
 den Rahmen halten, er wird von selbst erkannt. Man muss also nicht mehr zuerst
 ein Foto aufnehmen und es dann auswerten lassen.</p>
-<p><i>Seit Version 3.221</i> liest dabei auch der <strong>eingebaute
+<p>Dabei liest auch der <strong>eingebaute
 Barcode-Leser des Geräts</strong> mit, wo es ihn gibt (Android/Chrome) – dieselbe
 Erkennung, die native Scanner-Apps benutzen. Sie läuft ausserhalb der App, ist
 schneller und kommt mit unschärferen und schrägen Codes zurecht. Wer zuerst
@@ -2382,10 +2365,9 @@ einen Code sieht, gewinnt; gemeldet wird er genau einmal. Auf Geräten ohne
 diesen Leser (z.&nbsp;B. iPhone) bleibt alles wie vorher.</p>
 <p>Ein Tippen auf das Bild stösst zusätzlich einmal scharf und gibt sofort
 wieder an den Dauerautofokus ab – <strong>ohne das Bild zu unterbrechen</strong>.
-Bis Version 3.220 wurde dabei die Kamera kurz ganz abgeschaltet und neu
-gestartet; das Bild wurde für rund anderthalb Sekunden schwarz. Das ist behoben.</p>
+</p>
 <h4>Wird der Code nicht scharf?</h4>
-<p><i>Seit Version 3.222.</i> Ein Handy hat hinten <strong>mehrere Kameras</strong>.
+<p>Ein Handy hat hinten <strong>mehrere Kameras</strong>.
 Die Ultraweitwinkel-Kamera hat einen <strong>festen Fokus</strong> und wird näher
 als etwa 10&nbsp;cm grundsätzlich nicht scharf – und welche Kamera der Browser
 nimmt, entscheidet er selbst. Genau das ist der Unterschied zu einer nativen
@@ -2457,7 +2439,7 @@ und lässt sich danach nicht mehr abrufen; geht es verloren, setzt ein Administr
 der Mitarbeiterliste ein neues. Beim ersten Anmelden vergibt die Person ein eigenes.</p>
 
 <h2>20 · Was die App gelernt hat</h2>
-<p>Die App zählt seit Version 3.168 mit, was dieser Betrieb tatsächlich
+<p>Die App zählt mit, was dieser Betrieb tatsächlich
 benutzt, misst und wählt – und stellt es an den passenden Stellen nach vorne.
 Unter <span class="tasten">Mehr → Was die App gelernt hat</span> steht alles
 davon auf einer Seite:</p>
@@ -2584,7 +2566,7 @@ verwerfen</em>. Ein neu angelegter Datensatz kann nicht kollidieren.</p>
 </table>
 
 <h2 class="seite">26 · Abwicklung: Rundrohr mit schrägem Anschnitt</h2>
-<p>Seit Version 3.191 rechnet die App den Zuschnitt für ein rundes Blechrohr,
+<p>Die App rechnet den Zuschnitt für ein rundes Blechrohr,
 das unten schräg angeschnitten ist – etwa eine Dachdurchführung –, mit
 angebogenem <strong>Schweifbord</strong> und liegendem <strong>Längsfalz</strong>.
 Sie steht auf dem Startbildschirm unter <span class="tasten">📐 Abwicklung</span>,
@@ -2619,7 +2601,7 @@ Dachfläche. Bis 3.195 gab es dafür je zwei Felder – wer eines nachträglich
 das die Schweifbord-Breite, beim Tablett das Mass von Mitte Rohr nach hinten
 – derselbe Buchstabe, zwei völlig verschiedene Masse. Sie bleiben getrennt,
 und der Prüfstand hält das ausdrücklich fest.</div>
-<div class="hin"><strong>Lappeneinschnitte gibt es seit 3.196 nicht mehr.</strong>
+<div class="hin"><strong>Lappeneinschnitte gibt es nicht mehr.</strong>
 Der ursprüngliche Auftrag sah sie vor, ab 3.189 war die Vorgabe 0, und jetzt
 ist die Möglichkeit ganz weg: sie entspricht nicht mehr dem Stand der
 Technik. Geschweift wird auf der Maschine.</div>
@@ -2644,10 +2626,6 @@ Zuschnitt <strong>gleich breit</strong>. Gerechnet wird er mit 90°:
 Standardmassen 11,34 mm. Ein Streifen, der über die Länge schwankt, lässt
 sich nicht anreissen, und geschweift wird nachher ohnehin; dabei wandert das
 Material.</p>
-<div class="hin"><strong>Bis Version 3.191 war das anders.</strong> Da bekam
-jeder Punkt seine eigene Zugabe, gerechnet mit dem dort wirklich
-auftretenden Biegewinkel – so rechnet auch das Fusion-360-Script. Für sich
-genommen ist das richtig, für die Werkstatt war es unbrauchbar.</div>
 <p>Der Biegewinkel selbst ist beim schrägen Anschnitt nach wie vor nicht
 überall gleich, und die Tabelle zeigt ihn: auf der langen Mantellinie 60°,
 auf der kurzen 120° (allgemein 90° ∓ α).</p>
@@ -2683,7 +2661,7 @@ Seite anpassen“. Auf jedem Blatt steht ein <strong>100-mm-Kontrollmass</strong
 einmal mit dem Meter nachmessen, bevor nach der Schablone geschnitten wird.
 Eine um wenige Prozent verkleinerte Schablone fällt sonst erst am Blech auf.</div>
 
-<h3>Papierformat (ab 3.193)</h3>
+<h3>Papierformat</h3>
 <p>Bis 3.192 war die Schablone fest auf A4 aufgeteilt. Das Tablett brauchte
 damit <strong>sechs Blatt</strong>, und beim Rohr trug die dritte Spalte
 1,4 mm Zeichnung – ein ganzes Blatt für nichts.</p>
@@ -2713,7 +2691,7 @@ zusätzliche, halbleere Seite. Kopf- und Fusszeile sind jetzt einzeilig, und
 für sie sind 24 statt 12 mm reserviert – damit bleiben auf jedem Format über
 15 mm Reserve.</div>
 
-<h3>Aus der Einfassung rund heraus (ab 3.191)</h3>
+<h3>Aus der Einfassung rund heraus</h3>
 <p>Die Massaufnahme <strong>Einfassung rund</strong> rechnet den Querschnitt
 (a, b, c) und lässt das Rohr selbst ausdrücklich offen. Genau dieses Rohr
 rechnet die Abwicklung – die beiden ergänzen sich. Bei jeder Einfassung steht
@@ -2738,8 +2716,8 @@ Massaufnahme, nicht nur zum Projekt. Mit
 <span class="tasten">Verbindung lösen</span> oder
 <span class="tasten">↩️ Standardmasse</span> ist der Bezug wieder weg.</div>
 
-<h3>Das Tablett der Einfassung rund (ab 3.192)</h3>
-<p>Der Rechner kennt seit 3.192 zwei <strong>Bauteile</strong>. Oben im
+<h3>Das Tablett der Einfassung rund</h3>
+<p>Der Rechner kennt zwei <strong>Bauteile</strong>. Oben im
 Dialog wird gewählt, welches gerade gerechnet wird; Vorschau, Ergebnis, DXF,
 1:1-Schablone und die gespeicherte Liste sind für beide dieselben.</p>
 <p>Das <strong>Tablett</strong> ist das flache Blech, das auf dem Dach liegt
@@ -2780,7 +2758,7 @@ niemand mehr.</div>
 <p>Die DXF-Layer heissen beim Tablett <strong>ZUSCHNITT</strong>,
 <strong>BIEGELINIE</strong> und <strong>LOCHAUSSCHNITT</strong>.</p>
 
-<h3>Massaufnahme im Rechner laden (ab 3.192)</h3>
+<h3>Massaufnahme im Rechner laden</h3>
 <p>Der Weg geht in <strong>beide Richtungen</strong>. In der Massaufnahme
 stehen bei jeder Einfassung <span class="tasten">⭕ Abwicklung Rohr</span> und
 <span class="tasten">▭ Abwicklung Tablett</span>. Umgekehrt holt im Rechner
@@ -2804,7 +2782,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.227</strong>, Stand 29. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.228</strong>, Stand 29. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -2821,12 +2799,12 @@ Ausführung und Masse bleibt beim Spengler.</li>
 <li>Sie beschreibt nicht jede einzelne der dreizehn Fachfunktionen im Detail. Die
 Register führen ohnehin durch die Erfassung, und jede Funktion hat ihre eigene
 Kontrolle.</li>
-<li>Der Verschnitt rechnet seit Version 3.26 <strong>mit</strong> der Schnittfuge, und
+<li>Der Verschnitt rechnet <strong>mit</strong> der Schnittfuge, und
 jeder Rest wird ausgewiesen (Abschnitt 9). Ob Reste aus dem Lager vom Bedarf abgezogen
-werden, entscheidet seit Version 3.27 ein Schalter je Firma – ohne ihn werden sie nur
+werden, entscheidet ein Schalter je Firma – ohne ihn werden sie nur
 vorgeschlagen, und der Plan bleibt, wie er ist.</li>
 <li>Ob aus der <strong>Rolle</strong> oder aus einer <strong>Tafel</strong> geschnitten
-wird, kommt seit Version 3.33 aus dem Materialbestand und lässt sich je Massaufnahme
+wird, kommt aus dem Materialbestand und lässt sich je Massaufnahme
 übersteuern (Abschnitt 5). Ist <em>Tafel</em> gewählt, aber kein Format hinterlegt,
 rechnet die App mit der Rolle weiter und sagt warum – sie erfindet <strong>keine
 Tafelgrösse</strong>.</li>
@@ -2836,7 +2814,7 @@ automatisch fortgeschrieben.</li>
 <li>Ein Reststück wird immer <strong>ganz</strong> genommen oder gar nicht. Ein Rest
 teilweise zu verbrauchen und den Rest davon wieder einzulagern, kann die App heute
 nicht.</li>
-<li>Die <strong>Offerte</strong> (Abschnitt 7, seit Version 3.34) ist bewusst schlank:
+<li>Die <strong>Offerte</strong> (Abschnitt 7) ist bewusst schlank:
 Positionen mit Bezeichnung, Menge und Einheit – <strong>keine Preise, keine
 Abrechnung</strong>. Sie überträgt sich <strong>nicht</strong> automatisch in ein
 Ausmass; das bleibt ein eigener, späterer Schritt. Anders als Massaufnahme und
