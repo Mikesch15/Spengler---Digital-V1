@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.225";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.226";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -48,7 +48,7 @@ code{background:#eef2f5;padding:0.3mm 1.2mm;border-radius:1mm;font-size:9pt}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.225<br>
+  Version 3.226<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -113,20 +113,26 @@ Mitarbeiterkonto ein eigenes Passwort. Erst danach steht die App offen.</p>
 in den Einstellungen unter „Mitarbeiter“ zurück. Der Mitarbeiter wählt beim nächsten
 Anmelden wieder selbst eines.</div>
 
-<h3>Anmelden mit dem Fingerabdruck (ab 3.225)</h3>
-<p>Statt Benutzername und Passwort zu tippen: App öffnen, Finger auflegen, drin.
-Eingeschaltet wird das unter <span class="tasten">🔄 Konto wechseln</span> beim
-eigenen Konto. Der Schalter erscheint <strong>nur, wenn das Gerät wirklich einen
-Sensor anbietet</strong> – sonst steht dort, dass es das Gerät nicht kann, statt
-eines Knopfes, der nichts tut.</p>
+<h3>Fingerabdruck: ein Schloss vor der App (ab 3.225, seit 3.226 in dieser Form)</h3>
+<p>Ist er eingeschaltet, ist die App auf diesem Gerät <strong>gesperrt</strong>: beim
+Öffnen steht ein Schloss davor, Finger auflegen, drin – ohne Benutzername und
+Passwort zu tippen. Eingeschaltet wird das unter
+<span class="tasten">🔄 Konto wechseln</span> beim eigenen Konto. Der Schalter
+erscheint <strong>nur, wenn das Gerät wirklich einen Sensor anbietet</strong> –
+sonst steht dort, dass es das Gerät nicht kann, statt eines Knopfes, der nichts
+tut.</p>
 <p>Der Abdruck <strong>verlässt das Gerät nie</strong>. Die App bekommt vom
 Betriebssystem nur ein Ja oder Nein; gespeichert wird lediglich, dass zu diesem
 Konto auf diesem Gerät ein Schlüssel hinterlegt ist.</p>
-<p><strong>Das Passwort funktioniert weiterhin</strong> und steht auf dem
-Anmeldebildschirm immer unter dem Fingerabdruck-Knopf. Ein zickiger Sensor darf
-niemanden aus seiner eigenen App aussperren. Gilt der gespeicherte Zugang nicht
-mehr – Passwort geändert, lange nicht benutzt –, sagt die App das und verweist
-aufs Passwort, statt stumm nichts zu tun.</p>
+<p>Am Schloss steht immer auch <strong>Abmelden und mit Passwort anmelden</strong>.
+Ein zickiger Sensor darf niemanden aus seiner eigenen App aussperren. Wird der
+Finger nicht erkannt, steht der Grund sichtbar auf dem Schloss – nicht stumm
+nichts.</p>
+<div class="warn"><strong>Nach dem Abmelden braucht es einmal das Passwort.</strong>
+Das ist Absicht und keine Störung: Abmelden macht den gespeicherten Zugang
+ungültig, und der Fingerabdruck kann ihn nicht ersetzen – er sperrt die
+laufende Anmeldung nur auf und zu. Eingerichtet bleibt er dabei und sperrt nach
+der nächsten Anmeldung wieder.</div>
 <div class="hin"><strong>Nur für ein persönliches Gerät.</strong> Wer das
 entsperrte Gerät in der Hand hat, kommt damit in dein Konto. Auf einem geteilten
 Werkstatt-Tablet deshalb ausgeschaltet lassen.<br><br>
@@ -2793,7 +2799,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.225</strong>, Stand 28. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.226</strong>, Stand 29. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
