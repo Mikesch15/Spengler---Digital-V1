@@ -1,0 +1,185 @@
+ABSCHLUSSBERICHT v3.226 - Fingerabdruck: vom "Anmelden" zum Schloss
+===================================================================
+
+AUSGANGSLAGE
+------------
+Gemeldet vom Anwender, einen Tag nach der Auslieferung von v3.225:
+
+  "Ich kann den fingerabdruck zwar aktivieren, aber wenn ich mich das
+   erste mal so anmelden will, passiert nichts und er ist wieder
+   deaktiviert"
+
+Beide Haelften der Meldung waren echte Fehler, und sie hatten
+verschiedene Ursachen.
+
+
+URSACHE 1 - "er ist wieder deaktiviert"
+---------------------------------------
+Abmelden ruft sb.auth.signOut() (js/03-login.js, drei Stellen). Das gilt
+bei Supabase standardmaessig GLOBAL: es macht alle gespeicherten Zugaenge
+dieses Kontos ungueltig - darunter genau den refresh_token, den js/81
+danach wieder einsetzen wollte.
+
+Der Versuch scheiterte also zwangslaeufig. kwSitzungSetzen() (js/76) tut
+bei einem nicht mehr gueltigen Zugang das Richtige: sie entfernt den
+Eintrag, statt ihn morgen wieder scheitern zu lassen. Nur hing der
+Fingerabdruck-Schluessel an genau diesem Eintrag - er ging mit.
+
+Warum der Kontowechsel nie hineinlief: dort wird bewusst NICHT
+abgemeldet (Kommentar in js/76: "KEIN signOut"), und es geht um ein
+ANDERES Konto, dessen Token niemand angefasst hat.
+
+
+URSACHE 2 - "passiert nichts"
+-----------------------------
+Die Meldung zum Fehlschlag stand in #faLoginMeldung - INNERHALB von
+#faLoginBox. faAnmelden() setzte die Meldung und rief unmittelbar danach
+faLoginZeichnen(), das den ganzen Kasten ausblendete, weil der Zugang ja
+gerade entfernt worden war. Sichtbar blieb: nichts.
+
+Damit war die eigene, im Kopf von js/81 festgehaltene Regel gebrochen:
+"Geht es schief, sagt die App WARUM ... Ein Schloss, das stumm nichts
+tut, waere das Schlimmste."
+
+
+URSACHE 3 - der Entwurf selbst konnte nicht funktionieren
+---------------------------------------------------------
+Die App stellt eine vorhandene Sitzung beim Start von selbst wieder her
+(js/18-app-start.js). Der Anmeldebildschirm erscheint deshalb NUR dann,
+wenn keine Sitzung mehr da ist - also genau dann, wenn ein Fingerabdruck
+nichts herzustellen hat. Ein Fingerabdruck-Knopf AUF dem
+Anmeldebildschirm konnte damit unter keinen Umstaenden funktionieren.
+
+Das ist der Grund, warum v3.226 kein Flicken ist, sondern ein Umbau.
+
+
+URSACHE 4 - beim Beheben gefunden
+---------------------------------
+kwMerken() (js/76) ERSETZTE den Konto-Eintrag bei jeder Anmeldung. Jede
+Anmeldung mit dem Passwort warf damit alles weg, was ein anderes Modul
+an diesem Konto vermerkt hatte - den Fingerabdruck-Schluessel
+eingeschlossen. Auch ohne die Ursachen 1-3 haette der Fingerabdruck
+sich so bei der naechsten normalen Anmeldung still verabschiedet.
+
+
+WAS GEBAUT WURDE
+----------------
+Der Fingerabdruck ist jetzt das, was bei der Auswahl auch gewaehlt
+wurde ("Entsperren auf dem Geraet"): ein SCHLOSS vor der laufenden
+Sitzung, keine Ersatz-Anmeldung.
+
+js/81-fingerabdruck.js
+  faAnmelden() -> faEntsperren(). Der Sensor entscheidet nur noch, ob
+  die App aufgeht. Es wird KEINE Sitzung gesetzt - also kann auch kein
+  Token dabei veralten, und ein Fehlschlag kann den Schluessel nicht
+  mehr mitnehmen.
+  Neu: faSperreZeigen(session), faSperreOeffnen(), faSperreAufgeben(),
+  faSperreMeldung(), faLoginHinweisZeichnen().
+
+js/18-app-start.js
+  Die Weiche, dort wo die Sitzung bekannt wird. Fehlt die Datei oder
+  der Bildschirm, geht die App wie bisher auf - ein Schloss ohne Tuer
+  waere schlimmer als gar keins.
+
+index.html
+  Der tote Knopf auf dem Anmeldebildschirm ist weg; an seiner Stelle
+  steht der Satz, der die Frage beantwortet, die man sich sonst stellt.
+  Neu #faSperrScreen, mit der Meldung AUSSERHALB von allem, was beim
+  Zeichnen aus- und eingeblendet wird, und mit "Abmelden und mit
+  Passwort anmelden" daneben.
+
+js/54-zurueck.js
+  #faSperrScreen gehoert zu ZURUECK_NICHT. Er traegt .modal, waere also
+  von selbst ein Schirm wie jeder andere gewesen - die Zurueck-Taste
+  haette das Schloss mit einem einzigen Tippen weggeschoben.
+
+js/76-kontowechsel.js
+  kwMerken() mischt jetzt, statt zu ersetzen. Die Felder von dort sind
+  die frischen und gewinnen, alles andere am Eintrag bleibt stehen -
+  ohne dass js/76 wissen muss, welche Felder das sind.
+
+
+WAS SICH FUER DEN ANWENDER AENDERT
+----------------------------------
+Eingeschaltet: beim Oeffnen der App steht ein Schloss davor, Finger
+auflegen, drin. Daneben steht immer "Abmelden und mit Passwort
+anmelden"; geht der Finger nicht, steht der Grund sichtbar da.
+
+Nach dem Abmelden braucht es einmal das Passwort. Das ist keine
+Stoerung, sondern die Bedeutung von Abmelden: es macht den
+gespeicherten Zugang mit Absicht ungueltig. Eingerichtet bleibt der
+Fingerabdruck dabei und sperrt nach der naechsten Anmeldung wieder.
+
+Wer den Fingerabdruck in v3.225 eingerichtet hatte, muss ihn einmal neu
+einrichten - der Schluessel wurde vom fehlgeschlagenen Versuch
+geloescht.
+
+
+EHRLICHE EINSCHRAENKUNGEN
+-------------------------
+- Es bleibt ein Schloss, KEINE Verschluesselung. Wer das entsperrte
+  Geraet hat und sich mit den Entwicklerwerkzeugen auskennt, kaeme
+  daran vorbei - so wie vor v3.225 auch, nur damals ganz ohne Schloss.
+- Keine serverseitige Pruefung. Bei einem lokalen Schloss ist das
+  richtig so; ein echter Passkey gegen den Server waere etwas anderes
+  und wurde bewusst nicht gewaehlt.
+- Ob der Sensor auf dem Geraet des Anwenders ausloest, kann nur er
+  bestaetigen - in der Entwicklungsumgebung laeuft keiner.
+
+
+PRUEFSTAENDE
+------------
+pruefstand-fingerabdruck-v3-225.js auf den neuen Vertrag gedreht, nicht
+geloescht. Der alte Stand war GRUEN, waehrend die Funktion nicht
+benutzbar war: seine Faelle C4/C8/C9/C10 verlangten genau das, was der
+Fehler ist. Jeder umgedrehte Fall hat jetzt eine Gegenprobe, die das
+alte Verhalten rot macht:
+
+  C7   beim Entsperren wird KEINE Sitzung gesetzt
+  C8   ein toter refresh_token hindert das Entsperren nicht mehr
+  C9   und der Fingerabdruck schaltet sich dabei nicht selbst ab
+  D1   der Fehlschlag steht SICHTBAR da
+  F4/F5 die Zurueck-Taste schiebt das Schloss nicht weg
+  G1   eine Anmeldung mit dem Passwort behaelt den Fingerabdruck
+
+40 Faelle, alle gruen. Belegt: gegen den Stand von v3.225 gehen F4, F5
+und G1 rot; C7-C9 und D1 pruefen Code, den es dort noch nicht gab.
+
+
+NACHTRAG: EIN FEHLSCHLAG, DEN NUR EINE SEITE SAH
+-------------------------------------------------
+Bei der Nachkontrolle fiel auf, dass die CI auf GitHub seit v3.225 rot
+stand - mit EINEM Fehlschlag, pruefstand-bereiche-v3-156, Fall F2. Hier
+lief derselbe Pruefstand gruen. Fuer v3.225 war "129/129 gruen" gemeldet
+worden; das galt fuer den Lauf hier, die CI war nicht angeschaut worden.
+
+F2 las die Adresse des Fensters, das beim Klick auf "Anleitung"
+aufgeht. Zwei Anlaeufe waren noetig:
+
+1. Auf die Adresse warten statt auf feste 900 ms. Half nicht - sie
+   blieb auch nach sechs Sekunden leer.
+2. Der Grund ist nicht Langsamkeit: die CI benutzt
+   chrome-headless-shell, und der hat keinen PDF-Betrachter. Das
+   Fenster geht dort auf und bleibt leer. Die Adresse eines geoeffneten
+   PDF-Fensters ist in diesem Browser schlicht nicht messbar - F2 hat
+   also von Anfang an etwas geprueft, das nur ein Teil der Browser
+   beantworten kann.
+
+Gemessen wird jetzt, was die APP TUT: js/70 ruft
+window.open(HILFE_PDF,"_blank","noopener"), und dieser Aufruf wird
+abgefangen und gelesen. Browserunabhaengig - und staerker als vorher:
+
+  F2a  NEU: Ziel "_blank" - die Anleitung geht NEBEN der App auf und
+       nicht an ihrer Stelle. Sonst waere angefangene Arbeit weg.
+  F2b  NEU: js/41 (HILFE_PDF, die eine Quelle) und index.html meinen
+       dieselbe Datei, index.html ueberall dieselbe, und genau die wird
+       geoeffnet.
+
+Gegenproben belegt, jeweils mit von Hand verfaelschtem App-Code:
+"_self" statt "_blank" -> F2a rot; Knopf oeffnet gar nichts -> F2, F2a,
+F2b rot; HILFE_PDF auf alter Version -> F2b rot.
+
+Lehre fuer kuenftige Pruefstaende: nicht messen, was der Browser aus
+einer Handlung macht, wenn sich messen laesst, was die App tut. Und:
+vor der Meldung "gruen" auch in die CI schauen, nicht nur in den
+eigenen Lauf.
