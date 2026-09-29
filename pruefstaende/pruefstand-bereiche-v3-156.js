@@ -290,14 +290,38 @@ const tab=(page,k)=>page.evaluate(k=>{
  await aufraeumen();
  await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
  await page.waitForTimeout(300);
- let neuesFenster=null;
- page.on("popup",x=>{neuesFenster=x.url()});
+ // v3.226, ECHTER FEHLER IM PRUEFSTAND - so ist er aufgetreten: hier stand
+ // page.on("popup",x=>{neuesFenster=x.url()}) und darunter ein festes
+ // Warten von 900 ms. Die Adresse wurde damit in dem Augenblick gelesen, in
+ // dem das Fenster ENTSTEHT - und da hat es seine Adresse noch nicht
+ // zwingend. Auf diesem Rechner war sie schnell genug da, auf dem Laeufer
+ // von GitHub Actions nicht: dort kam "" heraus, F2 war rot, und die CI
+ // stand deswegen seit v3.225 auf Fehlschlag, waehrend hier alles gruen
+ // aussah. Gewartet wird jetzt auf die ADRESSE statt auf eine Anzahl
+ // Millisekunden. Die Erwartung darunter ist unveraendert.
+ const fensterKommt=page.waitForEvent("popup",{timeout:10000}).catch(()=>null);
  await page.evaluate(()=>{const k=document.querySelector('[data-a2-tu="anleitung"]');if(k)k.click()});
- await page.waitForTimeout(900);
+ const fenster=await fensterKommt;
+ let neuesFenster=fenster?fenster.url():null;
+ for(let i=0;i<60&&fenster&&!neuesFenster;i++){
+  await page.waitForTimeout(100);
+  neuesFenster=fenster.url();
+ }
+ await page.waitForTimeout(300);
  const nachAnleitung=await page.evaluate(()=>!$("settingsModal").hidden);
  p(!nachAnleitung,"F1 'Anleitung' oeffnet nicht die Einstellungen",{settingsOffen:nachAnleitung});
  p(!!neuesFenster&&/Anleitung-v[0-9.]+\.pdf$/.test(neuesFenster),
    "F2 sondern die Anleitung selbst",{fenster:neuesFenster});
+ // GEGENPROBE, neu: es ist die Anleitung, die index.html AUCH anbietet -
+ // nicht irgendeine. Ein Versionswechsel, bei dem eine der beiden Stellen
+ // stehenbleibt, faellt damit hier auf, statt als toter Verweis beim
+ // Anwender zu landen.
+ const html=fs.readFileSync(path.join(process.cwd(),"index.html"),"utf8");
+ const ausHtml=(html.match(/anleitung\/Spengler-DIGITAL-Anleitung-v[0-9.]+\.pdf/g)||[]);
+ const einDatei=ausHtml.length&&ausHtml.every(x=>x===ausHtml[0]);
+ p(!!einDatei&&!!neuesFenster&&neuesFenster.endsWith(ausHtml[0]),
+   "F2b GEGENPROBE: es ist genau die Anleitung, auf die index.html verweist - und index.html verweist ueberall auf dieselbe",
+   {geoeffnet:neuesFenster,inHtml:ausHtml});
  // Gegenprobe: "Einstellungen" fuehrt weiterhin in die Einstellungen.
  await aufraeumen();
  await page.evaluate(()=>{a2Zustand.seite="mehr";a2Zeichnen()});
