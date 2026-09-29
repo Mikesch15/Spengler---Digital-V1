@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.224.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.225.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2188,6 +2188,18 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
 jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
 findet damit auch nach Stärke und Form.</div>
+<div class="hin"><b>Anmelden mit dem Fingerabdruck</b> (ab 3.225). Unter
+<b>Konto wechseln</b> lässt sich einschalten, dass die Anmeldung auf diesem
+Gerät über den Fingerabdruck geht: App öffnen, Finger auflegen, drin. Der
+Schalter erscheint nur, wenn das Gerät wirklich einen Sensor anbietet. Der
+Abdruck verlässt das Gerät nie – die App bekommt vom Betriebssystem nur ein
+Ja oder Nein.<br>
+Das <b>Passwort funktioniert weiterhin</b> und steht auf dem
+Anmeldebildschirm immer darunter. Gilt der gespeicherte Zugang nicht mehr,
+sagt die App das und verweist aufs Passwort.<br>
+<b>Nur für ein persönliches Gerät:</b> wer das entsperrte Gerät in der Hand
+hat, kommt damit in dein Konto. Auf einem geteilten Werkstatt-Tablet
+ausgeschaltet lassen.</div>
 <div class="hin"><b>Jede Position hat ein Produkt</b> (ab 3.224). Die
 Lagerverwaltung ist zweistufig: oben die <b>Materialposition</b> aus dem
 Katalog, darunter die <b>Produkte</b>, die tatsächlich im Regal liegen.

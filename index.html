@@ -49,6 +49,16 @@
      Die laufende Sitzung ist dann noch gueltig - "Zurück" fuehrt ohne
      Abmelden wieder hinein. -->
 <div class="small" id="kwLoginHinweis" hidden style="margin-bottom:6px;color:var(--muted)">Das bisher angemeldete Konto bleibt auf diesem Gerät gespeichert. Nach dem Anmelden lässt sich zwischen beiden wechseln.</div>
+<!-- v3.225: Fingerabdruck. Der Kasten ist da, wenn auf diesem Geraet ein
+     Schluessel hinterlegt ist UND das Geraet einen Sensor anbietet -
+     js/81-fingerabdruck.js entscheidet das, nicht das HTML.
+     Das Passwortfeld darueber und der Knopf darunter bleiben IMMER stehen:
+     ein defekter Sensor darf niemanden aus seiner eigenen App aussperren. -->
+<div id="faLoginBox" hidden style="margin-bottom:8px">
+<div class="bar"><button type="button" id="faLoginKnopf" class="blue" style="width:100%" data-fa-konto="">🔒 Mit Fingerabdruck anmelden</button></div>
+<div class="small" id="faLoginMeldung" style="color:var(--muted)"></div>
+<div class="small" style="color:var(--muted);margin-top:2px">… oder wie gewohnt mit Passwort:</div>
+</div>
 <div class="bar">
 <button id="loginBtn" class="blue">Anmelden</button>
 <button type="button" id="kwZurueck" class="gray" hidden data-kw-zu-abbrechen="1">↩ Zurück</button>
@@ -175,7 +185,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.224</div>
+<div id="appVersion">Version 3.225</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2440,7 +2450,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.224.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 115 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.225.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 116 Seiten)</a></div>
 </div>
 </div>
 
@@ -3187,7 +3197,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.224.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.225.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3199,6 +3209,14 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
   <h2>Konto wechseln <button type="button" class="hilfe-knopf no-print" data-hilfe="kontowechsel">i</button></h2>
   <p class="small">Zwischen Konten wechseln, die auf diesem Gerät schon einmal angemeldet waren – ohne das Passwort erneut einzugeben. Die App lädt dabei neu, damit keine Daten der einen Firma in der anderen stehenbleiben.</p>
   <div id="kontenBox"></div>
+  <!-- v3.225: Der Fingerabdruck gehoert hierher und nicht in eine eigene
+       Ecke: er schuetzt genau den gespeicherten Zugang, den dieser Dialog
+       verwaltet. Der Inhalt kommt aus js/81 - ohne Sensor steht dort, dass
+       es das Geraet nicht kann, statt eines Schalters, der nichts tut. -->
+  <h3 style="margin-top:14px">🔒 Anmeldung mit Fingerabdruck</h3>
+  <div id="faBox"></div>
+  <div class="small" id="faWarnung" style="color:var(--muted)"></div>
+  <div class="small" id="faMeldung" style="margin-top:4px"></div>
   <div class="bar"><button type="button" class="gray" onclick="document.getElementById('kontenModal').hidden=true">Schliessen</button></div>
  </div>
 </div>
@@ -3305,6 +3323,7 @@ nicht neu installieren.</div>
 <script src="vendor/jspdf.umd.min.js"></script>
 <script src="js/79-offerte-erstellen.js"></script>
 <script src="js/80-ruestblatt.js"></script>
+<script src="js/81-fingerabdruck.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

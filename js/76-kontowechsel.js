@@ -128,25 +128,38 @@ async function kwWechseln(id){
  // Stand der letzten Anmeldung, und der Rueckweg waere irgendwann zu.
  await kwMerken();
 
- let fehler=null;
- try{
-  const r=await sb.auth.setSession({access_token:ziel.access_token||"",refresh_token:ziel.refresh_token});
-  if(r&&r.error)fehler=r.error.message;
- }catch(e){ fehler=String(e&&e.message||e) }
-
- if(fehler){
-  // Der gespeicherte Zugang gilt nicht mehr (Passwort geaendert, zu lange
-  // nicht benutzt). Der Eintrag wird entfernt, statt ihn stehen zu lassen
-  // und beim naechsten Versuch wieder zu scheitern.
-  kwEntfernen(ziel.id);
-  return {ok:false,meldung:"Dieses Konto lässt sich nicht mehr ohne Passwort öffnen – bitte einmal normal anmelden. Der gespeicherte Zugang wurde entfernt."};
- }
+ const gesetzt=await kwSitzungSetzen(ziel);
+ if(!gesetzt.ok)return gesetzt;
 
  // Der Zwischenspeicher gehoert der bisherigen Firma. Er wird weggeraeumt,
  // bevor die Seite neu laedt - offlineCacheLesen() wuerde ihn ohnehin
  // verwerfen, aber er hat hier nichts mehr verloren.
  if(typeof offlineCacheLeeren==="function")offlineCacheLeeren();
  kwNeuLaden();
+ return {ok:true};
+}
+
+// v3.225: Die gespeicherte Sitzung setzen - an EINER Stelle. Bis v3.224
+// stand das mitten in kwWechseln(); seit die Anmeldung per Fingerabdruck
+// (js/81) denselben Schritt braucht, waere eine zweite Fassung eine zweite
+// Wahrheit darueber, was mit einem nicht mehr gueltigen Zugang geschieht.
+//
+// Der Umgang mit dem Fehlschlag gehoert ausdruecklich dazu: ein
+// gespeicherter Zugang, der nicht mehr gilt (Passwort geaendert, zu lange
+// nicht benutzt), wird ENTFERNT statt stehen gelassen - sonst scheitert
+// derselbe Versuch morgen wieder, und niemand weiss warum.
+async function kwSitzungSetzen(ziel){
+ if(!ziel||!ziel.refresh_token)
+  return {ok:false,meldung:"Dieses Konto ist auf dem Gerät nicht mehr gespeichert."};
+ let fehler=null;
+ try{
+  const r=await sb.auth.setSession({access_token:ziel.access_token||"",refresh_token:ziel.refresh_token});
+  if(r&&r.error)fehler=r.error.message;
+ }catch(e){ fehler=String(e&&e.message||e) }
+ if(fehler){
+  kwEntfernen(ziel.id);
+  return {ok:false,meldung:"Dieses Konto lässt sich nicht mehr ohne Passwort öffnen – bitte einmal normal anmelden. Der gespeicherte Zugang wurde entfernt."};
+ }
  return {ok:true};
 }
 
@@ -219,6 +232,11 @@ function kwMeldung(text){
 function kwOeffnen(){
  if(typeof $!=="function")return;
  kwZeichnen();
+ // v3.225: Der Fingerabdruck steht in diesem Dialog (js/81). Er wird hier
+ // mitgezeichnet, weil er denselben gespeicherten Zugang schuetzt, den
+ // dieser Dialog verwaltet - und weil ein Schalter, der den Stand von
+ // gestern zeigt, schlimmer ist als keiner.
+ if(typeof faEinstellungZeichnen==="function")faEinstellungZeichnen();
  const modal=$("kontenModal");
  if(modal)modal.hidden=false;
 }
