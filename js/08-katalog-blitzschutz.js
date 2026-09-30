@@ -170,6 +170,9 @@ function importFehlerText(error){
  // v3.231: Im Lieferanten-Lager haelt die Datenbank fest, dass jeder Artikel
  // einen Lieferanten hat. Faellt das hier auf, ist oben im Import das Feld
  // leer geblieben - und genau das gehoert gesagt, nicht der Regelname.
+ if(/mindestbestand_nicht_negativ/i.test(t))
+  return "Ein Mindestbestand kann nicht negativ sein. Bitte die Spalte in der Datei "
+   +"prüfen - gemeint ist die Menge, die da sein soll, nicht die, die fehlt.\n\n(" + t + ")";
  if(/lieferant_gefuellt/i.test(t))
   return "Oben im Import fehlt der Lieferant. Jeder Artikel gehört zu genau einem "
    +"Lieferanten - sonst wäre bei gleicher Artikelnummer nicht entscheidbar, "

@@ -98,6 +98,170 @@ function lfArtikelZuBarcode(code){
  return lfArtikel.find(a=>String(a.ean||"").trim()===c)||null;
 }
 
+// ---- Mindestbestand und Einkaufsliste (v3.231) ----------------------------
+//
+// Ansage des Anwenders, sinngemaess: das Lager soll sagen, was bestellt
+// werden muss. Das ist der Punkt, an dem eine Artikelliste zum Werkzeug wird.
+//
+// 0 heisst "nicht ueberwacht", nicht "Mindestbestand null". Ein Sortiment von
+// 439 Artikeln, das jeden davon ueberwacht, meldet 439-mal Mangel und wird
+// nie gelesen. Ueberwacht wird nur, was der Betrieb ausdruecklich vorratet.
+function lfMindest(a){ return a?lfZahl(a.mindestbestand):0 }
+function lfFehlt(a){
+ if(!a)return 0;
+ const m=lfMindest(a);
+ if(m<=0)return 0;
+ const f=m-lfBestand(a.id);
+ return f>0?f:0;
+}
+// Bestellt wird in Verpackungseinheiten, nicht in Stueck: wer 3 braucht und
+// der Haendler liefert Fuenferpackungen, bestellt 5. Die Fehlmenge ist die
+// Wahrheit ueber den Mangel, die Bestellmenge die ueber die Bestellung -
+// deshalb stehen beide da und nicht nur eine.
+function lfBestellmenge(a){
+ const f=lfFehlt(a);
+ if(f<=0)return 0;
+ const v=lfZahl(a.vpe);
+ return v>0?Math.ceil(f/v)*v:f;
+}
+function lfUnterMindest(){ return lfArtikel.filter(a=>!a.archiviert&&lfFehlt(a)>0) }
+function lfEinkaufsliste(){
+ const t=(x,y)=>String(x||"").localeCompare(String(y||""),"de");
+ return lfUnterMindest().slice().sort((x,y)=>
+  t(x.lieferant,y.lieferant)||t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+}
+// Der Text zum Verschicken. Er entsteht aus DERSELBEN Liste wie die Anzeige -
+// eine eigene Textfassung waere eine zweite Wahrheit darueber, was fehlt.
+function lfEinkaufsText(){
+ const liste=lfEinkaufsliste();
+ if(!liste.length)return "";
+ const heute=new Date().toLocaleDateString("de-CH");
+ const zeilen=["Einkaufsliste vom "+heute,""];
+ let letzter=null;
+ liste.forEach(a=>{
+  const l=String(a.lieferant||"Ohne Lieferant");
+  if(l!==letzter){ if(letzter!==null)zeilen.push(""); zeilen.push(l+":"); letzter=l }
+  zeilen.push("  "+lfZahlText(lfBestellmenge(a))+" x  "+a.artikelnr+"  "+a.bezeichnung
+   +"   (Bestand "+lfZahlText(lfBestand(a.id))+", Mindestbestand "+lfZahlText(lfMindest(a))+")");
+ });
+ return zeilen.join("\n");
+}
+
+function lfEinkaufZeichnen(){
+ if(typeof $!=="function")return;
+ const box=$("liefEinkaufListe"), feld=$("liefEinkaufText");
+ if(!box)return;
+ const liste=lfEinkaufsliste();
+ const ueberwacht=lfArtikel.filter(a=>lfMindest(a)>0).length;
+ if(feld)feld.value=lfEinkaufsText();
+ const knopf=$("liefEinkaufKopieren");
+ if(knopf)knopf.disabled=!liste.length;
+ if(!ueberwacht){
+  // Eine leere Einkaufsliste bedeutet zweierlei, und die beiden zu
+  // verwechseln waere teuer: "nichts fehlt" oder "es wird nichts
+  // ueberwacht". Also wird gesagt, welches von beiden zutrifft.
+  box.innerHTML=`<div class="info">Für noch keinen Artikel ist ein <b>Mindestbestand</b>
+   hinterlegt – deshalb kann die Liste auch nichts melden. Im Lager einen Artikel
+   antippen und dort den Mindestbestand eintragen; überwacht wird nur, was
+   ausdrücklich vorrätig sein soll.</div>`;
+  return;
+ }
+ if(!liste.length){
+  box.innerHTML=`<div class="info">Nichts zu bestellen – von allen <b>${ueberwacht}</b>
+   überwachten Artikeln ist genug da.</div>`;
+  return;
+ }
+ let letzter=null, html="";
+ liste.forEach(a=>{
+  const l=String(a.lieferant||"Ohne Lieferant");
+  if(l!==letzter){ html+=`<div class="a2-abschnitt-titel" style="margin-top:10px"><b>${esc(l)}</b></div>`; letzter=l }
+  html+=`<div class="kw-zeile">
+   <div style="flex:1;min-width:0">
+    <b>${esc(a.bezeichnung)}</b>
+    <div class="small" style="color:var(--muted)">${esc(a.artikelnr)} · Bestand
+     ${esc(lfZahlText(lfBestand(a.id)))} von ${esc(lfZahlText(lfMindest(a)))}${
+     a.vpe?" · VPE "+esc(lfZahlText(a.vpe)):""}</div>
+   </div>
+   <div class="small" style="text-align:right;min-width:92px">
+    <b style="font-size:15px;color:var(--red)">${esc(lfZahlText(lfBestellmenge(a)))}</b>
+    <div style="color:var(--muted)">fehlt ${esc(lfZahlText(lfFehlt(a)))}</div>
+   </div>
+  </div>`;
+ });
+ box.innerHTML=html;
+}
+function lfEinkaufOeffnen(){
+ if(typeof $!=="function")return;
+ const m=$("liefEinkaufModal");
+ if(!m)return;
+ const h=$("liefEinkaufMeldung"); if(h)h.textContent="";
+ lfEinkaufZeichnen();
+ m.hidden=false;
+}
+async function lfEinkaufKopieren(){
+ if(typeof $!=="function")return;
+ const text=lfEinkaufsText();
+ const h=$("liefEinkaufMeldung");
+ if(!text){ if(h)h.textContent="Es gibt nichts zu kopieren."; return }
+ // Die Zwischenablage darf fehlschlagen - im Browser eines alten Geraets,
+ // ohne sichere Verbindung, oder weil das Betriebssystem es verweigert.
+ // Deshalb steht der Text ohnehin im Feld darunter: schlaegt das Kopieren
+ // fehl, wird darauf verwiesen, statt so zu tun, als haette es geklappt.
+ try{
+  if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("keine Zwischenablage");
+  await navigator.clipboard.writeText(text);
+  if(h)h.textContent="Einkaufsliste kopiert – sie lässt sich jetzt einfügen.";
+ }catch(e){
+  const f=$("liefEinkaufText");
+  if(f){ f.focus(); f.select() }
+  if(h)h.textContent="Das Kopieren hat dieses Gerät nicht erlaubt. Der Text unten ist markiert – von Hand kopieren.";
+ }
+}
+
+// ---- Mindestbestand am Artikel --------------------------------------------
+let lfArtikelOffenId=null;
+function lfArtikelOeffnen(id){
+ if(typeof $!=="function")return;
+ const a=lfArtikelZuId(id);
+ if(!a){ lfMeldung("Dieser Artikel ist nicht mehr da.",true); return }
+ lfArtikelOffenId=a.id;
+ $("liefArtikelTitel").textContent=a.bezeichnung;
+ $("liefArtikelUnter").textContent=(a.lieferant?a.lieferant+" · ":"")+"Art.-Nr. "+a.artikelnr
+  +(a.ean?" · "+a.ean:"")+" · Bestand "+lfZahlText(lfBestand(a.id));
+ $("liefArtikelMindest").value=lfMindest(a)?lfZahlText(lfMindest(a)):"";
+ $("liefArtikelFehler").textContent="";
+ $("liefArtikelModal").hidden=false;
+ setTimeout(()=>{ const f=$("liefArtikelMindest"); if(f){f.focus();f.select()} },60);
+}
+function lfArtikelSchliessen(){
+ if(typeof $==="function"&&$("liefArtikelModal"))$("liefArtikelModal").hidden=true;
+ lfArtikelOffenId=null;
+}
+async function lfMindestSpeichern(){
+ if(typeof $!=="function"||typeof sb==="undefined")return;
+ const a=lfArtikelZuId(lfArtikelOffenId);
+ if(!a)return;
+ const roh=$("liefArtikelMindest").value.trim();
+ const m=roh?lfZahl(roh):0;
+ if(m<0){ $("liefArtikelFehler").textContent="Ein Mindestbestand kann nicht negativ sein."; return }
+ $("liefArtikelSpeichern").disabled=true;
+ try{
+  const r=await sb.from("lieferanten_artikel").update({mindestbestand:m}).eq("id",a.id);
+  if(r.error)throw r.error;
+ }catch(e){
+  $("liefArtikelFehler").textContent="Nicht gespeichert: "+((e&&e.message)||e);
+  $("liefArtikelSpeichern").disabled=false;
+  return;
+ }
+ $("liefArtikelSpeichern").disabled=false;
+ lfArtikelSchliessen();
+ await lfLaden();
+ lfZeichnen();
+ lfMeldung(m>0
+  ? "Mindestbestand "+lfZahlText(m)+" für „"+a.bezeichnung+"“ gesetzt."
+  : "„"+a.bezeichnung+"“ wird nicht mehr überwacht.");
+}
+
 // ---- Sortiment einlesen ---------------------------------------------------
 // Die Liste liegt als Datei im Projekt (daten/sortiment-bteam.json) und wird
 // erst beim Einlesen geholt - sie gehoert nicht in die App-Huelle, weil sie
@@ -258,14 +422,20 @@ function lfZeileHtml(a,mitLieferant){
  // eines Haendlers drinsteht, waere er in jeder Zeile dieselbe Auskunft.
  const unten=[mitLieferant&&a.lieferant?esc(a.lieferant):"",esc(a.artikelnr),
               masse?esc(masse):"",a.ean?esc(a.ean):""].filter(Boolean).join(" · ");
+ // v3.231: Ein ueberwachter Artikel zeigt seinen Mindestbestand, und wenn er
+ // unterschritten ist, faellt das in der Zeile auf - nicht erst in der
+ // Einkaufsliste. Der Mangel gehoert dorthin, wo man ihn sieht.
+ const mindest=lfMindest(a), fehlt=lfFehlt(a);
  return `<div class="kw-zeile">
-  <div style="flex:1;min-width:0">
+  <button type="button" class="lf-artikel" data-lf-artikel="${esc(a.id)}"
+   style="flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer">
    <b>${esc(a.bezeichnung)}</b>
    <div class="small" style="color:var(--muted)">${unten}</div>
-  </div>
+  </button>
   <div class="small" style="text-align:right;min-width:78px">
-   <b style="font-size:15px">${esc(lfZahlText(bestand))}</b>
-   ${a.vpe?`<div style="color:var(--muted)">VPE ${esc(lfZahlText(a.vpe))}</div>`:""}
+   <b style="font-size:15px${fehlt>0?";color:var(--red)":""}">${esc(lfZahlText(bestand))}</b>
+   ${mindest>0?`<div style="color:${fehlt>0?"var(--red)":"var(--muted)"}">von ${esc(lfZahlText(mindest))}</div>`
+              :(a.vpe?`<div style="color:var(--muted)">VPE ${esc(lfZahlText(a.vpe))}</div>`:"")}
   </div>
   <div class="bar" style="margin:0">
    <button type="button" class="blue" data-lf-ein="${esc(a.id)}">＋</button>
@@ -282,7 +452,14 @@ function lfZeichnen(){
  const k=$("liefKennzahlen");
  if(k){
   const mitBestand=lfArtikel.filter(a=>lfBestand(a.id)>0).length;
-  k.innerHTML=`<b>${lfArtikel.length}</b> Artikel · <b>${mitBestand}</b> mit Bestand · <b>${lfBewegungen.length}</b> Buchungen`;
+  const fehlt=lfUnterMindest().length;
+  k.innerHTML=`<b>${lfArtikel.length}</b> Artikel · <b>${mitBestand}</b> mit Bestand · <b>${lfBewegungen.length}</b> Buchungen`
+   +(fehlt?` · <b style="color:var(--red)">${fehlt}</b> unter Mindestbestand`:"");
+ }
+ const e=$("liefEinkaufKnopf");
+ if(e){
+  const fehlt=lfUnterMindest().length;
+  e.textContent=fehlt?"🛒 Einkaufsliste ("+fehlt+")":"🛒 Einkaufsliste";
  }
  if(!lfArtikel.length){
   box.innerHTML=`<div class="info">Noch kein Sortiment eingelesen. Der Knopf <b>Sortiment einlesen</b> holt die Artikelliste des Lieferanten.</div>`;
@@ -347,7 +524,8 @@ function lfVergleichsstand(){
    gruppe:String(a.gruppe||""), material:String(a.material||""),
    zuschnitt_mm:lfZahl(a.zuschnitt_mm), dicke_mm:lfZahl(a.dicke_mm),
    laenge_m:lfZahl(a.laenge_m), wulst:String(a.wulst||""),
-   vpe:lfZahl(a.vpe), ean:String(a.ean||""), hinweis:String(a.hinweis||"") }; });
+   vpe:lfZahl(a.vpe), mindestbestand:lfZahl(a.mindestbestand),
+   ean:String(a.ean||""), hinweis:String(a.hinweis||"") }; });
  return m;
 }
 
@@ -379,6 +557,8 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
  if(ein){ lfBuchenOeffnen(ein.getAttribute("data-lf-ein"),"zugang"); return }
  const aus=t.closest("[data-lf-aus]");
  if(aus){ lfBuchenOeffnen(aus.getAttribute("data-lf-aus"),"abgang"); return }
+ const art=t.closest("[data-lf-artikel]");
+ if(art){ lfArtikelOeffnen(art.getAttribute("data-lf-artikel")); return }
 });
 
 // ---- Neue Positionen als Excel hochladen ----------------------------------
@@ -424,6 +604,8 @@ if(typeof initExcelImport==="function")initExcelImport({
   {key:"laenge_m",label:"Länge (m)",zahl:true,alias:["laenge","laengem","stangenlaenge"]},
   {key:"wulst",label:"Wulst (mm)",alias:["wulst","wulstmm","groesse","rinnengroesse"]},
   {key:"vpe",label:"VPE",zahl:true,alias:["vpe","verpackungseinheit","gebinde","einheit"]},
+  {key:"mindestbestand",label:"Mindestbestand",zahl:true,
+   alias:["mindestbestand","mindest","minbestand","meldebestand","sollbestand"]},
   {key:"ean",label:"EAN / Barcode",alias:["ean","eanbarcode","barcode","gtin","strichcode"]},
   {key:"hinweis",label:"Hinweis",alias:["hinweis","bemerkung","notiz"]}
  ],
@@ -439,6 +621,11 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefSchliessen",()=>{ $("liefModal").hidden=true });
  an("liefBuchenAbbrechen",()=>lfBuchenSchliessen());
  an("liefBuchenSpeichern",()=>lfBuchenSpeichern());
+ an("liefEinkaufKnopf",()=>lfEinkaufOeffnen());
+ an("liefEinkaufKopieren",()=>lfEinkaufKopieren());
+ an("liefEinkaufSchliessen",()=>{ $("liefEinkaufModal").hidden=true });
+ an("liefArtikelAbbrechen",()=>lfArtikelSchliessen());
+ an("liefArtikelSpeichern",()=>lfMindestSpeichern());
  const s=$("liefSuche");
  if(s)s.oninput=()=>{ lfSuche=s.value; lfZeichnen() };
 });

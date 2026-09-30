@@ -3272,6 +3272,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div class="bar" style="margin-top:10px">
     <button type="button" id="liefEinscannen" class="blue">📥 Einscannen</button>
     <button type="button" id="liefAusscannen" class="blue">📤 Ausscannen</button>
+    <button type="button" id="liefEinkaufKnopf" class="gray">🛒 Einkaufsliste</button>
    </div>
    <div class="small" id="liefMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
    <div class="wide"><label>Suchen</label>
@@ -3340,6 +3341,50 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
     <button type="button" id="liefBuchenAbbrechen" class="gray">Abbrechen</button>
    </div>
    <div class="small" style="color:var(--muted);margin-top:8px">Eine Buchung lässt sich nicht ändern und nicht löschen – ein Fehler wird mit einer <b>Korrektur</b> ausgeglichen. So bleibt nachvollziehbar, was wirklich passiert ist.</div>
+  </div>
+ </div>
+</div>
+
+<!-- v3.231: Mindestbestand am Artikel. Eigener Dialog und nicht ein Feld im
+     Buchen-Dialog: eine Buchung ist ein Vorgang und unveraenderlich, der
+     Mindestbestand ist eine Stammangabe. Beides in einem Fenster wuerde den
+     Unterschied verwischen, auf dem dieses Lager aufgebaut ist. -->
+<div id="liefArtikelModal" class="modal no-print" hidden>
+ <div class="modalbox">
+  <div class="card">
+   <h2>Artikel <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div><b id="liefArtikelTitel"></b></div>
+   <div class="small" id="liefArtikelUnter" style="color:var(--muted);margin-bottom:8px"></div>
+   <div class="grid">
+    <div class="wide"><label>Mindestbestand</label>
+     <input id="liefArtikelMindest" type="number" step="any" min="0" inputmode="decimal" placeholder="leer = nicht überwachen"></div>
+   </div>
+   <div class="small" id="liefArtikelFehler" style="color:var(--red);min-height:18px;margin-top:6px"></div>
+   <div class="bar">
+    <button type="button" id="liefArtikelSpeichern" class="blue">Speichern</button>
+    <button type="button" id="liefArtikelAbbrechen" class="gray">Abbrechen</button>
+   </div>
+   <div class="small" style="color:var(--muted);margin-top:8px">Fällt der Bestand unter diesen Wert, erscheint der Artikel in der <b>Einkaufsliste</b>. Leer oder 0 heisst <b>nicht überwachen</b> – sonst meldete eine Liste mit 439 Artikeln 439-mal Mangel und würde nie gelesen.</div>
+  </div>
+ </div>
+</div>
+
+<!-- v3.231: Einkaufsliste. Sie rechnet nichts Eigenes, sondern zeigt
+     dieselbe Fehlmenge, die auch in der Lagerzeile steht - und den Text zum
+     Verschicken aus derselben Liste. -->
+<div id="liefEinkaufModal" class="modal no-print" hidden>
+ <div class="modalbox">
+  <div class="card">
+   <h2>🛒 Einkaufsliste <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div class="small" style="color:var(--muted)">Alles, was unter seinen Mindestbestand gefallen ist – nach Lieferant geordnet. Bestellt wird in ganzen Verpackungseinheiten.</div>
+   <div id="liefEinkaufListe" style="margin-top:10px"></div>
+   <div class="wide" style="margin-top:12px"><label>Zum Verschicken (E-Mail, WhatsApp)</label>
+    <textarea id="liefEinkaufText" rows="6" readonly></textarea></div>
+   <div class="small" id="liefEinkaufMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
+   <div class="bar">
+    <button type="button" id="liefEinkaufKopieren" class="blue">📋 Als Text kopieren</button>
+    <button type="button" id="liefEinkaufSchliessen" class="gray">Schliessen</button>
+   </div>
   </div>
  </div>
 </div>

@@ -1609,6 +1609,23 @@ Material, ist er in der normalen Lagerverwaltung richtig.</p>
 Buchungen. Eine Buchung l\u00e4sst sich nicht \u00e4ndern und nicht l\u00f6schen \u2013 ein
 Fehler wird mit einer <b>Korrektur</b> ausgeglichen. So bleibt nachvollziehbar,
 was wirklich passiert ist.</div>
+<p><b>\U0001f6d2 Einkaufsliste \u2013 was muss bestellt werden.</b> Einen Artikel in der
+Liste <b>antippen</b> und dort einen <b>Mindestbestand</b> eintragen: die Menge,
+die da sein soll. F\u00e4llt der Bestand darunter, f\u00e4llt das schon in der Lagerzeile
+auf (rot, \u201e3 von 10\u201c) und der Artikel steht in der Einkaufsliste \u2013 mit der
+<b>Fehlmenge</b> und der <b>Bestellmenge</b>.</p>
+<div class="hin"><b>Warum zwei Zahlen?</b> Die Fehlmenge ist die Wahrheit \u00fcber
+den Mangel, die Bestellmenge die \u00fcber die Bestellung: wer 3 braucht und der
+H\u00e4ndler liefert F\u00fcnferpackungen, bestellt 5. Aufgerundet wird auf die
+<b>VPE</b> des Artikels.</div>
+<p>Leer oder 0 heisst <b>nicht \u00fcberwachen</b>. Das ist Absicht: ein Sortiment
+von 439 Artikeln, das jeden davon \u00fcberwacht, meldet 439-mal Mangel und wird nie
+gelesen. \u00dcberwacht wird nur, was wirklich vorr\u00e4tig sein soll. Der
+Mindestbestand l\u00e4sst sich auch in der <b>Excel-Datei</b> mitliefern (Spalte
+\u201eMindestbestand\u201c).</p>
+<p><b>\U0001f4cb Als Text kopieren</b> gibt die Liste als Text \u2013 zum Einf\u00fcgen in eine
+E-Mail oder WhatsApp an den H\u00e4ndler. Erlaubt das Ger\u00e4t das Kopieren nicht,
+steht der Text im Feld darunter und l\u00e4sst sich von Hand markieren.</p>
 <p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
 Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
 

@@ -60,7 +60,20 @@ const SB=`()=>{
     if(da)Object.assign(da,z); else window.__db[name].push(Object.assign({id:++n},z));
    });
    return Promise.resolve({error:null}); },
-  update(){ window.__db.ruf.push({tisch:name,was:"update"}); return Promise.resolve({error:null}) },
+  // update kommt im Lager nur fuer Stammangaben vor (Mindestbestand) und
+  // IMMER mit .eq("id",...) - ein update ohne eq traefe das ganze Lager.
+  // Die Attrappe bildet das deshalb genauso ab und schreibt mit, worauf es
+  // gezielt hat.
+  update(werte){ const w=werte; return {
+    eq(spalte,wert){
+     window.__db.ruf.push({tisch:name,was:"update",spalte,wert,werte:w});
+     const da=window.__db[name].find(x=>String(x[spalte])===String(wert));
+     if(da)Object.assign(da,w);
+     return Promise.resolve({error:null});
+    },
+    then(r){ window.__db.ruf.push({tisch:name,was:"update-ohne-eq",werte:w});
+     return r({error:null}) }
+   }; },
   delete(){ window.__db.ruf.push({tisch:name,was:"delete"}); return Promise.resolve({error:null}) }
  });
  // WICHTIG: sb ist im App-Code eine Bindung auf Modulebene, KEINE Eigenschaft
@@ -391,6 +404,135 @@ const SB=`()=>{
  },SB);
  p(z.nurBteam===2&&z.alle===3,
    "K7 der Vergleichsstand kennt mit gewaehltem Lieferanten nur dessen Artikel - ohne Angabe alle",z);
+
+ // ---- L  Mindestbestand und Einkaufsliste (v3.231) ----------------------
+ //
+ // Die Einkaufsliste ist der Punkt, an dem eine Artikelliste zum Werkzeug
+ // wird - und die Stelle, an der ein stiller Rechenfehler richtig teuer ist:
+ // eine zu kleine Bestellmenge merkt man auf der Baustelle.
+ console.log("\nL · Mindestbestand und Einkaufsliste");
+ z=await page.evaluate(()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"A1",bezeichnung:"Rinne",gruppe:"Rinnen",vpe:5,mindestbestand:10},
+   {id:2,lieferant:"B-Team",artikelnr:"A2",bezeichnung:"Seiher",gruppe:"Seiher",vpe:1,mindestbestand:4},
+   {id:3,lieferant:"B-Team",artikelnr:"A3",bezeichnung:"Haken",gruppe:"Haken",vpe:25,mindestbestand:0},
+   {id:4,lieferant:"B-Team",artikelnr:"A4",bezeichnung:"Bogen",gruppe:"Bogen",mindestbestand:6}];
+  lfBewegungen=[
+   {artikel_id:1,art:"zugang",menge:3},   // 3 da, 10 gewollt -> fehlt 7, VPE 5 -> 10
+   {artikel_id:2,art:"zugang",menge:9},   // genug da
+   {artikel_id:3,art:"zugang",menge:0},   // nicht ueberwacht
+   {artikel_id:4,art:"zugang",menge:1}];  // 1 da, 6 gewollt -> fehlt 5, keine VPE -> 5
+  return {
+   fehlt1:lfFehlt(lfArtikel[0]), bestell1:lfBestellmenge(lfArtikel[0]),
+   fehlt2:lfFehlt(lfArtikel[1]), fehlt3:lfFehlt(lfArtikel[2]),
+   fehlt4:lfFehlt(lfArtikel[3]), bestell4:lfBestellmenge(lfArtikel[3]),
+   liste:lfEinkaufsliste().map(a=>a.artikelnr),
+   gruppen:lfEinkaufsliste().map(a=>a.gruppe),
+   unter:lfUnterMindest().length
+  };
+ });
+ p(z.fehlt1===7,"L1 3 da bei Mindestbestand 10 heisst: 7 fehlen",z);
+ p(z.bestell1===10,
+   "L2 bestellt werden aber 10 - aufgerundet auf die Verpackungseinheit 5. Wer 7 bestellt, bekommt vom Haendler nichts oder zu wenig",z);
+ p(z.fehlt2===0,"L3 wer genug hat, fehlt nicht",z);
+ p(z.fehlt3===0,
+   "L4 GEGENPROBE: Mindestbestand 0 heisst 'nicht ueberwacht' - nicht 'es fehlt alles'",z);
+ p(z.fehlt4===5&&z.bestell4===5,
+   "L5 ohne Verpackungseinheit ist die Bestellmenge die Fehlmenge - nicht 0 und nicht aufgerundet auf irgendwas",z);
+ p(z.liste.slice().sort().join(",")==="A1,A4"&&z.unter===2,
+   "L6 in der Einkaufsliste steht genau, was unter seinem Mindestbestand liegt",z);
+ // Die Reihenfolge ist Lieferant -> Gruppe -> Bezeichnung, und das ist keine
+ // Formsache: bestellt wird bei einem Haendler, und im Laden steht die Ware
+ // nach Gruppen. Eine Liste in Eingabereihenfolge laesst den Spengler
+ // zwischen den Regalen hin und her laufen.
+ p(z.gruppen.join(",")==="Bogen,Rinnen",
+   "L6a und zwar nach Lieferant, Gruppe, Bezeichnung geordnet - nicht in der Reihenfolge, in der die Artikel angelegt wurden",z.gruppen);
+ // Der Text zum Verschicken entsteht aus DERSELBEN Liste. Eine eigene
+ // Textfassung waere eine zweite Wahrheit darueber, was fehlt.
+ z=await page.evaluate(()=>({text:lfEinkaufsText()}));
+ p(/A1/.test(z.text)&&/A4/.test(z.text)&&!/A2/.test(z.text)&&!/A3/.test(z.text),
+   "L7 der Text zum Verschicken nennt dieselben Artikel wie die Anzeige",z.text);
+ p(/10 x  A1/.test(z.text),
+   "L8 und die Bestellmenge, nicht die Fehlmenge - verschickt wird eine Bestellung",z.text.slice(0,200));
+ // Eine leere Liste bedeutet zweierlei, und die beiden zu verwechseln waere
+ // teuer: "nichts fehlt" oder "es wird gar nichts ueberwacht".
+ z=await page.evaluate(()=>{
+  const merk=lfArtikel.map(a=>Object.assign({},a));
+  lfArtikel.forEach(a=>a.mindestbestand=0);
+  lfEinkaufZeichnen();
+  const ohne=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  lfArtikel.forEach((a,i)=>a.mindestbestand=(i===1?4:0));
+  lfEinkaufZeichnen();
+  const genug=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  lfArtikel=merk;
+  return {ohne,genug};
+ });
+ p(/Mindestbestand/.test(z.ohne)&&/noch keinen Artikel/.test(z.ohne),
+   "L9 wird nichts ueberwacht, sagt die Liste DAS - statt 'nichts zu bestellen' zu behaupten",z.ohne.slice(0,140));
+ p(/Nichts zu bestellen/.test(z.genug),
+   "L10 GEGENPROBE: wird ueberwacht und ist genug da, sagt sie das andere",z.genug.slice(0,140));
+ // Der Mindestbestand ist eine Stammangabe und wird mit einem gezielten
+ // update gespeichert. Ein update OHNE eq traefe das ganze Lager.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  const titel=$("liefArtikelTitel").textContent;
+  $("liefArtikelMindest").value="12";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,120));
+  return {titel, ruf:window.__db.ruf, zu:$("liefArtikelModal").hidden,
+          stand:window.__db.lieferanten_artikel.map(a=>[a.id,a.mindestbestand])};
+ },SB);
+ p(/Dachrinnen/.test(z.titel),"L11 der Artikel-Dialog zeigt den angetippten Artikel",z.titel);
+ const upd=z.ruf.filter(r=>r.was==="update");
+ p(upd.length===1&&upd[0].spalte==="id"&&Number(upd[0].werte.mindestbestand)===12,
+   "L12 gespeichert wird mit GENAU einem gezielten update auf diesen Artikel",z.ruf);
+ p(!z.ruf.some(r=>r.was==="update-ohne-eq"),
+   "L13 GEGENPROBE: nie ein update ohne eq - das traefe das ganze Lager",z.ruf);
+ p(!z.ruf.some(r=>r.tisch==="lieferanten_bewegungen"),
+   "L14 GEGENPROBE: eine Stammangabe erzeugt KEINE Buchung - der Bestand aendert sich davon nicht",z.ruf);
+ p(z.stand.find(x=>x[0]===2)[1]===undefined||Number(z.stand.find(x=>x[0]===2)[1])===0,
+   "L15 und kein anderer Artikel wird dabei mitgeaendert",z.stand);
+ p(z.zu===true,"L16 der Dialog schliesst sich",z);
+ // Ein leeres Feld schaltet die Ueberwachung ab - es darf nicht als Fehler
+ // gelten und auch nicht den alten Wert stehen lassen.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelMindest").value="";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,120));
+  const u=window.__db.ruf.filter(r=>r.was==="update");
+  return {menge:u.length?u[0].werte.mindestbestand:null, fehler:$("liefArtikelFehler").textContent};
+ },SB);
+ p(Number(z.menge)===0&&!z.fehler,
+   "L17 ein leeres Feld schaltet die Ueberwachung ab (0) - und ist kein Fehler",z);
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelMindest").value="-3";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,80));
+  return {ruf:window.__db.ruf.length, fehler:$("liefArtikelFehler").textContent};
+ },SB);
+ p(z.ruf===0&&/negativ/.test(z.fehler),
+   "L18 GEGENPROBE: ein negativer Mindestbestand wird nicht gespeichert, und die App sagt warum",z);
+ // Verdrahtung der neuen Teile.
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefEinkaufKnopf","liefEinkaufModal","liefEinkaufListe","liefEinkaufText",
+          "liefEinkaufKopieren","liefArtikelModal","liefArtikelMindest",
+          "liefArtikelSpeichern"].filter(x=>!el(x));
+ });
+ p(z.length===0,"L19 alle Bedienteile stehen im Dokument",z);
+ p(/mindestbestand/.test(quelle)&&/alias:\["mindestbestand"/.test(quelle),
+   "L20 der Mindestbestand laesst sich auch per Excel mitliefern",null);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
