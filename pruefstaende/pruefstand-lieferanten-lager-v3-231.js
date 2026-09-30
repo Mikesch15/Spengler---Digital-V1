@@ -707,6 +707,110 @@ const SB=`()=>{
  });
  p(z.length===0,"M23 alle Bedienteile stehen im Dokument",z);
 
+ // ---- N  Preis (v3.233) --------------------------------------------------
+ //
+ // Ansage des Anwenders: "Ich denke wir können schon starten bevor ich die
+ // preise habe." Der teure Fehler waere deshalb, einen fehlenden Preis als
+ // 0 zu behandeln: die Summe saehe vollstaendig aus und waere zu klein.
+ // Genau das prueft dieser Abschnitt.
+ console.log("\nN · Preis");
+ z=await page.evaluate(()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"A1",bezeichnung:"Rinne",gruppe:"R",vpe:5,mindestbestand:10,preis:12.5},
+   {id:2,lieferant:"B",artikelnr:"A2",bezeichnung:"Seiher",gruppe:"S",vpe:1,mindestbestand:4},
+   {id:3,lieferant:"B",artikelnr:"A3",bezeichnung:"Haken",gruppe:"H",vpe:1,mindestbestand:2,preis:0}];
+  lfBewegungen=[]; lfEinkauf=[];
+  return {
+   p1:lfPreis(lfArtikel[0]), p2:lfPreis(lfArtikel[1]), p3:lfPreis(lfArtikel[2]),
+   hat1:lfHatPreis(lfArtikel[0]), hat2:lfHatPreis(lfArtikel[1]), hat3:lfHatPreis(lfArtikel[2]),
+   // A1: fehlt 10, VPE 5 -> Bestellmenge 10, mal 12.50 = 125
+   wert1:lfZeilenwert(lfArtikel[0]), wert2:lfZeilenwert(lfArtikel[1]),
+   summe:lfEinkaufsWert()
+  };
+ });
+ p(z.p1===12.5&&z.p2===null,"N1 ein hinterlegter Preis wird gelesen, ein fehlender ist null",z);
+ p(z.hat3===true&&z.p3===0,
+   "N2 GEGENPROBE: ein Preis von 0 ist ein PREIS (Gratisartikel), kein fehlender - die beiden sind nicht dasselbe",z);
+ p(z.wert1===125,"N3 der Zeilenwert rechnet mit der Bestellmenge, nicht mit der Fehlmenge",z);
+ p(z.wert2===null,"N4 GEGENPROBE: ohne Preis gibt es keinen Zeilenwert - und keine 0",z);
+ p(z.summe.summe===125&&z.summe.mit===2&&z.summe.ohne===1,
+   "N5 die Summe zaehlt nur Zeilen MIT Preis (125.00) und weiss, dass sie eine nicht kennt",z.summe);
+ // Die Anzeige muss das auch sagen - eine stille Summe waere hier die
+ // gefaehrlichste Variante.
+ z=await page.evaluate(()=>{
+  lfEinkaufZeichnen();
+  const mit=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  // Und jetzt ganz ohne Preise: dann darf GAR KEINE Summe dastehen.
+  lfArtikel.forEach(a=>{ delete a.preis });
+  lfEinkaufZeichnen();
+  const ohne=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  return {mit,ohne,text:lfEinkaufsText()};
+ });
+ p(/CHF 125\.00/.test(z.mit)&&/1.{0,3}Position/.test(z.mit)&&/nicht enthalten/.test(z.mit),
+   "N6 die Liste zeigt die Summe UND sagt, wie viele Positionen ihr fehlen",z.mit.slice(-220));
+ p(!/CHF/.test(z.ohne)&&/keine Summe/.test(z.ohne),
+   "N7 GEGENPROBE: ohne jeden Preis steht GAR KEINE Summe da - lieber nichts als eine stillschweigend zu kleine",z.ohne.slice(-220));
+ // Speichern: leeres Feld schreibt NULL, nicht 0.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelMindest").value="10";
+  $("liefArtikelPreis").value="";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,140));
+  const u=window.__db.ruf.filter(r=>r.was==="update");
+  return {werte:u.length?u[0].werte:null};
+ },SB);
+ p(z.werte&&z.werte.preis===null,
+   "N8 ein leeres Preisfeld schreibt NULL - nicht 0, sonst waere der Artikel gratis",z);
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelPreis").value="18.40";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,140));
+  const u=window.__db.ruf.filter(r=>r.was==="update");
+  return {werte:u.length?u[0].werte:null};
+ },SB);
+ p(z.werte&&Number(z.werte.preis)===18.4,"N9 ein eingetragener Preis wird gespeichert",z);
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelPreis").value="-3";
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,80));
+  return {ruf:window.__db.ruf.length, fehler:$("liefArtikelFehler").textContent};
+ },SB);
+ p(z.ruf===0&&/Preis/.test(z.fehler),
+   "N10 GEGENPROBE: ein negativer Preis wird nicht gespeichert, und die App sagt warum",z);
+ // Das Alter des Preises: frisch schweigt, alt meldet sich.
+ z=await page.evaluate(()=>{
+  const tage=n=>{ const d=new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10) };
+  return {
+   frisch:lfPreisAlterText({preis:5,preis_stand:tage(3)}),
+   halb:lfPreisAlterText({preis:5,preis_stand:tage(200)}),
+   alt:lfPreisAlterText({preis:5,preis_stand:tage(500)}),
+   ohne:lfPreisAlterText({preis:5})
+  };
+ });
+ p(z.frisch===""&&z.ohne==="",
+   "N11 ein frischer Preis erzeugt keinen Hinweis - und einer ohne Datum auch nicht",z);
+ p(/Preis von/.test(z.halb)&&!/älter als ein Jahr/.test(z.halb),
+   "N12 ein halbjahresalter Preis nennt sein Datum",z.halb);
+ p(/älter als ein Jahr/.test(z.alt),
+   "N13 und einer ueber einem Jahr sagt ausdruecklich, dass er alt ist - ein Preis ohne Alter sieht nach 14 Monaten aus wie gestern",z.alt);
+ p(/key:"preis"/.test(quelle)&&/alias:\["preis"/.test(quelle),
+   "N14 die Preisliste des Haendlers laesst sich als Excel-Datei einlesen, sobald sie da ist",null);
+ z=await page.evaluate(()=>!!document.getElementById("liefArtikelPreis")
+   &&!!document.getElementById("liefArtikelPreisStand"));
+ p(z===true,"N15 die Bedienteile stehen im Dokument",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

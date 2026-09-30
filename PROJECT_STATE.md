@@ -3,9 +3,53 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.232`
+- Aktueller Entwicklungsstand: `v3.233`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### VERBINDLICH: welche Materialliste wofür da ist
+
+Ansage des Anwenders (30.09.2026): „unsere regiematerialliste soll nur für den
+regierapport und die regieofferte dienen und die lieferantenmaterialliste für
+den rest".
+
+Es gibt **drei** Listen, nicht zwei. Sie dürfen nicht vermischt werden:
+
+| Liste | Tabelle | Zeilen | Wofür – und NUR dafür |
+|---|---|---|---|
+| **Werkstoff** | `measurement_materials` | 16 | Massaufnahme → Berechnung → Zuschnitt → Reservierung. Coil und Blech (Titanzink 0.7 …), samt Dehnungsabständen |
+| **Regiematerial** | `materials` | 760 | **nur** Regierapport und Regieofferte. Eure EDV-Nummern, eure Preise |
+| **Lieferantensortiment** | `lieferanten_artikel` | 439 | Handelsware: Bestand, Barcode, Mindestbestand, Einkaufsliste |
+
+Nachgemessen an den Fremdschlüsseln (nicht angenommen):
+`material_reservierungen.material_id` → `measurement_materials`,
+`lagerbestand.material_id` → `measurement_materials`,
+`lager_varianten.material_id` → `materials`.
+
+**Massaufnahme, Berechnung, Zuschnitt und Ausmass fassen `materials` nicht an** –
+sie waren nie dort. Die Liste `measurements.rapport_material` (js/57) trägt zwar
+EDV-Nummern, ist aber ausdrücklich *Material für den Regierapport* und damit
+regelkonform.
+
+**Offen und NICHT entschieden:** `lager_varianten` (761 Produkte) sitzt auf
+`materials` und ist praktisch 1:1 dessen Spiegel. Nach der Regel oben wäre das
+Handelsware und gehörte ins Lieferanten-Lager. Das widerspricht aber der früheren
+Ansage „die alte lagerverwaltung und die regiematerialliste nicht anfassen".
+**Ohne ausdrückliches neues Ja des Anwenders wird daran nichts geändert.**
+
+### v3.233: Preis am Lieferantenartikel
+
+Ansage: „Ich denke wir können schon starten bevor ich die preise habe."
+
+- Spalten `preis` (≥ 0 oder NULL) und `preis_stand` (Migration
+  `lieferanten_artikel_preis`). Kommt die Preisliste des Händlers, ist sie ein
+  gewöhnlicher Excel-Upload in eine Spalte, die es schon gibt.
+- **Kein Preis ist nicht 0.** Ohne Preis rechnet die Einkaufsliste die Position
+  nicht mit und sagt, wie viele ihr fehlen; ohne jeden Preis steht gar keine
+  Summe da. Ein Preis von 0 dagegen ist ein Preis („gratis") und zählt mit.
+- `preis_stand` setzt der **Trigger**, nur wenn sich der Preis wirklich ändert –
+  sonst würde ein Import mit 400 unveränderten Zeilen alle Preise auf heute
+  datieren. Über ein Jahr alte Preise werden in der App als solche benannt.
 
 ### v3.232: Von Hand auf die Einkaufsliste
 

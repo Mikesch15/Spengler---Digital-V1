@@ -3356,15 +3356,21 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div><b id="liefArtikelTitel"></b></div>
    <div class="small" id="liefArtikelUnter" style="color:var(--muted);margin-bottom:8px"></div>
    <div class="grid">
-    <div class="wide"><label>Mindestbestand</label>
+    <div><label>Mindestbestand</label>
      <input id="liefArtikelMindest" type="number" step="any" min="0" inputmode="decimal" placeholder="leer = nicht überwachen"></div>
+    <!-- v3.233: Preis. Leer heisst KEIN Preis, nicht 0 Franken - ein Artikel
+         zu 0 wäre eine Behauptung über den Händler, und die Einkaufsliste
+         würde ihn mitsummieren. -->
+    <div><label>Preis (CHF)</label>
+     <input id="liefArtikelPreis" type="number" step="0.01" min="0" inputmode="decimal" placeholder="leer = kein Preis"></div>
+    <div class="wide small" id="liefArtikelPreisStand" style="color:var(--muted);margin-top:-4px"></div>
    </div>
    <div class="small" id="liefArtikelFehler" style="color:var(--red);min-height:18px;margin-top:6px"></div>
    <div class="bar">
     <button type="button" id="liefArtikelSpeichern" class="blue">Speichern</button>
     <button type="button" id="liefArtikelAbbrechen" class="gray">Abbrechen</button>
    </div>
-   <div class="small" style="color:var(--muted);margin-top:8px">Fällt der Bestand unter diesen Wert, erscheint der Artikel in der <b>Einkaufsliste</b>. Leer oder 0 heisst <b>nicht überwachen</b> – sonst meldete eine Liste mit 439 Artikeln 439-mal Mangel und würde nie gelesen.</div>
+   <div class="small" style="color:var(--muted);margin-top:8px">Fällt der Bestand unter den <b>Mindestbestand</b>, erscheint der Artikel in der <b>Einkaufsliste</b>. Leer oder 0 heisst <b>nicht überwachen</b> – sonst meldete eine Liste mit 439 Artikeln 439-mal Mangel und würde nie gelesen. Der <b>Preis</b> ist freiwillig: ohne ihn rechnet die Einkaufsliste diese Position nicht mit, statt sie mit 0 zu summieren.</div>
 
    <!-- v3.232: Der zweite Weg auf die Einkaufsliste. Ansage des Anwenders:
         "Wo kann ich etwas in den einkaufswagen legen?" - bis dahin nirgends.

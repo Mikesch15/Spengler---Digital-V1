@@ -114,6 +114,35 @@ function lfArtikelZuBarcode(code){
 // 0 heisst "nicht ueberwacht", nicht "Mindestbestand null". Ein Sortiment von
 // 439 Artikeln, das jeden davon ueberwacht, meldet 439-mal Mangel und wird
 // nie gelesen. Ueberwacht wird nur, was der Betrieb ausdruecklich vorratet.
+// ---- Preis (v3.233) -------------------------------------------------------
+// Ansage des Anwenders: "Ich denke wir können schon starten bevor ich die
+// preise habe." Genau dafuer ist das gebaut: ohne Preis funktioniert alles
+// wie bisher, und kein Betrag wird erfunden. Ein fehlender Preis ist NICHT
+// 0 - er ist unbekannt, und das ist ein Unterschied, den eine Summe nicht
+// verschlucken darf.
+function lfPreis(a){
+ if(!a||a.preis===null||a.preis===undefined||a.preis==="")return null;
+ const n=Number(a.preis);
+ return Number.isFinite(n)?n:null;
+}
+function lfHatPreis(a){ return lfPreis(a)!==null }
+function lfPreisText(a){
+ const p=lfPreis(a);
+ return p===null?"":"CHF "+p.toFixed(2);
+}
+// Wie alt ist dieser Preis? Ein Preis ohne Alter sieht nach vierzehn Monaten
+// genauso aus wie gestern.
+function lfPreisAlterText(a){
+ const s=a&&a.preis_stand?String(a.preis_stand).slice(0,10):"";
+ if(!s)return "";
+ const d=new Date(s+"T00:00:00");
+ if(isNaN(d))return "";
+ const tage=Math.floor((Date.now()-d.getTime())/86400000);
+ if(tage<=31)return "";                       // frisch - kein Hinweis noetig
+ if(tage<365)return "Preis von "+d.toLocaleDateString("de-CH");
+ return "Preis von "+d.toLocaleDateString("de-CH")+" – älter als ein Jahr";
+}
+
 function lfMindest(a){ return a?lfZahl(a.mindestbestand):0 }
 function lfFehlt(a){
  if(!a)return 0;
@@ -172,6 +201,23 @@ function lfHerkunftText(a){
 }
 // Der Text zum Verschicken. Er entsteht aus DERSELBEN Liste wie die Anzeige -
 // eine eigene Textfassung waere eine zweite Wahrheit darueber, was fehlt.
+// v3.233: Der Wert einer Zeile - oder null, wenn kein Preis hinterlegt ist.
+function lfZeilenwert(a){
+ const p=lfPreis(a);
+ return p===null?null:p*lfBestellmenge(a);
+}
+// Die Summe zaehlt NUR die Zeilen mit Preis und sagt dazu, wie viele Zeilen
+// sie nicht kennt. Eine Summe, die fehlende Preise als 0 mitnimmt, ist
+// schlimmer als gar keine: sie sieht vollstaendig aus und ist zu klein.
+function lfEinkaufsWert(){
+ const liste=lfEinkaufsliste();
+ let summe=0, mit=0, ohne=0;
+ liste.forEach(a=>{
+  const w=lfZeilenwert(a);
+  if(w===null)ohne++; else { summe+=w; mit++ }
+ });
+ return {summe,mit,ohne};
+}
 function lfEinkaufsText(){
  const liste=lfEinkaufsliste();
  if(!liste.length)return "";
@@ -181,9 +227,17 @@ function lfEinkaufsText(){
  liste.forEach(a=>{
   const l=String(a.lieferant||"Ohne Lieferant");
   if(l!==letzter){ if(letzter!==null)zeilen.push(""); zeilen.push(l+":"); letzter=l }
+  const w=lfZeilenwert(a);
   zeilen.push("  "+lfZahlText(lfBestellmenge(a))+" x  "+a.artikelnr+"  "+a.bezeichnung
+   +(w===null?"":"   CHF "+w.toFixed(2))
    +"   ("+lfHerkunftText(a)+")");
  });
+ const wert=lfEinkaufsWert();
+ if(wert.mit){
+  zeilen.push("");
+  zeilen.push("Summe der Positionen mit Preis: CHF "+wert.summe.toFixed(2));
+  if(wert.ohne)zeilen.push("Für "+wert.ohne+" Position(en) ist kein Preis hinterlegt – nicht enthalten.");
+ }
  return zeilen.join("\n");
 }
 
@@ -234,11 +288,29 @@ function lfEinkaufZeichnen(){
    <div class="small" style="text-align:right;min-width:92px">
     <b style="font-size:15px;color:var(--red)">${esc(lfZahlText(lfBestellmenge(a)))}</b>
     <div style="color:var(--muted)">Bedarf ${esc(lfZahlText(lfBedarf(a)))}</div>
+    ${lfHatPreis(a)?`<div style="color:var(--muted)">CHF ${esc(lfZeilenwert(a).toFixed(2))}</div>`:""}
    </div>
    ${hand?`<div class="bar" style="margin:0"><button type="button" class="gray"
      data-lf-erledigt="${esc(hand.id)}" title="Von Hand gesetzte Zeile abhaken">✓</button></div>`:""}
   </div>`;
  });
+ // v3.233: Die Summe, und daneben ehrlich, was sie NICHT kennt. Solange
+ // keine Preisliste da ist, steht hier gar keine Summe - lieber nichts als
+ // eine, die stillschweigend zu klein ist.
+ const wert=lfEinkaufsWert();
+ if(wert.mit){
+  html+=`<div style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+   <span class="small" style="color:var(--muted)">Summe der Positionen mit Preis</span>
+   <b style="font-size:16px">CHF ${esc(wert.summe.toFixed(2))}</b></div>`;
+  if(wert.ohne)html+=`<div class="small" style="color:var(--muted);margin-top:4px">
+   Für <b>${wert.ohne}</b> Position(en) ist kein Preis hinterlegt – sie sind in der Summe nicht enthalten.</div>`;
+ }else if(wert.ohne){
+  html+=`<div class="small" style="color:var(--muted);margin-top:14px;padding-top:10px;
+   border-top:1px solid var(--line)">Für keine Position ist ein Preis hinterlegt – deshalb
+   steht hier keine Summe. Preise kommen mit der Preisliste des Händlers als Excel-Datei
+   oder lassen sich am Artikel von Hand eintragen.</div>`;
+ }
  box.innerHTML=html;
 }
 function lfEinkaufOeffnen(){
@@ -348,6 +420,17 @@ function lfArtikelOeffnen(id){
  $("liefArtikelUnter").textContent=(a.lieferant?a.lieferant+" · ":"")+"Art.-Nr. "+a.artikelnr
   +(a.ean?" · "+a.ean:"")+" · Bestand "+lfZahlText(lfBestand(a.id));
  $("liefArtikelMindest").value=lfMindest(a)?lfZahlText(lfMindest(a)):"";
+ // v3.233: Der Preis steht hier, damit sich einzelne von Hand eintragen
+ // lassen, bevor die Preisliste des Haendlers da ist.
+ $("liefArtikelPreis").value=lfHatPreis(a)?lfPreis(a).toFixed(2):"";
+ const pa=$("liefArtikelPreisStand");
+ if(pa){
+  const alt=lfPreisAlterText(a);
+  pa.textContent=lfHatPreis(a)
+   ? (alt||"Preis ist aktuell erfasst.")
+   : "Noch kein Preis hinterlegt – ohne ihn rechnet die Einkaufsliste diese Position nicht mit.";
+  pa.style.color=/älter als ein Jahr/.test(alt)?"var(--red)":"var(--muted)";
+ }
  // v3.232: Steht der Artikel schon von Hand auf der Liste, kommen Menge und
  // Grund mit - dann aendert der Knopf die vorhandene Zeile, statt eine
  // zweite anzulegen. Das steht auch so da, sonst waere nicht erkennbar,
@@ -375,9 +458,18 @@ async function lfMindestSpeichern(){
  const roh=$("liefArtikelMindest").value.trim();
  const m=roh?lfZahl(roh):0;
  if(m<0){ $("liefArtikelFehler").textContent="Ein Mindestbestand kann nicht negativ sein."; return }
+ // v3.233: Ein LEERES Preisfeld heisst "kein Preis" und schreibt NULL - nicht
+ // 0. Ein Artikel zu 0 Franken waere eine Behauptung ueber den Haendler; die
+ // Einkaufsliste wuerde ihn mitsummieren und das Total waere still falsch.
+ const rohP=$("liefArtikelPreis").value.trim();
+ const p=rohP===""?null:Number(rohP.replace(",","."));
+ if(p!==null&&(!Number.isFinite(p)||p<0)){
+  $("liefArtikelFehler").textContent="Der Preis muss eine Zahl ab 0 sein – oder leer bleiben.";
+  return;
+ }
  $("liefArtikelSpeichern").disabled=true;
  try{
-  const r=await sb.from("lieferanten_artikel").update({mindestbestand:m}).eq("id",a.id);
+  const r=await sb.from("lieferanten_artikel").update({mindestbestand:m,preis:p}).eq("id",a.id);
   if(r.error)throw r.error;
  }catch(e){
   $("liefArtikelFehler").textContent="Nicht gespeichert: "+((e&&e.message)||e);
@@ -388,9 +480,11 @@ async function lfMindestSpeichern(){
  lfArtikelSchliessen();
  await lfLaden();
  lfZeichnen();
- lfMeldung(m>0
-  ? "Mindestbestand "+lfZahlText(m)+" für „"+a.bezeichnung+"“ gesetzt."
-  : "„"+a.bezeichnung+"“ wird nicht mehr überwacht.");
+ if($("liefEinkaufModal")&&!$("liefEinkaufModal").hidden)lfEinkaufZeichnen();
+ const teile=[];
+ teile.push(m>0?"Mindestbestand "+lfZahlText(m):"nicht mehr überwacht");
+ if(p!==null)teile.push("Preis CHF "+p.toFixed(2));
+ lfMeldung("„"+a.bezeichnung+"“: "+teile.join(", ")+".");
 }
 
 // ---- Sortiment einlesen ---------------------------------------------------
@@ -552,7 +646,8 @@ function lfZeileHtml(a,mitLieferant){
  // Der Lieferant steht nur da, wo es mehr als einen gibt - solange das Lager
  // eines Haendlers drinsteht, waere er in jeder Zeile dieselbe Auskunft.
  const unten=[mitLieferant&&a.lieferant?esc(a.lieferant):"",esc(a.artikelnr),
-              masse?esc(masse):"",a.ean?esc(a.ean):""].filter(Boolean).join(" · ");
+              masse?esc(masse):"",a.ean?esc(a.ean):"",
+              lfHatPreis(a)?esc(lfPreisText(a)):""].filter(Boolean).join(" · ");
  // v3.231: Ein ueberwachter Artikel zeigt seinen Mindestbestand, und wenn er
  // unterschritten ist, faellt das in der Zeile auf - nicht erst in der
  // Einkaufsliste. Der Mangel gehoert dorthin, wo man ihn sieht.
@@ -663,6 +758,7 @@ function lfVergleichsstand(){
    zuschnitt_mm:lfZahl(a.zuschnitt_mm), dicke_mm:lfZahl(a.dicke_mm),
    laenge_m:lfZahl(a.laenge_m), wulst:String(a.wulst||""),
    vpe:lfZahl(a.vpe), mindestbestand:lfZahl(a.mindestbestand),
+   preis:lfHatPreis(a)?lfPreis(a):"",
    ean:String(a.ean||""), hinweis:String(a.hinweis||"") }; });
  return m;
 }
@@ -746,6 +842,11 @@ if(typeof initExcelImport==="function")initExcelImport({
   {key:"vpe",label:"VPE",zahl:true,alias:["vpe","verpackungseinheit","gebinde","einheit"]},
   {key:"mindestbestand",label:"Mindestbestand",zahl:true,
    alias:["mindestbestand","mindest","minbestand","meldebestand","sollbestand"]},
+  // v3.233: Die Spalte steht bereit, bevor es die Preisliste gibt. Kommt sie,
+  // ist sie ein gewoehnlicher Upload - kein Umbau, kein Warten.
+  {key:"preis",label:"Preis (CHF)",zahl:true,
+   alias:["preis","preischf","chf","einzelpreis","listenpreis","nettopreis",
+          "ekpreis","ek","vkpreis","bruttopreis","stueckpreis"]},
   {key:"ean",label:"EAN / Barcode",alias:["ean","eanbarcode","barcode","gtin","strichcode"]},
   {key:"hinweis",label:"Hinweis",alias:["hinweis","bemerkung","notiz"]}
  ],

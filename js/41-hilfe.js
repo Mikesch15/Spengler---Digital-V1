@@ -1642,6 +1642,18 @@ Mindestbestand l\u00e4sst sich auch in der <b>Excel-Datei</b> mitliefern (Spalte
 <p><b>\U0001f4cb Als Text kopieren</b> gibt die Liste als Text \u2013 zum Einf\u00fcgen in eine
 E-Mail oder WhatsApp an den H\u00e4ndler. Erlaubt das Ger\u00e4t das Kopieren nicht,
 steht der Text im Feld darunter und l\u00e4sst sich von Hand markieren.</p>
+<p><b>Preise</b> sind freiwillig. Steht am Artikel einer, rechnet die
+Einkaufsliste den Zeilenwert und unten eine Summe. <b>Fehlt er, wird die
+Position NICHT mitgerechnet</b> \u2013 und die Liste sagt darunter, wie viele
+Positionen ihr fehlen. Das ist Absicht: eine Summe, die fehlende Preise als
+0 mitnimmt, sieht vollst\u00e4ndig aus und ist zu klein. Ist \u00fcberhaupt kein Preis
+hinterlegt, steht gar keine Summe da.</p>
+<div class="hin"><b>Ein Preis von 0 ist etwas anderes als kein Preis.</b> 0 heisst
+\u201egratis\u201c und z\u00e4hlt in der Summe mit; ein leeres Feld heisst \u201eunbekannt\u201c. Beim
+Preis steht auch, von wann er ist \u2013 ist er \u00e4lter als ein Jahr, sagt die App das.
+Einzelne Preise tr\u00e4gst du am Artikel ein; die <b>Preisliste des H\u00e4ndlers</b>
+kommt als Excel-Datei ueber denselben Import wie alles andere (Spalte
+\u201ePreis\u201c).</div>
 <p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
 Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
 
