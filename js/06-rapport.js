@@ -438,7 +438,32 @@ $("addMat").onclick=()=>{mats.push({date:new Date().toISOString().slice(0,10),no
 // (js/82) taucht der Knopf gar nicht erst auf, statt beim Druecken zu
 // scheitern.
 function rapportScannerMoeglich(){
- return typeof barcodeScannen==="function"&&typeof lfBarcodeZuRegie==="function";
+ return typeof barcodeScannen==="function"&&typeof lfScanVerbrauch==="function";
+}
+// v3.237: Ausbuchen beim Scannen. Ansage des Anwenders: "Ja, beim scannen
+// auch gleich ausbuchen."
+//
+// Der Schalter steht sichtbar daneben und ist EINGESCHALTET - so ist es
+// gewollt. Er ist trotzdem da, weil ein Scan damit zweierlei tut
+// (verrechnen UND Lagerbestand aendern) und eine Buchung sich nicht
+// zurueckholen laesst. Wer nur nachsehen will, was ein Artikel kostet,
+// schaltet ihn aus.
+//
+// Gemerkt wird die Wahl je GERAET (localStorage), nicht je Firma: am
+// Werkstattrechner ohne Kamera ist sie ohnehin belanglos, auf dem Handy des
+// Monteurs ist sie eine Gewohnheit.
+const RAPPORT_SCAN_BUCHEN="sd_rapport_scan_buchen";
+function rapportScanBuchtAus(){
+ const k=$("matScanAusbuchen");
+ return k?!!k.checked:false;
+}
+function rapportScanSchalterSetzen(){
+ const k=$("matScanAusbuchen");
+ if(!k)return;
+ let wert=true;
+ try{ const v=localStorage.getItem(RAPPORT_SCAN_BUCHEN); if(v!==null)wert=(v==="1") }catch(e){}
+ k.checked=wert;
+ k.onchange=()=>{ try{ localStorage.setItem(RAPPORT_SCAN_BUCHEN,k.checked?"1":"0") }catch(e){} };
 }
 function rapportScanHinweis(text,fehler){
  const h=$("matScanHinweis");
@@ -448,9 +473,20 @@ function rapportScanHinweis(text,fehler){
 }
 function rapportMaterialScannen(){
  if(!rapportScannerMoeglich())return;
- barcodeScannen(code=>{
-  const t=lfBarcodeZuRegie(code);
+ barcodeScannen(async code=>{
+  rapportScanHinweis("Wird geprüft …");
+  const t=await lfScanVerbrauch(code,{
+   menge:1,
+   ausbuchen:rapportScanBuchtAus(),
+   projekt:(typeof currentProjectId!=="undefined")?currentProjectId:null,
+   grund:"Regierapport"
+  });
   if(!t.ok){ rapportScanHinweis(t.text,true); return }
+  // Der Buchhinweis haengt an JEDER Rueckmeldung mit dran - auch wenn das
+  // Buchen fehlgeschlagen ist. Sonst glaubte der Anwender, der Bestand sei
+  // nachgefuehrt.
+  const zusatz=t.buchhinweis?" · "+t.buchhinweis:"";
+  const schlecht=!!t.buchhinweis&&/NICHT ausgebucht|Nicht ausgebucht|negativ/.test(t.buchhinweis);
   const heute=new Date().toISOString().slice(0,10);
   // Derselbe Artikel am selben Tag wird HOCHGEZAEHLT statt ein zweites Mal
   // angelegt. Dreimal scannen heisst drei Stueck - das ist die Art, wie ein
@@ -462,13 +498,13 @@ function rapportMaterialScannen(){
    renderMain();
    updateMaterialRowTotal(i);
    updateTotals();
-   rapportScanHinweis(t.text+" · jetzt "+mats[i].qty);
+   rapportScanHinweis(t.text+" · jetzt "+mats[i].qty+zusatz,schlecht);
    return;
   }
   mats.push({date:heute,no:String(t.regie.edv_nr),qty:1});
   renderMain();
   updateTotals();
-  rapportScanHinweis(t.text+" · als neue Zeile mit Menge 1");
+  rapportScanHinweis(t.text+" · als neue Zeile mit Menge 1"+zusatz,schlecht);
  });
 }
 // Die Sichtbarkeit wird ERST NACH dem Einlesen aller Dateien entschieden.
@@ -477,8 +513,12 @@ function rapportMaterialScannen(){
 // der Fehler aus v3.228 bei den Info-Knoepfen: js/18 pruefte Markup, das
 // unter dem Skriptblock stand und noch nicht existierte.)
 function rapportScanKnopfZeigen(){
+ const moeglich=rapportScannerMoeglich();
  const k=$("matScan");
- if(k)k.hidden=!rapportScannerMoeglich();
+ if(k)k.hidden=!moeglich;
+ const s=$("matScanAusbuchenBox");
+ if(s)s.hidden=!moeglich;
+ if(moeglich)rapportScanSchalterSetzen();
 }
 if($("matScan"))$("matScan").onclick=()=>rapportMaterialScannen();
 if(typeof document!=="undefined"){

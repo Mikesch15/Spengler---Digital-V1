@@ -166,8 +166,8 @@ const KATALOG=`()=>{
  // ist keine Zuweisung; ein Aufruf mit Klammer ist einer.
  const gerufen=[...new Set((alt06.match(/\blf[A-Z]\w*\s*\(/g)||[]).map(s=>s.replace(/\s*\($/,"")))];
  const gesetzt=(alt06.match(/\blf[A-Z]\w*\s*=(?!=)/g)||[]);
- p(gerufen.join(",")==="lfBarcodeZuRegie"&&gesetzt.length===0,
-   "A3a js/06 ruft GENAU eine Funktion des Lagers auf (lfBarcodeZuRegie) und setzt dort keine einzige Variable",
+ p(gerufen.join(",")==="lfScanVerbrauch"&&gesetzt.length===0,
+   "A3a js/06 ruft GENAU eine Funktion des Lagers auf (lfScanVerbrauch) und setzt dort keine einzige Variable - auch das Buchen liegt in js/82, nicht im Rapport",
    {gerufen,gesetzt});
  p(!/function lager[A-Z]/.test(quelle),
    "A4 und js/82 definiert keine Funktion, die wie die alte heisst - kein Ueberschreiben aus Versehen",null);
@@ -1173,16 +1173,24 @@ const KATALOG=`()=>{
   lfBewegungen=[]; lfEinkauf=[];
   const echt=window.barcodeScannen;
   mats.length=0;
-  eval("("+o.s+")")("111"); rapportMaterialScannen();
+  // Der Scan-Ablauf ist seit v3.237 asynchron - er wartet auf die
+  // Lagerbuchung. Ohne dieses Warten liest der Pruefstand mats, BEVOR die
+  // Zeile entsteht, und misst damit nichts.
+  const warte=()=>new Promise(r=>setTimeout(r,120));
+  // Hier ohne Ausbuchen: geprueft wird das Verhalten der Rapportzeile.
+  // Das Buchen hat seinen eigenen Abschnitt (R).
+  const k=$("matScanAusbuchen"); if(k)k.checked=false;
+  eval("("+o.s+")")("111"); rapportMaterialScannen(); await warte();
   const nach1=mats.map(m=>[m.no,m.qty]);
-  eval("("+o.s+")")("111"); rapportMaterialScannen();
+  eval("("+o.s+")")("111"); rapportMaterialScannen(); await warte();
   const nach2=mats.map(m=>[m.no,m.qty]);
-  eval("("+o.s+")")("222"); rapportMaterialScannen();
+  eval("("+o.s+")")("222"); rapportMaterialScannen(); await warte();
   const nachOhne=mats.map(m=>[m.no,m.qty]);
   const hinweisOhne=$("matScanHinweis").textContent;
-  eval("("+o.s+")")("999"); rapportMaterialScannen();
+  eval("("+o.s+")")("999"); rapportMaterialScannen(); await warte();
   const nachUnbekannt=mats.map(m=>[m.no,m.qty]);
   window.barcodeScannen=echt;
+  if(k)k.checked=true;
   mats.length=0;
   return {nach1,nach2,nachOhne,nachUnbekannt,hinweisOhne};
  },{k:KATALOG,s:SCAN});
@@ -1205,8 +1213,145 @@ const KATALOG=`()=>{
  p(z.da&&z.hinweis,"Q11 Knopf und Hinweiszeile stehen im Dokument",z);
  p(z.moeglich===true&&z.sichtbar===true,
    "Q12 und der Knopf ist sichtbar - die Pruefung laeuft NACH dem Einlesen aller Dateien, sonst bliebe er fuer immer versteckt (Fehlertyp aus v3.228)",z);
- p(/typeof lfBarcodeZuRegie==="function"/.test(lies("js/06-rapport.js")),
+ p(/typeof lfScanVerbrauch==="function"/.test(lies("js/06-rapport.js")),
    "Q13 ohne Lieferanten-Lager taucht der Knopf gar nicht erst auf - lieber nicht da als beim Druecken fehlschlagen",null);
+
+ // ---- R  Ausbuchen beim Scannen (v3.237) --------------------------------
+ //
+ // Ansage des Anwenders: "Ja, beim scannen auch gleich ausbuchen."
+ //
+ // Ein Scan tut damit ZWEIERLEI: verrechnen und Lagerbestand aendern. Die
+ // teuren Fehler waeren deshalb: stumm nicht buchen (der Anwender glaubt,
+ // der Bestand stimmt), oder doppelt buchen, oder beim Fehlschlag die
+ // Rapportzeile mitreissen.
+ console.log("\nR · Ausbuchen beim Scannen");
+ const LAGERSTAND=`()=>{
+  window.__db.lieferanten_artikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",
+    gruppe:"Rinnenstutzen",ean:"111",material_id:7001},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Ohne Zuordnung",
+    gruppe:"Rinnenstutzen",ean:"222",material_id:null}];
+  window.__db.lieferanten_bewegungen=[{id:1,artikel_id:1,art:"zugang",menge:10}];
+ }`;
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  const t=await lfScanVerbrauch("111",{menge:1,ausbuchen:true,projekt:42,grund:"Regierapport"});
+  return {t:{ok:t.ok,gebucht:t.gebucht,bestand:t.bestand,hinweis:t.buchhinweis,
+             nr:t.regie&&t.regie.edv_nr},
+          ruf:window.__db.ruf.filter(r=>r.was==="insert")};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.t.ok===true&&z.t.gebucht===true&&z.t.nr==="203.06",
+   "R1 ein Scan loest die Regie-Position auf UND bucht aus",z.t);
+ p(z.ruf.length===1&&z.ruf[0].tisch==="lieferanten_bewegungen"
+   &&z.ruf[0].zeile.art==="abgang"&&Number(z.ruf[0].zeile.menge)===1,
+   "R2 gebucht wird GENAU eine Bewegung, als Abgang ueber die gescannte Menge",z.ruf);
+ p(z.ruf[0]&&Number(z.ruf[0].zeile.project_id)===42&&z.ruf[0].zeile.ziel==="regierapport",
+   "R3 samt Projekt und Herkunft - sonst stuende im Lager ein Abgang ohne Ziel",z.ruf[0]&&z.ruf[0].zeile);
+ p(z.t.bestand===9&&/Bestand jetzt 9/.test(z.t.hinweis||""),
+   "R4 und der neue Bestand wird zurueckgemeldet, nicht nur gebucht",z.t);
+ // Ohne Schalter wird NICHT gebucht - und das muss auch so gesagt werden.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  const t=await lfScanVerbrauch("111",{menge:1,ausbuchen:false});
+  return {ok:t.ok,gebucht:t.gebucht,hinweis:t.buchhinweis||"",
+          ruf:window.__db.ruf.filter(r=>r.was==="insert").length};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.ok===true&&z.gebucht===false&&z.ruf===0,
+   "R5 GEGENPROBE: ohne Schalter wird die Zeile verrechnet, aber NICHTS gebucht",z);
+ // Ein Artikel ohne Regie-Position darf auch nicht gebucht werden - sonst
+ // waere Ware weg, die nie verrechnet wurde.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  const t=await lfScanVerbrauch("222",{menge:1,ausbuchen:true});
+  return {ok:t.ok,grund:t.grund,ruf:window.__db.ruf.filter(r=>r.was==="insert").length};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.ok===false&&z.grund==="ohne-zuordnung"&&z.ruf===0,
+   "R6 GEGENPROBE: ohne Regie-Position wird NICHT gebucht - sonst waere Ware weg, die nie verrechnet wurde",z);
+ // Negativer Bestand: buchen JA, aber sagen. Blockieren waere falsch -
+ // dann scheiterte der Rapport an einer Lagerluecke.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  window.__db.lieferanten_bewegungen=[];      // gar kein Zugang
+  await lfLaden();
+  const t=await lfScanVerbrauch("111",{menge:1,ausbuchen:true});
+  return {gebucht:t.gebucht,bestand:t.bestand,hinweis:t.buchhinweis};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.gebucht===true&&z.bestand===-1&&/negativ/.test(z.hinweis||""),
+   "R7 ein Bestand unter null wird gebucht und BENANNT - blockieren hiesse, den Rapport an einer Lagerluecke scheitern zu lassen",z);
+ // Scheitert das Buchen, bleibt die Rapportzeile gueltig - aber der
+ // Fehlschlag wird nicht verschwiegen.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  await lfLaden();
+  const echt=sb.from;
+  sb.from=name=>{
+   const t=echt(name);
+   if(name==="lieferanten_bewegungen")
+    return Object.assign({},t,{insert:()=>Promise.resolve({error:{message:"Netz weg"}})});
+   return t;
+  };
+  const t=await lfScanVerbrauch("111",{menge:1,ausbuchen:true});
+  sb.from=echt;
+  return {ok:t.ok,gebucht:t.gebucht,hinweis:t.buchhinweis,nr:t.regie&&t.regie.edv_nr};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.ok===true&&z.nr==="203.06"&&z.gebucht===false,
+   "R8 scheitert das Buchen, bleibt die Rapportzeile gueltig - verrechnet ist verrechnet",z);
+ p(/NICHT ausgebucht/.test(z.hinweis||"")&&/Netz weg/.test(z.hinweis||""),
+   "R9 GEGENPROBE: der Fehlschlag wird aber NICHT verschwiegen - sonst glaubte der Anwender, der Bestand sei nachgefuehrt",z);
+ // Ein Treffer in der alten Lagerverwaltung wird nicht gebucht - dort
+ // hineinzuschreiben waere genau das Anfassen, das nicht passieren soll.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  eval("("+o.l+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  const echt=window.lagerVarianteZuBarcode;
+  window.lagerVarianteZuBarcode=c=>c==="777"?{id:5,bezeichnung:"Altprodukt",material_id:7001}:null;
+  const t=await lfScanVerbrauch("777",{menge:1,ausbuchen:true});
+  window.lagerVarianteZuBarcode=echt;
+  return {ok:t.ok,quelle:t.quelle,gebucht:t.gebucht,hinweis:t.buchhinweis,
+          ruf:window.__db.ruf.filter(r=>r.was==="insert").length};
+ },{f:SB,k:KATALOG,l:LAGERSTAND});
+ p(z.ok===true&&z.quelle==="lager"&&z.gebucht===false&&z.ruf===0,
+   "R10 ein Treffer in der alten Lagerverwaltung fuellt die Zeile, wird aber NICHT gebucht - dort schreibt dieses Modul nicht hinein",z);
+ p(/Nicht ausgebucht/.test(z.hinweis||"")&&/Lagerverwaltung/.test(z.hinweis||""),
+   "R11 und auch das wird gesagt statt verschwiegen",z.hinweis);
+ // Der Schalter: sichtbar, eingeschaltet, und je Geraet gemerkt.
+ z=await page.evaluate(()=>{
+  const box=document.getElementById("matScanAusbuchenBox");
+  const k=document.getElementById("matScanAusbuchen");
+  if(!k)return {fehlt:true};
+  rapportScanSchalterSetzen();
+  const an=rapportScanBuchtAus();
+  k.checked=false; k.onchange();
+  const gemerkt=localStorage.getItem("sd_rapport_scan_buchen");
+  const aus=rapportScanBuchtAus();
+  k.checked=true; k.onchange();
+  return {boxDa:!!box, an, aus, gemerkt, wieder:rapportScanBuchtAus()};
+ });
+ p(z.boxDa===true&&z.an===true,
+   "R12 der Schalter steht sichtbar daneben und ist EINGESCHALTET - so ist es gewollt",z);
+ p(z.aus===false&&z.gemerkt==="0"&&z.wieder===true,
+   "R13 und er laesst sich ausschalten, gemerkt je Geraet - wer nur nachsehen will, was etwas kostet, bucht nicht aus",z);
+
+
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

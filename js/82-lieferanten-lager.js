@@ -236,6 +236,60 @@ function lfBarcodeZuRegie(code){
   text:"Der Code "+c+" ist weder im Lieferanten-Lager noch in der Lagerverwaltung bekannt."};
 }
 
+// ---- Scannen im Regierapport: auflösen UND ausbuchen (v3.237) -------------
+//
+// Ansage des Anwenders: "Ja, beim scannen auch gleich ausbuchen."
+//
+// Bis v3.236 war ein Scan im Rapport eine Verrechnung. Jetzt ist er zweierlei:
+// verrechnet UND aus dem Lager genommen. Das ist der Punkt, an dem der
+// Bestand im Alltag ueberhaupt stimmen kann - vorher haette ihn jemand
+// zusaetzlich von Hand ausbuchen muessen, und genau das passiert nie.
+//
+// DIESE FUNKTION IST DIE EINZIGE, DIE js/06 AUFRUFT. Aufloesen und Buchen
+// gehoeren beides hierher, wo das Lager liegt; der Regierapport soll nicht
+// wissen, wie eine Lagerbewegung aussieht.
+//
+// Gebucht wird NUR aus dem Lieferanten-Lager. Ein Treffer in der
+// bestehenden Lagerverwaltung fuellt die Rapportzeile, wird aber nicht
+// gebucht - dort hineinzuschreiben waere genau das Anfassen, das nicht
+// passieren soll. Gesagt wird es trotzdem, statt es zu verschweigen.
+async function lfScanVerbrauch(code,opt){
+ const o=opt||{};
+ const menge=lfZahl(o.menge)||1;
+ const t=lfBarcodeZuRegie(code);
+ if(!t.ok)return t;
+ if(!o.ausbuchen)return Object.assign({},t,{gebucht:false});
+ if(t.quelle!=="lieferant")
+  return Object.assign({},t,{gebucht:false,
+   buchhinweis:"Nicht ausgebucht: dieser Artikel liegt in der Lagerverwaltung, nicht im Lieferanten-Lager."});
+ if(typeof sb==="undefined")return Object.assign({},t,{gebucht:false});
+ try{
+  const r=await sb.from("lieferanten_bewegungen").insert({
+   artikel_id:t.artikel.id, art:"abgang", menge,
+   grund:o.grund||null,
+   project_id:(o.projekt!==undefined&&o.projekt!==null&&o.projekt!=="")?o.projekt:null,
+   ziel:"regierapport",
+   created_by:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
+  });
+  if(r.error)throw r.error;
+ }catch(e){
+  // Die Rapportzeile bleibt trotzdem gueltig - verrechnet ist verrechnet.
+  // Verschwiegen wird der Fehlschlag aber nicht: sonst glaubte der Anwender,
+  // der Bestand sei nachgefuehrt.
+  return Object.assign({},t,{gebucht:false,
+   buchhinweis:"Verrechnet, aber NICHT ausgebucht: "+((e&&e.message)||e)});
+ }
+ await lfLaden();
+ lfZeichnen();
+ const neu=lfBestand(t.artikel.id);
+ return Object.assign({},t,{gebucht:true,menge,bestand:neu,
+  // Ein negativer Bestand ist kein Fehler, sondern ein Hinweis: die Ware war
+  // da, ihr Zugang wurde nie gebucht. Blockieren waere falsch - dann
+  // scheiterte der Rapport an einer Lagerluecke.
+  buchhinweis:lfZahlText(menge)+" ausgebucht, Bestand jetzt "+lfZahlText(neu)
+   +(neu<0?" – negativ, also fehlt ein Zugang im Lager.":"")});
+}
+
 // ---- Preis (v3.233) -------------------------------------------------------
 // Ansage des Anwenders: "Ich denke wir können schon starten bevor ich die
 // preise habe." Genau dafuer ist das gebaut: ohne Preis funktioniert alles

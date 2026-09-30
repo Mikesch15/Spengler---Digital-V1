@@ -323,6 +323,12 @@
 <button id="openSheet" class="blue">📐 Blechverbrauch</button>
 <button type="button" id="rmatOeffnen" class="blue">🧱 Aus Massaufnahmen übernehmen</button>
 </div>
+<!-- v3.237: Ausbuchen beim Scannen. Eingeschaltet, weil so gewollt - aber
+     sichtbar, weil ein Scan damit zweierlei tut und eine Lagerbuchung sich
+     nicht zurückholen lässt. Die Wahl wird je Gerät gemerkt. -->
+<div class="no-print" id="matScanAusbuchenBox" hidden>
+<label class="rechte-schalter"><input type="checkbox" id="matScanAusbuchen" checked> Beim Scannen auch aus dem Lieferanten-Lager <b>ausbuchen</b></label>
+</div>
 <div class="small no-print" id="matScanHinweis" style="min-height:18px;margin:4px 0;color:var(--muted)"></div>
 <div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
 </div>
