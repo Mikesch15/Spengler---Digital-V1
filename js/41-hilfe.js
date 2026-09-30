@@ -1577,8 +1577,8 @@ Massaufnahme stehen bei jeder Einfassung <b>⭕ Abwicklung Rohr</b> und
 oben gewählte Bauteil. Die Materialstärke kommt dabei aus dem gespeicherten
 Datensatz, nicht aus einem zufällig offenen Formular.</div>`},
 
-"bteam-lager":{titel:"Lager B-Team",text:`
-<p>Ein <b>zweites, eigenes Lager</b> f\u00fcr die Handelsware eines Lieferanten \u2013
+"lieferanten-lager":{titel:"Lieferanten-Lager",text:`
+<p>Ein <b>zweites, eigenes Lager</b> f\u00fcr die Handelsware der Lieferanten \u2013
 Rinnen, Stutzen, Haken, B\u00f6den. Es steht vollst\u00e4ndig <b>neben</b> der normalen
 Lagerverwaltung: eigene Artikel, eigene Buchungen, eigene Zahlen.</p>
 <div class="hin"><b>Warum getrennt?</b> Der Materialkatalog der Firma tr\u00e4gt
@@ -1589,8 +1589,14 @@ Lagerverwaltung und die Regiematerial-Liste bleiben unber\u00fchrt.</div>
 <p><b>Neue Positionen</b> kommen als <b>Excel- oder CSV-Datei</b> herein. Das ist
 derselbe Import wie beim Materialkatalog: Spalten frei zuordnen, vor dem
 Speichern steht da, was neu ist und was sich \u00e4ndert. Eine Artikel-Nr., die es
-schon gibt, wird <b>aktualisiert</b> statt doppelt angelegt; <b>gel\u00f6scht wird
-nie</b> \u2013 was in der Datei fehlt, bleibt stehen.</p>
+beim gleichen Lieferanten schon gibt, wird <b>aktualisiert</b> statt doppelt
+angelegt; <b>gel\u00f6scht wird nie</b> \u2013 was in der Datei fehlt, bleibt stehen.</p>
+<div class="hin"><b>Von welchem Lieferanten ist die Datei?</b> Das wird
+<i>einmal oben</i> gew\u00e4hlt und steht nicht in der Datei \u2013 eine Preisliste
+kommt von genau einem H\u00e4ndler. Es ist auch mehr als eine H\u00f6flichkeit:
+Artikelnummern sind nur <b>je Lieferant</b> eindeutig. Eine \u201e1001\u201c gibt es bei
+jedem H\u00e4ndler, und ohne diese Angabe w\u00fcrde der n\u00e4chste Import stillschweigend
+die Artikel des anderen \u00fcberschreiben.</div>
 <p><b>\u2b07 Startsortiment einlesen</b> holt die Artikelliste, die mit der App
 ausgeliefert wird \u2013 f\u00fcr den ersten Start, ohne selbst eine Datei zu suchen.</p>
 <p><b>\U0001f4e5 Einscannen</b> und <b>\U0001f4e4 Ausscannen</b> \u00f6ffnen die Kamera. Der

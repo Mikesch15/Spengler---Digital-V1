@@ -113,7 +113,7 @@ const SHELL = [
   "./js/79-offerte-erstellen.js",
   "./js/80-ruestblatt.js",
   "./js/81-fingerabdruck.js",
-  "./js/82-bteam-lager.js",
+  "./js/82-lieferanten-lager.js",
   // v3.200: fest im Projekt statt vom CDN - sonst laesst sich eine Offerte
   // ohne Verbindung nicht erzeugen (siehe vendor/README.md).
   // v3.205: supabase-js gehoert in den Vorrat, nicht auf einen fremden

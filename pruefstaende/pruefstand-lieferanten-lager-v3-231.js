@@ -1,4 +1,5 @@
-// Prueft das Lieferanten-Lager B-Team (v3.229).
+// Prueft das Lieferanten-Lager (v3.229 als "Lager B-Team", ab v3.231
+// mehrlieferantenfaehig).
 //
 // Ansage des Anwenders: "erstelle mal eine separate lagerverwaltung mit diesen
 // bteam produkten... die alte lagerverwaltung und die regiematerialliste nicht
@@ -14,11 +15,14 @@
 //   B  Der Bestand ist die Summe der Buchungen - nie ein Feld.
 //   C  Barcode: Treffer fuehrt zum Buchen, ein unbekannter Code legt NICHTS
 //      an, sagt aber, wohin er gehoert.
-//   D  Einlesen aktualisiert ueber die Artikelnummer und loescht nie.
+//   D  Einlesen aktualisiert ueber Lieferant + Artikelnummer und loescht nie.
 //   E  Buchen schreibt genau eine Bewegung - und keine Aenderung an alten.
 //   F  Verdrahtung: Datei, App-Huelle, Eintrag unter "Mehr", Hilfetext.
+//   H  Neue Positionen per Excel - ueber den VORHANDENEN Import.
+//   I  Kein Barcode ist kein Barcode (echter Fehler aus v3.230).
+//   K  Der Lieferant gehoert zum Schluessel (v3.231).
 //
-// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-bteam-lager-v3-229.js
+// Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-lieferanten-lager-v3-231.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path"),fs=require("fs");
@@ -34,10 +38,10 @@ const SB=`()=>{
  // Die Attrappe traegt DIESELBEN Artikel wie der Abschnitt darueber. Sonst
  // faellt auf die Nase, was in Wahrheit richtig ist: nach einer Buchung laedt
  // das Modul neu, und eine leere Attrappen-Tabelle leert dabei die Liste.
- window.__db={bteam_artikel:[
-   {id:1,artikelnr:"409373",bezeichnung:"Dachrinnen 330",ean:"3661587017460",vpe:5,gruppe:"Dachrinnen"},
-   {id:2,artikelnr:"422640",bezeichnung:"Rinnenseiher 60",ean:"1019006000005",vpe:1,gruppe:"Rinnenseiher"}],
-  bteam_bewegungen:[],ruf:[]};
+ window.__db={lieferanten_artikel:[
+   {id:1,lieferant:"B-Team",artikelnr:"409373",bezeichnung:"Dachrinnen 330",ean:"3661587017460",vpe:5,gruppe:"Dachrinnen"},
+   {id:2,lieferant:"B-Team",artikelnr:"422640",bezeichnung:"Rinnenseiher 60",ean:"1019006000005",vpe:1,gruppe:"Rinnenseiher"}],
+  lieferanten_bewegungen:[],ruf:[]};
  let n=100;
  const tisch=name=>({
   select(){ const q={
@@ -46,9 +50,13 @@ const SB=`()=>{
   insert(zeile){ window.__db.ruf.push({tisch:name,was:"insert",zeile});
    window.__db[name].push(Object.assign({id:++n},zeile));
    return Promise.resolve({error:null}); },
-  upsert(zeilen,opt){ window.__db.ruf.push({tisch:name,was:"upsert",anzahl:zeilen.length,opt});
+  upsert(zeilen,opt){ window.__db.ruf.push({tisch:name,was:"upsert",anzahl:zeilen.length,opt,zeilen});
    zeilen.forEach(z=>{
-    const da=window.__db[name].find(x=>x.artikelnr===z.artikelnr);
+    // Die Attrappe gleicht ueber DENSELBEN Schluessel ab wie die Datenbank:
+    // Lieferant UND Artikelnummer. Waere hier nur die Nummer gemeint,
+    // koennte der Pruefstand die Verwechslung gar nicht bemerken, die er
+    // in K verhindern soll.
+    const da=window.__db[name].find(x=>x.artikelnr===z.artikelnr&&x.lieferant===z.lieferant);
     if(da)Object.assign(da,z); else window.__db[name].push(Object.assign({id:++n},z));
    });
    return Promise.resolve({error:null}); },
@@ -75,35 +83,36 @@ const SB=`()=>{
 
  // ---- A  Wirklich separat -----------------------------------------------
  console.log("A · Wirklich separat, nicht nur separat aussehend");
- const quelle=lies("js/82-bteam-lager.js");
+ const quelle=lies("js/82-lieferanten-lager.js");
  // Die Tabellennamen der bestehenden Lagerverwaltung und des Regierapports.
  const FREMD=["materials","lager_varianten","lagerbestand_bewegungen","lagerbestand","reports","report_materials"];
  const angefasst=FREMD.filter(t=>new RegExp('from\\("'+t+'"\\)').test(quelle));
  p(angefasst.length===0,
    "A1 js/82 spricht KEINE Tabelle der bestehenden Lagerverwaltung und des Regierapports an",angefasst);
- p(/from\("bteam_artikel"\)/.test(quelle)&&/from\("bteam_bewegungen"\)/.test(quelle),
+ p(/from\("lieferanten_artikel"\)/.test(quelle)&&/from\("lieferanten_bewegungen"\)/.test(quelle),
    "A2 sondern ausschliesslich die eigenen",null);
  // Gegenprobe in die andere Richtung: die alten Dateien wissen nichts von
  // der neuen. Waere dort etwas eingebaut worden, waere "nicht anfassen"
  // gebrochen - unabhaengig davon, wie sauber js/82 selbst ist.
  const alt68=lies("js/68-lagerverwaltung.js"), alt59=lies("js/59-lagerbestand.js"), alt06=lies("js/06-rapport.js");
- p(!/bteam/i.test(alt68)&&!/bteam/i.test(alt59)&&!/bteam/i.test(alt06),
+ const spur=t=>/lieferanten_artikel|lieferanten_bewegungen|lfBestand|lfOeffnen|bteam/i.test(t);
+ p(!spur(alt68)&&!spur(alt59)&&!spur(alt06),
    "A3 GEGENPROBE: js/68, js/59 und js/06 enthalten keine einzige Zeile zum neuen Lager",
-   {js68:/bteam/i.test(alt68),js59:/bteam/i.test(alt59),js06:/bteam/i.test(alt06)});
+   {js68:spur(alt68),js59:spur(alt59),js06:spur(alt06)});
  p(!/function lager[A-Z]/.test(quelle),
    "A4 und js/82 definiert keine Funktion, die wie die alte heisst - kein Ueberschreiben aus Versehen",null);
 
  // ---- B  Der Bestand ist die Summe --------------------------------------
  console.log("\nB · Der Bestand ist die Summe der Buchungen");
  z=await page.evaluate(()=>{
-  btArtikel=[{id:1,artikelnr:"409373",bezeichnung:"Dachrinnen 330",ean:"3661587017460",vpe:5},
-             {id:2,artikelnr:"422640",bezeichnung:"Rinnenseiher 60",ean:"1019006000005",vpe:1}];
-  btBewegungen=[
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"409373",bezeichnung:"Dachrinnen 330",ean:"3661587017460",vpe:5},
+             {id:2,lieferant:"B-Team",artikelnr:"422640",bezeichnung:"Rinnenseiher 60",ean:"1019006000005",vpe:1}];
+  lfBewegungen=[
    {artikel_id:1,art:"zugang",menge:10},
    {artikel_id:1,art:"abgang",menge:3},
    {artikel_id:1,art:"korrektur",menge:-2},
    {artikel_id:2,art:"zugang",menge:4}];
-  return {a1:btBestand(1),a2:btBestand(2),leer:btBestand(99)};
+  return {a1:lfBestand(1),a2:lfBestand(2),leer:lfBestand(99)};
  });
  p(z.a1===5,"B1 Zugang 10, Abgang 3, Korrektur -2 ergibt 5",z);
  p(z.a2===4,"B2 ein zweiter Artikel zaehlt fuer sich",z);
@@ -114,11 +123,11 @@ const SB=`()=>{
  // "bestand", muss es die App ignorieren und weiter die Buchungen
  // zusammenzaehlen.
  z=await page.evaluate(()=>{
-  const merk=btArtikel;
-  btArtikel=[{id:1,artikelnr:"409373",bezeichnung:"D",bestand:999,menge:999}];
-  btBewegungen=[{artikel_id:1,art:"zugang",menge:7}];
-  const r=btBestand(1);
-  btArtikel=merk;
+  const merk=lfArtikel;
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"409373",bezeichnung:"D",bestand:999,menge:999}];
+  lfBewegungen=[{artikel_id:1,art:"zugang",menge:7}];
+  const r=lfBestand(1);
+  lfArtikel=merk;
   return r;
  });
  p(z===7,
@@ -127,9 +136,9 @@ const SB=`()=>{
  // ---- C  Barcode ---------------------------------------------------------
  console.log("\nC · Barcode");
  z=await page.evaluate(()=>{
-  const treffer=btArtikelZuBarcode("3661587017460");
-  const daneben=btArtikelZuBarcode("9999999999999");
-  const leer=btArtikelZuBarcode("");
+  const treffer=lfArtikelZuBarcode("3661587017460");
+  const daneben=lfArtikelZuBarcode("9999999999999");
+  const leer=lfArtikelZuBarcode("");
   return {treffer:treffer&&treffer.artikelnr, daneben, leer};
  });
  p(z.treffer==="409373","C1 ein bekannter Barcode findet seinen Artikel",z);
@@ -140,26 +149,26 @@ const SB=`()=>{
   // Den Scanner nachstellen: er liefert einen unbekannten Code.
   const echt=window.barcodeScannen;
   window.barcodeScannen=cb=>cb("9999999999999");
-  btScannenUndBuchen("zugang");
+  lfScannenUndBuchen("zugang");
   await new Promise(r=>setTimeout(r,120));
-  const meldung=$("bteamMeldung").textContent;
-  const dialogAuf=!$("bteamBuchenModal").hidden;
+  const meldung=$("liefMeldung").textContent;
+  const dialogAuf=!$("liefBuchenModal").hidden;
   window.barcodeScannen=echt;
   return {meldung,dialogAuf,schreibt:window.__db.ruf.length};
  },SB);
  p(z.schreibt===0,
-   "C3 GEGENPROBE: ein unbekannter Code legt NICHTS an - dieses Lager ist das Sortiment des Lieferanten",z);
+   "C3 GEGENPROBE: ein unbekannter Code legt NICHTS an - dieses Lager ist das Sortiment der Lieferanten",z);
  p(/Lagerverwaltung/.test(z.meldung)&&/9999999999999/.test(z.meldung),
    "C4 und die App sagt, wohin der Code dann gehoert - statt stumm nichts zu tun",z);
  p(z.dialogAuf===false,"C5 der Buchen-Dialog geht dabei nicht auf",z);
 
  // ---- D  Einlesen --------------------------------------------------------
  console.log("\nD · Sortiment einlesen");
- p(/onConflict:"company_id,artikelnr"/.test(quelle),
-   "D1 eingelesen wird ueber die Artikelnummer des Lieferanten - dasselbe Sortiment verdoppelt sich nicht",null);
+ p(/onConflict:"company_id,lieferant,artikelnr"/.test(quelle),
+   "D1 eingelesen wird ueber Lieferant UND Artikelnummer - dasselbe Sortiment verdoppelt sich nicht",null);
  p(!/\.delete\(\)/.test(quelle),
    "D2 GEGENPROBE: die Datei kennt kein Loeschen - ein Artikel, der in einer neuen Datei fehlt, bleibt stehen",null);
- const daten=JSON.parse(lies("daten/bteam-sortiment.json"));
+ const daten=JSON.parse(lies("daten/sortiment-bteam.json"));
  p(Array.isArray(daten.artikel)&&daten.artikel.length>400,
    "D3 die Sortimentsdatei liegt im Projekt und enthaelt das Sortiment",daten.artikel&&daten.artikel.length);
  const nr=new Set(), ean=new Set(); let doppelt=[];
@@ -169,23 +178,29 @@ const SB=`()=>{
  });
  p(doppelt.length===0,
    "D4 jede Artikelnummer und jeder Barcode kommt genau einmal vor - sonst waere beim Scannen nicht entscheidbar, welcher Artikel gemeint ist",doppelt.slice(0,5));
+ // v3.231: Der Lieferant steht in der DATEI, nicht im Code - sonst braeuchte
+ // die zweite Sortimentsdatei eine Programmaenderung.
+ p(typeof daten.lieferant==="string"&&daten.lieferant.trim().length>0,
+   "D5 die Sortimentsdatei sagt selbst, von welchem Lieferanten sie ist",daten.lieferant);
+ p(!/lieferant:"[^"]/.test(quelle),
+   "D6 GEGENPROBE: der Lieferantenname steht NICHT fest im Code - eine zweite Datei bringt ihren eigenen mit",null);
 
  // ---- E  Buchen ----------------------------------------------------------
  console.log("\nE · Buchen");
  z=await page.evaluate(async(f)=>{
   eval("("+f+")()");
   window.__db.ruf=[];
-  btBuchenOeffnen(1,"abgang");
-  const vorbelegt={art:$("bteamBuchenArt").value,menge:$("bteamBuchenMenge").value,
-                   titel:$("bteamBuchenTitel").textContent};
-  $("bteamBuchenMenge").value="2";
-  await btBuchenSpeichern();
+  lfBuchenOeffnen(1,"abgang");
+  const vorbelegt={art:$("liefBuchenArt").value,menge:$("liefBuchenMenge").value,
+                   titel:$("liefBuchenTitel").textContent};
+  $("liefBuchenMenge").value="2";
+  await lfBuchenSpeichern();
   await new Promise(r=>setTimeout(r,120));
-  return {vorbelegt, ruf:window.__db.ruf, zu:$("bteamBuchenModal").hidden};
+  return {vorbelegt, ruf:window.__db.ruf, zu:$("liefBuchenModal").hidden};
  },SB);
  p(z.vorbelegt.art==="abgang"&&z.vorbelegt.menge==="5",
    "E1 der Dialog kommt mit der gewaehlten Art und der Verpackungseinheit als Menge",z.vorbelegt);
- p(z.ruf.length===1&&z.ruf[0].tisch==="bteam_bewegungen"&&z.ruf[0].was==="insert",
+ p(z.ruf.length===1&&z.ruf[0].tisch==="lieferanten_bewegungen"&&z.ruf[0].was==="insert",
    "E2 gebucht wird mit GENAU einer neuen Bewegung",z.ruf);
  p(z.ruf[0]&&z.ruf[0].zeile.art==="abgang"&&Number(z.ruf[0].zeile.menge)===2,
    "E3 mit Art und Menge, wie eingegeben",z.ruf[0]&&z.ruf[0].zeile);
@@ -197,11 +212,11 @@ const SB=`()=>{
  z=await page.evaluate(async(f)=>{
   eval("("+f+")()");
   window.__db.ruf=[];
-  btBuchenOeffnen(1,"zugang");
-  $("bteamBuchenMenge").value="-5";
-  await btBuchenSpeichern();
+  lfBuchenOeffnen(1,"zugang");
+  $("liefBuchenMenge").value="-5";
+  await lfBuchenSpeichern();
   await new Promise(r=>setTimeout(r,80));
-  return {fehler:$("bteamBuchenFehler").textContent, ruf:window.__db.ruf.length};
+  return {fehler:$("liefBuchenFehler").textContent, ruf:window.__db.ruf.length};
  },SB);
  p(z.ruf===0&&/Korrektur/.test(z.fehler),
    "E6 GEGENPROBE: eine negative Menge wird nicht als Zugang gebucht, und die App sagt warum",z);
@@ -209,34 +224,42 @@ const SB=`()=>{
  // ---- F  Verdrahtung -----------------------------------------------------
  console.log("\nF · Verdrahtung");
  const html=lies("index.html"), sw=lies("sw.js"), a2=lies("js/70-ansicht2.js");
- p(/<script src="js\/82-bteam-lager\.js"><\/script>/.test(html),"F1 js/82 ist in index.html eingehaengt",null);
- p(/"\.\/js\/82-bteam-lager\.js"/.test(sw),"F2 und in der App-Huelle - ohne Verbindung sonst weg",null);
- p(/id="bteamModal"/.test(html)&&/id="bteamBuchenModal"/.test(html),"F3 beide Dialoge stehen im Dokument",null);
- p(/"bteam-lager":\{titel/.test(lies("js/41-hilfe.js")),"F4 der Hilfetext ist hinterlegt",null);
+ p(/<script src="js\/82-lieferanten-lager\.js"><\/script>/.test(html),"F1 js/82 ist in index.html eingehaengt",null);
+ p(/"\.\/js\/82-lieferanten-lager\.js"/.test(sw),"F2 und in der App-Huelle - ohne Verbindung sonst weg",null);
+ p(/id="liefModal"/.test(html)&&/id="liefBuchenModal"/.test(html),"F3 beide Dialoge stehen im Dokument",null);
+ p(/"lieferanten-lager":\{titel/.test(lies("js/41-hilfe.js")),"F4 der Hilfetext ist hinterlegt",null);
  z=await page.evaluate(()=>{
-  const mit=(()=>{ $("navLagerverwaltung").hidden=false; return /data-a2-tu="bteamlager"/.test(a2SeiteMehr()) })();
-  const ohne=(()=>{ $("navLagerverwaltung").hidden=true; return /data-a2-tu="bteamlager"/.test(a2SeiteMehr()) })();
+  const mit=(()=>{ $("navLagerverwaltung").hidden=false; return /data-a2-tu="lieferantenlager"/.test(a2SeiteMehr()) })();
+  const ohne=(()=>{ $("navLagerverwaltung").hidden=true; return /data-a2-tu="lieferantenlager"/.test(a2SeiteMehr()) })();
   $("navLagerverwaltung").hidden=false;
   return {mit,ohne};
  });
  p(z.mit===true,"F5 mit Lager-Zugriff steht der Eintrag unter Mehr",z);
  p(z.ohne===false,
    "F6 GEGENPROBE: ohne Lager-Zugriff nicht - dieselbe Freigabe wie fuer die Lagerverwaltung",z);
+ // v3.231: Die Umbenennung ist erst dann vollstaendig, wenn kein alter Name
+ // mehr irgendwo haengt. Eine halb umbenannte App faellt nicht beim Start
+ // auf, sondern erst, wenn jemand den einen Knopf drueckt, der vergessen
+ // wurde.
+ const altSpur=["index.html","sw.js","js/70-ansicht2.js","js/41-hilfe.js","js/82-lieferanten-lager.js"]
+  .filter(f=>/bteam(Modal|Buchen|Liste|Suche|Excel|Meldung|Kennzahlen|Ein|Aus|Schliessen|lager)|bteam_artikel|bteam_bewegungen|82-bteam-lager/.test(lies(f)));
+ p(altSpur.length===0,
+   "F7 GEGENPROBE: nirgends haengt noch ein alter Name (bteamModal, bteam_artikel, js/82-bteam-lager.js)",altSpur);
 
  // ---- H  Neue Positionen per Excel --------------------------------------
  // Ansage des Anwenders: "schaue auch direkt das ich in zukunft neue
  // positionen direkt in der app per excel datei hochladen kann."
  console.log("\nH · Neue Positionen per Excel hochladen");
- p(/initExcelImport\(\{/.test(quelle)&&/tableName:"bteam_artikel"/.test(quelle)
+ p(/initExcelImport\(\{/.test(quelle)&&/tableName:"lieferanten_artikel"/.test(quelle)
    &&/schluessel:"artikelnr"/.test(quelle),
    "H1 der Import haengt am VORHANDENEN Excel-Import (js/08) - kein zweiter, eigener",null);
  p(!/excelZeilenLesen|importAutoZuordnen|FileReader/.test(quelle),
    "H2 GEGENPROBE: js/82 liest keine Datei selbst - sonst gaebe es zwei Regeln dafuer, wie eine Lieferantenliste gelesen wird",null);
  z=await page.evaluate(()=>{
   const el=id=>!!document.getElementById(id);
-  const aufbau=document.getElementById("bteamExcelAufbau");
-  return {felder:["bteamExcelInput","bteamExcelBtn","bteamExcelPreview","bteamExcelMapping",
-                  "bteamExcelConfirm","bteamExcelCancel","bteamExcelHeader"].filter(x=>!el(x)),
+  const aufbau=document.getElementById("liefExcelAufbau");
+  return {felder:["liefExcelInput","liefExcelBtn","liefExcelPreview","liefExcelMapping",
+                  "liefExcelConfirm","liefExcelCancel","liefExcelHeader","liefExcelLieferant"].filter(x=>!el(x)),
           aufbau:aufbau?aufbau.textContent.replace(/\s+/g," "):"" };
  });
  p(z.felder.length===0,"H3 alle Bedienteile des Imports stehen im Dokument",z.felder);
@@ -267,14 +290,15 @@ const SB=`()=>{
  });
  p(z===null,"I2 beim Startsortiment wird ein leerer Barcode zu 'kein Barcode'",z);
  // Der Excel-Weg geht durch js/08 und schreibt "" - deshalb faengt das die
- // Datenbank ab (Trigger bteam_artikel_normalisieren, Migration v3.230).
- // Hier geprueft wird, was die App daraus MACHT, wenn es doch kracht.
+ // Datenbank ab (Trigger lieferanten_artikel_normalisieren, Migration
+ // v3.230). Hier geprueft wird, was die App daraus MACHT, wenn es doch kracht.
  z=await page.evaluate(()=>{
   const f=(m)=>importFehlerText({message:m});
   return {
-   ean:f('duplicate key value violates unique constraint "bteam_artikel_ean_uniq"'),
+   ean:f('duplicate key value violates unique constraint "lieferanten_artikel_ean_uniq"'),
    nr:f('duplicate key value violates unique constraint "materials_edv_nr_key"'),
    rls:f('new row violates row-level security policy'),
+   lief:f('new row for relation "lieferanten_artikel" violates check constraint "lieferanten_artikel_lieferant_gefuellt"'),
    unbekannt:f("irgendwas ganz anderes")
   };
  });
@@ -282,8 +306,91 @@ const SB=`()=>{
    "I3 ein doppelter Barcode wird in Sprache uebersetzt, die sagt, was zu tun ist",z.ean.slice(0,90));
  p(/Nummer/.test(z.nr),"I4 eine doppelte Nummer ebenso",z.nr.slice(0,80));
  p(/Berechtigung/.test(z.rls),"I5 und eine fehlende Berechtigung",z.rls.slice(0,60));
+ p(/Lieferant/.test(z.lief),"I6 und ein fehlender Lieferant (v3.231)",z.lief.slice(0,90));
  p(z.unbekannt==="irgendwas ganz anderes",
-   "I6 GEGENPROBE: was nicht in der Liste steht, wird im Wortlaut gezeigt - eine erfundene Erklaerung waere schlimmer als eine unverstaendliche echte",z.unbekannt);
+   "I7 GEGENPROBE: was nicht in der Liste steht, wird im Wortlaut gezeigt - eine erfundene Erklaerung waere schlimmer als eine unverstaendliche echte",z.unbekannt);
+
+ // ---- K  Der Lieferant gehoert zum Schluessel (v3.231) ------------------
+ //
+ // WARUM DAS DER TEURE FEHLER WAERE: Artikelnummern sind nur je Lieferant
+ // eindeutig. Eine "409373" gibt es bei jedem Haendler. Stuende der
+ // Lieferant nicht im Schluessel, wuerde die Preisliste des zweiten
+ // Haendlers die Artikel des ersten ueberschreiben - still, ohne Fehler,
+ // und erst beim Scannen faellt auf, dass hinter dem Barcode etwas anderes
+ // steht. Geprueft wird am VERHALTEN des Imports, nicht am Text der Datei.
+ console.log("\nK · Der Lieferant gehoert zum Schluessel");
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  return {lieferanten:lfLieferanten(), anzahl:lfArtikel.length};
+ },SB);
+ p(z.lieferanten.length===1&&z.lieferanten[0]==="B-Team",
+   "K1 die Lieferantenliste wird aus den Artikeln abgeleitet - keine zweite Liste daneben",z);
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  // Ein zweiter Haendler mit DERSELBEN Artikelnummer.
+  window.__db.lieferanten_artikel.push(
+   {id:3,lieferant:"Anderer Haendler",artikelnr:"409373",bezeichnung:"Ganz was anderes",vpe:1,gruppe:"Dachrinnen"});
+  await lfLaden();
+  return {anzahl:lfArtikel.length, lieferanten:lfLieferanten(),
+          gleicheNr:lfArtikel.filter(a=>a.artikelnr==="409373").map(a=>a.lieferant)};
+ },SB);
+ p(z.anzahl===3&&z.gleicheNr.length===2,
+   "K2 dieselbe Artikelnummer bei zwei Lieferanten sind ZWEI Artikel, nicht einer",z);
+ p(z.lieferanten.length===2,"K3 und beide Lieferanten stehen in der Liste",z.lieferanten);
+ // Der Import schreibt den oben gewaehlten Lieferanten mit - sonst laege der
+ // Artikel bei irgendeinem.
+ z=await page.evaluate(()=>{
+  $("liefExcelLieferant").value="  Neuer Haendler  ";
+  const gefuellt=lfExcelFestwerte();
+  $("liefExcelLieferant").value="   ";
+  const leer=lfExcelFestwerte();
+  $("liefExcelLieferant").value="";
+  return {gefuellt, leer};
+ });
+ p(z.gefuellt&&z.gefuellt.lieferant==="Neuer Haendler",
+   "K4 der Import schreibt den oben gewaehlten Lieferanten mit - samt weggeputzter Leerzeichen",z);
+ p(z.leer===null,
+   "K5 GEGENPROBE: ohne Angabe gibt es keine Festwerte - und js/08 bricht dann ab, statt einen Lieferanten zu erfinden",z);
+ // Die Vorschau "neu/geaendert" darf nur INNERHALB des gewaehlten
+ // Lieferanten vergleichen - sonst meldet sie die Nummer eines anderen
+ // Haendlers als "wird geaendert", obwohl sie einen anderen Artikel meint.
+ // Gemessen wird das am Ergebnis, nicht am Text: dieselbe Nummer, zwei
+ // Lieferanten, und der Vergleichsstand darf nur einen davon kennen.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  window.__db.lieferanten_artikel.push(
+   {id:3,lieferant:"Anderer Haendler",artikelnr:"409373",bezeichnung:"Ganz was anderes",vpe:1});
+  await lfLaden();
+  // lfVergleichsstand ist GENAU die Funktion, die js/08 als cfg.bestand()
+  // aufruft - nicht eine Nachbildung davon.
+  $("liefExcelLieferant").value="B-Team";
+  const bteam=(lfVergleichsstand()["409373"]||{}).bezeichnung;
+  $("liefExcelLieferant").value="Anderer Haendler";
+  const ander=(lfVergleichsstand()["409373"]||{}).bezeichnung;
+  $("liefExcelLieferant").value="";
+  return {bteam,ander};
+ },SB);
+ p(/Dachrinnen/.test(z.bteam||"")&&/Ganz was anderes/.test(z.ander||""),
+   "K6 GEGENPROBE: dieselbe Nummer liefert je nach gewaehltem Lieferanten einen ANDEREN Vergleichsartikel - die Vorschau meldet nichts faelschlich als 'wird geaendert'",z);
+ // Gegenprobe zu K6: derselbe Vergleichsstand muss auch den Lieferanten
+ // BERUECKSICHTIGEN, nicht nur zufaellig unterschiedliche Werte liefern.
+ // Ohne Angabe sieht er alles - sonst haette der erste Import gar keinen
+ // Vergleich.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  window.__db.lieferanten_artikel.push(
+   {id:3,lieferant:"Anderer Haendler",artikelnr:"999999",bezeichnung:"Nur beim anderen"});
+  await lfLaden();
+  $("liefExcelLieferant").value="B-Team";
+  const nurBteam=Object.keys(lfVergleichsstand()).length;
+  $("liefExcelLieferant").value="";
+  const alle=Object.keys(lfVergleichsstand()).length;
+  return {nurBteam,alle};
+ },SB);
+ p(z.nurBteam===2&&z.alle===3,
+   "K7 der Vergleichsstand kennt mit gewaehltem Lieferanten nur dessen Artikel - ohne Angabe alle",z);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

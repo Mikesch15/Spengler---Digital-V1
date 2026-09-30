@@ -3256,25 +3256,27 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
  </div>
 </div>
 
-<!-- v3.229: Lieferanten-Lager B-Team. Steht vollstaendig NEBEN der
-     bestehenden Lagerverwaltung (eigene Tabellen, eigene Datei
-     js/82-bteam-lager.js) - Ansage des Anwenders: "die alte lagerverwaltung
-     und die regiematerialliste nicht anfassen". -->
-<div id="bteamModal" class="modal no-print" hidden>
+<!-- v3.229: Lieferanten-Lager. Steht vollstaendig NEBEN der bestehenden
+     Lagerverwaltung (eigene Tabellen, eigene Datei
+     js/82-lieferanten-lager.js) - Ansage des Anwenders: "die alte
+     lagerverwaltung und die regiematerialliste nicht anfassen".
+     v3.231: mehrlieferantenfaehig, deshalb heisst es nicht mehr nach einem
+     einzelnen Haendler. -->
+<div id="liefModal" class="modal no-print" hidden>
  <div class="modalbox">
   <div class="card">
-   <h2>📦 Lager B-Team <button type="button" class="hilfe-knopf no-print" data-hilfe="bteam-lager">i</button></h2>
-   <div class="small" id="bteamKennzahlen" style="color:var(--muted)"></div>
+   <h2>📦 Lieferanten-Lager <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div class="small" id="liefKennzahlen" style="color:var(--muted)"></div>
    <!-- Scannen zuerst und gross: das ist die Arbeit, alles andere ist
         Verwaltung. Dieselbe Reihenfolge wie in der Lagerverwaltung. -->
    <div class="bar" style="margin-top:10px">
-    <button type="button" id="bteamEinscannen" class="blue">📥 Einscannen</button>
-    <button type="button" id="bteamAusscannen" class="blue">📤 Ausscannen</button>
+    <button type="button" id="liefEinscannen" class="blue">📥 Einscannen</button>
+    <button type="button" id="liefAusscannen" class="blue">📤 Ausscannen</button>
    </div>
-   <div class="small" id="bteamMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
+   <div class="small" id="liefMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
    <div class="wide"><label>Suchen</label>
-    <input id="bteamSuche" placeholder="Bezeichnung, Artikel-Nr., Barcode oder Material" autocomplete="off"></div>
-   <div id="bteamListe" style="margin-top:10px"></div>
+    <input id="liefSuche" placeholder="Bezeichnung, Artikel-Nr., Barcode, Material oder Lieferant" autocomplete="off"></div>
+   <div id="liefListe" style="margin-top:10px"></div>
    <!-- v3.229: Neue Positionen als Excel/CSV hochladen. Es ist DERSELBE
         Import wie beim Materialkatalog (initExcelImport, js/08) - nur mit
         anderen Feldern und einer anderen Zieltabelle. Ein zweiter, eigener
@@ -3282,27 +3284,34 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
         gelesen wird. -->
    <details class="mz-details import-aufbau" style="margin-top:12px">
     <summary>📄 Neue Positionen hochladen (Excel/CSV)</summary>
+    <!-- v3.231: Der Lieferant wird EINMAL fuer die ganze Datei gewaehlt und
+         steht nicht in ihr - eine Preisliste kommt von genau einem
+         Haendler. Die Auswahlliste fuellt sich aus den Lieferanten, die es
+         im Lager schon gibt: tippen muss man nur beim ersten Mal. -->
+    <div class="wide" style="margin-top:8px"><label>Von welchem Lieferanten ist die Datei?</label>
+     <input id="liefExcelLieferant" list="liefLieferantenListe" placeholder="z. B. B-Team" autocomplete="off">
+     <datalist id="liefLieferantenListe"></datalist></div>
     <div class="bar" style="margin-top:8px">
-     <button type="button" class="blue" id="bteamExcelBtn">📥 Excel-Datei wählen</button>
-     <button type="button" class="gray" id="bteamEinlesen">⬇ Startsortiment einlesen</button>
+     <button type="button" class="blue" id="liefExcelBtn">📥 Excel-Datei wählen</button>
+     <button type="button" class="gray" id="liefEinlesen">⬇ Startsortiment einlesen</button>
     </div>
-    <input type="file" id="bteamExcelInput" accept=".xlsx,.xlsm,.csv" hidden>
-    <details class="mz-details import-aufbau"><summary>Wie muss die Datei aufgebaut sein?</summary><div id="bteamExcelAufbau"></div></details>
-    <div id="bteamExcelPreview" hidden style="margin-top:10px">
-     <div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen. Eine Artikel-Nr., die es schon gibt, wird <b>aktualisiert</b>; unten steht vorher, was neu ist und was sich ändert. <b>Gelöscht wird nie</b>.</div>
-     <label class="rechte-schalter"><input type="checkbox" id="bteamExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
-     <div id="bteamExcelMapping" class="import-mapping"></div>
-     <div class="small" id="bteamExcelCount" style="margin:6px 0"></div>
-     <div class="small" id="bteamExcelFehler" style="margin:6px 0"></div>
-     <div class="scroll" style="max-height:260px"><table class="eb-table" id="bteamExcelTable"></table></div>
+    <input type="file" id="liefExcelInput" accept=".xlsx,.xlsm,.csv" hidden>
+    <details class="mz-details import-aufbau"><summary>Wie muss die Datei aufgebaut sein?</summary><div id="liefExcelAufbau"></div></details>
+    <div id="liefExcelPreview" hidden style="margin-top:10px">
+     <div class="info"><button type="button" class="hilfe-knopf no-print" data-hilfe="excel-import">i</button> Die Spalten lassen sich frei zuordnen. Eine Artikel-Nr., die es beim <b>gleichen Lieferanten</b> schon gibt, wird <b>aktualisiert</b>; unten steht vorher, was neu ist und was sich ändert. <b>Gelöscht wird nie</b>.</div>
+     <label class="rechte-schalter"><input type="checkbox" id="liefExcelHeader" checked> Erste Zeile ist eine Kopfzeile (wird übersprungen)</label>
+     <div id="liefExcelMapping" class="import-mapping"></div>
+     <div class="small" id="liefExcelCount" style="margin:6px 0"></div>
+     <div class="small" id="liefExcelFehler" style="margin:6px 0"></div>
+     <div class="scroll" style="max-height:260px"><table class="eb-table" id="liefExcelTable"></table></div>
      <div class="bar" style="margin-top:10px">
-      <button type="button" class="green" id="bteamExcelConfirm">✅ Import bestätigen</button>
-      <button type="button" class="gray" id="bteamExcelCancel">Abbrechen</button>
+      <button type="button" class="green" id="liefExcelConfirm">✅ Import bestätigen</button>
+      <button type="button" class="gray" id="liefExcelCancel">Abbrechen</button>
      </div>
     </div>
    </details>
    <div class="bar" style="margin-top:12px">
-    <button type="button" id="bteamSchliessen" class="gray">Schliessen</button>
+    <button type="button" id="liefSchliessen" class="gray">Schliessen</button>
    </div>
   </div>
  </div>
@@ -3310,25 +3319,25 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 
 <!-- Buchen im Lieferanten-Lager. Eigener Dialog, damit der Buchen-Dialog der
      bestehenden Lagerverwaltung unberuehrt bleibt. -->
-<div id="bteamBuchenModal" class="modal no-print" hidden>
+<div id="liefBuchenModal" class="modal no-print" hidden>
  <div class="modalbox">
   <div class="card">
-   <h2>Bewegung buchen <button type="button" class="hilfe-knopf no-print" data-hilfe="bteam-lager">i</button></h2>
-   <div><b id="bteamBuchenTitel"></b></div>
-   <div class="small" id="bteamBuchenUnter" style="color:var(--muted);margin-bottom:8px"></div>
+   <h2>Bewegung buchen <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div><b id="liefBuchenTitel"></b></div>
+   <div class="small" id="liefBuchenUnter" style="color:var(--muted);margin-bottom:8px"></div>
    <div class="grid">
-    <div><label>Art</label><select id="bteamBuchenArt">
+    <div><label>Art</label><select id="liefBuchenArt">
      <option value="zugang">Zugang</option>
      <option value="abgang">Abgang</option>
      <option value="korrektur">Korrektur</option>
     </select></div>
-    <div><label>Menge</label><input id="bteamBuchenMenge" type="number" step="any" inputmode="decimal"></div>
-    <div class="wide"><label>Bemerkung (freiwillig)</label><input id="bteamBuchenGrund" placeholder="z. B. Baustelle, Lieferschein-Nr."></div>
+    <div><label>Menge</label><input id="liefBuchenMenge" type="number" step="any" inputmode="decimal"></div>
+    <div class="wide"><label>Bemerkung (freiwillig)</label><input id="liefBuchenGrund" placeholder="z. B. Baustelle, Lieferschein-Nr."></div>
    </div>
-   <div class="small" id="bteamBuchenFehler" style="color:var(--red);min-height:18px;margin-top:6px"></div>
+   <div class="small" id="liefBuchenFehler" style="color:var(--red);min-height:18px;margin-top:6px"></div>
    <div class="bar">
-    <button type="button" id="bteamBuchenSpeichern" class="blue">Buchen</button>
-    <button type="button" id="bteamBuchenAbbrechen" class="gray">Abbrechen</button>
+    <button type="button" id="liefBuchenSpeichern" class="blue">Buchen</button>
+    <button type="button" id="liefBuchenAbbrechen" class="gray">Abbrechen</button>
    </div>
    <div class="small" style="color:var(--muted);margin-top:8px">Eine Buchung lässt sich nicht ändern und nicht löschen – ein Fehler wird mit einer <b>Korrektur</b> ausgeglichen. So bleibt nachvollziehbar, was wirklich passiert ist.</div>
   </div>
@@ -3438,7 +3447,7 @@ nicht neu installieren.</div>
 <script src="js/79-offerte-erstellen.js"></script>
 <script src="js/80-ruestblatt.js"></script>
 <script src="js/81-fingerabdruck.js"></script>
-<script src="js/82-bteam-lager.js"></script>
+<script src="js/82-lieferanten-lager.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

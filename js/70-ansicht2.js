@@ -868,13 +868,13 @@ function a2SeiteMehr(){
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
   {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
  ];
- // v3.229: Das Lieferanten-Lager B-Team. Eigener Punkt neben der
- // Lagerverwaltung, nicht in ihr - es ist ein eigenes Sortiment mit eigenen
- // Tabellen (js/82-bteam-lager.js). Sichtbar mit demselben Recht wie die
+ // v3.229: Das Lieferanten-Lager. Eigener Punkt neben der Lagerverwaltung,
+ // nicht in ihr - es ist ein eigenes Sortiment mit eigenen Tabellen
+ // (js/82-lieferanten-lager.js). Sichtbar mit demselben Recht wie die
  // Lagerverwaltung: wer Lager darf, darf beides.
  if(a2KnopfSichtbar("navLagerverwaltung"))
-  eintraege.push({id:"bteamlager",gruppe:"arbeiten",zeichen:"📦",text:"Lager B-Team",
-   unter:"Handelsware des Lieferanten – einscannen, ausscannen, Bestand"});
+  eintraege.push({id:"lieferantenlager",gruppe:"arbeiten",zeichen:"📦",text:"Lieferanten-Lager",
+   unter:"Handelsware der Lieferanten – einscannen, ausscannen, Bestand"});
  // v3.227: Konto wechseln nur fuer die Firmenadministration. Ansage des
  // Anwenders: "Die funktion konto wechseln soll es nur fuer mich als
  // firmenadmin geben". Gefragt wird kwZustaendig() aus js/76 - dieselbe
@@ -1192,7 +1192,7 @@ document.addEventListener("click",async e=>{
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
  if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
  if(was==="fingerabdruck"&&typeof faDialogOeffnen==="function"){faDialogOeffnen();return}
- if(was==="bteamlager"&&typeof btOeffnen==="function"){btOeffnen();return}
+ if(was==="lieferantenlager"&&typeof lfOeffnen==="function"){lfOeffnen();return}
  if(was==="abwicklung"&&typeof abwOeffnen==="function"){
   a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
   return;

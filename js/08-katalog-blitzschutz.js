@@ -150,7 +150,7 @@ function importAutoZuordnen(felder,kopf){
 // v3.230, ECHTER FEHLER - so hat der Anwender ihn gesehen: beim Hochladen
 // der Lieferantenliste stand im Dialog
 //   "Fehler beim Import: duplicate key value violates unique constraint
-//    bteam_artikel_ean_uniq"
+//    lieferanten_artikel_ean_uniq"   (damals bteam_artikel_ean_uniq)
 // Das ist die Sprache der Datenbank, nicht die des Spenglers. Sie sagt nicht,
 // WAS zu tun ist, und nennt einen Namen, den es in der App nirgends gibt.
 //
@@ -167,6 +167,13 @@ function importFehlerText(error){
  if(/duplicate key/i.test(t))
   return "Zwei Zeilen der Datei tragen dieselbe Nummer. Jede Nummer darf in der Datei "
    +"nur einmal vorkommen - sonst ist nicht entscheidbar, welche Zeile gilt.\n\n(" + t + ")";
+ // v3.231: Im Lieferanten-Lager haelt die Datenbank fest, dass jeder Artikel
+ // einen Lieferanten hat. Faellt das hier auf, ist oben im Import das Feld
+ // leer geblieben - und genau das gehoert gesagt, nicht der Regelname.
+ if(/lieferant_gefuellt/i.test(t))
+  return "Oben im Import fehlt der Lieferant. Jeder Artikel gehört zu genau einem "
+   +"Lieferanten - sonst wäre bei gleicher Artikelnummer nicht entscheidbar, "
+   +"wessen Artikel gemeint ist.\n\n(" + t + ")";
  if(/violates not-null|null value in column/i.test(t))
   return "In einer Zeile fehlt ein Pflichtfeld. Bitte die Spaltenzuordnung prüfen.\n\n(" + t + ")";
  if(/row-level security|policy|permission denied/i.test(t))
@@ -178,6 +185,13 @@ function initExcelImport(cfg){
  // cfg: {inputId,buttonId,previewId,headerCheckId,countId,tableId,mappingId,
  //       fehlerId,confirmId,cancelId,tableName,felder:[{key,label,zahl,pflicht,alias}],
  //       nachImport}
+ // freiwillig (v3.231):
+ //   onConflict      - die Spalten der Eindeutigkeitsregel, wenn sie nicht
+ //                     "company_id,<schluessel>" lautet
+ //   festwerte()     - Werte, die fuer die ganze Datei gelten (z. B. der
+ //                     Lieferant); gibt sie nichts zurueck, wird nicht
+ //                     importiert
+ //   festwerteFehler - was dann dasteht
  const input=$(cfg.inputId),btn=$(cfg.buttonId);
  if(!input||!btn)return;
  // Der Hinweis "wie muss die Datei aufgebaut sein" wird AUS cfg.felder
@@ -405,11 +419,26 @@ die Vorschau weist darauf hin.`:""}</div>`;
   const daten=verwendbar(datenZeilen());
   if(!daten.length){ alert("Keine vollständigen Zeilen zum Importieren gefunden."); return; }
   const st=einstufen(daten);
+  // v3.231: Festwerte - Angaben, die fuer die GANZE Datei gelten und deshalb
+  // nicht in ihr stehen. Beim Lieferanten-Lager ist das der Lieferant: eine
+  // Preisliste kommt von genau einem Haendler, ihn in jede Zeile zu
+  // schreiben waere 400-mal dieselbe Auskunft. Gewaehlt wird er einmal oben
+  // im Import, und von dort holt ihn cfg.festwerte().
+  //
+  // Gibt die Funktion nichts zurueck, fehlt die Angabe - dann wird NICHT
+  // importiert. Ein stillschweigend eingesetzter Ersatzwert waere schlimmer
+  // als ein abgebrochener Import: die Artikel laegen unter einem Lieferanten,
+  // den niemand gewaehlt hat.
+  const fest=(typeof cfg.festwerte==="function")?cfg.festwerte():null;
+  if(cfg.festwerte&&!fest){
+   alert(cfg.festwerteFehler||"Es fehlt eine Angabe, die für die ganze Datei gilt.");
+   return;
+  }
   // Nur die zugeordneten Felder schreiben (s. eintragAus): was die Datei
   // nicht mitbringt, bleibt in der Datenbank stehen. Und nur, was wirklich
   // neu oder geaendert ist - unveraenderte Positionen werden gar nicht erst
   // angefasst, damit ein Import mit 400 Zeilen nicht 400 Zeilen umschreibt.
-  const eintraege=st.neu.concat(st.geaendert).map(x=>x.e);
+  const eintraege=st.neu.concat(st.geaendert).map(x=>Object.assign({},x.e,fest||{}));
   // Doppelte Nummern INNERHALB der Datei wuerden im selben Befehl zweimal
   // auf dieselbe Zeile treffen - Postgres lehnt das ab ("cannot affect row
   // a second time"). Geprueft wird ueber ALLE Zeilen der Datei, nicht nur
@@ -464,8 +493,14 @@ die Vorschau weist darauf hin.`:""}</div>`;
     }
    }
   }
+  //
+  // v3.231: Die Regel ist nicht immer zweispaltig. Im Lieferanten-Lager ist
+  // die Artikelnummer nur JE LIEFERANT eindeutig - dort lautet sie
+  // (company_id, lieferant, artikelnr). cfg.onConflict darf sie deshalb
+  // nennen; ohne Angabe bleibt es bei der bisherigen Form.
+  const konflikt=cfg.onConflict||("company_id,"+cfg.schluessel);
   const {data,error}=await sb.from(cfg.tableName)
-    .upsert(eintraege,{onConflict:"company_id,"+cfg.schluessel}).select();
+    .upsert(eintraege,{onConflict:konflikt}).select();
   $(cfg.confirmId).disabled=false;
   if(error){ alert("Der Import wurde nicht gespeichert.\n\n"+importFehlerText(error)); return; }
   // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft
