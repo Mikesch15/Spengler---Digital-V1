@@ -3,9 +3,42 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.230`
+- Aktueller Entwicklungsstand: `v3.231`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.231: Lieferanten-Lager statt „Lager B-Team", Mindestbestand, Einkaufsliste
+
+Umbenannt wurde, solange es billig war: 439 Artikel, **null Buchungen**. Danach
+wäre es eine Migration statt eines Umbenennens gewesen.
+
+- Tabellen: `bteam_artikel` → `lieferanten_artikel`, `bteam_bewegungen` →
+  `lieferanten_bewegungen` (samt Indizes, Regeln, Trigger, Funktion, Policies).
+- Neue Spalte `lieferant`, not null, Regel „nicht leer". **Der Schlüssel lautet
+  jetzt `UNIQUE (company_id, lieferant, artikelnr)`** – Artikelnummern sind nur
+  je Lieferant eindeutig. Ohne den Lieferanten darin hätte die nächste
+  Preisliste die Artikel des ersten Händlers stillschweigend überschrieben.
+- Der **Barcode bleibt ohne Lieferant eindeutig**: ein EAN zeigt auf ein
+  physisches Produkt, nicht auf einen Händler – und beim Scannen muss
+  entscheidbar bleiben, welcher Artikel gemeint ist.
+- Neue Spalte `mindestbestand` (not null, 0, „nicht negativ"). **0 heisst „nicht
+  überwacht"**, nicht „Mindestbestand null".
+- Dateien: `js/82-bteam-lager.js` → `js/82-lieferanten-lager.js`,
+  `daten/bteam-sortiment.json` → `daten/sortiment-bteam.json`, Prüfstand →
+  `pruefstand-lieferanten-lager-v3-231.js` (73 Fälle).
+- Gemeinsamer Excel-Import `initExcelImport` (js/08) hat zwei **freiwillige**
+  Zusätze – bestehende Aufrufer unverändert: `cfg.onConflict` für Regeln, die
+  nicht `company_id,<schluessel>` lauten, und `cfg.festwerte()` für Angaben, die
+  für die ganze Datei gelten (hier der Lieferant). Fehlt die Angabe, wird nicht
+  importiert.
+- Einkaufsliste zeigt **Fehlmenge und Bestellmenge**: aufgerundet auf die VPE.
+  Der Text zum Verschicken entsteht aus derselben Liste.
+
+Offen aus der Durchsicht, noch nicht entschieden: Scannen im Regierapport;
+Brücke Katalogposition ↔ Lieferantenartikel (**berührt `materials`, braucht
+ausdrückliches OK**); Preisliste beim Händler anfragen (ohne Preise bleibt jede
+Bestell- und Kalkulationsfunktion Fassade); Projektbedarf → Reservierung,
+angedockt an Berechnung/Zuschnitt und **nicht** an die Offerte.
 
 ### v3.218: es gibt nur noch EINE Ansicht
 
