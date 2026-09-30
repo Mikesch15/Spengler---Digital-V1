@@ -1436,6 +1436,160 @@ const KATALOG=`()=>{
  });
  p(z.length===0,"S11 alle Bedienteile stehen im Dokument",z);
 
+ // ---- T  Wareneingang (v3.239) -----------------------------------------
+ //
+ // DIE REGEL IST EINE EINZIGE: was da ist, fehlt nicht mehr.
+ //   gebucht >= gewuenscht -> Wunsch erledigt
+ //   gebucht <  gewuenscht -> Wunsch um die gebuchte Menge verringert
+ //
+ // Der teure Fehler waere, den Wunsch bei einer Teillieferung auf der alten
+ // Menge stehen zu lassen: die Einkaufsliste verlangte weiter die GANZE
+ // Menge, und beim naechsten Bestellen kaeme das Zuwenig doppelt.
+ console.log("\nT · Wareneingang");
+ const EINGANG=`(wunsch)=>{
+  window.__db.lieferanten_artikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",
+    gruppe:"Rinnenstutzen",vpe:5,mindestbestand:0}];
+  window.__db.lieferanten_bewegungen=[];
+  window.__db.lieferanten_einkauf=wunsch
+   ? [{id:77,artikel_id:1,menge:wunsch,grund:"Baustelle Müller",erledigt_am:null}] : [];
+ }`;
+ // Volle Lieferung: Wunsch erledigt.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  await lfLaden();
+  window.__db.ruf=[];
+  lfBuchenOeffnen(1,"zugang");
+  const vorbelegt=$("liefBuchenMenge").value;
+  const hinweis=$("liefBuchenWunschHinweis").textContent;
+  const sichtbar=!$("liefBuchenWunschBox").hidden;
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  return {vorbelegt,hinweis,sichtbar,
+          ruf:window.__db.ruf.filter(r=>r.was!=="select"),
+          wunsch:window.__db.lieferanten_einkauf[0],
+          meldung:$("liefMeldung").textContent};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.vorbelegt==="12"&&z.sichtbar===true,
+   "T1 bei einem Zugang mit offenem Wunsch ist die WUNSCHmenge vorbelegt, nicht die Verpackungseinheit - das ist, was bestellt wurde",z);
+ p(/Offener Einkaufswunsch: 12/.test(z.hinweis)&&/erledigt/.test(z.hinweis),
+   "T2 und der Hinweis sagt vorher, was die Buchung mit dem Wunsch macht",z.hinweis);
+ p(z.wunsch&&!!z.wunsch.erledigt_am,
+   "T3 die volle Lieferung hakt den Wunsch ab",z.wunsch);
+ p(/Einkaufswunsch erledigt/.test(z.meldung),"T4 und die App sagt es",z.meldung);
+ // Teillieferung: Wunsch VERRINGERT, nicht erledigt und nicht unveraendert.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  await lfLaden();
+  lfBuchenOeffnen(1,"zugang");
+  $("liefBuchenMenge").value="5";
+  lfBuchenWunschZeichnen();
+  const hinweis=$("liefBuchenWunschHinweis").textContent;
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  return {hinweis, wunsch:window.__db.lieferanten_einkauf[0],
+          bestand:lfBestand(1), meldung:$("liefMeldung").textContent};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(/bleiben 7 offen/.test(z.hinweis),
+   "T5 der Hinweis rechnet beim Tippen mit - man muss nicht im Kopf ausrechnen, was offen bleibt",z.hinweis);
+ p(z.wunsch&&!z.wunsch.erledigt_am&&Number(z.wunsch.menge)===7,
+   "T6 eine Teillieferung VERRINGERT den Wunsch auf 7 - ihn auf 12 stehen zu lassen hiesse, das Zuwenig doppelt zu bestellen",z.wunsch);
+ p(z.bestand===5,"T7 und der Bestand steigt um das Gelieferte",z);
+ p(/steht noch auf 7/.test(z.meldung),"T8 die App sagt, was offen bleibt",z.meldung);
+ // Rest streichen: erledigt, obwohl weniger kam.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  await lfLaden();
+  lfBuchenOeffnen(1,"zugang");
+  $("liefBuchenMenge").value="5";
+  $("liefBuchenRestStreichen").checked=true;
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  return {wunsch:window.__db.lieferanten_einkauf[0], meldung:$("liefMeldung").textContent};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.wunsch&&!!z.wunsch.erledigt_am&&Number(z.wunsch.menge)===12,
+   "T9 'Rest streichen' hakt ab, OHNE die gewuenschte Menge zu verfaelschen - was verlangt war, bleibt nachvollziehbar",z.wunsch);
+ p(/Rest von 7 gestrichen/.test(z.meldung),"T10 und benennt den gestrichenen Rest",z.meldung);
+ // Der Haken ist AUS, solange nichts gesagt wird.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  await lfLaden();
+  $("liefBuchenRestStreichen").checked=true;      // Rest aus einem frueheren Dialog
+  lfBuchenOeffnen(1,"zugang");
+  return {haken:$("liefBuchenRestStreichen").checked};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.haken===false,
+   "T11 GEGENPROBE: der Haken ist beim Oeffnen immer AUS - ein stillschweigend gestrichener Rest waere Ware, die niemand mehr bestellt",z);
+ // Ein ABGANG darf den Wunsch nicht anfassen.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  window.__db.lieferanten_bewegungen=[{id:1,artikel_id:1,art:"zugang",menge:20}];
+  await lfLaden();
+  lfBuchenOeffnen(1,"abgang");
+  const sichtbar=!$("liefBuchenWunschBox").hidden;
+  const vorbelegt=$("liefBuchenMenge").value;
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  return {sichtbar,vorbelegt,wunsch:window.__db.lieferanten_einkauf[0]};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.sichtbar===false&&z.vorbelegt==="5",
+   "T12 bei einem ABGANG ist der Wunsch-Kasten weg und die Verpackungseinheit vorbelegt - er hat mit dem Wareneingang nichts zu tun",z);
+ p(z.wunsch&&!z.wunsch.erledigt_am&&Number(z.wunsch.menge)===12,
+   "T13 GEGENPROBE: ein Abgang laesst den Einkaufswunsch unberuehrt",z.wunsch);
+ // Ohne Wunsch: alles wie vorher, kein Schreibzugriff auf lieferanten_einkauf.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(0);
+  await lfLaden();
+  window.__db.ruf=[];
+  lfBuchenOeffnen(1,"zugang");
+  const vorbelegt=$("liefBuchenMenge").value;
+  const sichtbar=!$("liefBuchenWunschBox").hidden;
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  return {vorbelegt,sichtbar,
+          einkauf:window.__db.ruf.filter(r=>r.tisch==="lieferanten_einkauf").length};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.vorbelegt==="5"&&z.sichtbar===false&&z.einkauf===0,
+   "T14 ohne offenen Wunsch bleibt alles wie vorher - kein Kasten, Verpackungseinheit vorbelegt, kein Schreibzugriff auf die Einkaufsliste",z);
+ // Scheitert das Nachfuehren, bleibt die BUCHUNG stehen - die Ware ist da -
+ // aber es wird gesagt.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  await lfLaden();
+  const echt=sb.from;
+  sb.from=name=>{
+   const t=echt(name);
+   if(name==="lieferanten_einkauf")
+    return Object.assign({},t,{update:()=>({eq:()=>Promise.resolve({error:{message:"Netz weg"}})})});
+   return t;
+  };
+  lfBuchenOeffnen(1,"zugang");
+  await lfBuchenSpeichern();
+  await new Promise(r=>setTimeout(r,150));
+  sb.from=echt;
+  return {bestand:lfBestand(1), meldung:$("liefMeldung").textContent,
+          wunschOffen:!window.__db.lieferanten_einkauf[0].erledigt_am};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.bestand===12&&z.wunschOffen===true,
+   "T15 scheitert das Nachfuehren, bleibt die Buchung stehen - die Ware ist ja da",z);
+ p(/NICHT nachführen/.test(z.meldung)&&/Netz weg/.test(z.meldung),
+   "T16 GEGENPROBE: der Fehlschlag wird gesagt - sonst glaubte der Anwender, die Einkaufsliste sei nachgefuehrt",z.meldung);
+ // Der Eingangsknopf in der Einkaufsliste belegt die BESTELLmenge vor.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.e+")")(12);
+  window.__db.lieferanten_artikel[0].mindestbestand=0;
+  await lfLaden();
+  lfEinkaufZeichnen();
+  const knopf=document.querySelector("#liefEinkaufListe [data-lf-eingang]");
+  if(!knopf)return {fehlt:true};
+  const menge=knopf.getAttribute("data-lf-eingang-menge");
+  knopf.click();
+  await new Promise(r=>setTimeout(r,80));
+  return {menge, vorbelegt:$("liefBuchenMenge").value, auf:!$("liefBuchenModal").hidden};
+ },{f:SB,k:KATALOG,e:EINGANG});
+ p(z.menge==="15"&&z.vorbelegt==="15"&&z.auf===true,
+   "T17 der 📥 in der Einkaufsliste oeffnet den Zugang mit der BESTELLmenge (12 auf VPE 5 aufgerundet = 15) - mit der Liste in der Hand ist das die Zahl vom Lieferschein",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

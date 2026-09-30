@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1711,6 +1711,23 @@ umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
 Elektromaschinen). Erfunden wird nichts.</p>
 <div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
+<p><b>\U0001f4e5 Wareneingang – wenn die Lieferung kommt.</b> In der Einkaufsliste
+steht bei jeder Zeile ein <b>\U0001f4e5</b>: es öffnet den Zugang mit der
+<b>Bestellmenge</b> vorbelegt – mit der Liste in der Hand ist das die Zahl vom
+Lieferschein. Beim Ein- und Ausscannen geht es genauso.</p>
+<div class="hin"><b>Die Regel ist eine einzige: was da ist, fehlt nicht mehr.</b>
+Buchst du den Zugang, wird ein offener Einkaufswunsch nachgeführt –
+<b>vollständig geliefert</b> hakt ihn ab, eine <b>Teillieferung verringert</b>
+ihn. Schon vor dem Buchen steht im Dialog, was passieren wird: „Offener
+Einkaufswunsch: 12 · danach bleiben 7 offen.“</div>
+<p>Den Wunsch bei einer Teillieferung auf der alten Menge stehen zu lassen wäre
+der teure Fehler – die Liste würde weiter die ganze Menge verlangen, und beim
+nächsten Bestellen käme das Zuwenig doppelt.</p>
+<p><b>Rest streichen</b> ist die Ausnahme: der Rest kommt gar nicht mehr
+(abgesagt, ersetzt). Der Haken ist immer <b>aus</b>, solange du nichts sagst –
+ein stillschweigend gestrichener Rest wäre Ware, die niemand mehr bestellt und
+die auf der Baustelle fehlt. Die <i>gewünschte</i> Menge bleibt dabei
+unverändert festgehalten.</p>
 <p><b>\U0001f4dc Bewegungen</b> zeigt jede Buchung dieses Lagers, die neueste
 zuoberst: Zeitpunkt, Art, Menge, Artikel, Grund, Ziel, Projekt und wer sie
 gemacht hat. Filtern nach Zugang / Abgang / Korrektur, suchen nach Artikel,

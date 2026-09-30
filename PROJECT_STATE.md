@@ -3,9 +3,34 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.238`
+- Aktueller Entwicklungsstand: `v3.239`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.239: Wareneingang — die Einkaufsliste führt sich selbst nach
+
+**Die Regel ist eine einzige: was da ist, fehlt nicht mehr.**
+
+| Lage | Was mit dem Einkaufswunsch passiert |
+|---|---|
+| gebucht ≥ gewünscht | `erledigt_am` gesetzt |
+| gebucht < gewünscht | `menge` auf den Rest **verringert** |
+| „Rest streichen" angehakt | `erledigt_am` gesetzt, **`menge` unverändert** |
+
+Den Wunsch bei einer Teillieferung auf der alten Menge stehen zu lassen wäre der
+teure Fehler: die Einkaufsliste verlangte weiter die ganze Menge, und beim
+nächsten Bestellen käme das Zuwenig doppelt.
+
+- Bei einem **Zugang mit offenem Wunsch** ist dessen Menge vorbelegt, nicht die
+  VPE — das ist, was bestellt wurde.
+- Der **📥 in der Einkaufsliste** belegt die **Bestellmenge** vor (VPE-gerundet).
+- Der Haken „Rest streichen" ist beim Öffnen **immer aus** (T11) — ein
+  stillschweigend gestrichener Rest wäre Ware, die niemand mehr bestellt.
+- Ein **Abgang** fasst den Wunsch nie an (T13).
+- Nachführen erst **nach** der Buchung; scheitert es, bleibt die Buchung stehen
+  (die Ware ist da) und der Fehlschlag wird gesagt (T15/T16).
+- Die Regel `menge > 0` bleibt gewahrt: `rest <= 0` läuft über `erledigt_am`,
+  nie über eine Menge von 0.
 
 ### v3.238: Bewegungen ansehen
 

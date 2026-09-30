@@ -572,8 +572,16 @@ function lfEinkaufZeichnen(){
     <div style="color:var(--muted)">Bedarf ${esc(lfZahlText(lfBedarf(a)))}</div>
     ${lfHatPreis(a)?`<div style="color:var(--muted)">CHF ${esc(lfZeilenwert(a).toFixed(2))}</div>`:""}
    </div>
-   ${hand?`<div class="bar" style="margin:0"><button type="button" class="gray"
-     data-lf-erledigt="${esc(hand.id)}" title="Von Hand gesetzte Zeile abhaken">✓</button></div>`:""}
+   <div class="bar" style="margin:0">
+    <!-- v3.239: Wareneingang direkt aus der Einkaufsliste. Vorbelegt wird
+         die BESTELLmenge - mit der Liste in der Hand ist das die Zahl, die
+         auf dem Lieferschein steht. -->
+    <button type="button" class="blue" data-lf-eingang="${esc(a.id)}"
+     data-lf-eingang-menge="${esc(lfZahlText(lfBestellmenge(a)))}"
+     title="Wareneingang buchen">📥</button>
+    ${hand?`<button type="button" class="gray"
+     data-lf-erledigt="${esc(hand.id)}" title="Von Hand gesetzte Zeile abhaken">✓</button>`:""}
+   </div>
   </div>`;
  });
  // v3.233: Die Summe, und daneben ehrlich, was sie NICHT kennt. Solange
@@ -1218,7 +1226,38 @@ async function lfSortimentEinlesen(){
 // ---- Buchen ---------------------------------------------------------------
 let lfBuchenArtikelId=null;
 
-function lfBuchenOeffnen(artikelId,art){
+// v3.239: Wareneingang. Kommt die Ware und wird ein Zugang gebucht, ist der
+// offene Einkaufswunsch damit ganz oder teilweise erledigt.
+//
+// DIE REGEL IST EINE EINZIGE: was da ist, fehlt nicht mehr.
+//   gebucht >= gewuenscht  ->  Wunsch erledigt
+//   gebucht <  gewuenscht  ->  Wunsch um die gebuchte Menge verringert
+// Den Wunsch bei einer Teillieferung auf der alten Menge stehen zu lassen
+// waere der teure Fehler: die Einkaufsliste wuerde weiter die GANZE Menge
+// verlangen, und beim naechsten Bestellen kaeme das Zuwenig doppelt.
+//
+// Der Haken "Rest streichen" ist die Ausnahme fuer den Fall, dass der Rest
+// gar nicht mehr kommt (abgesagt, ersetzt). Aus, solange nichts gesagt wird -
+// ein stillschweigend gestrichener Rest waere Ware, die niemand mehr
+// bestellt und die auf der Baustelle fehlt.
+function lfBuchenWunschZeichnen(){
+ if(typeof $!=="function")return;
+ const a=lfArtikelZuId(lfBuchenArtikelId);
+ const box=$("liefBuchenWunschBox"), hin=$("liefBuchenWunschHinweis");
+ if(!box)return;
+ const w=lfHandEintrag(a);
+ const zugang=$("liefBuchenArt")&&$("liefBuchenArt").value==="zugang";
+ box.hidden=!(w&&zugang);
+ if(!w||!zugang)return;
+ const menge=lfZahl($("liefBuchenMenge").value);
+ const offen=lfZahl(w.menge)-menge;
+ if(hin)hin.textContent=
+  "Offener Einkaufswunsch: "+lfZahlText(w.menge)+(w.grund?" ("+w.grund+")":"")
+  +" · "+(offen<=0
+    ? "mit dieser Buchung erledigt."
+    : "danach bleiben "+lfZahlText(offen)+" offen.");
+}
+function lfBuchenOeffnen(artikelId,art,menge){
  if(typeof $!=="function")return;
  const a=lfArtikelZuId(artikelId);
  if(!a){ lfMeldung("Dieser Artikel ist nicht mehr da.",true); return }
@@ -1227,9 +1266,21 @@ function lfBuchenOeffnen(artikelId,art){
  $("liefBuchenUnter").textContent=(a.lieferant?a.lieferant+" · ":"")+"Art.-Nr. "+a.artikelnr
   +(a.ean?" · "+a.ean:"")+" · Bestand "+lfZahlText(lfBestand(a.id));
  $("liefBuchenArt").value=art||"zugang";
- $("liefBuchenMenge").value=a.vpe?lfZahlText(a.vpe):"1";
+ // Vorbelegt wird, was in dieser Lage die richtige Menge ist:
+ //  - eine mitgegebene (aus der Einkaufsliste: die Bestellmenge)
+ //  - sonst bei einem Zugang mit offenem Wunsch dessen Menge - das ist, was
+ //    bestellt wurde, nicht was in eine Packung geht
+ //  - sonst die Verpackungseinheit
+ const w=lfHandEintrag(a);
+ const vor=(menge!==undefined&&menge!==null&&lfZahl(menge)>0) ? lfZahl(menge)
+   : ((art||"zugang")==="zugang"&&w) ? lfZahl(w.menge)
+   : (a.vpe?lfZahl(a.vpe):1);
+ $("liefBuchenMenge").value=lfZahlText(vor);
  $("liefBuchenGrund").value="";
  $("liefBuchenFehler").textContent="";
+ const rest=$("liefBuchenRestStreichen");
+ if(rest)rest.checked=false;
+ lfBuchenWunschZeichnen();
  $("liefBuchenModal").hidden=false;
  setTimeout(()=>{ const f=$("liefBuchenMenge"); if(f){f.focus();f.select()} },60);
 }
@@ -1261,11 +1312,48 @@ async function lfBuchenSpeichern(){
   $("liefBuchenSpeichern").disabled=false;
   return;
  }
+ // v3.239: Wareneingang - der offene Einkaufswunsch wird nachgefuehrt. Erst
+ // NACH der Buchung: schlaegt die fehl, ist auch nichts angekommen, und der
+ // Wunsch muss unberuehrt bleiben.
+ //
+ // Ein Fehlschlag HIER nimmt die Buchung nicht zurueck - die Ware ist ja da.
+ // Er wird aber gesagt, sonst glaubte der Anwender, die Einkaufsliste sei
+ // nachgefuehrt.
+ let wunschHinweis="";
+ const w=(art==="zugang")?lfHandEintrag(a):null;
+ if(w){
+  const rest=lfZahl(w.menge)-Math.abs(menge);
+  const streichen=$("liefBuchenRestStreichen")&&$("liefBuchenRestStreichen").checked;
+  try{
+   if(rest<=0||streichen){
+    const r=await sb.from("lieferanten_einkauf").update({
+     erledigt_am:new Date().toISOString(),
+     erledigt_von:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
+    }).eq("id",w.id);
+    if(r.error)throw r.error;
+    wunschHinweis=(rest<=0)
+     ? " Einkaufswunsch erledigt."
+     : " Rest von "+lfZahlText(rest)+" gestrichen, Einkaufswunsch erledigt.";
+   }else{
+    // Verringern, nicht loeschen: der Rest fehlt weiterhin. Die
+    // Datenbankregel menge > 0 ist damit gewahrt - der Fall rest <= 0
+    // laeuft oben ueber erledigt_am.
+    const r=await sb.from("lieferanten_einkauf").update({menge:rest}).eq("id",w.id);
+    if(r.error)throw r.error;
+    wunschHinweis=" Einkaufswunsch steht noch auf "+lfZahlText(rest)+".";
+   }
+  }catch(e){
+   wunschHinweis=" Der Einkaufswunsch liess sich NICHT nachführen: "+((e&&e.message)||e);
+  }
+ }
  $("liefBuchenSpeichern").disabled=false;
  lfBuchenSchliessen();
  await lfLaden();
  lfZeichnen();
- lfMeldung(LF_ART_TEXT[art]+" von "+lfZahlText(menge)+" auf „"+a.bezeichnung+"“ gebucht. Bestand jetzt "+lfZahlText(lfBestand(a.id))+".");
+ if($("liefEinkaufModal")&&!$("liefEinkaufModal").hidden)lfEinkaufZeichnen();
+ if($("liefBewModal")&&!$("liefBewModal").hidden)lfBewegungenZeichnen();
+ lfMeldung(LF_ART_TEXT[art]+" von "+lfZahlText(menge)+" auf „"+a.bezeichnung+"“ gebucht. Bestand jetzt "+lfZahlText(lfBestand(a.id))+"."+wunschHinweis,
+   /NICHT nachführen/.test(wunschHinweis));
 }
 
 // ---- Scannen --------------------------------------------------------------
@@ -1463,6 +1551,13 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
  if(art){ lfArtikelOeffnen(art.getAttribute("data-lf-artikel")); return }
  const erl=t.closest("[data-lf-erledigt]");
  if(erl){ lfEinkaufErledigt(erl.getAttribute("data-lf-erledigt")); return }
+ // v3.239: Wareneingang aus der Einkaufsliste.
+ const ein2=t.closest("[data-lf-eingang]");
+ if(ein2){
+  lfBuchenOeffnen(ein2.getAttribute("data-lf-eingang"),"zugang",
+   ein2.getAttribute("data-lf-eingang-menge"));
+  return;
+ }
  // v3.234: eine Regie-Position im Artikel-Dialog waehlen oder entfernen.
  const reg=t.closest("[data-lf-regie]");
  if(reg){
@@ -1552,6 +1647,12 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefSchliessen",()=>{ $("liefModal").hidden=true });
  an("liefBuchenAbbrechen",()=>lfBuchenSchliessen());
  an("liefBuchenSpeichern",()=>lfBuchenSpeichern());
+ // v3.239: Der Hinweis zum Einkaufswunsch rechnet mit, waehrend getippt
+ // wird - sonst muesste man im Kopf ausrechnen, was offen bleibt.
+ const bm=$("liefBuchenMenge");
+ if(bm)bm.addEventListener("input",()=>lfBuchenWunschZeichnen());
+ const bart=$("liefBuchenArt");
+ if(bart)bart.addEventListener("change",()=>lfBuchenWunschZeichnen());
  an("liefEinkaufKnopf",()=>lfEinkaufOeffnen());
  an("liefEinkaufKopieren",()=>lfEinkaufKopieren());
  an("liefEinkaufSchliessen",()=>{ $("liefEinkaufModal").hidden=true });

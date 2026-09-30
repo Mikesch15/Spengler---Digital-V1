@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.238</div>
+<div id="appVersion">Version 3.239</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2485,7 +2485,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 118 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 119 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3232,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3347,6 +3347,14 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
     </select></div>
     <div><label>Menge</label><input id="liefBuchenMenge" type="number" step="any" inputmode="decimal"></div>
     <div class="wide"><label>Bemerkung (freiwillig)</label><input id="liefBuchenGrund" placeholder="z. B. Baustelle, Lieferschein-Nr."></div>
+   </div>
+   <!-- v3.239: Wareneingang. Kommt die Ware, ist der offene Einkaufswunsch
+        damit ganz oder teilweise erledigt. Die Regel ist eine einzige: was
+        da ist, fehlt nicht mehr. Der Haken ist die Ausnahme für den Fall,
+        dass der Rest gar nicht mehr kommt. -->
+   <div id="liefBuchenWunschBox" hidden style="margin-top:8px">
+    <div class="info" style="margin:0"><span id="liefBuchenWunschHinweis"></span></div>
+    <label class="rechte-schalter" style="margin-top:6px"><input type="checkbox" id="liefBuchenRestStreichen"> Rest <b>streichen</b> – kommt nicht mehr nach</label>
    </div>
    <div class="small" id="liefBuchenFehler" style="color:var(--red);min-height:18px;margin-top:6px"></div>
    <div class="bar">
