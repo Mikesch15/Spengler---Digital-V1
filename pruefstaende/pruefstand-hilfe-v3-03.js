@@ -87,7 +87,11 @@ const ARTEN=[
   // echte deutsche Woerter, in denen ae/oe/ue nur zufaellig vorkommt
   // "vertrauen" ist wie "Dauer" oder "genau" ein echtes deutsches Wort, in dem
   // "aue" nur zufaellig steckt - kein ae/oe/ue als Ersatzschreibweise.
-  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|grau|graue|grauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue|Vorschau|schauen|Schauen)/i;
+  // v3.234: "euer"/"eure" dazu - dieselbe Klasse wie "neu", "quer" und
+  // "zuerst": echtes Deutsch, in dem "ue" nur zufaellig steht. Die Regel
+  // wird damit NICHT weicher, sie wird richtiger; die Gegenprobe unten
+  // haelt fest, dass echte Ersatzschreibweisen weiter auffallen.
+  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|grau|graue|grauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue|Vorschau|schauen|Schauen|euer|eure|eurem|euren|eures)/i;
   const treffer=[];
   const textVon=t=>typeof t.text==="function"?t.text():t.text;
   Object.keys(HILFE_TEXTE).forEach(k=>{
@@ -99,6 +103,26 @@ const ARTEN=[
   return [...new Set(treffer)];
  });
  p(umlaut.length===0,"Benutzertext mit echten Umlauten (kein ae/oe/ue)",umlaut.slice(0,12));
+ // GEGENPROBE zur Ausnahmeliste (v3.234): sie darf nur echte deutsche
+ // Woerter durchlassen. Waechst sie unbemerkt, bis sie alles erlaubt, meldet
+ // die Pruefung oben nichts mehr und sieht trotzdem gruen aus - der
+ // gefaehrlichste Zustand. Deshalb wird hier an erfundenen Beispielen
+ // gemessen, dass echte Ersatzschreibweisen WEITERHIN auffallen.
+ const umlautProbe=await page.evaluate(()=>{
+  const echt=/(ae|oe|ue)/;
+  const erlaubt=/^(neu|neue|neuen|neueste|quer|zuerst|steuert|Mauerabdeckung|Neue|Dauer|dauer|bauen|aufbauen|Bauen|aktuell|blau|blaue|blauen|grau|graue|grauen|genau|genaue|genauen|Frau|Quelle|Quellen|quelle|vertrauen|Vertrauen|vertraue|Vorschau|schauen|Schauen|euer|eure|eurem|euren|eures)/i;
+  const faellt=w=>echt.test(w)&&!erlaubt.test(w)&&!/[ÄÖÜäöü]/.test(w);
+  return {
+   // muessen auffallen - das sind Ersatzschreibweisen
+   schlecht:["ueber","fuer","moeglich","waere","zurueck","Groesse","haengt"].filter(w=>!faellt(w)),
+   // duerfen NICHT auffallen - echtes Deutsch
+   gut:["euer","eure","neue","zuerst","genau","Quelle","über","für"].filter(w=>faellt(w))
+  };
+ });
+ p(umlautProbe.schlecht.length===0,
+   "GEGENPROBE: echte Ersatzschreibweisen fallen weiterhin auf - die Ausnahmeliste hat die Regel nicht ausgehoehlt",umlautProbe.schlecht);
+ p(umlautProbe.gut.length===0,
+   "GEGENPROBE: echtes Deutsch mit zufaelligem ue wird nicht faelschlich gemeldet",umlautProbe.gut);
 
  // ------------------------------------------------------- B Knoepfe im HTML
  console.log("\nB · Info-Knoepfe");

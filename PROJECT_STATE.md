@@ -3,9 +3,35 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.233`
+- Aktueller Entwicklungsstand: `v3.234`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.234: Die Brücke Lieferantenartikel → Regie-Position
+
+Ansage: „die artikel aus unserer regieliste decken sich viele mit der bteam
+liste... aber nicht alle." / „Ja, bau die brücke."
+
+**Nachgemessen: die beiden Listen sind zwei EBENEN, nicht zwei Fassungen.**
+Regie = `„Rinnenseiher, alle Materialien"` (Abrechnungsposition),
+B-Team = `„Rinnenseiher 60 mm Stahl verzinkt"` (Artikel). **Das Verhältnis ist
+n:1 und nie 1:1** — deshalb wird verbunden, nicht zusammengeführt.
+
+- Spalte `lieferanten_artikel.material_id` → `materials(id)`, ON DELETE SET NULL.
+  **NULL ist ein gültiger, erwarteter Zustand** („nicht alle").
+- Trigger `lieferanten_artikel_regie_pruefen_trg`: der FK prüft nur, *dass* es
+  die Zeile gibt, nicht *wem* sie gehört. Ohne ihn liesse sich auf die
+  Regie-Position einer anderen Firma zeigen.
+- Funktion `lieferanten_zuordnen(jsonb)` für viele Zuordnungen in einem Aufruf,
+  **bewusst ohne `security definer`** — RLS, Firmen-Grenze und Trigger greifen
+  wie bei einem gewöhnlichen update.
+- **`materials` wird nur gelesen**, über `lagArtikelListe()` (js/59).
+- Vorgeschlagen wird mit `rmatVorschlaege()`/`rmatIstSicher()` aus js/57 — der
+  vorhandenen Bewertung. Angepasst ist nur: die Einheit ist dort ein harter
+  Filter, Lieferantenartikel haben keine, deshalb werden **beide** Klassen
+  gefragt, die für Ware in Frage kommen (Stück 182, Länge 81).
+- **Vorgewählt wird nur, wo die Bewertung deutlich führt.** Ein vorgewählter
+  Halbtreffer wäre schlimmer als gar keiner.
 
 ### VERBINDLICH: welche Materialliste wofür da ist
 
@@ -18,7 +44,7 @@ Es gibt **drei** Listen, nicht zwei. Sie dürfen nicht vermischt werden:
 | Liste | Tabelle | Zeilen | Wofür – und NUR dafür |
 |---|---|---|---|
 | **Werkstoff** | `measurement_materials` | 16 | Massaufnahme → Berechnung → Zuschnitt → Reservierung. Coil und Blech (Titanzink 0.7 …), samt Dehnungsabständen |
-| **Regiematerial** | `materials` | 760 | **nur** Regierapport und Regieofferte. Eure EDV-Nummern, eure Preise |
+| **Regiematerial** | `materials` | 380 | **nur** Regierapport und Regieofferte. Eure EDV-Nummern, eure Preise |
 | **Lieferantensortiment** | `lieferanten_artikel` | 439 | Handelsware: Bestand, Barcode, Mindestbestand, Einkaufsliste |
 
 Nachgemessen an den Fremdschlüsseln (nicht angenommen):
@@ -31,7 +57,7 @@ sie waren nie dort. Die Liste `measurements.rapport_material` (js/57) trägt zwa
 EDV-Nummern, ist aber ausdrücklich *Material für den Regierapport* und damit
 regelkonform.
 
-**Offen und NICHT entschieden:** `lager_varianten` (761 Produkte) sitzt auf
+**Offen und NICHT entschieden:** `lager_varianten` (381 Produkte) sitzt auf
 `materials` und ist praktisch 1:1 dessen Spiegel. Nach der Regel oben wäre das
 Handelsware und gehörte ins Lieferanten-Lager. Das widerspricht aber der früheren
 Ansage „die alte lagerverwaltung und die regiematerialliste nicht anfassen".

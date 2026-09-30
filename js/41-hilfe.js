@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.233.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.234.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1654,6 +1654,25 @@ Preis steht auch, von wann er ist \u2013 ist er \u00e4lter als ein Jahr, sagt di
 Einzelne Preise tr\u00e4gst du am Artikel ein; die <b>Preisliste des H\u00e4ndlers</b>
 kommt als Excel-Datei \u00fcber denselben Import wie alles andere (Spalte
 \u201ePreis\u201c).</div>
+<p><b>\U0001f517 Zuordnen \u2013 die Br\u00fccke zur Regieliste.</b> Jeder Lieferantenartikel
+kann auf eine <b>Regie-Position</b> zeigen: die Zeile eures Katalogs, mit der
+er im <b>Regierapport</b> verrechnet wird \u2013 eure EDV-Nr., euer Preis.</p>
+<div class="hin"><b>Warum nicht einfach zusammenlegen?</b> Weil es zwei
+<i>Ebenen</i> sind, nicht zwei Listen. Eure Regieliste f\u00fchrt
+\u201eRinnenseiher, alle Materialien\u201c \u2013 eine Abrechnungsposition. Der H\u00e4ndler
+f\u00fchrt \u201eRinnenseiher 60 mm\u201c, \u201e75 mm\u201c und \u201e100 mm\u201c \u2013 drei Artikel.
+<b>Viele Artikel zeigen auf dieselbe Position</b>, und das ist richtig so.</div>
+<p><b>Zuordnen</b> zeigt alle noch offenen Artikel mit dem <b>Vorschlag der
+App</b>. Vorgew\u00e4hlt wird nur, wo die Bewertung deutlich f\u00fchrt \u2013 sonst steht
+der Vorschlag da und du entscheidest. <b>\u2705 Sichere Vorschl\u00e4ge einsetzen</b>
+nimmt in einem Zug alle, bei denen sich die App sicher ist; gespeichert wird
+erst, wenn du <b>Speichern</b> dr\u00fcckst.</p>
+<p><b>Ein Artikel ohne passende Regie-Position bleibt ohne.</b> Das ist kein
+Fehler: nicht jeder Artikel des H\u00e4ndlers hat bei euch eine Position, und
+umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
+Elektromaschinen). Erfunden wird nichts.</p>
+<div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
+EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
 <p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
 Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
 

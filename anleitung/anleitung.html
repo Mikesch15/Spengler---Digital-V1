@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.233";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.234";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.233<br>
+  Version 3.234<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2518,6 +2518,33 @@ Monaten genauso aus wie gestern. Einzelne Preise trägst du am Artikel ein; die
 ganze <strong>Preisliste des Händlers</strong> kommt als Excel-Datei über denselben
 Import wie alles andere, Spalte „Preis“.</p>
 
+<h3>Zuordnen – die Brücke zur Regieliste</h3>
+<p>Jeder Lieferantenartikel kann auf eine <strong>Regie-Position</strong> zeigen:
+die Zeile eures Katalogs, mit der er im <strong>Regierapport</strong> verrechnet
+wird – eure EDV-Nr., euer Preis.</p>
+<div class="hin"><strong>Warum nicht einfach zusammenlegen?</strong> Weil es zwei
+<em>Ebenen</em> sind, nicht zwei Listen. Eure Regieliste führt „Rinnenseiher, alle
+Materialien“ – eine Abrechnungsposition. Der Händler führt „Rinnenseiher 60 mm“,
+„75 mm“ und „100 mm“ – drei Artikel. <strong>Viele Artikel zeigen auf dieselbe
+Position</strong>, und das ist richtig so.</div>
+<p>Unter <span class="tasten">🔗 Zuordnen</span> stehen alle noch offenen Artikel
+mit dem <strong>Vorschlag der App</strong>, nach Produktgruppe geordnet. Der
+Vorschlag entsteht mit derselben Bewertung, die auch aus einer gerechneten
+Massaufnahme-Position eine Katalogzeile vorschlägt.</p>
+<div class="hin"><strong>Vorgewählt wird nur, wo die Bewertung deutlich führt.</strong>
+Sonst steht der Vorschlag da und du entscheidest. Ein vorgewählter Halbtreffer wäre
+schlimmer als gar keiner – er würde unbesehen durchgewinkt.</div>
+<p><span class="tasten">✅ Sichere Vorschläge einsetzen</span> nimmt in einem Zug
+alle, bei denen sich die App sicher ist. <strong>Gespeichert wird erst</strong>,
+wenn du <span class="tasten">💾 Speichern</span> drückst; oben steht, wie viele
+Änderungen offen sind.</p>
+<p><strong>Ein Artikel ohne passende Regie-Position bleibt ohne.</strong> Das ist
+kein Fehler: nicht jeder Artikel des Händlers hat bei euch eine Position, und
+umgekehrt gibt es Regie-Positionen, die gar keine Ware sind – Rollgerüst,
+Elektromaschinen, Schweisszeit. Erfunden wird nichts.</p>
+<div class="hin">Die <strong>Regieliste selbst wird nur gelesen</strong>. An euren
+EDV-Nummern, an den Preisen und am Regierapport ändert sich dadurch nichts.</div>
+
 <h3>Ein Mitarbeiterkonto anlegen</h3>
 <p>Vorname und Nachname genügen. Zusätzlich lässt sich eine
 <strong>E-Mail-Adresse</strong> angeben – freiwillig. Sie bewirkt zweierlei: die Person
@@ -2878,7 +2905,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.233</strong>, Stand 30. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.234</strong>, Stand 30. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
