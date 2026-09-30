@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.231";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.232";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.231<br>
+  Version 3.232<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2461,16 +2461,34 @@ wird mit einer <strong>Korrektur</strong> ausgeglichen. So bleibt nachvollziehba
 was wirklich passiert ist.</div>
 
 <h3>Einkaufsliste – was bestellt werden muss</h3>
-<p>Einen Artikel in der Liste <strong>antippen</strong> und dort einen
-<strong>Mindestbestand</strong> eintragen: die Menge, die da sein soll. Fällt der
-Bestand darunter, fällt das schon in der Lagerzeile auf – rot, „3 von 10“ – und der
-Artikel steht unter <span class="tasten">🛒 Einkaufsliste</span>, nach Lieferant und
-Produktgruppe geordnet.</p>
-<div class="hin"><strong>Warum stehen dort zwei Zahlen?</strong> Die
-<strong>Fehlmenge</strong> ist die Wahrheit über den Mangel, die
-<strong>Bestellmenge</strong> die über die Bestellung: wer 3 braucht und der Händler
-liefert Fünferpackungen, bestellt 5. Aufgerundet wird auf die <strong>VPE</strong>
-des Artikels; hat er keine, sind Fehl- und Bestellmenge dasselbe.</div>
+<p>Auf die Liste kommt etwas auf <strong>zwei Wegen</strong>, und beide beginnen
+damit, den Artikel in der Liste <strong>anzutippen</strong>.</p>
+<p><strong>1. Dauerhaft – über den Mindestbestand.</strong> Trage die Menge ein, die
+da sein soll. Fällt der Bestand darunter, fällt das schon in der Lagerzeile auf –
+rot, „3 von 10“ – und der Artikel steht von selbst unter
+<span class="tasten">📋 Einkaufsliste</span>, nach Lieferant und Produktgruppe
+geordnet. Das ist eine Regel; sie gilt weiter.</p>
+<p><strong>2. Einmalig – 🛒 Auf die Einkaufsliste.</strong> Im selben Dialog, unten:
+Menge eintragen, bei Bedarf dazuschreiben wofür („Baustelle Müller“), fertig. Dafür
+braucht es <em>keinen</em> Mindestbestand – gedacht für die Sonderbestellung.
+Abgehakt wird sie in der Einkaufsliste mit <strong>✓</strong>; abhaken ist kein
+Löschen, die Zeile verschwindet nur von der Liste.</p>
+<div class="hin"><strong>🛒 heisst hinzufügen, 📋 heisst ansehen.</strong> Steht ein
+Artikel schon von Hand auf der Liste, kommen Menge und Grund beim Öffnen mit, und der
+Knopf ändert die vorhandene Zeile – je Artikel gibt es genau <strong>einen</strong>
+offenen Wunsch. Eine Liste, in der derselbe Artikel dreimal steht, sagt nicht, wie
+viel bestellt werden soll.</div>
+<p>Steht ein Artikel <strong>aus beiden Gründen</strong> auf der Liste, werden die
+Mengen <strong>addiert</strong> – beide Bedarfe sind echt: der Mindestbestand sagt,
+was ins Regal zurück muss, die Handmenge, was zusätzlich auf die Baustelle geht. In
+der Zeile steht, woraus sich die Bestellmenge zusammensetzt, damit nichts versteckt
+gerechnet wird.</p>
+<div class="hin"><strong>Warum stehen dort zwei Zahlen?</strong> Der
+<strong>Bedarf</strong> ist die Wahrheit über den Mangel, die
+<strong>Bestellmenge</strong> (gross und rot) die über die Bestellung: wer 3 braucht
+und der Händler liefert Fünferpackungen, bestellt 5. Aufgerundet wird auf die
+<strong>VPE</strong> des Artikels; hat er keine, sind Bedarf und Bestellmenge
+dasselbe.</div>
 <p>Leer oder 0 heisst <strong>nicht überwachen</strong>. Das ist Absicht: ein
 Sortiment von 439 Artikeln, das jeden davon überwacht, meldet 439-mal Mangel und
 wird nie gelesen. Überwacht wird nur, was wirklich vorrätig sein soll. Der
@@ -2480,8 +2498,8 @@ Einfügen in eine E-Mail oder WhatsApp an den Händler. Erlaubt das Gerät das K
 nicht, steht der Text im Feld darunter und lässt sich von Hand markieren; die App
 sagt das, statt so zu tun, als hätte es geklappt.</p>
 <div class="hin">Eine leere Einkaufsliste bedeutet zweierlei – „nichts fehlt“ oder
-„es wird gar nichts überwacht“. Die Liste sagt ausdrücklich, welches von beiden
-zutrifft.</div>
+„es ist noch gar nichts eingerichtet“. Die Liste sagt ausdrücklich, welches von
+beiden zutrifft, und im zweiten Fall auch, wie beide Wege dorthin gehen.</div>
 
 <h3>Ein Mitarbeiterkonto anlegen</h3>
 <p>Vorname und Nachname genügen. Zusätzlich lässt sich eine
@@ -2843,7 +2861,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.231</strong>, Stand 30. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.232</strong>, Stand 30. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

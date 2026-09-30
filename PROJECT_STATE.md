@@ -3,9 +3,30 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.231`
+- Aktueller Entwicklungsstand: `v3.232`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.232: Von Hand auf die Einkaufsliste
+
+Ansage des Anwenders: „Wo kann ich etwas in den einkaufswagen legen?" – bis
+v3.231 nirgends. Das 🛒 versprach ein Hinzufügen, das es nicht gab.
+
+- Neue Tabelle `lieferanten_einkauf` (Migration `lieferanten_einkauf_von_hand`):
+  `artikel_id`, `menge` (>0), `grund`, `erledigt_am`, `erledigt_von`.
+  **`UNIQUE (company_id, artikel_id) WHERE erledigt_am IS NULL`** – je Artikel
+  genau ein offener Wunsch; ein zweites Setzen ändert die Menge.
+- **Kein DELETE-Recht**: Abhaken setzt `erledigt_am`, die Zeile verschwindet von
+  der Liste und bleibt nachvollziehbar. Danach ist der Artikel wieder setzbar.
+- Kein Feld am Artikel: der Wunsch hat Menge, Grund, Urheber und ein Ende – das
+  ist ein Vorgang. Ausserdem müssen die beiden Herkünfte unterscheidbar bleiben.
+- **Die Mengen beider Herkünfte werden ADDIERT**, nicht die grössere genommen.
+  Beide Bedarfe sind echt und unabhängig. Jede Zeile nennt beide Anteile –
+  in der Liste und im verschickten Text, aus einer Funktion (`lfHerkunftText`).
+- Symbol: **🛒 = hinzufügen, 📋 = ansehen**. Der Listen-Knopf zählt die ganze
+  Liste, nicht nur die unterschrittenen Mindestbestände.
+- Nebenbei behoben: die Lieferanten-Überschrift in der Einkaufsliste trug seit
+  v3.231 die Klasse `a2-abschnitt-titel`, die es in keiner CSS-Datei gibt.
 
 ### v3.231: Lieferanten-Lager statt „Lager B-Team", Mindestbestand, Einkaufsliste
 
