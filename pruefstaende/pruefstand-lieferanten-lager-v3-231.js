@@ -1353,6 +1353,89 @@ const KATALOG=`()=>{
 
 
 
+ // ---- S  Bewegungen ansehen (v3.238) -----------------------------------
+ //
+ // Seit v3.237 bucht die App selbstaendig. Diese Liste ist das Netz darunter:
+ // sie muss zeigen, was WIRKLICH in der Datenbank steht, und nichts dazu -
+ // eine Historie, die rechnet oder rundet, ist keine Historie.
+ console.log("\nS · Bewegungen ansehen");
+ const BEW=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",gruppe:"Rinnenstutzen"},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Rinnenseiher 60",gruppe:"Rinnenseiher"}];
+  lfBewegungen=[
+   {id:5,artikel_id:1,art:"abgang",menge:1,ziel:"regierapport",project_id:42,
+    grund:"Regierapport",created_at:"2026-09-30T14:05:00Z",created_by:"p1"},
+   {id:4,artikel_id:1,art:"zugang",menge:10,ziel:"unbekannt",created_at:"2026-09-29T08:00:00Z"},
+   {id:3,artikel_id:2,art:"korrektur",menge:-2,created_at:"2026-09-28T10:00:00Z"},
+   {id:2,artikel_id:99,art:"abgang",menge:3,created_at:"2026-09-27T10:00:00Z"}];
+  lfBewArt=""; lfBewSuche="";
+  allProjects=[{id:42,name:"Haus Müller",object:"Musterweg 1"}];
+  allProfiles=[{id:"p1",first_name:"Hans",last_name:"Meier"}];
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.b+")()");
+  lfBewegungenZeichnen();
+  const txt=$("liefBewListe").textContent.replace(/\s+/g," ");
+  return {txt, kennzahl:$("liefBewKennzahlen").textContent.replace(/\s+/g," "),
+          anzahl:lfBewegungenGefiltert().length};
+ },{b:BEW});
+ p(z.anzahl===4&&/4 Buchung/.test(z.kennzahl)&&/1 Zugang/.test(z.kennzahl)
+   &&/2 Abgang/.test(z.kennzahl)&&/1 Korrektur/.test(z.kennzahl),
+   "S1 alle Buchungen stehen da, und die Kennzahl zaehlt genau die angezeigten",z.kennzahl);
+ p(/Rinnenstutzen 250/.test(z.txt)&&/Haus Müller/.test(z.txt)&&/Hans Meier/.test(z.txt)
+   &&/regierapport/.test(z.txt),
+   "S2 eine Zeile nennt Artikel, Projekt, Person und Herkunft - sonst weiss niemand, wohin die Ware ging",z.txt.slice(0,220));
+ p(/Artikel gelöscht/.test(z.txt),
+   "S3 eine Buchung auf einen nicht mehr vorhandenen Artikel wird ANGEZEIGT, nicht verschluckt - die Buchung ist trotzdem passiert",z.txt);
+ // Die Mengen: eine Korrektur von -2 muss als 2 mit Vorzeichen erscheinen,
+ // nicht als -2 mit zweitem Minus davor.
+ p(/±2/.test(z.txt)&&/−1/.test(z.txt)&&/＋10/.test(z.txt),
+   "S4 Vorzeichen kommt aus der ART, der Betrag aus der Menge - kein doppeltes Minus bei einer negativen Korrektur",z.txt.slice(0,260));
+ // Filter und Suche.
+ z=await page.evaluate((o)=>{
+  eval("("+o.b+")()");
+  lfBewArt="abgang";
+  const nurAb=lfBewegungenGefiltert().map(b=>b.id);
+  lfBewArt="";
+  lfBewSuche="müller";
+  const nachProjekt=lfBewegungenGefiltert().map(b=>b.id);
+  lfBewSuche="meier";
+  const nachPerson=lfBewegungenGefiltert().map(b=>b.id);
+  lfBewSuche="seiher";
+  const nachArtikel=lfBewegungenGefiltert().map(b=>b.id);
+  lfBewSuche="";
+  return {nurAb,nachProjekt,nachPerson,nachArtikel};
+ },{b:BEW});
+ p(z.nurAb.join(",")==="5,2","S5 der Art-Filter zeigt genau diese Art",z);
+ p(z.nachProjekt.join(",")==="5"&&z.nachPerson.join(",")==="5",
+   "S6 gesucht wird auch nach Projekt und Person, nicht nur nach dem Artikelnamen",z);
+ p(z.nachArtikel.join(",")==="3","S7 und nach dem Artikel",z);
+ // Diese Ansicht darf NICHTS schreiben und nichts rechnen.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.b+")()");
+  window.__db.ruf=[];
+  lfBewegungenZeichnen();
+  await lfBewegungenOeffnen();
+  await new Promise(r=>setTimeout(r,120));
+  return {ruf:window.__db.ruf.filter(r=>r.was!=="select"), auf:!$("liefBewModal").hidden};
+ },{f:SB,b:BEW});
+ p(z.ruf.length===0,
+   "S8 GEGENPROBE: die Bewegungsansicht schreibt NICHTS - sie sieht nur nach",z.ruf);
+ p(z.auf===true,"S9 und sie geht auf",z);
+ // Kein Bestand wird hier gerechnet - das ist die Aufgabe der Artikelliste,
+ // und zwei Rechnungen ueber dasselbe waeren zwei Wahrheiten.
+ const quelleBew=quelle.split("function lfBewegungenZeichnen")[1]||"";
+ p(!/lfBestand\(/.test(quelleBew.split("async function lfBewegungenOeffnen")[0]||""),
+   "S10 GEGENPROBE: in der Historie wird kein Bestand gerechnet - der steht in der Artikelliste",null);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefBewKnopf","liefBewModal","liefBewListe","liefBewArt","liefBewSuche",
+          "liefBewKennzahlen"].filter(x=>!el(x));
+ });
+ p(z.length===0,"S11 alle Bedienteile stehen im Dokument",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

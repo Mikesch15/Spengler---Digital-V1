@@ -3,9 +3,25 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.237`
+- Aktueller Entwicklungsstand: `v3.238`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.238: Bewegungen ansehen
+
+Seit v3.237 bucht die App **selbständig** bei jedem Scan. Diese Ansicht ist das
+Netz darunter — sie kam bewusst **vor** neuen Funktionen.
+
+- `📜 Bewegungen` im Lieferanten-Lager: Zeitpunkt, Art, Menge, Artikel, Grund,
+  Ziel, Projekt, Person. Filter nach Art, Suche über Artikel/Projekt/Person.
+- **Es wird nichts gerechnet.** Der Bestand bleibt die Summe in der
+  Artikelliste; zwei Rechnungen über dasselbe wären zwei Wahrheiten (S10).
+- **Es wird nichts geschrieben** (S8) — die Ansicht sieht nur nach.
+- Vorzeichen kommt aus der **Art**, der Betrag aus der Menge: eine Korrektur
+  von −2 erscheint als `±2`, nicht als doppeltes Minus (S4).
+- Eine Buchung auf einen entfernten Artikel wird **angezeigt**, nicht
+  verschluckt — sie ist trotzdem passiert (S3).
+- Gezeigt werden die neuesten 300; Älteres über das Suchfeld.
 
 ### v3.237: Beim Scannen auch ausbuchen
 

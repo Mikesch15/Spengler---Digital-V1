@@ -236,6 +236,112 @@ function lfBarcodeZuRegie(code){
   text:"Der Code "+c+" ist weder im Lieferanten-Lager noch in der Lagerverwaltung bekannt."};
 }
 
+// ---- Bewegungen ansehen (v3.238) ------------------------------------------
+//
+// Seit v3.237 bucht die App SELBSTAENDIG: jeder Scan im Regierapport nimmt
+// Ware aus dem Lager. Eine Buchung, die niemand ansehen kann, ist eine
+// Buchung, die niemand pruefen kann - das ist das fehlende Netz unter dieser
+// Funktion, und es gehoert unter sie, bevor Neues darauf kommt.
+//
+// Gezeigt wird, was die Datenbank hergibt, und nichts dazu: Zeitpunkt, Art,
+// Menge, Artikel, Grund, Ziel, Projekt, Person. Gerechnet wird hier nichts -
+// der Bestand steht in der Artikelliste, und zwei Rechnungen ueber dasselbe
+// waeren zwei Wahrheiten.
+let lfBewArt="";      // Filter: "" | zugang | abgang | korrektur
+let lfBewSuche="";
+
+function lfBewProjektName(id){
+ if(id===null||id===undefined||id==="")return "";
+ if(typeof allProjects==="undefined"||!Array.isArray(allProjects))return "";
+ const p=allProjects.find(x=>String(x.id)===String(id));
+ return p?(p.name||p.object||("Projekt "+id)):("Projekt "+id);
+}
+function lfBewPerson(id){
+ if(!id)return "";
+ return (typeof profileName==="function"&&profileName(id))||"";
+}
+function lfBewZeit(b){
+ const s=b&&b.created_at?String(b.created_at):"";
+ if(!s)return "";
+ const d=new Date(s);
+ if(isNaN(d))return s.slice(0,16).replace("T"," ");
+ return d.toLocaleDateString("de-CH")+", "+d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+}
+function lfBewegungenGefiltert(){
+ const q=lfBewSuche.trim().toLowerCase();
+ return lfBewegungen.filter(b=>{
+  if(lfBewArt&&b.art!==lfBewArt)return false;
+  if(!q)return true;
+  const a=lfArtikelZuId(b.artikel_id);
+  return [a&&a.bezeichnung,a&&a.artikelnr,a&&a.ean,b.grund,b.ziel,
+          lfBewProjektName(b.project_id),lfBewPerson(b.created_by)]
+   .some(x=>String(x||"").toLowerCase().indexOf(q)>=0);
+ });
+}
+function lfBewegungenZeichnen(){
+ if(typeof $!=="function")return;
+ const box=$("liefBewListe");
+ if(!box)return;
+ const liste=lfBewegungenGefiltert();
+ const k=$("liefBewKennzahlen");
+ if(k){
+  // Gezaehlt wird, was im Filter steht - eine Zahl, die etwas anderes
+  // meint als die Liste darunter, ist schlimmer als keine.
+  const zu=liste.filter(b=>b.art==="zugang").length;
+  const ab=liste.filter(b=>b.art==="abgang").length;
+  const ko=liste.filter(b=>b.art==="korrektur").length;
+  k.innerHTML=`<b>${liste.length}</b> Buchung(en) · ${zu} Zugang · ${ab} Abgang · ${ko} Korrektur`;
+ }
+ if(!lfBewegungen.length){
+  box.innerHTML=`<div class="info">Im Lieferanten-Lager wurde noch nichts gebucht.
+   Buchungen entstehen beim Ein- und Ausscannen, beim ＋/－ am Artikel und
+   – seit v3.237 – bei jedem Scan im Regierapport.</div>`;
+  return;
+ }
+ if(!liste.length){
+  box.innerHTML=`<div class="a2-leer">Keine Buchung passt zu dieser Auswahl.</div>`;
+  return;
+ }
+ // Nur die neuesten 300. Eine Liste, die jede Buchung des Betriebs auf
+ // einmal zeichnet, wird mit der Zeit unbenutzbar - und was aelter ist,
+ // sucht man ueber das Suchfeld, nicht durch Scrollen.
+ const zeigen=liste.slice(0,300);
+ const farbe={zugang:"var(--green)",abgang:"var(--red)",korrektur:"var(--muted)"};
+ const zeichen={zugang:"＋",abgang:"−",korrektur:"±"};
+ box.innerHTML=zeigen.map(b=>{
+  const a=lfArtikelZuId(b.artikel_id);
+  const unten=[lfBewZeit(b),
+               b.ziel&&b.ziel!=="unbekannt"?esc(b.ziel):"",
+               lfBewProjektName(b.project_id)?esc(lfBewProjektName(b.project_id)):"",
+               b.grund?esc(b.grund):"",
+               lfBewPerson(b.created_by)?esc(lfBewPerson(b.created_by)):""]
+              .filter(Boolean).join(" · ");
+  return `<div class="kw-zeile">
+   <div style="flex:1;min-width:0">
+    <b>${a?esc(a.bezeichnung):"Artikel gelöscht"}</b>
+    <div class="small" style="color:var(--muted)">${unten}</div>
+   </div>
+   <div class="small" style="text-align:right;min-width:74px">
+    <b style="font-size:15px;color:${farbe[b.art]||"var(--ink)"}">${zeichen[b.art]||""}${
+     esc(lfZahlText(Math.abs(lfZahl(b.menge))))}</b>
+    <div style="color:var(--muted)">${esc(LF_ART_TEXT[b.art]||b.art||"")}</div>
+   </div>
+  </div>`;
+ }).join("")
+ +(liste.length>zeigen.length
+   ? `<div class="small" style="color:var(--muted);margin-top:10px">Es werden die neuesten
+      <b>${zeigen.length}</b> von <b>${liste.length}</b> gezeigt – Älteres über das Suchfeld.</div>`
+   : "");
+}
+async function lfBewegungenOeffnen(){
+ if(typeof $!=="function")return;
+ const m=$("liefBewModal");
+ if(!m)return;
+ m.hidden=false;
+ if(!lfGeladen)await lfLaden();
+ lfBewegungenZeichnen();
+}
+
 // ---- Scannen im Regierapport: auflösen UND ausbuchen (v3.237) -------------
 //
 // Ansage des Anwenders: "Ja, beim scannen auch gleich ausbuchen."
@@ -1457,6 +1563,12 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
  an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());
+ an("liefBewKnopf",()=>lfBewegungenOeffnen());
+ an("liefBewSchliessen",()=>{ $("liefBewModal").hidden=true });
+ const ba=$("liefBewArt");
+ if(ba)ba.onchange=()=>{ lfBewArt=ba.value; lfBewegungenZeichnen() };
+ const bs=$("liefBewSuche");
+ if(bs)bs.oninput=()=>{ lfBewSuche=bs.value; lfBewegungenZeichnen() };
  const nz=$("liefZuordnenNurOffene");
  if(nz)nz.onchange=()=>{ lfZuordnenNurOffene=nz.checked; lfZuordnenZeichnen() };
  const gz=$("liefZuordnenGruppe");

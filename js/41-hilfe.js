@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.237.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1711,6 +1711,19 @@ umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
 Elektromaschinen). Erfunden wird nichts.</p>
 <div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
+<p><b>\U0001f4dc Bewegungen</b> zeigt jede Buchung dieses Lagers, die neueste
+zuoberst: Zeitpunkt, Art, Menge, Artikel, Grund, Ziel, Projekt und wer sie
+gemacht hat. Filtern nach Zugang / Abgang / Korrektur, suchen nach Artikel,
+Projekt oder Person.</p>
+<div class="hin"><b>Warum das wichtig ist:</b> seit dem Scannen im Regierapport
+bucht die App <i>selbst</i>. Hier siehst du nach, was sie getan hat \u2013 eine
+Buchung, die niemand ansehen kann, ist eine Buchung, die niemand pr\u00fcfen kann.
+Gerechnet wird in dieser Liste nichts; der Bestand steht in der Artikelliste,
+und zwei Rechnungen \u00fcber dasselbe w\u00e4ren zwei Wahrheiten.</div>
+<p>Die Liste ist <b>vollst\u00e4ndig</b>: eine Buchung l\u00e4sst sich nicht \u00e4ndern und
+nicht l\u00f6schen, ein Fehler wird mit einer <b>Korrektur</b> ausgeglichen. Auch
+eine Buchung auf einen inzwischen entfernten Artikel steht noch da \u2013 sie ist
+ja trotzdem passiert.</p>
 <p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
 Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
 

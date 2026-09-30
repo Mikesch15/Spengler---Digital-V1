@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.237</div>
+<div id="appVersion">Version 3.238</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2485,7 +2485,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.237.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 118 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 118 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3232,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.237.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.238.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3285,6 +3285,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
     <button type="button" id="liefAusscannen" class="blue">📤 Ausscannen</button>
     <button type="button" id="liefEinkaufKnopf" class="gray">📋 Einkaufsliste</button>
     <button type="button" id="liefZuordnenKnopf" class="gray">🔗 Zuordnen</button>
+    <button type="button" id="liefBewKnopf" class="gray">📜 Bewegungen</button>
    </div>
    <div class="small" id="liefMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
    <div class="wide"><label>Suchen</label>
@@ -3410,6 +3411,35 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <h3 style="margin:0 0 4px">🔗 Regie-Position</h3>
    <div class="small" style="color:var(--muted);margin-bottom:6px">Wofür dieser Artikel im <b>Regierapport</b> verrechnet wird – mit eurer EDV-Nr. und eurem Preis.</div>
    <div id="liefArtikelRegie"></div>
+  </div>
+ </div>
+</div>
+
+<!-- v3.238: Bewegungen ansehen. Seit v3.237 bucht die App selbständig bei
+     jedem Scan im Regierapport - eine Buchung, die niemand ansehen kann,
+     ist eine Buchung, die niemand prüfen kann. Gezeigt wird, was die
+     Datenbank hergibt, und nichts dazu. Gerechnet wird hier nichts; der
+     Bestand steht in der Artikelliste. -->
+<div id="liefBewModal" class="modal no-print" hidden>
+ <div class="modalbox">
+  <div class="card">
+   <h2>📜 Bewegungen <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div class="small" id="liefBewKennzahlen" style="color:var(--muted)"></div>
+   <div class="grid" style="margin-top:8px">
+    <div><label>Art</label><select id="liefBewArt">
+     <option value="">Alle</option>
+     <option value="zugang">Nur Zugänge</option>
+     <option value="abgang">Nur Abgänge</option>
+     <option value="korrektur">Nur Korrekturen</option>
+    </select></div>
+    <div class="wide"><label>Suchen</label>
+     <input id="liefBewSuche" placeholder="Artikel, Projekt, Grund oder Person" autocomplete="off"></div>
+   </div>
+   <div class="scroll" style="max-height:56vh;margin-top:10px"><div id="liefBewListe"></div></div>
+   <div class="bar" style="margin-top:12px">
+    <button type="button" id="liefBewSchliessen" class="gray">Schliessen</button>
+   </div>
+   <div class="small" style="color:var(--muted);margin-top:8px">Eine Buchung lässt sich nicht ändern und nicht löschen – ein Fehler wird mit einer <b>Korrektur</b> ausgeglichen. Deshalb ist diese Liste vollständig: sie zeigt, was wirklich passiert ist.</div>
   </div>
  </div>
 </div>
