@@ -3,9 +3,34 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.236`
+- Aktueller Entwicklungsstand: `v3.237`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.237: Beim Scannen auch ausbuchen
+
+Ansage: „Ja, beim scannen auch gleich ausbuchen."
+
+Ein Scan im Rapport tut jetzt **zweierlei**: verrechnen und Lagerbestand
+ändern. Aufgelöst **und** gebucht wird in `lfScanVerbrauch()` (js/82); js/06
+ruft weiterhin genau eine Funktion auf und setzt dort nichts (A3a).
+
+Gebucht als Abgang mit `project_id` und `ziel='regierapport'`.
+
+**Die Regeln, alle mit Gegenprobe im Prüfstand (Abschnitt R):**
+- ohne Regie-Position **nicht** gebucht — sonst wäre Ware weg, die nie
+  verrechnet wurde
+- Buchen fehlgeschlagen → Rapportzeile bleibt gültig, der Fehlschlag wird
+  **nicht** verschwiegen
+- Bestand unter null wird gebucht **und benannt** („hier fehlt ein Zugang")
+- Treffer in der **alten** Lagerverwaltung: Zeile ja, Buchung nein — dort
+  schreibt dieses Modul nicht hinein
+- Schalter sichtbar, eingeschaltet, je Gerät gemerkt
+  (`sd_rapport_scan_buchen`)
+
+**Bewusst offen:** gebucht wird, was *gescannt* wurde, nicht was am Ende in
+der Zeile steht. Der saubere Weg wäre ein Abgleich beim Speichern des
+Rapports — eigener Umbau am Speicherweg, kommt wenn gebraucht.
 
 ### v3.236: Material im Regierapport scannen
 

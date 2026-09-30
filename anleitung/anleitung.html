@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.236";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.237";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.236<br>
+  Version 3.237<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -1991,6 +1991,27 @@ woran es liegt. Fehlt nur die Zuordnung, trägst du sie im Lieferanten-Lager unt
 Verdacht wäre Material im Rapport, das niemand verbaut hat.</p>
 <div class="hin">Der Knopf erscheint nur, wenn das Gerät einen Scanner hat und das
 Lieferanten-Lager verfügbar ist – lieber gar nicht da als beim Drücken fehlschlagen.</div>
+<p><strong>Beim Scannen wird auch ausgebucht.</strong> Der Schalter unter dem Knopf
+ist eingeschaltet: jeder Scan zieht die Menge im <strong>Lieferanten-Lager</strong>
+ab, mit Projekt und Herkunft „Regierapport“. Erst dadurch stimmt der Bestand im
+Alltag – sonst müsste jemand zusätzlich von Hand ausbuchen, und das passiert nie.
+Nach jedem Scan steht da, was gebucht wurde: „1 ausgebucht, Bestand jetzt 9“.</p>
+<div class="hin"><strong>Wer nur nachsehen will, was etwas kostet, schaltet ihn
+aus.</strong> Eine Lagerbuchung lässt sich nicht zurückholen – ein Fehler wird im
+Lager mit einer <strong>Korrektur</strong> ausgeglichen. Die Wahl wird je Gerät
+gemerkt.</div>
+<p>Drei Dinge, die bewusst so sind:</p>
+<ul>
+<li><strong>Gebucht wird, was gescannt wurde</strong> – nicht, was am Ende in der
+Zeile steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung nicht.</li>
+<li>Ein <strong>negativer Bestand</strong> wird gebucht und benannt. Er heisst nicht
+„Fehler“, sondern „hier fehlt ein Zugang im Lager“ – den Rapport daran scheitern zu
+lassen wäre schlimmer.</li>
+<li>Ein Artikel <strong>ohne Regie-Position</strong> wird auch nicht ausgebucht –
+sonst wäre Ware weg, die nie verrechnet wurde. Und ein Treffer aus der alten
+<strong>Lagerverwaltung</strong> füllt die Zeile, wird aber nicht gebucht; auch das
+steht dann da.</li>
+</ul>
 
 <h3>Material aus den Massaufnahmen übernehmen</h3>
 <figure><img src="bilder/44-rmat-uebernehmen.png"><figcaption>Was in den Massaufnahmen dieses Objekts erfasst wurde – zum Anhaken.</figcaption></figure>
@@ -2934,7 +2955,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.236</strong>, Stand 30. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.237</strong>, Stand 30. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

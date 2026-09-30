@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.236.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.237.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1388,6 +1388,18 @@ Barcode zeigt auf eine Ware, nicht auf ein Modul.</p>
 <div class="hin"><b>Dreimal scannen heisst drei Stück.</b> Derselbe Artikel am
 selben Tag wird hochgezählt statt ein zweites Mal angelegt. Ein anderer Tag
 bleibt eine eigene Zeile – sie sagt aus, wann das Material verbraucht wurde.</div>
+<p><b>Beim Scannen wird auch ausgebucht.</b> Der Schalter darunter ist
+eingeschaltet: jeder Scan zieht die Menge im <b>Lieferanten-Lager</b> ab, mit
+Projekt und Herkunft „Regierapport“. Erst dadurch stimmt der Bestand im Alltag –
+sonst müsste jemand zusätzlich von Hand ausbuchen, und das passiert nie. Nach
+jedem Scan steht da, was gebucht wurde: „1 ausgebucht, Bestand jetzt 9“.</p>
+<div class="hin"><b>Wer nur nachsehen will, was etwas kostet, schaltet ihn aus.</b>
+Eine Lagerbuchung lässt sich nicht zurückholen – ein Fehler wird im Lager mit
+einer <b>Korrektur</b> ausgeglichen. Die Wahl wird je Gerät gemerkt.</div>
+<p><b>Gebucht wird, was gescannt wurde</b> – nicht, was am Ende in der Zeile
+steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung nicht.
+Ein negativer Bestand wird gebucht und benannt: er heisst nicht „Fehler“, sondern
+„hier fehlt ein Zugang im Lager“.</p>
 <p>Ist ein Code <b>nicht bekannt</b> oder hat der Artikel <b>noch keine
 Regie-Position</b>, entsteht <b>keine Zeile</b> – und darunter steht, woran es
 liegt. Fehlt nur die Zuordnung, trägst du sie im Lieferanten-Lager unter
