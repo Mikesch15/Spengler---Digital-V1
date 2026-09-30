@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.232.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.233.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1652,7 +1652,7 @@ hinterlegt, steht gar keine Summe da.</p>
 \u201egratis\u201c und z\u00e4hlt in der Summe mit; ein leeres Feld heisst \u201eunbekannt\u201c. Beim
 Preis steht auch, von wann er ist \u2013 ist er \u00e4lter als ein Jahr, sagt die App das.
 Einzelne Preise tr\u00e4gst du am Artikel ein; die <b>Preisliste des H\u00e4ndlers</b>
-kommt als Excel-Datei ueber denselben Import wie alles andere (Spalte
+kommt als Excel-Datei \u00fcber denselben Import wie alles andere (Spalte
 \u201ePreis\u201c).</div>
 <p>Sichtbar ist der Punkt f\u00fcr alle mit <b>Lager-Zugriff</b> \u2013 dieselbe
 Freigabe wie f\u00fcr die Lagerverwaltung (Einstellungen \u2192 Mitarbeiter).</p>`},
