@@ -150,10 +150,25 @@ const KATALOG=`()=>{
  // der neuen. Waere dort etwas eingebaut worden, waere "nicht anfassen"
  // gebrochen - unabhaengig davon, wie sauber js/82 selbst ist.
  const alt68=lies("js/68-lagerverwaltung.js"), alt59=lies("js/59-lagerbestand.js"), alt06=lies("js/06-rapport.js");
- const spur=t=>/lieferanten_artikel|lieferanten_bewegungen|lfBestand|lfOeffnen|bteam/i.test(t);
+ // v3.236: js/06 DARF das Lieferanten-Lager seit dem Scannen etwas FRAGEN -
+ // aber nach wie vor keine seiner Tabellen anfassen und keine eigene
+ // Lagerlogik fuehren. Die Zusage ist damit nicht weicher geworden, sie ist
+ // genauer: geprueft werden die TABELLEN und die Buchungsfunktionen, nicht
+ // mehr jede Erwaehnung.
+ const spur=t=>/from\("lieferanten_(artikel|bewegungen|einkauf)"\)|lfBuchenSpeichern|lfZuordnenSpeichern|bteam/i.test(t);
  p(!spur(alt68)&&!spur(alt59)&&!spur(alt06),
-   "A3 GEGENPROBE: js/68, js/59 und js/06 enthalten keine einzige Zeile zum neuen Lager",
+   "A3 GEGENPROBE: js/68, js/59 und js/06 sprechen KEINE Tabelle des neuen Lagers an und buchen dort nichts",
    {js68:spur(alt68),js59:spur(alt59),js06:spur(alt06)});
+ // Und die Gegenprobe zur Gegenprobe: js/06 fragt wirklich nur, und zwar
+ // ueber die eine dafuer vorgesehene Funktion.
+ // Gemessen wird, WELCHE Funktionen des Lagers js/06 aufruft - nicht, wie
+ // oft der Name im Text steht. Ein Vergleich (typeof lf... === "function")
+ // ist keine Zuweisung; ein Aufruf mit Klammer ist einer.
+ const gerufen=[...new Set((alt06.match(/\blf[A-Z]\w*\s*\(/g)||[]).map(s=>s.replace(/\s*\($/,"")))];
+ const gesetzt=(alt06.match(/\blf[A-Z]\w*\s*=(?!=)/g)||[]);
+ p(gerufen.join(",")==="lfBarcodeZuRegie"&&gesetzt.length===0,
+   "A3a js/06 ruft GENAU eine Funktion des Lagers auf (lfBarcodeZuRegie) und setzt dort keine einzige Variable",
+   {gerufen,gesetzt});
  p(!/function lager[A-Z]/.test(quelle),
    "A4 und js/82 definiert keine Funktion, die wie die alte heisst - kein Ueberschreiben aus Versehen",null);
 
@@ -1108,6 +1123,90 @@ const KATALOG=`()=>{
           "liefZuordnenRegieListe","liefZuordnenAlle"].filter(x=>!el(x));
  });
  p(z.length===0,"P14 alle Bedienteile stehen im Dokument",z);
+
+ // ---- Q  Scannen im Regierapport (v3.236) ------------------------------
+ //
+ // Der Zweck der ganzen Bruecke: auf dem Dach den Artikel scannen, und die
+ // Rapportzeile traegt EURE EDV-Nr. und EUREN Preis.
+ //
+ // Der teure Fehler waere, bei einem unbekannten oder unzugeordneten Code
+ // trotzdem irgendeine Zeile anzulegen - dann stuende im Rapport Material,
+ // das niemand verbaut hat.
+ console.log("\nQ · Scannen im Regierapport");
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250 Titanzink",
+    gruppe:"Rinnenstutzen",material:"Titanzink",ean:"111",material_id:7001},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Rinnenstutzen 330 Titanzink",
+    gruppe:"Rinnenstutzen",material:"Titanzink",ean:"222",material_id:null},
+   {id:3,lieferant:"B",artikelnr:"S3",bezeichnung:"Alt",gruppe:"Rinnenstutzen",
+    ean:"333",material_id:7001,archiviert:true}];
+  lfBewegungen=[]; lfEinkauf=[];
+  return {
+   treffer:lfBarcodeZuRegie("111"),
+   ohneZuordnung:lfBarcodeZuRegie("222"),
+   archiviert:lfBarcodeZuRegie("333"),
+   unbekannt:lfBarcodeZuRegie("999"),
+   leer:lfBarcodeZuRegie("  ")
+  };
+ },{k:KATALOG});
+ p(z.treffer.ok===true&&z.treffer.regie.edv_nr==="203.06"&&z.treffer.quelle==="lieferant",
+   "Q1 ein zugeordneter Barcode liefert die Regie-Position - das ist der ganze Zweck der Bruecke",z.treffer);
+ p(z.ohneZuordnung.ok===false&&z.ohneZuordnung.grund==="ohne-zuordnung"
+   &&/Zuordnen/.test(z.ohneZuordnung.text),
+   "Q2 ein bekannter Artikel OHNE Regie-Position liefert nichts - und sagt, wo man sie nachträgt",z.ohneZuordnung);
+ p(z.archiviert.ok===false&&z.archiviert.grund==="archiviert",
+   "Q3 ein archivierter Artikel wird nicht verrechnet",z.archiviert);
+ p(z.unbekannt.ok===false&&/weder/.test(z.unbekannt.text)&&/999/.test(z.unbekannt.text),
+   "Q4 ein unbekannter Code nennt den Code - ein Scanner, der schweigt, ist auf dem Dach schlimmer als einer, der 'kenne ich nicht' sagt",z.unbekannt);
+ p(z.leer.ok===false&&z.leer.grund==="leer","Q5 und ein leerer Code ebenso",z.leer);
+ // Das Verhalten im Rapport: Zeile anlegen, hochzaehlen, und bei jedem
+ // Misserfolg NICHTS anlegen.
+ const SCAN=`(code)=>{ window.barcodeScannen=cb=>cb(code) }`;
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.k+")()");
+  lfArtikel=[{id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",
+              gruppe:"Rinnenstutzen",ean:"111",material_id:7001},
+             {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Ohne",
+              gruppe:"Rinnenstutzen",ean:"222",material_id:null}];
+  lfBewegungen=[]; lfEinkauf=[];
+  const echt=window.barcodeScannen;
+  mats.length=0;
+  eval("("+o.s+")")("111"); rapportMaterialScannen();
+  const nach1=mats.map(m=>[m.no,m.qty]);
+  eval("("+o.s+")")("111"); rapportMaterialScannen();
+  const nach2=mats.map(m=>[m.no,m.qty]);
+  eval("("+o.s+")")("222"); rapportMaterialScannen();
+  const nachOhne=mats.map(m=>[m.no,m.qty]);
+  const hinweisOhne=$("matScanHinweis").textContent;
+  eval("("+o.s+")")("999"); rapportMaterialScannen();
+  const nachUnbekannt=mats.map(m=>[m.no,m.qty]);
+  window.barcodeScannen=echt;
+  mats.length=0;
+  return {nach1,nach2,nachOhne,nachUnbekannt,hinweisOhne};
+ },{k:KATALOG,s:SCAN});
+ p(z.nach1.length===1&&z.nach1[0][0]==="203.06"&&z.nach1[0][1]===1,
+   "Q6 der erste Scan legt EINE Zeile mit der EDV-Nr. und Menge 1 an",z.nach1);
+ p(z.nach2.length===1&&z.nach2[0][1]===2,
+   "Q7 der zweite Scan desselben Artikels zaehlt HOCH statt eine zweite Zeile anzulegen - dreimal scannen heisst drei Stueck",z.nach2);
+ p(z.nachOhne.length===1&&z.nachOhne[0][1]===2,
+   "Q8 GEGENPROBE: ein Artikel ohne Regie-Position legt NICHTS an - sonst stuende Material im Rapport, das niemand verbaut hat",z.nachOhne);
+ p(/Zuordnen/.test(z.hinweisOhne),"Q9 und der Hinweis sagt, was zu tun ist",z.hinweisOhne);
+ p(z.nachUnbekannt.length===1&&z.nachUnbekannt[0][1]===2,
+   "Q10 GEGENPROBE: ein unbekannter Code ebenso wenig",z.nachUnbekannt);
+ // Verdrahtung: der Knopf wird ERST NACH dem Einlesen aller Dateien
+ // sichtbar gemacht - js/06 laeuft vor js/82.
+ z=await page.evaluate(()=>{
+  const k=document.getElementById("matScan");
+  return {da:!!k, sichtbar:k?!k.hidden:null, moeglich:rapportScannerMoeglich(),
+          hinweis:!!document.getElementById("matScanHinweis")};
+ });
+ p(z.da&&z.hinweis,"Q11 Knopf und Hinweiszeile stehen im Dokument",z);
+ p(z.moeglich===true&&z.sichtbar===true,
+   "Q12 und der Knopf ist sichtbar - die Pruefung laeuft NACH dem Einlesen aller Dateien, sonst bliebe er fuer immer versteckt (Fehlertyp aus v3.228)",z);
+ p(/typeof lfBarcodeZuRegie==="function"/.test(lies("js/06-rapport.js")),
+   "Q13 ohne Lieferanten-Lager taucht der Knopf gar nicht erst auf - lieber nicht da als beim Druecken fehlschlagen",null);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

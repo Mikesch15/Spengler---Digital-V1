@@ -421,6 +421,71 @@ $("matBody").addEventListener("click",e=>{
 
 $("addWork").onclick=()=>{works.push(neueArbeitsposition());renderMain()};
 $("addMat").onclick=()=>{mats.push({date:new Date().toISOString().slice(0,10),no:"",qty:0});renderMain()};
+
+// ---------------------------------------------------------------------------
+// v3.236  Material scannen statt tippen
+// ---------------------------------------------------------------------------
+// Auf dem Dach, mit Handschuhen, eine EDV-Nr. zu tippen ist die unangenehmste
+// Stelle des Rapports - und der Artikel liegt dabei in der Hand, mit einem
+// Barcode drauf.
+//
+// DIESE DATEI FASST DIE LAGERTABELLEN NICHT AN. Sie stellt genau eine Frage
+// an js/82 (lfBarcodeZuRegie) und bekommt eine EDV-Nr. samt Begruendung
+// zurueck. Damit bleibt die Regel gewahrt: der Regierapport arbeitet mit dem
+// Katalog der Firma, das Lieferantenwissen liegt im Lieferanten-Lager.
+//
+// Beides ist freiwillig: ohne Scanner (js/01) oder ohne Lieferanten-Lager
+// (js/82) taucht der Knopf gar nicht erst auf, statt beim Druecken zu
+// scheitern.
+function rapportScannerMoeglich(){
+ return typeof barcodeScannen==="function"&&typeof lfBarcodeZuRegie==="function";
+}
+function rapportScanHinweis(text,fehler){
+ const h=$("matScanHinweis");
+ if(!h)return;
+ h.textContent=text||"";
+ h.style.color=fehler?"var(--red)":"var(--muted)";
+}
+function rapportMaterialScannen(){
+ if(!rapportScannerMoeglich())return;
+ barcodeScannen(code=>{
+  const t=lfBarcodeZuRegie(code);
+  if(!t.ok){ rapportScanHinweis(t.text,true); return }
+  const heute=new Date().toISOString().slice(0,10);
+  // Derselbe Artikel am selben Tag wird HOCHGEZAEHLT statt ein zweites Mal
+  // angelegt. Dreimal scannen heisst drei Stueck - das ist die Art, wie ein
+  // Scanner benutzt wird. Ein anderes Datum bleibt eine eigene Zeile: die
+  // Zeile sagt aus, an welchem Tag das Material verbraucht wurde.
+  const i=mats.findIndex(m=>String(m.no)===String(t.regie.edv_nr)&&String(m.date||"")===heute);
+  if(i>=0){
+   mats[i].qty=(Number(mats[i].qty)||0)+1;
+   renderMain();
+   updateMaterialRowTotal(i);
+   updateTotals();
+   rapportScanHinweis(t.text+" · jetzt "+mats[i].qty);
+   return;
+  }
+  mats.push({date:heute,no:String(t.regie.edv_nr),qty:1});
+  renderMain();
+  updateTotals();
+  rapportScanHinweis(t.text+" · als neue Zeile mit Menge 1");
+ });
+}
+// Die Sichtbarkeit wird ERST NACH dem Einlesen aller Dateien entschieden.
+// js/06 laeuft VOR js/82 - zu diesem Zeitpunkt gibt es lfBarcodeZuRegie noch
+// gar nicht, und ein hier gesetztes hidden bliebe fuer immer stehen. (Genau
+// der Fehler aus v3.228 bei den Info-Knoepfen: js/18 pruefte Markup, das
+// unter dem Skriptblock stand und noch nicht existierte.)
+function rapportScanKnopfZeigen(){
+ const k=$("matScan");
+ if(k)k.hidden=!rapportScannerMoeglich();
+}
+if($("matScan"))$("matScan").onclick=()=>rapportMaterialScannen();
+if(typeof document!=="undefined"){
+ if(document.readyState==="loading")
+  document.addEventListener("DOMContentLoaded",rapportScanKnopfZeigen);
+ else rapportScanKnopfZeigen();
+}
 $("vat").addEventListener("input",updateTotals);
 
 // ---------------------------------------------------------------------------

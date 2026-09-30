@@ -186,6 +186,56 @@ function lfRegieSicher(liste){
  return (typeof rmatIstSicher==="function")?rmatIstSicher(liste):false;
 }
 
+// ---- Barcode -> Regie-Position (v3.236) -----------------------------------
+//
+// Der Zweck der ganzen Bruecke: auf der Baustelle den Artikel scannen und
+// die Rapportzeile fuellt sich mit EURER EDV-Nr. und EUREM Preis.
+//
+// Die Auskunft steht HIER, nicht im Regierapport. js/06 fragt nur und
+// schreibt nichts in die Lagertabellen - so bleibt die Regel gewahrt, dass
+// der Regierapport das Lieferanten-Lager nicht anfasst.
+//
+// Geantwortet wird IMMER mit einem Grund, nie nur mit null. Ein Scanner,
+// der schweigt, ist auf dem Dach schlimmer als einer, der "kenne ich nicht"
+// sagt - man scannt dreimal und weiss immer noch nichts.
+//
+// Gesucht wird in beiden Lagern: zuerst im Lieferantensortiment, dann in
+// der bestehenden Lagerverwaltung (lager_varianten.barcode, ueber
+// lagerVarianteZuBarcode aus js/68). Ein Barcode zeigt auf eine Ware, nicht
+// auf ein Modul - welches Lager sie fuehrt, ist nicht die Frage des
+// Spenglers auf dem Dach.
+function lfBarcodeZuRegie(code){
+ const c=String(code||"").trim();
+ if(!c)return {ok:false,grund:"leer",text:"Es wurde kein Code gelesen."};
+
+ const a=lfArtikelZuBarcode(c);
+ if(a){
+  if(a.archiviert)
+   return {ok:false,grund:"archiviert",artikel:a,
+    text:"„"+a.bezeichnung+"“ ist archiviert und wird nicht mehr verrechnet."};
+  const r=lfRegieVon(a);
+  if(!r)return {ok:false,grund:"ohne-zuordnung",artikel:a,
+   text:"„"+a.bezeichnung+"“ ist bekannt, hat aber noch keine Regie-Position. "
+       +"Im Lieferanten-Lager unter 🔗 Zuordnen nachtragen – danach geht das Scannen."};
+  return {ok:true,quelle:"lieferant",artikel:a,regie:r,
+   text:a.bezeichnung+" → "+r.edv_nr+" · "+r.name};
+ }
+
+ // Die bestehende Lagerverwaltung. Nur LESEN, und nur, wenn es sie gibt.
+ if(typeof lagerVarianteZuBarcode==="function"){
+  const v=lagerVarianteZuBarcode(c);
+  if(v){
+   const r=lfRegieZuId(v.material_id);
+   if(!r)return {ok:false,grund:"ohne-zuordnung",
+    text:"„"+(v.bezeichnung||"Das Produkt")+"“ aus der Lagerverwaltung lässt sich keiner Katalogposition zuordnen."};
+   return {ok:true,quelle:"lager",regie:r,
+    text:(v.bezeichnung||"Produkt")+" → "+r.edv_nr+" · "+r.name};
+  }
+ }
+ return {ok:false,grund:"unbekannt",
+  text:"Der Code "+c+" ist weder im Lieferanten-Lager noch in der Lagerverwaltung bekannt."};
+}
+
 // ---- Preis (v3.233) -------------------------------------------------------
 // Ansage des Anwenders: "Ich denke wir können schon starten bevor ich die
 // preise habe." Genau dafuer ist das gebaut: ohne Preis funktioniert alles

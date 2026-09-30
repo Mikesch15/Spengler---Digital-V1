@@ -316,9 +316,14 @@
 </div>
 <div class="bar no-print">
 <button id="addMat" class="gray">＋ Material</button>
+<!-- v3.236: Scannen statt tippen. Der Knopf bleibt weg, wenn es keinen
+     Scanner oder kein Lieferanten-Lager gibt (js/06 setzt hidden) - lieber
+     gar nicht da als beim Drücken fehlschlagen. -->
+<button type="button" id="matScan" class="blue" hidden>📷 Material scannen</button>
 <button id="openSheet" class="blue">📐 Blechverbrauch</button>
 <button type="button" id="rmatOeffnen" class="blue">🧱 Aus Massaufnahmen übernehmen</button>
 </div>
+<div class="small no-print" id="matScanHinweis" style="min-height:18px;margin:4px 0;color:var(--muted)"></div>
 <div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
 </div>
 
