@@ -114,6 +114,78 @@ function lfArtikelZuBarcode(code){
 // 0 heisst "nicht ueberwacht", nicht "Mindestbestand null". Ein Sortiment von
 // 439 Artikeln, das jeden davon ueberwacht, meldet 439-mal Mangel und wird
 // nie gelesen. Ueberwacht wird nur, was der Betrieb ausdruecklich vorratet.
+// ---- Die Bruecke zur Regie-Position (v3.234) ------------------------------
+//
+// Ansage des Anwenders: "die artikel aus unserer regieliste decken sich viele
+// mit der bteam liste... aber nicht alle."
+//
+// Nachgemessen: die beiden Listen sind nicht zwei Fassungen derselben Sache,
+// sondern ZWEI EBENEN.
+//   Regie   "Rinnenseiher, alle Materialien"      - ABRECHNUNGSposition
+//   B-Team  "Rinnenseiher 60 mm Stahl verzinkt"   - konkreter ARTIKEL
+// Das Verhaeltnis ist n:1 und nie 1:1. Deshalb wird nicht zusammengefuehrt,
+// sondern verbunden.
+//
+// materials wird hier NUR GELESEN, und zwar ueber lagArtikelListe() aus
+// js/59 - dieselbe Funktion, die auch der Materialbestand und die
+// Lagerverwaltung benutzen. Eine eigene Katalogliste waere eine zweite
+// Wahrheit darueber, welche Positionen es gibt.
+function lfRegieListe(){ return (typeof lagArtikelListe==="function")?lagArtikelListe():[] }
+function lfRegieZuId(id){
+ if(id===null||id===undefined||id==="")return null;
+ return lfRegieListe().find(r=>String(r.id)===String(id))||null;
+}
+function lfRegieZuNummer(no){
+ const n=String(no||"").trim();
+ if(!n)return null;
+ return lfRegieListe().find(r=>String(r.edv_nr)===n)||null;
+}
+function lfRegieText(r){
+ if(!r)return "";
+ return r.edv_nr+" · "+r.name+(r.dim?" · "+r.dim:"")+(r.unit?" · "+r.unit:"");
+}
+function lfRegieVon(a){ return lfRegieZuId(a&&a.material_id) }
+function lfZugeordnet(){ return lfArtikel.filter(a=>lfRegieVon(a)).length }
+
+// Vorschlaege fuer einen Artikel.
+//
+// Gerechnet wird mit rmatVorschlaege() aus js/57 - derselben Bewertung, die
+// seit v3.16 aus einer gerechneten Massaufnahme-Position eine Katalogzeile
+// vorschlaegt. Eine zweite Bewertung waere eine zweite Wahrheit darueber,
+// was ein Treffer ist.
+//
+// EINE Anpassung ist noetig: dort ist die EINHEIT ein harter Filter, und ein
+// Lieferantenartikel hat keine. Abgefragt werden deshalb die beiden Klassen,
+// die fuer Handelsware ueberhaupt in Frage kommen - Stueck (182 Positionen)
+// und Laenge (81). Flaeche und Gewicht sind Blech und Lot, keine Artikel.
+const LF_REGIE_EINHEITEN=["St","m1"];
+let lfVorschlagCache={};
+function lfRegieVorschlaege(a){
+ if(!a||typeof rmatVorschlaege!=="function")return [];
+ const schl=String(a.id);
+ if(lfVorschlagCache[schl])return lfVorschlagCache[schl];
+ // Die Produktgruppe kommt mit in den Suchtext: "Rinnenseiher 60 mm" allein
+ // traegt das Wort schon, aber bei "Bogen 87°" entscheidet erst die Gruppe.
+ const bez=[a.bezeichnung,a.gruppe].filter(Boolean).join(" ");
+ const mat=String(a.material||"");
+ const zusammen=[];
+ LF_REGIE_EINHEITEN.forEach(e=>{
+  (rmatVorschlaege(bez,e,mat)||[]).forEach(v=>{
+   if(!zusammen.some(x=>String(x.no)===String(v.no)))zusammen.push(v);
+  });
+ });
+ zusammen.sort((x,y)=>(y.vollTreffer?1:0)-(x.vollTreffer?1:0)||y.punkte-x.punkte
+   ||String(x.no).localeCompare(String(y.no)));
+ const raus=zusammen.slice(0,3);
+ lfVorschlagCache[schl]=raus;
+ return raus;
+}
+// Sicher heisst: die App darf vorwaehlen. Sonst schlaegt sie vor und der
+// Mensch entscheidet - dieselbe Schwelle wie in js/57, nicht eine eigene.
+function lfRegieSicher(liste){
+ return (typeof rmatIstSicher==="function")?rmatIstSicher(liste):false;
+}
+
 // ---- Preis (v3.233) -------------------------------------------------------
 // Ansage des Anwenders: "Ich denke wir können schon starten bevor ich die
 // preise habe." Genau dafuer ist das gebaut: ohne Preis funktioniert alles
@@ -341,6 +413,178 @@ async function lfEinkaufKopieren(){
  }
 }
 
+// ---- Zuordnen (v3.234) ----------------------------------------------------
+//
+// 439 Artikel einzeln durch den Artikel-Dialog zu schieben waere ein
+// Nachmittag. Deshalb eine eigene Ansicht: alle noch offenen Artikel, je
+// mit dem Vorschlag der App, und der Mensch hakt ab.
+//
+// Die App waehlt NUR vor, wo sie sich sicher ist (rmatIstSicher). Ueberall
+// sonst steht "offen" - ein vorgewaehlter Halbtreffer waere schlimmer als
+// gar keiner, weil er unbesehen durchgewinkt wird.
+let lfZuordnungen={};      // {artikelId: material_id oder ""} - noch nicht gespeichert
+let lfZuordnenNurOffene=true;
+
+function lfZuordnenKandidaten(){
+ const t=(x,y)=>String(x||"").localeCompare(String(y||""),"de");
+ return lfArtikel.filter(a=>!a.archiviert&&(!lfZuordnenNurOffene||!lfRegieVon(a)))
+  .sort((x,y)=>t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+}
+function lfZuordnungWert(a){
+ const s=String(a.id);
+ if(Object.prototype.hasOwnProperty.call(lfZuordnungen,s))return lfZuordnungen[s];
+ const r=lfRegieVon(a);
+ return r?String(r.id):"";
+}
+function lfZuordnenOffen(){
+ return Object.keys(lfZuordnungen).filter(k=>{
+  const a=lfArtikelZuId(k);
+  const r=lfRegieVon(a);
+  return String(r?r.id:"")!==String(lfZuordnungen[k]);
+ }).length;
+}
+function lfZuordnenKopfZeichnen(){
+ if(typeof $!=="function")return;
+ const kopf=$("liefZuordnenKennzahlen");
+ if(kopf){
+  const gesamt=lfArtikel.filter(a=>!a.archiviert).length;
+  const noch=lfZuordnenOffen();
+  kopf.innerHTML=`<b>${lfZugeordnet()}</b> von <b>${gesamt}</b> Artikeln haben eine Regie-Position`
+   +(noch?` · <b style="color:var(--red)">${noch}</b> Änderung(en) noch nicht gespeichert`:"");
+ }
+ const offen=$("liefZuordnenSpeichern");
+ if(offen){
+  const n=lfZuordnenOffen();
+  offen.disabled=!n;
+  offen.textContent=n?"💾 "+n+" Änderung(en) speichern":"💾 Speichern";
+ }
+}
+function lfZuordnenZeichnen(){
+ if(typeof $!=="function")return;
+ const box=$("liefZuordnenListe");
+ if(!box)return;
+ lfZuordnenKopfZeichnen();
+ const liste=lfZuordnenKandidaten();
+ if(!liste.length){
+  box.innerHTML=lfZuordnenNurOffene
+   ? `<div class="info">Alle Artikel haben eine Regie-Position. Mit dem Schalter oben
+      lassen sich auch die bereits zugeordneten anzeigen und ändern.</div>`
+   : `<div class="a2-leer">Keine Artikel vorhanden.</div>`;
+  return;
+ }
+ let letzte=null, html="";
+ liste.forEach(a=>{
+  const g=String(a.gruppe||"Ohne Gruppe");
+  if(g!==letzte){
+   html+=`<div style="margin:14px 0 4px;font-weight:700;color:var(--muted);
+    font-size:13px;letter-spacing:.02em">${esc(g)}</div>`;
+   letzte=g;
+  }
+  const vor=lfRegieVorschlaege(a);
+  const sicher=lfRegieSicher(vor);
+  const wert=lfZuordnungWert(a);
+  // Die Auswahl enthaelt: keine Zuordnung, die Vorschlaege, und - falls
+  // der Artikel schon eine Position hat, die nicht unter den Vorschlaegen
+  // ist - diese ebenfalls. Sonst wuerde das Oeffnen der Ansicht eine
+  // bestehende Zuordnung stillschweigend loeschen.
+  const optionen=[];
+  optionen.push(`<option value=""${wert===""?" selected":""}>— keine Regie-Position —</option>`);
+  const drin=new Set();
+  vor.forEach(v=>{
+   const r=lfRegieZuNummer(v.no);
+   if(!r||drin.has(String(r.id)))return;
+   drin.add(String(r.id));
+   const grund=v.gruende&&v.gruende.length?" ("+v.gruende.join(", ")+")":"";
+   optionen.push(`<option value="${esc(r.id)}"${String(wert)===String(r.id)?" selected":""}>${
+    esc(lfRegieText(r))}${esc(grund)}</option>`);
+  });
+  const jetzt=lfRegieVon(a);
+  if(jetzt&&!drin.has(String(jetzt.id)))
+   optionen.push(`<option value="${esc(jetzt.id)}"${String(wert)===String(jetzt.id)?" selected":""}>${
+    esc(lfRegieText(jetzt))} (bisher)</option>`);
+  html+=`<div class="kw-zeile" style="align-items:flex-start">
+   <div style="flex:1;min-width:0">
+    <b>${esc(a.bezeichnung)}</b>
+    <div class="small" style="color:var(--muted)">${esc(a.artikelnr)}${
+     a.material?" · "+esc(a.material):""}${
+     vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
+                       :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
+               :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>'}</div>
+    <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%">${optionen.join("")}</select>
+   </div>
+  </div>`;
+ });
+ box.innerHTML=html;
+}
+// "Alle sicheren uebernehmen" fasst NUR die an, bei denen die Bewertung
+// deutlich fuehrt - und nur die, die noch offen sind. Eine bestehende
+// Zuordnung wird nie ueberschrieben.
+function lfZuordnenSichereUebernehmen(){
+ let n=0;
+ lfArtikel.forEach(a=>{
+  if(a.archiviert||lfRegieVon(a))return;
+  const vor=lfRegieVorschlaege(a);
+  if(!lfRegieSicher(vor))return;
+  const r=lfRegieZuNummer(vor[0].no);
+  if(!r)return;
+  lfZuordnungen[String(a.id)]=String(r.id);
+  n++;
+ });
+ lfZuordnenZeichnen();
+ const h=$("liefZuordnenMeldung");
+ if(h){
+  h.style.color="var(--muted)";
+  h.textContent=n
+   ? n+" sichere Vorschlag(e) eingesetzt – noch nicht gespeichert. Bitte durchsehen und speichern."
+   : "Kein Vorschlag ist sicher genug zum Vorwählen. Die übrigen bitte einzeln prüfen.";
+ }
+}
+async function lfZuordnenSpeichern(){
+ if(typeof $!=="function"||typeof sb==="undefined")return;
+ const h=$("liefZuordnenMeldung");
+ const paare=Object.keys(lfZuordnungen).map(k=>({id:Number(k),material_id:lfZuordnungen[k]||""}))
+  .filter(p=>{
+   const r=lfRegieVon(lfArtikelZuId(p.id));
+   return String(r?r.id:"")!==String(p.material_id);
+  });
+ if(!paare.length){ if(h)h.textContent="Es gibt nichts zu speichern."; return }
+ $("liefZuordnenSpeichern").disabled=true;
+ if(h){ h.style.color="var(--muted)"; h.textContent=paare.length+" Zuordnung(en) werden gespeichert …" }
+ try{
+  // EIN Aufruf statt n Schreibzugriffe - auf dem Handy im Funkloch waere n
+  // der sichere Weg in einen halb gespeicherten Zustand. Die Funktion laeuft
+  // ohne security definer, also greifen RLS, Firmen-Grenze und Trigger wie
+  // bei einem gewoehnlichen update.
+  const r=await sb.rpc("lieferanten_zuordnen",{paare});
+  if(r.error)throw r.error;
+ }catch(e){
+  if(h){ h.style.color="var(--red)"; h.textContent="Nicht gespeichert: "+((e&&e.message)||e) }
+  $("liefZuordnenSpeichern").disabled=false;
+  return;
+ }
+ lfZuordnungen={};
+ await lfLaden();
+ lfZeichnen();
+ lfZuordnenZeichnen();
+ if(h){ h.style.color="var(--muted)"; h.textContent=paare.length+" Zuordnung(en) gespeichert." }
+}
+function lfZuordnenOeffnen(){
+ if(typeof $!=="function")return;
+ const m=$("liefZuordnenModal");
+ if(!m)return;
+ lfZuordnungen={};
+ const h=$("liefZuordnenMeldung");
+ if(h){ h.style.color="var(--muted)"; h.textContent="Vorschläge werden gerechnet …" }
+ m.hidden=false;
+ // Das Rechnen laeuft ueber alle Artikel gegen den ganzen Katalog. Erst
+ // zeichnen, wenn der Bildschirm steht - sonst sieht der Anwender ein
+ // eingefrorenes Fenster ohne zu wissen, warum.
+ setTimeout(()=>{
+  lfZuordnenZeichnen();
+  if(h)h.textContent="";
+ },30);
+}
+
 // ---- Von Hand auf die Einkaufsliste (v3.232) ------------------------------
 //
 // Je Artikel genau EIN offener Wunsch: ein zweites Setzen aendert die Menge,
@@ -411,6 +655,7 @@ async function lfEinkaufErledigt(id){
 
 // ---- Mindestbestand am Artikel --------------------------------------------
 let lfArtikelOffenId=null;
+let lfArtikelRegieWahl="";     // die Wahl im offenen Dialog (v3.234)
 function lfArtikelOeffnen(id){
  if(typeof $!=="function")return;
  const a=lfArtikelZuId(id);
@@ -443,9 +688,64 @@ function lfArtikelOeffnen(id){
  if(hin)hin.textContent=wunsch
   ? "Steht bereits von Hand auf der Einkaufsliste."
   : "Einmalig bestellen, ohne dafür einen Mindestbestand festzulegen.";
+ // v3.234: Regie-Position. Ausgewaehlt wird hier, gespeichert mit dem Rest.
+ const r0=lfRegieVon(a);
+ lfArtikelRegieWahl=r0?String(r0.id):"";
+ lfArtikelRegieZeichnen(a);
  $("liefArtikelFehler").textContent="";
  $("liefArtikelModal").hidden=false;
  setTimeout(()=>{ const f=$("liefArtikelMindest"); if(f){f.focus();f.select()} },60);
+}
+// Die Auswahl im Artikel-Dialog: aktuelle Zuordnung, die Vorschlaege der App
+// und die freie Suche im Katalog. Gesucht wird mit searchMaterials() aus
+// js/06 - derselben Suche wie im Regierapport; eine zweite waere eine zweite
+// Wahrheit darueber, was ein Treffer ist.
+function lfArtikelRegieZeichnen(a){
+ if(typeof $!=="function")return;
+ const box=$("liefArtikelRegie");
+ if(!box)return;
+ // Angezeigt wird die WAHL im offenen Dialog, nicht der gespeicherte Stand -
+ // sonst sieht der Anwender nach einem Klick immer noch das Alte und klickt
+ // ein zweites Mal.
+ const jetzt=lfRegieZuId(lfArtikelRegieWahl);
+ const vor=lfRegieVorschlaege(a);
+ const sicher=lfRegieSicher(vor);
+ let html=jetzt
+  ? `<div class="info" style="margin:0">Zugeordnet: <b>${esc(lfRegieText(jetzt))}</b>
+     <button type="button" class="gray" data-lf-regie="" style="margin-left:8px">✕ entfernen</button></div>`
+  : `<div class="small" style="color:var(--muted)">Noch keiner Regie-Position zugeordnet.</div>`;
+ if(vor.length){
+  html+=`<div class="small" style="color:var(--muted);margin:8px 0 4px">${
+   sicher?"Vorschlag der App:":"Vorschläge – bitte prüfen:"}</div>`;
+  vor.forEach(v=>{
+   const r=lfRegieZuNummer(v.no);
+   if(!r)return;
+   const grund=v.gruende&&v.gruende.length?" · "+v.gruende.join(", "):"";
+   html+=`<button type="button" class="${jetzt&&String(jetzt.id)===String(r.id)?"blue":"gray"}"
+    data-lf-regie="${esc(r.id)}" style="display:block;width:100%;text-align:left;margin-bottom:4px">
+    ${esc(lfRegieText(r))}<span style="opacity:.7">${esc(grund)}</span></button>`;
+  });
+ }else if(!jetzt){
+  html+=`<div class="small" style="color:var(--muted);margin-top:6px">Die App findet keinen
+   passenden Vorschlag – das ist in Ordnung. Nicht jeder Lieferantenartikel hat eine
+   Regie-Position.</div>`;
+ }
+ html+=`<div class="wide" style="margin-top:8px"><label>Andere Position suchen</label>
+  <div class="search"><input id="liefRegieSuche" placeholder="EDV-Nr. oder Bezeichnung" autocomplete="off">
+  <div id="liefRegieSug" class="suggest"></div></div></div>`;
+ box.innerHTML=html;
+ const feld=$("liefRegieSuche");
+ if(feld)feld.oninput=()=>{
+  const sug=$("liefRegieSug");
+  if(!sug||typeof searchMaterials!=="function")return;
+  sug.innerHTML=searchMaterials(feld.value).map(x=>{
+   const r=lfRegieZuNummer(x[0]);
+   if(!r)return "";
+   return `<div class="item" data-lf-regie="${esc(r.id)}"><b>${esc(x[0])} · ${esc(x[1])}</b>
+    <span>${esc(x[2]||"")} · ${esc(x[3]||"")}</span></div>`;
+  }).join("");
+  if(sug.innerHTML&&typeof positionSuggest==="function")positionSuggest(feld,sug);
+ };
 }
 function lfArtikelSchliessen(){
  if(typeof $==="function"&&$("liefArtikelModal"))$("liefArtikelModal").hidden=true;
@@ -469,7 +769,11 @@ async function lfMindestSpeichern(){
  }
  $("liefArtikelSpeichern").disabled=true;
  try{
-  const r=await sb.from("lieferanten_artikel").update({mindestbestand:m,preis:p}).eq("id",a.id);
+  // v3.234: Die Regie-Position geht mit demselben Schreibvorgang weg. Eine
+  // leere Wahl schreibt NULL - "keine Zuordnung" ist ein gueltiger Zustand,
+  // nicht ein fehlender Wert.
+  const r=await sb.from("lieferanten_artikel")
+   .update({mindestbestand:m,preis:p,material_id:lfArtikelRegieWahl||null}).eq("id",a.id);
   if(r.error)throw r.error;
  }catch(e){
   $("liefArtikelFehler").textContent="Nicht gespeichert: "+((e&&e.message)||e);
@@ -484,6 +788,8 @@ async function lfMindestSpeichern(){
  const teile=[];
  teile.push(m>0?"Mindestbestand "+lfZahlText(m):"nicht mehr überwacht");
  if(p!==null)teile.push("Preis CHF "+p.toFixed(2));
+ const rr=lfRegieZuId(lfArtikelRegieWahl);
+ if(rr)teile.push("Regie "+rr.edv_nr);
  lfMeldung("„"+a.bezeichnung+"“: "+teile.join(", ")+".");
 }
 
@@ -645,9 +951,11 @@ function lfZeileHtml(a,mitLieferant){
               a.wulst?a.wulst+" mm":""].filter(Boolean).join(" · ");
  // Der Lieferant steht nur da, wo es mehr als einen gibt - solange das Lager
  // eines Haendlers drinsteht, waere er in jeder Zeile dieselbe Auskunft.
+ const regie=lfRegieVon(a);
  const unten=[mitLieferant&&a.lieferant?esc(a.lieferant):"",esc(a.artikelnr),
               masse?esc(masse):"",a.ean?esc(a.ean):"",
-              lfHatPreis(a)?esc(lfPreisText(a)):""].filter(Boolean).join(" · ");
+              lfHatPreis(a)?esc(lfPreisText(a)):"",
+              regie?"Regie "+esc(regie.edv_nr):""].filter(Boolean).join(" · ");
  // v3.231: Ein ueberwachter Artikel zeigt seinen Mindestbestand, und wenn er
  // unterschritten ist, faellt das in der Zeile auf - nicht erst in der
  // Einkaufsliste. Der Mangel gehoert dorthin, wo man ihn sieht.
@@ -693,6 +1001,13 @@ function lfZeichnen(){
  if(e){
   const n=lfEinkaufsliste().length;
   e.textContent=n?"📋 Einkaufsliste ("+n+")":"📋 Einkaufsliste";
+ }
+ // v3.234: Der Zuordnen-Knopf zeigt, wie viele Artikel noch OHNE
+ // Regie-Position sind - das ist die Arbeit, die noch aussteht.
+ const zk=$("liefZuordnenKnopf");
+ if(zk){
+  const offen=lfArtikel.filter(a=>!a.archiviert&&!lfRegieVon(a)).length;
+  zk.textContent=offen?"🔗 Zuordnen ("+offen+" offen)":"🔗 Zuordnen";
  }
  if(!lfArtikel.length){
   box.innerHTML=`<div class="info">Noch kein Sortiment eingelesen. Der Knopf <b>Sortiment einlesen</b> holt die Artikelliste des Lieferanten.</div>`;
@@ -795,6 +1110,28 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
  if(art){ lfArtikelOeffnen(art.getAttribute("data-lf-artikel")); return }
  const erl=t.closest("[data-lf-erledigt]");
  if(erl){ lfEinkaufErledigt(erl.getAttribute("data-lf-erledigt")); return }
+ // v3.234: eine Regie-Position im Artikel-Dialog waehlen oder entfernen.
+ const reg=t.closest("[data-lf-regie]");
+ if(reg){
+  lfArtikelRegieWahl=reg.getAttribute("data-lf-regie")||"";
+  const a=lfArtikelZuId(lfArtikelOffenId);
+  if(a)lfArtikelRegieZeichnen(a);
+  return;
+ }
+});
+// Die Auswahl in der Zuordnen-Ansicht. Geschrieben wird erst beim Speichern -
+// bis dahin steht die Aenderung nur hier, und der Knopf sagt, wie viele
+// offen sind.
+if(typeof document!=="undefined")document.addEventListener("change",e=>{
+ const s=e.target;
+ if(!s||!s.getAttribute)return;
+ const id=s.getAttribute("data-lf-zu");
+ if(id===null)return;
+ lfZuordnungen[String(id)]=s.value||"";
+ // NUR der Kopf wird neu gezeichnet. Die ganze Liste neu zu bauen wuerde bei
+ // 439 Zeilen die Scrollposition verlieren - mitten im Durchgehen der
+ // schlimmste Moment.
+ lfZuordnenKopfZeichnen();
 });
 
 // ---- Neue Positionen als Excel hochladen ----------------------------------
@@ -868,6 +1205,12 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefArtikelAbbrechen",()=>lfArtikelSchliessen());
  an("liefArtikelSpeichern",()=>lfMindestSpeichern());
  an("liefArtikelWunschSetzen",()=>lfAufEinkaufsliste());
+ an("liefZuordnenKnopf",()=>lfZuordnenOeffnen());
+ an("liefZuordnenSichere",()=>lfZuordnenSichereUebernehmen());
+ an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
+ an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
+ const nz=$("liefZuordnenNurOffene");
+ if(nz)nz.onchange=()=>{ lfZuordnenNurOffene=nz.checked; lfZuordnenZeichnen() };
  const s=$("liefSuche");
  if(s)s.oninput=()=>{ lfSuche=s.value; lfZeichnen() };
 });

@@ -90,6 +90,41 @@ const SB=`()=>{
  // Eigenschaft AUF dem vorhandenen Objekt. (Derselbe Fehlertyp wie in v3.224
  // bei window.lagerVarianten und in v3.225 bei navigator.credentials.)
  sb.from=name=>tisch(name);
+ // v3.234: die Zuordnung laeuft ueber eine Datenbankfunktion, nicht ueber
+ // n einzelne Schreibzugriffe. Die Attrappe schreibt mit, WAS geschickt
+ // wurde - darum geht es hier.
+ sb.rpc=(name,args)=>{
+  window.__db.ruf.push({tisch:"rpc:"+name,was:"rpc",args});
+  ((args&&args.paare)||[]).forEach(p=>{
+   const a=window.__db.lieferanten_artikel.find(x=>String(x.id)===String(p.id));
+   if(a)a.material_id=p.material_id===""?null:p.material_id;
+  });
+  return Promise.resolve({data:((args&&args.paare)||[]).length,error:null});
+ };
+}`;
+
+// Der Regie-Katalog, wie ihn lagArtikelListe() (js/59) liefert. Gesetzt
+// werden BEIDE parallelen Listen - settings.materials und materialIds -,
+// weil js/59 sie ueber denselben Index zusammenfuehrt. Nur eine davon zu
+// setzen ergaebe eine leere Liste, und der Pruefstand haette am Katalog
+// vorbei gemessen.
+//
+// materialIds wird OHNE "window." gesetzt. Es ist wie sb eine Bindung auf
+// Modulebene: ein "window.materialIds=[...]" legt ein zweites Objekt an,
+// das lagArtikelListe() nie liest - die Liste bliebe leer und der
+// Pruefstand haette am Katalog vorbei gemessen. (Derselbe Fehlertyp wie in
+// v3.224 bei lagerVarianten, v3.225 bei navigator.credentials und v3.229
+// bei sb - beim vierten Mal ist es keine Unachtsamkeit mehr, sondern ein
+// Muster dieses Projekts.)
+const KATALOG=`()=>{
+ settings.materials=[
+  ["203.06","Rinnenseiher, alle Materialien","alle","St",12.5],
+  ["201.01","Dachrinnen halbrund Titanzink","333","m1",18],
+  ["202.01","Rinnenhalter Titanzink","alle","St",9],
+  ["811.04","Dichtungsmasse Neutralsilikon","","Kart.",14],
+  ["100.01","Stahlblech svz / evz / dek","0.62","m²",31]
+ ];
+ materialIds=[7001,7002,7003,7004,7005];
 }`;
 
 (async()=>{
@@ -810,6 +845,149 @@ const SB=`()=>{
  z=await page.evaluate(()=>!!document.getElementById("liefArtikelPreis")
    &&!!document.getElementById("liefArtikelPreisStand"));
  p(z===true,"N15 die Bedienteile stehen im Dokument",z);
+
+ // ---- O  Die Bruecke zur Regie-Position (v3.234) ------------------------
+ //
+ // Ansage des Anwenders: "die artikel aus unserer regieliste decken sich
+ // viele mit der bteam liste... aber nicht alle."
+ //
+ // Der teure Fehler waere hier, aus n:1 ein 1:1 zu machen - oder eine
+ // Zuordnung zu erfinden, wo keine passt. Beides prueft dieser Abschnitt.
+ console.log("\nO · Die Bruecke zur Regie-Position");
+ z=await page.evaluate((k)=>{
+  eval("("+k+")()");
+  return {katalog:lfRegieListe().length, erste:lfRegieListe()[0]};
+ },KATALOG);
+ p(z.katalog===5&&z.erste&&z.erste.edv_nr==="203.06"&&z.erste.id===7001,
+   "O1 der Regie-Katalog kommt aus lagArtikelListe() (js/59) - dieselbe Liste wie Materialbestand und Lagerverwaltung",z);
+ p(!/from\("materials"\)/.test(quelle)&&!/update\([^)]*materials/.test(quelle),
+   "O2 GEGENPROBE: js/82 schreibt NICHT in materials - die Regieliste wird nur gelesen",null);
+ // n:1 - drei Rinnenseiher zeigen auf dieselbe Regie-Position.
+ z=await page.evaluate((k)=>{
+  eval("("+k+")()");
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"A1",bezeichnung:"Rinnenseiher 60 mm Stahl verzinkt",gruppe:"Rinnenseiher",material:"Stahl verzinkt"},
+   {id:2,lieferant:"B",artikelnr:"A2",bezeichnung:"Rinnenseiher 75 mm Stahl verzinkt",gruppe:"Rinnenseiher",material:"Stahl verzinkt"},
+   {id:3,lieferant:"B",artikelnr:"A3",bezeichnung:"Rinnenseiher 100 mm Stahl verzinkt",gruppe:"Rinnenseiher",material:"Stahl verzinkt"},
+   {id:4,lieferant:"B",artikelnr:"A4",bezeichnung:"Vogelabwehrstäbe Ecopic 1-reihig",gruppe:"Vogelabwehr",material:""}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={};
+  const v=lfArtikel.map(a=>{
+   const liste=lfRegieVorschlaege(a);
+   return {nr:a.artikelnr, bester:liste.length?liste[0].no:null,
+           sicher:lfRegieSicher(liste), anzahl:liste.length};
+  });
+  return v;
+ },KATALOG);
+ p(z[0].bester==="203.06"&&z[1].bester==="203.06"&&z[2].bester==="203.06",
+   "O3 drei verschiedene Rinnenseiher schlagen DIESELBE Regie-Position vor - n:1 ist der Normalfall, nicht der Fehler",z);
+ p(z[3].anzahl===0||z[3].bester!=="203.06",
+   "O4 GEGENPROBE: ein Artikel ohne passende Position bekommt keine aufgedraengt ('nicht alle')",z[3]);
+ // Die Einheit: Lieferantenartikel haben keine, deshalb werden Stueck UND
+ // Laenge gefragt. Wuerde nur eine gefragt, fiele die halbe Regieliste weg.
+ z=await page.evaluate((k)=>{
+  eval("("+k+")()");
+  lfVorschlagCache={};
+  const rinne={id:9,artikelnr:"A9",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",gruppe:"Dachrinnen",material:"Titanzink"};
+  lfArtikel=[rinne];
+  const beide=lfRegieVorschlaege(rinne).map(v=>v.no);
+  // Gegenprobe: nur Stueck gefragt - die m1-Position kann gar nicht kommen.
+  const nurStueck=(rmatVorschlaege("Dachrinnen 333x0.7 mm Titanzink Dachrinnen","St","Titanzink")||[]).map(v=>v.no);
+  return {beide,nurStueck};
+ },KATALOG);
+ p(z.beide.indexOf("201.01")>=0,
+   "O5 eine Rinne (Katalogeinheit m1) wird gefunden, obwohl der Artikel keine Einheit hat",z);
+ p(z.nurStueck.indexOf("201.01")<0,
+   "O6 GEGENPROBE: mit nur EINER Einheitenklasse waere sie unauffindbar - deshalb werden beide gefragt",z);
+ // Vorwaehlen nur, wo es sicher ist.
+ z=await page.evaluate((k)=>{
+  eval("("+k+")()");
+  lfVorschlagCache={};
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"A1",bezeichnung:"Rinnenhalter Titanzink 333",gruppe:"Rinnenhalter",material:"Titanzink"},
+   {id:2,lieferant:"B",artikelnr:"A2",bezeichnung:"Schraube 4.5x35 Inox",gruppe:"Schrauben",material:""}];
+  lfZuordnungen={};
+  lfZuordnenSichereUebernehmen();
+  return {gesetzt:Object.keys(lfZuordnungen).length, wahl:lfZuordnungen["1"]||null,
+          zwei:lfZuordnungen["2"]||null};
+ },KATALOG);
+ p(z.wahl==="7003",
+   "O7 ein sicherer Vorschlag wird von 'Sichere einsetzen' uebernommen",z);
+ p(z.zwei===null,
+   "O8 GEGENPROBE: wo nichts passt, wird nichts eingesetzt - die App behauptet nicht",z);
+ // Gespeichert wird erst auf Knopfdruck, und in EINEM Aufruf.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  await lfLaden();
+  lfVorschlagCache={};
+  window.__db.ruf=[];
+  lfZuordnungen={"1":"7001","2":""};
+  await lfZuordnenSpeichern();
+  await new Promise(r=>setTimeout(r,140));
+  return {ruf:window.__db.ruf.slice(),
+          stand:window.__db.lieferanten_artikel.map(a=>[a.id,a.material_id||null])};
+ },{f:SB,k:KATALOG});
+ const rpc=z.ruf.filter(r=>r.was==="rpc");
+ p(rpc.length===1&&rpc[0].tisch==="rpc:lieferanten_zuordnen",
+   "O9 gespeichert wird mit GENAU einem Aufruf, nicht mit n Schreibzugriffen - im Funkloch waere n ein halb gespeicherter Zustand",z.ruf);
+ p(!z.ruf.some(r=>r.tisch==="lieferanten_bewegungen"||r.tisch==="lieferanten_einkauf"),
+   "O10 GEGENPROBE: eine Zuordnung ist weder Buchung noch Einkaufswunsch",z.ruf);
+ p(rpc[0]&&rpc[0].args.paare.length===1&&String(rpc[0].args.paare[0].id)==="1",
+   "O11 und nur die WIRKLICH geaenderten Zeilen gehen mit - Artikel 2 stand schon auf 'keine'",rpc[0]&&rpc[0].args);
+ // Der Artikel-Dialog: waehlen, entfernen, und die Wahl geht mit dem
+ // uebrigen Speichern weg.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  // Eine Vorlage, die eindeutig trifft - hier wird das BEDIENEN geprueft,
+  // nicht noch einmal die Bewertung (das war O3-O8).
+  Object.assign(window.__db.lieferanten_artikel[0],
+   {bezeichnung:"Rinnenhalter Titanzink 333",gruppe:"Rinnenhalter",material:"Titanzink",material_id:null});
+  await lfLaden();
+  lfVorschlagCache={};
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  const vorher=lfArtikelRegieWahl;
+  const knopf=document.querySelector('#liefArtikelRegie [data-lf-regie]:not([data-lf-regie=""])');
+  if(!knopf)return {fehlt:"kein Vorschlagsknopf",html:$("liefArtikelRegie").innerHTML.slice(0,200)};
+  knopf.click();
+  const nachKlick=lfArtikelRegieWahl;
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,140));
+  const u=window.__db.ruf.filter(r=>r.was==="update");
+  return {vorher,nachKlick,werte:u.length?u[0].werte:null};
+ },{f:SB,k:KATALOG});
+ p(z.vorher===""&&z.nachKlick&&z.nachKlick!=="",
+   "O12 im Artikel-Dialog laesst sich ein Vorschlag mit einem Klick waehlen",z);
+ p(z.werte&&String(z.werte.material_id)===String(z.nachKlick),
+   "O13 und die Wahl geht mit demselben Speichern weg wie Mindestbestand und Preis",z);
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()");
+  eval("("+o.k+")()");
+  window.__db.lieferanten_artikel[0].material_id=7001;
+  await lfLaden();
+  lfVorschlagCache={};
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  const vorher=lfArtikelRegieWahl;
+  document.querySelector('#liefArtikelRegie [data-lf-regie=""]').click();
+  await lfMindestSpeichern();
+  await new Promise(r=>setTimeout(r,140));
+  const u=window.__db.ruf.filter(r=>r.was==="update");
+  return {vorher, werte:u.length?u[0].werte:null};
+ },{f:SB,k:KATALOG});
+ p(String(z.vorher)==="7001",
+   "O14 eine bestehende Zuordnung steht beim Oeffnen da",z);
+ p(z.werte&&z.werte.material_id===null,
+   "O15 GEGENPROBE: 'entfernen' schreibt NULL - 'keine Zuordnung' ist ein gueltiger Zustand, kein fehlender Wert",z);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefZuordnenKnopf","liefZuordnenModal","liefZuordnenListe","liefZuordnenSichere",
+          "liefZuordnenSpeichern","liefZuordnenNurOffene","liefArtikelRegie"].filter(x=>!el(x));
+ });
+ p(z.length===0,"O16 alle Bedienteile stehen im Dokument",z);
+ p(/rmatVorschlaege\(/.test(quelle)&&/rmatIstSicher\(/.test(quelle),
+   "O17 bewertet wird mit der VORHANDENEN Bewertung aus js/57 - keine zweite Wahrheit darueber, was ein Treffer ist",null);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
