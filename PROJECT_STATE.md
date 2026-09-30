@@ -3,9 +3,34 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.235`
+- Aktueller Entwicklungsstand: `v3.236`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.236: Material im Regierapport scannen
+
+Barcode → Lieferantenartikel → Regie-Position → Rapportzeile mit **eurer**
+EDV-Nr. und **eurem** Preis. Die Kette aus v3.234 ist damit geschlossen.
+
+- **`lfBarcodeZuRegie(code)` liegt in js/82**, nicht im Regierapport. js/06
+  **fragt nur**: genau ein Aufruf, null Zuweisungen — der Prüfstand misst das
+  (A3a). Damit bleibt gewahrt, dass der Regierapport das Lieferanten-Lager
+  nicht anfasst.
+- Gesucht wird in **beiden** Lagern (Lieferantensortiment, dann
+  `lagerVarianteZuBarcode` aus js/68). Ein Barcode zeigt auf eine Ware, nicht
+  auf ein Modul.
+- **Immer mit Grund geantwortet**, nie nur `null`: leer / unbekannt /
+  archiviert / ohne-zuordnung. Und in **keinem** Fehlerfall entsteht eine
+  Zeile — sonst stünde Material im Rapport, das niemand verbaut hat.
+- Derselbe Artikel am selben Tag wird **hochgezählt**; ein anderes Datum bleibt
+  eine eigene Zeile.
+- Der Knopf wird **auf DOMContentLoaded** sichtbar gemacht: js/06 läuft vor
+  js/82, ein im Dateikörper gesetztes `hidden` bliebe für immer stehen
+  (Fehlertyp aus v3.228).
+
+Stand der Zuordnung bei Auslieferung: **281 von 439** Artikeln, auf 23
+Regie-Positionen; alle 281 mit Barcode, also sofort scanbar. Ganz offen sind
+noch Rinnenhaken eckig (17), Rinnenkugelböden (15), Schrägstutzen (15).
 
 ### v3.235: Zuordnen je Gruppe, und die App lernt aus der Entscheidung
 

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.235.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.236.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1381,6 +1381,18 @@ einfach eintippen. Die Liste schlägt vor, sie schreibt nichts fest.</div>`},
 "rapport-material":{titel:"Material",text:`
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension,
 Einheit und Preis kommen von dort.</p>
+<p><b>📷 Material scannen</b> spart das Tippen: Barcode am Artikel scannen, und
+die Zeile trägt die passende <b>EDV-Nr.</b> aus eurem Katalog – mit eurem Preis.
+Gesucht wird im <b>Lieferanten-Lager</b> und in der <b>Lagerverwaltung</b>; ein
+Barcode zeigt auf eine Ware, nicht auf ein Modul.</p>
+<div class="hin"><b>Dreimal scannen heisst drei Stück.</b> Derselbe Artikel am
+selben Tag wird hochgezählt statt ein zweites Mal angelegt. Ein anderer Tag
+bleibt eine eigene Zeile – sie sagt aus, wann das Material verbraucht wurde.</div>
+<p>Ist ein Code <b>nicht bekannt</b> oder hat der Artikel <b>noch keine
+Regie-Position</b>, entsteht <b>keine Zeile</b> – und darunter steht, woran es
+liegt. Fehlt nur die Zuordnung, trägst du sie im Lieferanten-Lager unter
+<b>🔗 Zuordnen</b> nach, danach geht das Scannen. Eine Zeile auf Verdacht wäre
+Material im Rapport, das niemand verbaut hat.</p>
 <p><b>Material, das nicht im Katalog steht:</b> die Nummern <b>999.90</b> bis
 <b>999.99</b> sind freie Positionen. Bezeichnung, Dimension, Einheit und Preis
 werden dann direkt in der Zeile eingetragen. Die App schlägt beim Tippen die
