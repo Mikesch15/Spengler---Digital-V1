@@ -989,6 +989,126 @@ const KATALOG=`()=>{
  p(/rmatVorschlaege\(/.test(quelle)&&/rmatIstSicher\(/.test(quelle),
    "O17 bewertet wird mit der VORHANDENEN Bewertung aus js/57 - keine zweite Wahrheit darueber, was ein Treffer ist",null);
 
+ // ---- P  Zuordnen je Gruppe (v3.235) -----------------------------------
+ //
+ // Ansage des Anwenders: "können wir das so machen das ich die zuordnung pro
+ // kategorie machen kann damit es übersichtlicher ist" - und der gemeldete
+ // Fehler dazu: "zb rinnenstutzen ist ein einhängestutzen gerade, da lag die
+ // app daneben".
+ //
+ // Der zweite Teil ist der wichtigere: die Textbewertung zieht "Rinnen..."
+ // zu Rinnenwinkel und Rinnenboden. Dagegen hilft keine bessere Wortregel,
+ // sondern die Entscheidung des Menschen - einmal gesagt, gilt sie fuer die
+ // ganze Gruppe.
+ console.log("\nP · Zuordnen je Gruppe");
+ const GRUPPE=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250 Titanzink",gruppe:"Rinnenstutzen",material:"Titanzink"},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Rinnenstutzen 330 Titanzink",gruppe:"Rinnenstutzen",material:"Titanzink"},
+   {id:3,lieferant:"B",artikelnr:"S3",bezeichnung:"Rinnenstutzen 250 Kupfer",gruppe:"Rinnenstutzen",material:"Kupfer"},
+   {id:4,lieferant:"B",artikelnr:"W1",bezeichnung:"Rinnenwinkel 250 Titanzink",gruppe:"Rinnenwinkel",material:"Titanzink"}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true;
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  return {gruppen:lfZuordnenGruppen().map(g=>[g.name,g.offen,g.gesamt]),
+          alle:lfZuordnenKandidaten().length};
+ },{k:KATALOG,g:GRUPPE});
+ p(z.gruppen.length===2&&z.gruppen[0][0]==="Rinnenstutzen"&&z.gruppen[0][2]===3,
+   "P1 die Gruppen werden aus den Artikeln abgeleitet, mit offen/gesamt - keine zweite Gruppenliste",z);
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  lfZuordnenGruppe="Rinnenstutzen";
+  const nurGruppe=lfZuordnenKandidaten().map(a=>a.artikelnr);
+  const reihenfolge=lfZuordnenKandidaten().map(a=>a.bezeichnung);
+  lfZuordnenSuche="250";
+  const mitSuche=lfZuordnenKandidaten().map(a=>a.artikelnr);
+  lfZuordnenSuche="kupfer";
+  const nachMaterial=lfZuordnenKandidaten().map(a=>a.artikelnr);
+  return {nurGruppe,reihenfolge,mitSuche,nachMaterial};
+ },{k:KATALOG,g:GRUPPE});
+ // Geprueft wird die MENGE, nicht die Reihenfolge der Artikelnummern -
+ // sortiert wird nach Bezeichnung, und das ist Absicht (siehe P2a).
+ p(z.nurGruppe.slice().sort().join(",")==="S1,S2,S3",
+   "P2 die Gruppenwahl zeigt genau diese Gruppe - der Rinnenwinkel bleibt draussen",z);
+ p(z.reihenfolge.join(" | ")===z.reihenfolge.slice().sort((x,y)=>x.localeCompare(y,"de")).join(" | "),
+   "P2a und geordnet wird nach BEZEICHNUNG, nicht nach Artikelnummer - beim Durchgehen sucht man den Namen, nicht die Nummer",z.reihenfolge);
+ p(z.mitSuche.slice().sort().join(",")==="S1,S3"&&z.nachMaterial.join(",")==="S3",
+   "P3 und das Suchfeld grenzt darin weiter ein, nach Mass wie nach Werkstoff - damit lassen sich die Groessenpaare (250/330) getrennt setzen",z);
+ // Sammelsetzen: was ANGEZEIGT wird, wird gesetzt - nichts Unsichtbares.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  lfZuordnenGruppe="Rinnenstutzen";
+  lfZuordnenSuche="250";
+  $("liefZuordnenRegie").value="203.06";       // Rinnenseiher - hier nur als Ziel
+  lfZuordnenAlleSetzen();
+  return {gesetzt:Object.assign({},lfZuordnungen)};
+ },{k:KATALOG,g:GRUPPE});
+ p(Object.keys(z.gesetzt).length===2&&z.gesetzt["1"]==="7001"&&z.gesetzt["3"]==="7001",
+   "P4 'Alle angezeigten setzen' trifft genau die sichtbaren zwei - nicht die ganze Gruppe und nicht das ganze Lager",z);
+ p(z.gesetzt["2"]===undefined&&z.gesetzt["4"]===undefined,
+   "P5 GEGENPROBE: der ausgeblendete Artikel derselben Gruppe und der fremden Gruppe bleiben unangetastet",z);
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  lfZuordnenGruppe="Rinnenstutzen";
+  $("liefZuordnenRegie").value="999.99";
+  lfZuordnenAlleSetzen();
+  const unbekannt={anzahl:Object.keys(lfZuordnungen).length, meldung:$("liefZuordnenMeldung").textContent};
+  $("liefZuordnenRegie").value="";
+  lfZuordnenAlleSetzen();
+  const leer={anzahl:Object.keys(lfZuordnungen).length, meldung:$("liefZuordnenMeldung").textContent};
+  return {unbekannt,leer};
+ },{k:KATALOG,g:GRUPPE});
+ p(z.unbekannt.anzahl===0&&/nicht im Regie-Katalog/.test(z.unbekannt.meldung),
+   "P6 GEGENPROBE: eine EDV-Nr., die es nicht gibt, setzt nichts - und die App sagt warum",z.unbekannt);
+ p(z.leer.anzahl===0&&/Regie-Position wählen/.test(z.leer.meldung),
+   "P7 GEGENPROBE: ein leeres Feld setzt nichts - sonst wuerden alle angezeigten stillschweigend geleert",z.leer);
+ // DER GEMELDETE FEHLER: "rinnenstutzen ist ein einhängestutzen gerade".
+ // Die Textbewertung kann das nicht wissen. Die Gruppe weiss es, sobald der
+ // Mensch es EINMAL gesagt hat.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  const vorher=lfGruppenVorschlag(lfArtikel[1]);
+  // Der Mensch ordnet EINEN Rinnenstutzen von Hand zu.
+  lfZuordnungen["1"]="7001";
+  const nachher=lfGruppenVorschlag(lfArtikel[1]);
+  const fremd=lfGruppenVorschlag(lfArtikel[3]);   // andere Gruppe
+  return {vorher, nachher:nachher&&{nr:nachher.regie.edv_nr,anzahl:nachher.anzahl}, fremd};
+ },{k:KATALOG,g:GRUPPE});
+ p(z.vorher===null,"P8 ohne eine einzige Entscheidung gibt es keinen Gruppenvorschlag - die App erfindet kein Muster",z);
+ p(z.nachher&&z.nachher.nr==="203.06"&&z.nachher.anzahl===1,
+   "P9 EINE Zuordnung von Hand, und die Gruppe schlaegt sie fuer die uebrigen vor - genau der gemeldete Fall (Rinnenstutzen = Einhaengestutzen)",z);
+ p(z.fremd===null,
+   "P10 GEGENPROBE: eine andere Gruppe lernt davon NICHT mit - sonst zoege eine Entscheidung das ganze Lager hinter sich her",z);
+ // Auch noch nicht gespeicherte Entscheidungen zaehlen - sonst muesste man
+ // erst speichern, damit die Gruppe mitlernt.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  eval("("+o.g+")()");
+  lfZuordnungen["1"]="7001";
+  lfZuordnenGruppe="Rinnenstutzen";
+  lfZuordnenSichereUebernehmen();
+  return {gesetzt:Object.assign({},lfZuordnungen), meldung:$("liefZuordnenMeldung").textContent};
+ },{k:KATALOG,g:GRUPPE});
+ p(z.gesetzt["2"]==="7001"&&z.gesetzt["3"]==="7001",
+   "P11 'Sichere Vorschläge einsetzen' folgt dem Gruppenmuster - eine Handzuordnung genuegt fuer den Rest",z);
+ p(z.gesetzt["4"]===undefined,
+   "P12 GEGENPROBE: und bleibt dabei in der angezeigten Gruppe",z);
+ p(/Gruppe/.test(z.meldung),
+   "P13 die App sagt auch, dass sie dem Gruppenmuster gefolgt ist - nicht nur, dass sie etwas gesetzt hat",z.meldung);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefZuordnenGruppe","liefZuordnenSuche","liefZuordnenRegie",
+          "liefZuordnenRegieListe","liefZuordnenAlle"].filter(x=>!el(x));
+ });
+ p(z.length===0,"P14 alle Bedienteile stehen im Dokument",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

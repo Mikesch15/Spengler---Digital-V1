@@ -3,9 +3,29 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.234`
+- Aktueller Entwicklungsstand: `v3.235`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.235: Zuordnen je Gruppe, und die App lernt aus der Entscheidung
+
+Ansage: „können wir das so machen das ich die zuordnung pro kategorie machen
+kann damit es übersichtlicher ist" — und der gemeldete Fehler dazu: „zb
+rinnenstutzen ist ein einhängestutzen gerade, da lag die app daneben".
+
+- **Gruppenwahl + Suchfeld** in der Zuordnen-Ansicht (439 Artikel, 13 Gruppen).
+  Das Suchfeld grenzt innerhalb der Gruppe nach Mass oder Werkstoff ein — nötig,
+  weil viele Regie-Positionen als Paar 250/330 vorliegen.
+- **„Alle angezeigten setzen"**: was sichtbar ist, wird gesetzt. Nichts
+  Unsichtbares — der Knopf respektiert Gruppen-, Such- und „nur offene"-Filter.
+- **`lfGruppenVorschlag()`**: die häufigste bereits gewählte Position derselben
+  Gruppe (gespeicherte **und** offene Zuordnungen) schlägt jede Textähnlichkeit.
+  Genau der gemeldete Fall: die Bewertung zieht „Rinnen…" zu Rinnenwinkel und
+  Rinnenboden; **eine** Handzuordnung genügt, und die Gruppe weiss es.
+  Andere Gruppen lernen davon **nicht** mit.
+- `rmatBewerte()` in js/57 wurde **bewusst nicht angefasst** — sie hängt an der
+  Massaufnahme → Regierapport-Übernahme. Das Gruppenmuster löst den Fall, ohne
+  eine geteilte Bewertung zu verstellen.
 
 ### v3.234: Die Brücke Lieferantenartikel → Regie-Position
 

@@ -424,11 +424,68 @@ async function lfEinkaufKopieren(){
 // gar keiner, weil er unbesehen durchgewinkt wird.
 let lfZuordnungen={};      // {artikelId: material_id oder ""} - noch nicht gespeichert
 let lfZuordnenNurOffene=true;
+let lfZuordnenGruppe="";   // v3.235: eine Produktgruppe auf einmal
+let lfZuordnenSuche="";    // v3.235: innerhalb der Gruppe weiter eingrenzen
 
+// v3.235, Ansage des Anwenders: "können wir das so machen das ich die
+// zuordnung pro kategorie machen kann damit es übersichtlicher ist".
+//
+// 439 Artikel in 13 Gruppen, und die Zuordnung ist je Gruppe fast immer
+// dieselbe - alle Rinnenstutzen sind "Einhängestutzen gerade". Gearbeitet
+// wird deshalb gruppenweise, und was angezeigt wird, laesst sich in einem
+// Zug setzen.
+function lfZuordnenGruppen(){
+ const m={};
+ lfArtikel.filter(a=>!a.archiviert).forEach(a=>{
+  const g=String(a.gruppe||"Ohne Gruppe");
+  if(!m[g])m[g]={name:g,gesamt:0,offen:0};
+  m[g].gesamt++;
+  if(!lfRegieVon(a))m[g].offen++;
+ });
+ return Object.keys(m).sort((x,y)=>x.localeCompare(y,"de")).map(k=>m[k]);
+}
 function lfZuordnenKandidaten(){
  const t=(x,y)=>String(x||"").localeCompare(String(y||""),"de");
- return lfArtikel.filter(a=>!a.archiviert&&(!lfZuordnenNurOffene||!lfRegieVon(a)))
-  .sort((x,y)=>t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+ const q=lfZuordnenSuche.trim().toLowerCase();
+ return lfArtikel.filter(a=>{
+  if(a.archiviert)return false;
+  if(lfZuordnenNurOffene&&lfRegieVon(a))return false;
+  if(lfZuordnenGruppe&&String(a.gruppe||"Ohne Gruppe")!==lfZuordnenGruppe)return false;
+  if(q&&![a.bezeichnung,a.artikelnr,a.material].some(x=>String(x||"").toLowerCase().indexOf(q)>=0))return false;
+  return true;
+ }).sort((x,y)=>t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+}
+
+// Der staerkste Vorschlag ist nicht der aus dem Text, sondern die eigene
+// Entscheidung des Anwenders: hat er in dieser Gruppe schon 40 Artikel auf
+// "Einhängestutzen gerade" gelegt, ist das fuer den 41. die richtige
+// Auskunft - unabhaengig davon, wie die Woerter heissen.
+//
+// Genau der Fall, den der Anwender gemeldet hat: "Rinnenstutzen ist ein
+// Einhängestutzen gerade, da lag die app daneben". Die Textbewertung zieht
+// "Rinnen..." zu Rinnenwinkel und Rinnenboden. Die Gruppe weiss es besser,
+// sobald der Mensch es einmal gesagt hat.
+//
+// Gezaehlt werden gespeicherte UND noch offene Zuordnungen - sonst muesste
+// man erst speichern, damit die Gruppe mitlernt.
+function lfGruppenVorschlag(a){
+ if(!a)return null;
+ const g=String(a.gruppe||"Ohne Gruppe");
+ const zaehler={};
+ lfArtikel.forEach(x=>{
+  if(x.archiviert||String(x.gruppe||"Ohne Gruppe")!==g)return;
+  if(String(x.id)===String(a.id))return;
+  const s=String(x.id);
+  const id=Object.prototype.hasOwnProperty.call(lfZuordnungen,s)
+   ? lfZuordnungen[s]
+   : (lfRegieVon(x)?String(lfRegieVon(x).id):"");
+  if(!id)return;
+  zaehler[id]=(zaehler[id]||0)+1;
+ });
+ const beste=Object.keys(zaehler).sort((x,y)=>zaehler[y]-zaehler[x])[0];
+ if(!beste)return null;
+ const r=lfRegieZuId(beste);
+ return r?{regie:r,anzahl:zaehler[beste]}:null;
 }
 function lfZuordnungWert(a){
  const s=String(a.id);
@@ -443,6 +500,58 @@ function lfZuordnenOffen(){
   return String(r?r.id:"")!==String(lfZuordnungen[k]);
  }).length;
 }
+// v3.235: Die Gruppenwahl. Sie wird aus den Artikeln abgeleitet, nicht
+// gefuehrt - eine zweite Gruppenliste waere eine zweite Wahrheit darueber,
+// welche Gruppen es gibt.
+function lfZuordnenGruppenZeichnen(){
+ if(typeof $!=="function")return;
+ const sel=$("liefZuordnenGruppe");
+ if(!sel)return;
+ const gr=lfZuordnenGruppen();
+ const gesamtOffen=gr.reduce((s,g)=>s+g.offen,0);
+ sel.innerHTML=`<option value=""${lfZuordnenGruppe===""?" selected":""}>Alle Gruppen (${gesamtOffen} offen)</option>`
+  +gr.map(g=>`<option value="${esc(g.name)}"${lfZuordnenGruppe===g.name?" selected":""}>${
+   esc(g.name)} – ${g.offen} von ${g.gesamt} offen</option>`).join("");
+}
+// Die Auswahlliste der Regie-Positionen fuer das Sammelsetzen. Ein datalist
+// statt eines select mit 380 Zeilen: tippen filtert mit. Gefuellt wird sie
+// EINMAL beim Oeffnen - bei jedem Tastendruck 380 Zeilen neu zu bauen waere
+// Verschwendung, und der Katalog aendert sich waehrenddessen nicht.
+function lfZuordnenRegieListeFuellen(){
+ if(typeof $!=="function")return;
+ const dl=$("liefZuordnenRegieListe");
+ if(dl)dl.innerHTML=lfRegieListe().map(r=>
+  `<option value="${esc(r.edv_nr)}">${esc(r.name)}${r.dim?" · "+esc(r.dim):""}${r.unit?" · "+esc(r.unit):""}</option>`).join("");
+}
+// "Alle angezeigten auf ..." - was du siehst, wird gesetzt. Nichts
+// Unsichtbares. Deshalb wirkt es auf lfZuordnenKandidaten(), also samt
+// Gruppen- und Suchfilter und samt dem Schalter "nur offene".
+function lfZuordnenAlleSetzen(){
+ if(typeof $!=="function")return;
+ const feld=$("liefZuordnenRegie");
+ const h=$("liefZuordnenMeldung");
+ const nr=feld?feld.value.trim():"";
+ const liste=lfZuordnenKandidaten();
+ if(!liste.length){ if(h){h.style.color="var(--muted)";h.textContent="Es wird gerade nichts angezeigt."} return }
+ if(!nr){
+  if(h){ h.style.color="var(--red)";
+   h.textContent="Bitte oben eine Regie-Position wählen – oder das Feld leeren und die Zeilen einzeln setzen." }
+  return;
+ }
+ const r=lfRegieZuNummer(nr);
+ if(!r){
+  if(h){ h.style.color="var(--red)"; h.textContent="Die EDV-Nr. „"+nr+"“ steht nicht im Regie-Katalog." }
+  return;
+ }
+ if(typeof confirm==="function"&&!confirm(
+   "Alle "+liste.length+" angezeigten Artikel auf „"+r.edv_nr+" · "+r.name+"“ setzen?\n\n"
+  +"Gespeichert wird erst mit „Speichern“ – bis dahin lässt sich jede Zeile noch einzeln ändern."))return;
+ liste.forEach(a=>{ lfZuordnungen[String(a.id)]=String(r.id) });
+ lfZuordnenZeichnen();
+ if(h){ h.style.color="var(--muted)";
+  h.textContent=liste.length+" Artikel auf „"+r.edv_nr+"“ gesetzt – noch nicht gespeichert." }
+}
+
 function lfZuordnenKopfZeichnen(){
  if(typeof $!=="function")return;
  const kopf=$("liefZuordnenKennzahlen");
@@ -464,24 +573,36 @@ function lfZuordnenZeichnen(){
  const box=$("liefZuordnenListe");
  if(!box)return;
  lfZuordnenKopfZeichnen();
+ lfZuordnenGruppenZeichnen();
  const liste=lfZuordnenKandidaten();
+ const setzen=$("liefZuordnenAlle");
+ if(setzen){
+  setzen.disabled=!liste.length;
+  setzen.textContent=liste.length?"Alle "+liste.length+" angezeigten setzen":"Alle angezeigten setzen";
+ }
+ const sichere=$("liefZuordnenSichere");
+ if(sichere)sichere.disabled=!liste.length;
  if(!liste.length){
-  box.innerHTML=lfZuordnenNurOffene
-   ? `<div class="info">Alle Artikel haben eine Regie-Position. Mit dem Schalter oben
-      lassen sich auch die bereits zugeordneten anzeigen und ändern.</div>`
-   : `<div class="a2-leer">Keine Artikel vorhanden.</div>`;
+  box.innerHTML=(lfZuordnenGruppe||lfZuordnenSuche.trim())
+   ? `<div class="info">Hier ist nichts mehr offen. Wähle oben eine andere Gruppe –
+      oder schalte „nur noch nicht zugeordnete“ aus, um die fertigen zu sehen und zu ändern.</div>`
+   : (lfZuordnenNurOffene
+      ? `<div class="info">Alle Artikel haben eine Regie-Position. Mit dem Schalter oben
+         lassen sich auch die bereits zugeordneten anzeigen und ändern.</div>`
+      : `<div class="a2-leer">Keine Artikel vorhanden.</div>`);
   return;
  }
  let letzte=null, html="";
  liste.forEach(a=>{
   const g=String(a.gruppe||"Ohne Gruppe");
-  if(g!==letzte){
+  if(g!==letzte&&!lfZuordnenGruppe){
    html+=`<div style="margin:14px 0 4px;font-weight:700;color:var(--muted);
     font-size:13px;letter-spacing:.02em">${esc(g)}</div>`;
    letzte=g;
   }
   const vor=lfRegieVorschlaege(a);
   const sicher=lfRegieSicher(vor);
+  const grp=lfGruppenVorschlag(a);
   const wert=lfZuordnungWert(a);
   // Die Auswahl enthaelt: keine Zuordnung, die Vorschlaege, und - falls
   // der Artikel schon eine Position hat, die nicht unter den Vorschlaegen
@@ -490,6 +611,13 @@ function lfZuordnenZeichnen(){
   const optionen=[];
   optionen.push(`<option value=""${wert===""?" selected":""}>— keine Regie-Position —</option>`);
   const drin=new Set();
+  // Der Gruppenvorschlag steht ZUERST - er ist die eigene Entscheidung des
+  // Anwenders und schlaegt jede Textaehnlichkeit.
+  if(grp){
+   drin.add(String(grp.regie.id));
+   optionen.push(`<option value="${esc(grp.regie.id)}"${String(wert)===String(grp.regie.id)?" selected":""}>${
+    esc(lfRegieText(grp.regie))} (wie ${grp.anzahl}× in dieser Gruppe)</option>`);
+  }
   vor.forEach(v=>{
    const r=lfRegieZuNummer(v.no);
    if(!r||drin.has(String(r.id)))return;
@@ -507,9 +635,10 @@ function lfZuordnenZeichnen(){
     <b>${esc(a.bezeichnung)}</b>
     <div class="small" style="color:var(--muted)">${esc(a.artikelnr)}${
      a.material?" · "+esc(a.material):""}${
-     vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
-                       :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
-               :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>'}</div>
+     grp?' · <span style="color:var(--green)">wie '+grp.anzahl+'× in dieser Gruppe</span>'
+        :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
+                            :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
+                    :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>')}</div>
     <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%">${optionen.join("")}</select>
    </div>
   </div>`;
@@ -520,9 +649,16 @@ function lfZuordnenZeichnen(){
 // deutlich fuehrt - und nur die, die noch offen sind. Eine bestehende
 // Zuordnung wird nie ueberschrieben.
 function lfZuordnenSichereUebernehmen(){
- let n=0;
- lfArtikel.forEach(a=>{
-  if(a.archiviert||lfRegieVon(a))return;
+ // v3.235: wirkt auf die ANGEZEIGTEN Artikel, nicht auf alle. Sonst
+ // aenderte der Knopf Zeilen in Gruppen, die gerade gar nicht zu sehen
+ // sind - und man merkte es erst beim Speichern.
+ let n=0, ausGruppe=0;
+ lfZuordnenKandidaten().forEach(a=>{
+  if(lfRegieVon(a))return;
+  // Die eigene Entscheidung in der Gruppe zaehlt mehr als die
+  // Textaehnlichkeit - siehe lfGruppenVorschlag.
+  const grp=lfGruppenVorschlag(a);
+  if(grp){ lfZuordnungen[String(a.id)]=String(grp.regie.id); n++; ausGruppe++; return }
   const vor=lfRegieVorschlaege(a);
   if(!lfRegieSicher(vor))return;
   const r=lfRegieZuNummer(vor[0].no);
@@ -535,8 +671,9 @@ function lfZuordnenSichereUebernehmen(){
  if(h){
   h.style.color="var(--muted)";
   h.textContent=n
-   ? n+" sichere Vorschlag(e) eingesetzt – noch nicht gespeichert. Bitte durchsehen und speichern."
-   : "Kein Vorschlag ist sicher genug zum Vorwählen. Die übrigen bitte einzeln prüfen.";
+   ? n+" Vorschlag(e) eingesetzt"+(ausGruppe?" ("+ausGruppe+" davon nach dem Muster dieser Gruppe)":"")
+     +" – noch nicht gespeichert. Bitte durchsehen und speichern."
+   : "Kein Vorschlag ist sicher genug zum Vorwählen. Setze eine Zeile von Hand – die übrigen der Gruppe schlägt die App dann von selbst genauso vor.";
  }
 }
 async function lfZuordnenSpeichern(){
@@ -573,6 +710,11 @@ function lfZuordnenOeffnen(){
  const m=$("liefZuordnenModal");
  if(!m)return;
  lfZuordnungen={};
+ lfZuordnenSuche="";
+ const sf=$("liefZuordnenSuche");
+ if(sf)sf.value="";
+ const rf=$("liefZuordnenRegie");
+ if(rf)rf.value="";
  const h=$("liefZuordnenMeldung");
  if(h){ h.style.color="var(--muted)"; h.textContent="Vorschläge werden gerechnet …" }
  m.hidden=false;
@@ -580,6 +722,7 @@ function lfZuordnenOeffnen(){
  // zeichnen, wenn der Bildschirm steht - sonst sieht der Anwender ein
  // eingefrorenes Fenster ohne zu wissen, warum.
  setTimeout(()=>{
+  lfZuordnenRegieListeFuellen();
   lfZuordnenZeichnen();
   if(h)h.textContent="";
  },30);
@@ -1209,8 +1352,13 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefZuordnenSichere",()=>lfZuordnenSichereUebernehmen());
  an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
+ an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());
  const nz=$("liefZuordnenNurOffene");
  if(nz)nz.onchange=()=>{ lfZuordnenNurOffene=nz.checked; lfZuordnenZeichnen() };
+ const gz=$("liefZuordnenGruppe");
+ if(gz)gz.onchange=()=>{ lfZuordnenGruppe=gz.value; lfZuordnenZeichnen() };
+ const sz=$("liefZuordnenSuche");
+ if(sz)sz.oninput=()=>{ lfZuordnenSuche=sz.value; lfZuordnenZeichnen() };
  const s=$("liefSuche");
  if(s)s.oninput=()=>{ lfSuche=s.value; lfZeichnen() };
 });

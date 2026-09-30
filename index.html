@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.234</div>
+<div id="appVersion">Version 3.235</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2474,7 +2474,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.234.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 118 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.235.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 118 Seiten)</a></div>
 </div>
 </div>
 
@@ -3221,7 +3221,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.234.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.235.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3414,9 +3414,28 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <h2>🔗 Artikel zuordnen <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
    <div class="small" id="liefZuordnenKennzahlen" style="color:var(--muted)"></div>
    <div class="small" style="color:var(--muted);margin-top:6px">Viele Artikel zeigen auf <b>dieselbe</b> Regie-Position – das ist richtig so. Ein Artikel ohne passende Position bleibt ohne; es wird keine erfunden.</div>
+   <!-- v3.235: Ansage des Anwenders - "können wir das so machen das ich die
+        zuordnung pro kategorie machen kann damit es übersichtlicher ist".
+        439 Artikel in 13 Gruppen, und je Gruppe ist die Zuordnung fast
+        immer dieselbe. -->
+   <div class="grid" style="margin-top:8px">
+    <div class="wide"><label>Produktgruppe</label>
+     <select id="liefZuordnenGruppe"></select></div>
+    <div class="wide"><label>Weiter eingrenzen (freiwillig)</label>
+     <input id="liefZuordnenSuche" placeholder="z. B. 250 oder Kupfer" autocomplete="off"></div>
+   </div>
    <label class="rechte-schalter" style="margin-top:8px"><input type="checkbox" id="liefZuordnenNurOffene" checked> Nur noch nicht zugeordnete zeigen</label>
    <div class="bar" style="margin-top:8px">
     <button type="button" id="liefZuordnenSichere" class="blue">✅ Sichere Vorschläge einsetzen</button>
+   </div>
+   <!-- Sammelsetzen. Was angezeigt wird, wird gesetzt - nichts Unsichtbares. -->
+   <div class="grid" style="margin-top:8px">
+    <div class="wide"><label>Alle angezeigten auf diese Regie-Position setzen</label>
+     <input id="liefZuordnenRegie" list="liefZuordnenRegieListe" placeholder="EDV-Nr. tippen oder wählen, z. B. 203.41" autocomplete="off">
+     <datalist id="liefZuordnenRegieListe"></datalist></div>
+   </div>
+   <div class="bar" style="margin-top:8px">
+    <button type="button" id="liefZuordnenAlle" class="gray">Alle angezeigten setzen</button>
    </div>
    <div class="small" id="liefZuordnenMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
    <div class="scroll" style="max-height:52vh"><div id="liefZuordnenListe"></div></div>

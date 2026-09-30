@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.234.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.235.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1662,11 +1662,25 @@ er im <b>Regierapport</b> verrechnet wird \u2013 eure EDV-Nr., euer Preis.</p>
 \u201eRinnenseiher, alle Materialien\u201c \u2013 eine Abrechnungsposition. Der H\u00e4ndler
 f\u00fchrt \u201eRinnenseiher 60 mm\u201c, \u201e75 mm\u201c und \u201e100 mm\u201c \u2013 drei Artikel.
 <b>Viele Artikel zeigen auf dieselbe Position</b>, und das ist richtig so.</div>
-<p><b>Zuordnen</b> zeigt alle noch offenen Artikel mit dem <b>Vorschlag der
-App</b>. Vorgew\u00e4hlt wird nur, wo die Bewertung deutlich f\u00fchrt \u2013 sonst steht
-der Vorschlag da und du entscheidest. <b>\u2705 Sichere Vorschl\u00e4ge einsetzen</b>
-nimmt in einem Zug alle, bei denen sich die App sicher ist; gespeichert wird
-erst, wenn du <b>Speichern</b> dr\u00fcckst.</p>
+<p><b>Zuordnen</b> arbeitet <b>gruppenweise</b>: oben eine <b>Produktgruppe</b>
+w\u00e4hlen, darunter stehen nur deren Artikel. Daneben grenzt ein Suchfeld weiter
+ein \u2013 nach Mass (\u201e250\u201c) oder Werkstoff (\u201eKupfer\u201c). So l\u00e4sst sich ein
+Gr\u00f6ssenpaar getrennt behandeln, wenn 250 und 330 auf verschiedene Positionen
+gehen.</p>
+<p><b>Alle angezeigten setzen</b> legt die ganze sichtbare Auswahl auf eine
+Position \u2013 EDV-Nr. eintippen oder w\u00e4hlen, best\u00e4tigen, fertig. <b>Was du siehst,
+wird gesetzt</b>, nichts Unsichtbares.</p>
+<div class="hin"><b>Die App lernt aus deiner Entscheidung.</b> Hast du in einer
+Gruppe einen Artikel von Hand zugeordnet, schl\u00e4gt sie genau diese Position f\u00fcr
+die \u00fcbrigen derselben Gruppe vor \u2013 \u201ewie 40\u00d7 in dieser Gruppe\u201c. Das schl\u00e4gt
+jede Wort\u00e4hnlichkeit: ein <i>Rinnenstutzen</i> ist bei euch ein
+<i>Einh\u00e4ngestutzen gerade</i>, und das kann die App am Namen nicht erkennen \u2013
+sobald du es einmal sagst, gilt es f\u00fcr die Gruppe. Andere Gruppen lernen davon
+nichts mit.</div>
+<p><b>\u2705 Sichere Vorschl\u00e4ge einsetzen</b> nimmt in einem Zug alle angezeigten,
+bei denen die App sicher ist oder das Gruppenmuster passt. <b>Gespeichert wird
+erst</b>, wenn du <b>Speichern</b> dr\u00fcckst \u2013 oben steht, wie viele \u00c4nderungen
+offen sind.</p>
 <p><b>Ein Artikel ohne passende Regie-Position bleibt ohne.</b> Das ist kein
 Fehler: nicht jeder Artikel des H\u00e4ndlers hat bei euch eine Position, und
 umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
