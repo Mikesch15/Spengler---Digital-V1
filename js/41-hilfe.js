@@ -1609,11 +1609,27 @@ Material, ist er in der normalen Lagerverwaltung richtig.</p>
 Buchungen. Eine Buchung l\u00e4sst sich nicht \u00e4ndern und nicht l\u00f6schen \u2013 ein
 Fehler wird mit einer <b>Korrektur</b> ausgeglichen. So bleibt nachvollziehbar,
 was wirklich passiert ist.</div>
-<p><b>\U0001f6d2 Einkaufsliste \u2013 was muss bestellt werden.</b> Einen Artikel in der
-Liste <b>antippen</b> und dort einen <b>Mindestbestand</b> eintragen: die Menge,
-die da sein soll. F\u00e4llt der Bestand darunter, f\u00e4llt das schon in der Lagerzeile
-auf (rot, \u201e3 von 10\u201c) und der Artikel steht in der Einkaufsliste \u2013 mit der
-<b>Fehlmenge</b> und der <b>Bestellmenge</b>.</p>
+<p><b>\U0001f4cb Einkaufsliste \u2013 was muss bestellt werden.</b> Auf die Liste kommt
+etwas auf <b>zwei Wegen</b>, und beide beginnen damit, den Artikel in der Liste
+<b>anzutippen</b>:</p>
+<p><b>1. Dauerhaft \u2013 \u00fcber den Mindestbestand.</b> Trage die Menge ein, die da
+sein soll. F\u00e4llt der Bestand darunter, f\u00e4llt das schon in der Lagerzeile auf
+(rot, \u201e3 von 10\u201c) und der Artikel steht von selbst in der Einkaufsliste. Das ist
+eine <b>Regel</b>, sie gilt weiter.</p>
+<p><b>2. Einmalig \u2013 \U0001f6d2 Auf die Einkaufsliste.</b> Menge eintragen, bei Bedarf
+dazuschreiben wof\u00fcr (\u201eBaustelle M\u00fcller\u201c), fertig. Daf\u00fcr braucht es
+<i>keinen</i> Mindestbestand \u2013 gedacht f\u00fcr die Sonderbestellung. Abgehakt wird
+sie in der Einkaufsliste mit <b>\u2713</b>.</p>
+<div class="hin"><b>\U0001f6d2 heisst hinzuf\u00fcgen, \U0001f4cb heisst ansehen.</b> Stand ein
+Artikel schon von Hand auf der Liste, kommen Menge und Grund beim \u00d6ffnen mit,
+und der Knopf \u00e4ndert die vorhandene Zeile \u2013 je Artikel gibt es genau
+<b>einen</b> offenen Wunsch. Eine Liste, in der derselbe Artikel dreimal steht,
+sagt nicht, wie viel bestellt werden soll.</div>
+<p>Steht ein Artikel <b>aus beiden Gr\u00fcnden</b> auf der Liste, werden die Mengen
+<b>addiert</b> \u2013 beide Bedarfe sind echt: der Mindestbestand sagt, was ins Regal
+zur\u00fcck muss, die Handmenge, was zus\u00e4tzlich auf die Baustelle geht. In der Zeile
+steht, woraus sich die Bestellmenge zusammensetzt, damit nichts versteckt
+gerechnet wird.</p>
 <div class="hin"><b>Warum zwei Zahlen?</b> Die Fehlmenge ist die Wahrheit \u00fcber
 den Mangel, die Bestellmenge die \u00fcber die Bestellung: wer 3 braucht und der
 H\u00e4ndler liefert F\u00fcnferpackungen, bestellt 5. Aufgerundet wird auf die

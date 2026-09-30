@@ -41,11 +41,18 @@ const SB=`()=>{
  window.__db={lieferanten_artikel:[
    {id:1,lieferant:"B-Team",artikelnr:"409373",bezeichnung:"Dachrinnen 330",ean:"3661587017460",vpe:5,gruppe:"Dachrinnen"},
    {id:2,lieferant:"B-Team",artikelnr:"422640",bezeichnung:"Rinnenseiher 60",ean:"1019006000005",vpe:1,gruppe:"Rinnenseiher"}],
-  lieferanten_bewegungen:[],ruf:[]};
+  lieferanten_bewegungen:[],lieferanten_einkauf:[],ruf:[]};
  let n=100;
  const tisch=name=>({
+  // .is("erledigt_am",null) filtert wie die echte Abfrage - sonst wuerde der
+  // Pruefstand eine abgehakte Zeile weiter sehen und "erledigt" als
+  // wirkungslos durchgehen lassen.
   select(){ const q={
-    order(){return q}, then(r){return r({data:window.__db[name].slice(),error:null})} };
+    order(){return q},
+    is(spalte,wert){ q.__filter=x=>(x[spalte]===undefined?null:x[spalte])===wert; return q },
+    then(r){ let d=window.__db[name].slice();
+     if(q.__filter)d=d.filter(q.__filter);
+     return r({data:d,error:null}) } };
    return q; },
   insert(zeile){ window.__db.ruf.push({tisch:name,was:"insert",zeile});
    window.__db[name].push(Object.assign({id:++n},zeile));
@@ -533,6 +540,172 @@ const SB=`()=>{
  p(z.length===0,"L19 alle Bedienteile stehen im Dokument",z);
  p(/mindestbestand/.test(quelle)&&/alias:\["mindestbestand"/.test(quelle),
    "L20 der Mindestbestand laesst sich auch per Excel mitliefern",null);
+
+ // ---- M  Von Hand auf die Einkaufsliste (v3.232) ------------------------
+ //
+ // Ansage des Anwenders: "Wo kann ich etwas in den einkaufswagen legen?" Bis
+ // v3.231: nirgends - die Liste fuellte sich nur aus dem Mindestbestand, und
+ // das Wagen-Symbol versprach etwas, das es nicht gab.
+ console.log("\nM · Von Hand auf die Einkaufsliste");
+ z=await page.evaluate(()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"A1",bezeichnung:"Rinne",gruppe:"Rinnen",vpe:5,mindestbestand:10},
+   {id:2,lieferant:"B-Team",artikelnr:"A2",bezeichnung:"Seiher",gruppe:"Seiher",vpe:1,mindestbestand:0}];
+  lfBewegungen=[{artikel_id:1,art:"zugang",menge:3}];   // fehlt 7
+  lfEinkauf=[];
+  const ohne={bedarf1:lfBedarf(lfArtikel[0]), bedarf2:lfBedarf(lfArtikel[1]),
+              liste:lfEinkaufsliste().map(a=>a.artikelnr)};
+  // A2 hat KEINEN Mindestbestand - nur von Hand gesetzt.
+  lfEinkauf=[{id:9,artikel_id:2,menge:4,grund:"Baustelle Müller"}];
+  const nurHand={bedarf2:lfBedarf(lfArtikel[1]), bestell2:lfBestellmenge(lfArtikel[1]),
+                 liste:lfEinkaufsliste().map(a=>a.artikelnr)};
+  // A1 hat BEIDES: Mindestbestand unterschritten (7) und von Hand (12).
+  lfEinkauf=[{id:10,artikel_id:1,menge:12,grund:"Baustelle Müller"}];
+  const beides={fehlt:lfFehlt(lfArtikel[0]), hand:lfHandMenge(lfArtikel[0]),
+                bedarf:lfBedarf(lfArtikel[0]), bestell:lfBestellmenge(lfArtikel[0]),
+                herkunft:lfHerkunftText(lfArtikel[0]),
+                zeilen:lfEinkaufsliste().filter(a=>a.artikelnr==="A1").length};
+  return {ohne,nurHand,beides};
+ });
+ p(z.ohne.bedarf1===7&&z.ohne.bedarf2===0&&z.ohne.liste.join(",")==="A1",
+   "M1 ohne Handeintrag ist alles wie vorher - der Mindestbestand allein",z.ohne);
+ p(z.nurHand.bedarf2===4&&z.nurHand.bestell2===4&&z.nurHand.liste.join(",")==="A1,A2",
+   "M2 ein Artikel OHNE Mindestbestand kommt von Hand auf die Liste - genau das, was vorher nicht ging",z.nurHand);
+ // Der teure Rechenfehler waere hier: nur die groessere der beiden Mengen zu
+ // bestellen. Dann fehlt hinterher genau der andere Betrag.
+ p(z.beides.fehlt===7&&z.beides.hand===12&&z.beides.bedarf===19,
+   "M3 beide Herkuenfte werden ADDIERT (7 + 12 = 19) - nicht die groessere genommen",z.beides);
+ p(z.beides.bestell===20,
+   "M4 und die Bestellmenge ist das, aufgerundet auf die Verpackungseinheit 5",z.beides);
+ p(z.beides.zeilen===1,
+   "M5 GEGENPROBE: der Artikel steht trotzdem nur EINMAL auf der Liste - ein Haendler bekommt eine Zeile je Artikel",z.beides);
+ p(/Mindestbestand 10/.test(z.beides.herkunft)&&/von Hand 12/.test(z.beides.herkunft)
+   &&/Baustelle M/.test(z.beides.herkunft),
+   "M6 und die Zeile nennt BEIDE Anteile samt Grund - addiert wird sichtbar, nicht versteckt",z.beides.herkunft);
+ // Dieselbe Herkunft steht im verschickten Text - eine zweite Textfassung
+ // waere eine zweite Wahrheit darueber, warum etwas bestellt wird.
+ z=await page.evaluate(()=>lfEinkaufsText());
+ p(/20 x  A1/.test(z)&&/von Hand 12/.test(z),
+   "M7 der verschickte Text nennt dieselbe Bestellmenge und dieselbe Herkunft",z.slice(0,220));
+ // Setzen: erst anlegen, dann aendern - und nie zwei offene Zeilen.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  const vorbelegt={menge:$("liefArtikelWunschMenge").value,
+                   knopf:$("liefArtikelWunschSetzen").textContent};
+  $("liefArtikelWunschMenge").value="12";
+  $("liefArtikelWunschGrund").value="Baustelle Müller";
+  await lfAufEinkaufsliste();
+  await new Promise(r=>setTimeout(r,140));
+  return {vorbelegt, ruf:window.__db.ruf.slice(),
+          offen:window.__db.lieferanten_einkauf.length,
+          zu:$("liefArtikelModal").hidden};
+ },SB);
+ p(z.vorbelegt.menge==="5"&&/Auf die Einkaufsliste/.test(z.vorbelegt.knopf),
+   "M8 der Dialog schlaegt die Verpackungseinheit vor und sagt, dass er hinzufuegt",z.vorbelegt);
+ const ins=z.ruf.filter(r=>r.tisch==="lieferanten_einkauf"&&r.was==="insert");
+ p(ins.length===1&&Number(ins[0].zeile.menge)===12&&/Baustelle/.test(ins[0].zeile.grund||""),
+   "M9 gesetzt wird mit GENAU einer neuen Zeile, mit Menge und Grund",z.ruf);
+ p(!z.ruf.some(r=>r.tisch==="lieferanten_bewegungen"),
+   "M10 GEGENPROBE: ein Wunsch ist KEINE Buchung - der Bestand aendert sich davon nicht",z.ruf);
+ p(z.zu===true,"M11 und der Dialog schliesst sich",z);
+ // Ein zweites Setzen desselben Artikels muss AENDERN, nicht verdoppeln.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  window.__db.lieferanten_einkauf=[{id:77,artikel_id:1,menge:12,grund:"alt",erledigt_am:null}];
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  const vorbelegt={menge:$("liefArtikelWunschMenge").value,
+                   grund:$("liefArtikelWunschGrund").value,
+                   knopf:$("liefArtikelWunschSetzen").textContent};
+  $("liefArtikelWunschMenge").value="20";
+  await lfAufEinkaufsliste();
+  await new Promise(r=>setTimeout(r,140));
+  return {vorbelegt, ruf:window.__db.ruf.filter(r=>r.tisch==="lieferanten_einkauf"),
+          zeilen:window.__db.lieferanten_einkauf.length,
+          menge:window.__db.lieferanten_einkauf[0].menge};
+ },SB);
+ p(z.vorbelegt.menge==="12"&&z.vorbelegt.grund==="alt"&&/ändern/.test(z.vorbelegt.knopf),
+   "M12 steht der Artikel schon drauf, kommen Menge und Grund mit - und der Knopf sagt 'ändern'",z.vorbelegt);
+ p(z.ruf.length===1&&z.ruf[0].was==="update"&&z.zeilen===1&&Number(z.menge)===20,
+   "M13 GEGENPROBE: das zweite Setzen AENDERT die Zeile, statt eine zweite anzulegen",z);
+ // Abhaken: die Zeile verschwindet von der Liste, wird aber nicht geloescht.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  window.__db.lieferanten_artikel[0].mindestbestand=0;   // nur der Handeintrag traegt die Zeile
+  window.__db.lieferanten_einkauf=[{id:88,artikel_id:1,menge:6,grund:null,erledigt_am:null}];
+  await lfLaden();
+  const vorher=lfEinkaufsliste().length;
+  window.__db.ruf=[];
+  await lfEinkaufErledigt(88);
+  await new Promise(r=>setTimeout(r,140));
+  return {vorher, nachher:lfEinkaufsliste().length,
+          ruf:window.__db.ruf.filter(r=>r.tisch==="lieferanten_einkauf"),
+          nochDa:window.__db.lieferanten_einkauf.length,
+          erledigt:!!window.__db.lieferanten_einkauf[0].erledigt_am};
+ },SB);
+ p(z.vorher===1&&z.nachher===0,"M14 abgehakt verschwindet die Zeile von der Liste",z);
+ p(z.ruf.length===1&&z.ruf[0].was==="update"&&!z.ruf.some(r=>r.was==="delete"),
+   "M15 GEGENPROBE: abhaken ist kein Loeschen - die Zeile bleibt mit ihrem Zeitpunkt stehen",z.ruf);
+ p(z.nochDa===1&&z.erledigt===true,"M16 und traegt danach einen Erledigt-Zeitpunkt",z);
+ // Abhaken darf den Mindestbestand NICHT beruehren: steht der Artikel auch
+ // deswegen auf der Liste, bleibt er dort.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  window.__db.lieferanten_artikel[0].mindestbestand=10;
+  window.__db.lieferanten_bewegungen=[{id:1,artikel_id:1,art:"zugang",menge:3}];
+  window.__db.lieferanten_einkauf=[{id:99,artikel_id:1,menge:6,grund:null,erledigt_am:null}];
+  await lfLaden();
+  await lfEinkaufErledigt(99);
+  await new Promise(r=>setTimeout(r,140));
+  const a=lfArtikelZuId(1);
+  // Geprueft wird ueber die id, nicht ueber die Artikelnummer: die kommt aus
+  // dem Seed der Attrappe und ist hier nicht die Aussage.
+  return {drauf:lfEinkaufsliste().map(x=>String(x.id)), bedarf:lfBedarf(a),
+          mindest:lfMindest(a), hand:lfHandMenge(a),
+          meldung:$("liefEinkaufMeldung").textContent};
+ },SB);
+ p(z.drauf.join(",")==="1"&&z.bedarf===7&&z.mindest===10&&z.hand===0,
+   "M17 GEGENPROBE: das Abhaken laesst den Mindestbestand unberuehrt - der Artikel bleibt aus DEM Grund auf der Liste",z);
+ p(/Mindestbestand/.test(z.meldung),
+   "M18 und die App sagt das, statt den Artikel wortlos stehen zu lassen",z.meldung);
+ // Menge 0 ist kein Wunsch, sondern ein Versehen.
+ z=await page.evaluate(async(f)=>{
+  eval("("+f+")()");
+  await lfLaden();
+  window.__db.ruf=[];
+  lfArtikelOeffnen(1);
+  $("liefArtikelWunschMenge").value="0";
+  await lfAufEinkaufsliste();
+  await new Promise(r=>setTimeout(r,80));
+  return {ruf:window.__db.ruf.length, fehler:$("liefArtikelFehler").textContent};
+ },SB);
+ p(z.ruf===0&&/Menge/.test(z.fehler),
+   "M19 GEGENPROBE: Menge 0 wird nicht gesetzt, und die App sagt warum",z);
+ // Das Symbol: 🛒 heisst hinzufuegen, 📋 heisst ansehen. Genau diese
+ // Verwechslung war der gemeldete Fehler.
+ z=await page.evaluate(()=>{
+  lfArtikel=[{id:1,lieferant:"B",artikelnr:"A1",bezeichnung:"R",vpe:1,mindestbestand:5}];
+  lfBewegungen=[]; lfEinkauf=[];
+  lfZeichnen();
+  return {knopf:$("liefEinkaufKnopf").textContent,
+          setzen:$("liefArtikelWunschSetzen").textContent,
+          titel:document.querySelector("#liefEinkaufModal h2").textContent};
+ });
+ p(!/🛒/.test(z.knopf)&&/📋/.test(z.knopf)&&/\(1\)/.test(z.knopf),
+   "M20 der Listen-Knopf traegt KEINEN Einkaufswagen mehr - er zeigt die Liste, er nimmt nichts auf",z);
+ p(!/🛒/.test(z.titel),"M21 der Dialogtitel ebenso",z.titel);
+ p(/🛒/.test(z.setzen),
+   "M22 GEGENPROBE: der Wagen steht dort, wo wirklich etwas hinzugefuegt wird",z.setzen);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefArtikelWunschMenge","liefArtikelWunschGrund","liefArtikelWunschSetzen",
+          "liefArtikelWunschHinweis"].filter(x=>!el(x));
+ });
+ p(z.length===0,"M23 alle Bedienteile stehen im Dokument",z);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

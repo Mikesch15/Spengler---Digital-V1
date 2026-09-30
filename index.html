@@ -3272,7 +3272,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div class="bar" style="margin-top:10px">
     <button type="button" id="liefEinscannen" class="blue">📥 Einscannen</button>
     <button type="button" id="liefAusscannen" class="blue">📤 Ausscannen</button>
-    <button type="button" id="liefEinkaufKnopf" class="gray">🛒 Einkaufsliste</button>
+    <button type="button" id="liefEinkaufKnopf" class="gray">📋 Einkaufsliste</button>
    </div>
    <div class="small" id="liefMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
    <div class="wide"><label>Suchen</label>
@@ -3365,6 +3365,24 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
     <button type="button" id="liefArtikelAbbrechen" class="gray">Abbrechen</button>
    </div>
    <div class="small" style="color:var(--muted);margin-top:8px">Fällt der Bestand unter diesen Wert, erscheint der Artikel in der <b>Einkaufsliste</b>. Leer oder 0 heisst <b>nicht überwachen</b> – sonst meldete eine Liste mit 439 Artikeln 439-mal Mangel und würde nie gelesen.</div>
+
+   <!-- v3.232: Der zweite Weg auf die Einkaufsliste. Ansage des Anwenders:
+        "Wo kann ich etwas in den einkaufswagen legen?" - bis dahin nirgends.
+        Bewusst UNTERHALB des Mindestbestands und optisch abgetrennt: der
+        Mindestbestand ist eine Dauerregel, das hier eine einmalige Ansage. -->
+   <hr style="margin:14px 0;border:0;border-top:1px solid var(--line)">
+   <h3 style="margin:0 0 4px">🛒 Einmalig bestellen</h3>
+   <div class="small" id="liefArtikelWunschHinweis" style="color:var(--muted);margin-bottom:6px"></div>
+   <div class="grid">
+    <div><label>Menge</label>
+     <input id="liefArtikelWunschMenge" type="number" step="any" min="0" inputmode="decimal"></div>
+    <div class="wide"><label>Wofür (freiwillig)</label>
+     <input id="liefArtikelWunschGrund" placeholder="z. B. Baustelle Müller"></div>
+   </div>
+   <div class="bar" style="margin-top:8px">
+    <button type="button" id="liefArtikelWunschSetzen" class="green">🛒 Auf die Einkaufsliste</button>
+   </div>
+   <div class="small" style="color:var(--muted);margin-top:8px">Diese Menge kommt <b>zusätzlich</b> zum Mindestbestand auf die Liste – beide Bedarfe sind echt, und in der Liste steht, woraus sich die Bestellmenge zusammensetzt. Abgehakt wird sie dort mit <b>✓</b>; der Mindestbestand bleibt davon unberührt.</div>
   </div>
  </div>
 </div>
@@ -3375,8 +3393,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 <div id="liefEinkaufModal" class="modal no-print" hidden>
  <div class="modalbox">
   <div class="card">
-   <h2>🛒 Einkaufsliste <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
-   <div class="small" style="color:var(--muted)">Alles, was unter seinen Mindestbestand gefallen ist – nach Lieferant geordnet. Bestellt wird in ganzen Verpackungseinheiten.</div>
+   <h2>📋 Einkaufsliste <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div class="small" style="color:var(--muted)">Alles, was unter seinen Mindestbestand gefallen ist oder von Hand dazugesetzt wurde – nach Lieferant geordnet. Bestellt wird in ganzen Verpackungseinheiten.</div>
    <div id="liefEinkaufListe" style="margin-top:10px"></div>
    <div class="wide" style="margin-top:12px"><label>Zum Verschicken (E-Mail, WhatsApp)</label>
     <textarea id="liefEinkaufText" rows="6" readonly></textarea></div>

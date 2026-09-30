@@ -43,6 +43,7 @@ const LF_ART_TEXT={zugang:"Zugang",abgang:"Abgang",korrektur:"Korrektur"};
 
 let lfArtikel=[];
 let lfBewegungen=[];
+let lfEinkauf=[];          // offene Einkaufswuensche (v3.232)
 let lfSuche="";
 let lfOffeneGruppen=new Set();
 let lfGeladen=false;
@@ -76,10 +77,17 @@ async function lfLaden(){
   const b=await sb.from("lieferanten_bewegungen").select("*").order("created_at",{ascending:false});
   if(b.error)throw b.error;
   lfBewegungen=b.data||[];
+  // v3.232: Nur die OFFENEN Wuensche. Abgehakte bleiben in der Datenbank
+  // stehen, gehoeren aber nicht mehr auf die Liste - sonst waere "erledigt"
+  // wirkungslos.
+  const w=await sb.from("lieferanten_einkauf").select("*").is("erledigt_am",null)
+   .order("created_at",{ascending:false});
+  if(w.error)throw w.error;
+  lfEinkauf=w.data||[];
   lfGeladen=true;
   return true;
  }catch(e){
-  lfArtikel=[]; lfBewegungen=[]; lfGeladen=false;
+  lfArtikel=[]; lfBewegungen=[]; lfEinkauf=[]; lfGeladen=false;
   lfMeldung("Das Lieferanten-Lager liess sich nicht laden: "+((e&&e.message)||e),true);
   return false;
  }
@@ -114,21 +122,53 @@ function lfFehlt(a){
  const f=m-lfBestand(a.id);
  return f>0?f:0;
 }
+// v3.232: Der zweite Weg auf die Liste - von Hand gesetzt.
+//
+// Ansage des Anwenders: "Wo kann ich etwas in den einkaufswagen legen?" Bis
+// v3.231: nirgends. Der Reflex war richtig; manchmal soll etwas bestellt
+// werden, ohne dass dafuer ein Mindestbestand gilt.
+function lfHandEintrag(a){
+ if(!a)return null;
+ return lfEinkauf.find(x=>String(x.artikel_id)===String(a.id))||null;
+}
+function lfHandMenge(a){ const e=lfHandEintrag(a); return e?lfZahl(e.menge):0 }
+
+// Der Gesamtbedarf ist die SUMME der beiden Herkuenfte, nicht die groessere
+// von beiden.
+//
+// Das ist eine Entscheidung, und sie ist die einzige, die nichts erfindet:
+// beide Bedarfe sind echt und unabhaengig. Der Mindestbestand sagt, was ins
+// Regal zurueck muss; der Wunsch von Hand sagt, was zusaetzlich fuer eine
+// Baustelle weggeht. Wer nur die groessere Zahl bestellt, hat hinterher zu
+// wenig - und zwar genau um den anderen Betrag. Damit trotzdem nichts
+// versteckt gerechnet wird, nennen Liste und Text BEIDE Anteile.
+function lfBedarf(a){ return lfFehlt(a)+lfHandMenge(a) }
+
 // Bestellt wird in Verpackungseinheiten, nicht in Stueck: wer 3 braucht und
-// der Haendler liefert Fuenferpackungen, bestellt 5. Die Fehlmenge ist die
+// der Haendler liefert Fuenferpackungen, bestellt 5. Der Bedarf ist die
 // Wahrheit ueber den Mangel, die Bestellmenge die ueber die Bestellung -
 // deshalb stehen beide da und nicht nur eine.
 function lfBestellmenge(a){
- const f=lfFehlt(a);
- if(f<=0)return 0;
+ const b=lfBedarf(a);
+ if(b<=0)return 0;
  const v=lfZahl(a.vpe);
- return v>0?Math.ceil(f/v)*v:f;
+ return v>0?Math.ceil(b/v)*v:b;
 }
 function lfUnterMindest(){ return lfArtikel.filter(a=>!a.archiviert&&lfFehlt(a)>0) }
 function lfEinkaufsliste(){
  const t=(x,y)=>String(x||"").localeCompare(String(y||""),"de");
- return lfUnterMindest().slice().sort((x,y)=>
+ return lfArtikel.filter(a=>!a.archiviert&&lfBedarf(a)>0).sort((x,y)=>
   t(x.lieferant,y.lieferant)||t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+}
+// Woher eine Zeile kommt - als Text, an einer Stelle. Liste und verschickter
+// Text lesen denselben Satz; zwei Fassungen waeren zwei Wahrheiten darueber,
+// warum etwas bestellt wird.
+function lfHerkunftText(a){
+ const f=lfFehlt(a), h=lfHandMenge(a), e=lfHandEintrag(a);
+ const teile=[];
+ if(f>0)teile.push("Mindestbestand "+lfZahlText(lfMindest(a))+", Bestand "+lfZahlText(lfBestand(a.id)));
+ if(h>0)teile.push("von Hand "+lfZahlText(h)+(e&&e.grund?" ("+e.grund+")":""));
+ return teile.join(" · ");
 }
 // Der Text zum Verschicken. Er entsteht aus DERSELBEN Liste wie die Anzeige -
 // eine eigene Textfassung waere eine zweite Wahrheit darueber, was fehlt.
@@ -142,7 +182,7 @@ function lfEinkaufsText(){
   const l=String(a.lieferant||"Ohne Lieferant");
   if(l!==letzter){ if(letzter!==null)zeilen.push(""); zeilen.push(l+":"); letzter=l }
   zeilen.push("  "+lfZahlText(lfBestellmenge(a))+" x  "+a.artikelnr+"  "+a.bezeichnung
-   +"   (Bestand "+lfZahlText(lfBestand(a.id))+", Mindestbestand "+lfZahlText(lfMindest(a))+")");
+   +"   ("+lfHerkunftText(a)+")");
  });
  return zeilen.join("\n");
 }
@@ -156,36 +196,47 @@ function lfEinkaufZeichnen(){
  if(feld)feld.value=lfEinkaufsText();
  const knopf=$("liefEinkaufKopieren");
  if(knopf)knopf.disabled=!liste.length;
- if(!ueberwacht){
+ if(!liste.length){
   // Eine leere Einkaufsliste bedeutet zweierlei, und die beiden zu
   // verwechseln waere teuer: "nichts fehlt" oder "es wird nichts
   // ueberwacht". Also wird gesagt, welches von beiden zutrifft.
-  box.innerHTML=`<div class="info">Für noch keinen Artikel ist ein <b>Mindestbestand</b>
-   hinterlegt – deshalb kann die Liste auch nichts melden. Im Lager einen Artikel
-   antippen und dort den Mindestbestand eintragen; überwacht wird nur, was
-   ausdrücklich vorrätig sein soll.</div>`;
-  return;
- }
- if(!liste.length){
-  box.innerHTML=`<div class="info">Nichts zu bestellen – von allen <b>${ueberwacht}</b>
-   überwachten Artikeln ist genug da.</div>`;
+  box.innerHTML=ueberwacht
+   ? `<div class="info">Nichts zu bestellen – von allen <b>${ueberwacht}</b>
+      überwachten Artikeln ist genug da. Einzelnes lässt sich jederzeit von Hand
+      dazusetzen: im Lager den Artikel antippen, <b>🛒 Auf die Einkaufsliste</b>.</div>`
+   : `<div class="info">Für noch keinen Artikel ist ein <b>Mindestbestand</b>
+      hinterlegt, und von Hand ist auch nichts gesetzt – deshalb kann die Liste
+      nichts melden. Im Lager einen Artikel antippen: dort trägst du einen
+      <b>Mindestbestand</b> ein (dann meldet er sich selbst) oder setzt ihn mit
+      <b>🛒 Auf die Einkaufsliste</b> einmalig dazu.</div>`;
   return;
  }
  let letzter=null, html="";
  liste.forEach(a=>{
   const l=String(a.lieferant||"Ohne Lieferant");
-  if(l!==letzter){ html+=`<div class="a2-abschnitt-titel" style="margin-top:10px"><b>${esc(l)}</b></div>`; letzter=l }
+  // Die Lieferanten-Ueberschrift hatte in v3.231 die Klasse
+  // "a2-abschnitt-titel" - die es in keiner CSS-Datei gibt. Sie stand
+  // dadurch unformatiert da. Hier bewusst inline gesetzt statt eine neue
+  // Klasse zu erfinden: eine Zwischenueberschrift in genau einer Liste
+  // rechtfertigt keinen Eintrag in einer geteilten CSS-Datei.
+  if(l!==letzter){
+   html+=`<div style="margin:14px 0 4px;font-weight:700;color:var(--muted);
+    font-size:13px;letter-spacing:.02em">${esc(l)}</div>`;
+   letzter=l;
+  }
+  const hand=lfHandEintrag(a);
   html+=`<div class="kw-zeile">
    <div style="flex:1;min-width:0">
     <b>${esc(a.bezeichnung)}</b>
-    <div class="small" style="color:var(--muted)">${esc(a.artikelnr)} · Bestand
-     ${esc(lfZahlText(lfBestand(a.id)))} von ${esc(lfZahlText(lfMindest(a)))}${
+    <div class="small" style="color:var(--muted)">${esc(a.artikelnr)} · ${esc(lfHerkunftText(a))}${
      a.vpe?" · VPE "+esc(lfZahlText(a.vpe)):""}</div>
    </div>
    <div class="small" style="text-align:right;min-width:92px">
     <b style="font-size:15px;color:var(--red)">${esc(lfZahlText(lfBestellmenge(a)))}</b>
-    <div style="color:var(--muted)">fehlt ${esc(lfZahlText(lfFehlt(a)))}</div>
+    <div style="color:var(--muted)">Bedarf ${esc(lfZahlText(lfBedarf(a)))}</div>
    </div>
+   ${hand?`<div class="bar" style="margin:0"><button type="button" class="gray"
+     data-lf-erledigt="${esc(hand.id)}" title="Von Hand gesetzte Zeile abhaken">✓</button></div>`:""}
   </div>`;
  });
  box.innerHTML=html;
@@ -218,6 +269,74 @@ async function lfEinkaufKopieren(){
  }
 }
 
+// ---- Von Hand auf die Einkaufsliste (v3.232) ------------------------------
+//
+// Je Artikel genau EIN offener Wunsch: ein zweites Setzen aendert die Menge,
+// statt eine zweite Zeile zu erzeugen. Eine Liste, in der derselbe Artikel
+// dreimal steht, sagt nicht, wie viel bestellt werden soll. In der Datenbank
+// ist das als UNIQUE (company_id, artikel_id) WHERE erledigt_am IS NULL
+// festgehalten - die Regel steht dort, nicht nur hier.
+async function lfAufEinkaufsliste(){
+ if(typeof $!=="function"||typeof sb==="undefined")return;
+ const a=lfArtikelZuId(lfArtikelOffenId);
+ if(!a)return;
+ const menge=lfZahl($("liefArtikelWunschMenge").value);
+ if(menge<=0){
+  $("liefArtikelFehler").textContent="Bitte eine Menge über 0 eintragen.";
+  return;
+ }
+ const grund=$("liefArtikelWunschGrund").value.trim()||null;
+ const alt=lfHandEintrag(a);
+ $("liefArtikelWunschSetzen").disabled=true;
+ try{
+  const r=alt
+   ? await sb.from("lieferanten_einkauf").update({menge,grund}).eq("id",alt.id)
+   : await sb.from("lieferanten_einkauf").insert({
+      artikel_id:a.id, menge, grund,
+      created_by:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null});
+  if(r.error)throw r.error;
+ }catch(e){
+  $("liefArtikelFehler").textContent="Nicht gesetzt: "+((e&&e.message)||e);
+  $("liefArtikelWunschSetzen").disabled=false;
+  return;
+ }
+ $("liefArtikelWunschSetzen").disabled=false;
+ lfArtikelSchliessen();
+ await lfLaden();
+ lfZeichnen();
+ if($("liefEinkaufModal")&&!$("liefEinkaufModal").hidden)lfEinkaufZeichnen();
+ lfMeldung(lfZahlText(menge)+" x „"+a.bezeichnung+"“ "+(alt?"auf der":"auf die")+" Einkaufsliste"+(alt?" geändert":"")+".");
+}
+// Abhaken ist kein Loeschen: die Zeile bleibt in der Datenbank mit ihrem
+// Zeitpunkt stehen und verschwindet nur von der Liste. Danach laesst sich
+// derselbe Artikel wieder setzen - die Eindeutigkeitsregel gilt nur fuer
+// OFFENE Wuensche.
+async function lfEinkaufErledigt(id){
+ if(typeof sb==="undefined")return;
+ const e=lfEinkauf.find(x=>String(x.id)===String(id));
+ if(!e)return;
+ const a=lfArtikel.find(x=>String(x.id)===String(e.artikel_id));
+ const h=(typeof $==="function")?$("liefEinkaufMeldung"):null;
+ try{
+  const r=await sb.from("lieferanten_einkauf").update({
+   erledigt_am:new Date().toISOString(),
+   erledigt_von:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
+  }).eq("id",e.id);
+  if(r.error)throw r.error;
+ }catch(err){
+  if(h){ h.textContent="Nicht abgehakt: "+((err&&err.message)||err); h.style.color="var(--red)" }
+  return;
+ }
+ await lfLaden();
+ lfEinkaufZeichnen();
+ lfZeichnen();
+ if(h){
+  h.style.color="var(--muted)";
+  h.textContent="„"+((a&&a.bezeichnung)||"Der Artikel")+"“ ist abgehakt"
+   +(a&&lfFehlt(a)>0?" – er steht weiter auf der Liste, weil sein Mindestbestand unterschritten ist.":".");
+ }
+}
+
 // ---- Mindestbestand am Artikel --------------------------------------------
 let lfArtikelOffenId=null;
 function lfArtikelOeffnen(id){
@@ -229,6 +348,18 @@ function lfArtikelOeffnen(id){
  $("liefArtikelUnter").textContent=(a.lieferant?a.lieferant+" · ":"")+"Art.-Nr. "+a.artikelnr
   +(a.ean?" · "+a.ean:"")+" · Bestand "+lfZahlText(lfBestand(a.id));
  $("liefArtikelMindest").value=lfMindest(a)?lfZahlText(lfMindest(a)):"";
+ // v3.232: Steht der Artikel schon von Hand auf der Liste, kommen Menge und
+ // Grund mit - dann aendert der Knopf die vorhandene Zeile, statt eine
+ // zweite anzulegen. Das steht auch so da, sonst waere nicht erkennbar,
+ // warum die Felder gefuellt sind.
+ const wunsch=lfHandEintrag(a);
+ $("liefArtikelWunschMenge").value=wunsch?lfZahlText(wunsch.menge):(a.vpe?lfZahlText(a.vpe):"1");
+ $("liefArtikelWunschGrund").value=(wunsch&&wunsch.grund)||"";
+ $("liefArtikelWunschSetzen").textContent=wunsch?"🛒 Menge ändern":"🛒 Auf die Einkaufsliste";
+ const hin=$("liefArtikelWunschHinweis");
+ if(hin)hin.textContent=wunsch
+  ? "Steht bereits von Hand auf der Einkaufsliste."
+  : "Einmalig bestellen, ohne dafür einen Mindestbestand festzulegen.";
  $("liefArtikelFehler").textContent="";
  $("liefArtikelModal").hidden=false;
  setTimeout(()=>{ const f=$("liefArtikelMindest"); if(f){f.focus();f.select()} },60);
@@ -456,10 +587,17 @@ function lfZeichnen(){
   k.innerHTML=`<b>${lfArtikel.length}</b> Artikel · <b>${mitBestand}</b> mit Bestand · <b>${lfBewegungen.length}</b> Buchungen`
    +(fehlt?` · <b style="color:var(--red)">${fehlt}</b> unter Mindestbestand`:"");
  }
+ // v3.232: Der Knopf zaehlt die ganze Einkaufsliste, nicht nur die
+ // unterschrittenen Mindestbestaende - sonst fehlte von Hand Gesetztes in
+ // der Zahl, und der Knopf staende auf 0, waehrend die Liste voll ist.
+ //
+ // Das Symbol ist bewusst kein Einkaufswagen mehr. Der Anwender hat nach dem
+ // "Hineinlegen" gesucht, das es nicht gab: 🛒 verspricht Hinzufuegen. Jetzt
+ // heisst 🛒 ueberall HINZUFUEGEN und 📋 ANSEHEN.
  const e=$("liefEinkaufKnopf");
  if(e){
-  const fehlt=lfUnterMindest().length;
-  e.textContent=fehlt?"🛒 Einkaufsliste ("+fehlt+")":"🛒 Einkaufsliste";
+  const n=lfEinkaufsliste().length;
+  e.textContent=n?"📋 Einkaufsliste ("+n+")":"📋 Einkaufsliste";
  }
  if(!lfArtikel.length){
   box.innerHTML=`<div class="info">Noch kein Sortiment eingelesen. Der Knopf <b>Sortiment einlesen</b> holt die Artikelliste des Lieferanten.</div>`;
@@ -559,6 +697,8 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
  if(aus){ lfBuchenOeffnen(aus.getAttribute("data-lf-aus"),"abgang"); return }
  const art=t.closest("[data-lf-artikel]");
  if(art){ lfArtikelOeffnen(art.getAttribute("data-lf-artikel")); return }
+ const erl=t.closest("[data-lf-erledigt]");
+ if(erl){ lfEinkaufErledigt(erl.getAttribute("data-lf-erledigt")); return }
 });
 
 // ---- Neue Positionen als Excel hochladen ----------------------------------
@@ -626,6 +766,7 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefEinkaufSchliessen",()=>{ $("liefEinkaufModal").hidden=true });
  an("liefArtikelAbbrechen",()=>lfArtikelSchliessen());
  an("liefArtikelSpeichern",()=>lfMindestSpeichern());
+ an("liefArtikelWunschSetzen",()=>lfAufEinkaufsliste());
  const s=$("liefSuche");
  if(s)s.oninput=()=>{ lfSuche=s.value; lfZeichnen() };
 });
