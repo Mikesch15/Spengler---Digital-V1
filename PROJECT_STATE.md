@@ -3,9 +3,64 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.242`
+- Aktueller Entwicklungsstand: `v3.243`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.243: Die Grösse entscheidet mit — kein Beinahe-Treffer
+
+**Befund vor dem Bauen** (01.10.2026, an den echten 439 Artikeln gemessen):
+
+| Grösse | Artikel | zugeordnet |
+|---|---|---|
+| 400 | 63 | **0** |
+| 200 | 46 | **0** |
+| 250 | 143 | 124 |
+| 330 | 148 | 130 |
+
+115 der 158 offenen Artikel sind 200er und 400er. Die Regie-Liste führt die
+Rinnenpositionen nur in **250 und 330** — es gibt die Position nicht. Dazu
+Formen, die ganz fehlen: Rinnenhaken eckig (17), Rinnenkugelböden (15),
+Schrägstutzen (15).
+
+**Das Gefährliche war nicht das Offenbleiben, sondern das Gegenteil.** Für eine
+400er-Rinne bot das Zuordnen die 333er-Position an — mit „wie 44× in dieser
+Gruppe" davor. `lfZuordnenSichereUebernehmen` hätte sie gesetzt, und
+`lfZuordnenAlleSetzen` 11 Artikel auf einen Schlag. Eine 400er-Rinne mit dem
+Preis der 250er im Regierapport ist ein falscher Betrag auf einer Rechnung.
+
+- `lfGroesseWiderspricht(a,r)` — **kein** automatischer Weg geht darüber
+  hinweg: Gruppenmuster (X5), „Sichere Vorschläge" (X6), „Alle angezeigten
+  setzen" (X8). Was ausgelassen wird, wird **benannt** (X7/X9).
+- `lfGroessenBefund(a)` — **ein** Befund je Artikel: `ok` /
+  `groesse-fehlt` / `nichts`. Der Grund, aus dem ein Artikel offen bleibt,
+  wird **vor** der Sicherheitsfrage festgestellt — sonst hing die Begründung
+  an der Reihenfolge der Prüfungen (das war X7s erster Fehlschlag, ein echter
+  Fehler, kein falsche Erwartung).
+- Kopf: wie viele **zu entscheiden** sind und wie viele **nicht zuordenbar**.
+  `📋 Fehlendes kopieren` gibt die Liste je Gruppe und Grösse.
+- Eine **bestehende** Zuordnung mit widersprechender Grösse wird gefragt
+  („stimmt das?"), nie von selbst geändert (X23/X24). Gemessen: 2 Fälle.
+
+**Zwei Fehlalarme, die der Prüfstand gefangen hat — beide waren meine:**
+
+1. `zuschnitt_mm` allein ist **nicht** „die Grösse". Bei „Rinnenstutzen 100 mm
+   20.160.330.100" steht dort der **Ablauf** (100), die Rinnengrösse 330 sitzt
+   in der Nummer; bei „Rinnenstutzen 50 mm 20.160.200.050" steht in demselben
+   Feld 200, also die Rinnengrösse. Eine Regel nur auf `zuschnitt_mm` hätte
+   **12 richtige** Zuordnungen rot markiert und künftig blockiert. Verglichen
+   werden jetzt alle Zahlen des Artikels — mit `rmatZahlen()` aus js/57, plus
+   den reinen Ziffergruppen, weil `rmatZahlen` „20.160.330.100" als Dezimalzahlen
+   liest und die 330 darin nie vorkommt (X17/X18).
+2. Eine Dimension, die **keine Grösse** ist, entscheidet nichts. „bis 120" ist
+   eine Obergrenze (60, 75, 100 passen alle), „B 122" eine Breite, „250-330" ein
+   Bereich. Hätte das gegolten, wären **9 richtige** Zuordnungen rot geworden
+   (X20–X22). Entschieden wird nur bei einer blanken Zahl oder einer
+   Aufzählung blanker Zahlen.
+
+Nach der Korrektur bleiben an den echten Daten **2** von 281 bestehenden
+Zuordnungen als fragwürdig übrig — beide echt (330er Uginox-Rinne auf der
+250er Chromnickelstahl-Position), keine Fehlalarme.
 
 ### v3.242: „gebucht ≠ Zeile" wird sichtbar
 

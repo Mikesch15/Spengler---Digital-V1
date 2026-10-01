@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.243.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1718,6 +1718,31 @@ offen sind.</p>
 Fehler: nicht jeder Artikel des H\u00e4ndlers hat bei euch eine Position, und
 umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
 Elektromaschinen). Erfunden wird nichts.</p>
+<p><b>Die Gr\u00f6sse entscheidet (ab 3.243).</b> Oben steht, wie viele der
+offenen Artikel wirklich <i>zu entscheiden</i> sind \u2013 und wie viele sich
+<b>nicht</b> zuordnen lassen, weil die Regieliste ihre Gr\u00f6sse nicht
+f\u00fchrt. Gemessen an eurem Bestand: 63 Artikel in 400 und 46 in 200, und die
+Regieliste f\u00fchrt die Rinnenpositionen nur in 250 und 330. Das ist keine
+Arbeit, die noch wartet \u2013 es gibt die Position nicht.</p>
+<div class="hin"><b>Darum setzt die App dort nichts.</b> Eine 400er-Rinne auf
+die 250er-Position w\u00e4re ein falscher Preis im Regierapport, und gesehen
+h\u00e4tte es niemand. Weder das Gruppenmuster noch <b>\u2705 Sichere
+Vorschl\u00e4ge</b> noch <b>Alle angezeigten setzen</b> greifen deshalb \u00fcber
+eine widersprechende Gr\u00f6sse hinweg \u2013 ausgelassen wird benannt, nicht
+stillschweigend. In der Auswahl steht bei so einer Zeile <b>\u26a0 ANDERE
+GR\u00d6SSE</b>. Von Hand geht es weiterhin: es gibt F\u00e4lle, die nur du
+kennst.</div>
+<p><b>\U0001f4cb Fehlendes kopieren</b> gibt die Liste zum Mitnehmen: je
+Produktgruppe und Gr\u00f6sse, wie viele Artikel betroffen sind und welche
+Gr\u00f6ssen vorhanden w\u00e4ren. <b>Ob die Regieliste erweitert wird, ist deine
+Entscheidung</b> \u2013 sie ist die Grundlage der Verrechnung, und die App legt
+dort nichts an. Solange die Position fehlt, bleiben diese Artikel ohne und
+lassen sich im Regierapport nicht scannen.</p>
+<div class="hin">Auch eine <b>bereits gespeicherte</b> Zuordnung wird gefragt,
+wenn die Gr\u00f6ssen nicht zusammenpassen: \u201ezugeordnet auf Gr\u00f6sse 250 \u2013
+stimmt das?\u201c. Ge\u00e4ndert wird nichts von selbst. Eine Dimension, die
+<i>keine</i> Gr\u00f6sse ist \u2013 \u201ebis 120\u201c, \u201eB 122\u201c \u2013 l\u00f6st
+nie eine Warnung aus; ein 60er-Seiher auf \u201ebis 120\u201c ist richtig.</div>
 <div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
 <p><b>Mehrere Lieferanten.</b> Sobald mehr als einer da ist, erscheint oben eine
