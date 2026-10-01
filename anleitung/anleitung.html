@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.241";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.242";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.241<br>
+  Version 3.242<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2003,7 +2003,9 @@ gemerkt.</div>
 <p>Drei Dinge, die bewusst so sind:</p>
 <ul>
 <li><strong>Gebucht wird, was gescannt wurde</strong> – nicht, was am Ende in der
-Zeile steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung nicht.</li>
+Zeile steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung nicht.
+<em>Aber es fällt auf</em> (ab 3.242): über der Material-Tabelle steht dann „Zeile 2
+(409.373): 3 ausgebucht, die Zeile steht auf 5“.</li>
 <li>Ein <strong>negativer Bestand</strong> wird gebucht und benannt. Er heisst nicht
 „Fehler“, sondern „hier fehlt ein Zugang im Lager“ – den Rapport daran scheitern zu
 lassen wäre schlimmer.</li>
@@ -2012,6 +2014,20 @@ sonst wäre Ware weg, die nie verrechnet wurde. Und ein Treffer aus der alten
 <strong>Lagerverwaltung</strong> füllt die Zeile, wird aber nicht gebucht; auch das
 steht dann da.</li>
 </ul>
+<p><strong>Was passiert, wenn die Zeile von der Buchung wegläuft?</strong> Nichts
+Verstecktes – es steht da. Die Meldung sagt alle drei Dinge: <strong>verrechnet</strong>
+wird, was in der Zeile steht; im <strong>Lager</strong> steht, was gescannt wurde; und
+wenn der Bestand stimmen soll, buchst du im Lieferanten-Lager am Artikel eine
+<strong>Korrektur</strong>.</p>
+<div class="hin"><strong>Warum nicht automatisch nachbuchen?</strong> Weil hinter einer
+EDV-Nr. mehrere Lieferantenartikel stehen können – „Rinnenseiher, alle Materialien“
+ist <em>eine</em> Regie-Position für viele Artikel. „Die Zeile steht jetzt auf 5“ sagt
+deshalb nicht, welcher Artikel die zwei zusätzlichen Stück liefert. Eine geratene
+Buchung wäre schlimmer als eine sichtbare Differenz: sie sähe richtig aus.</div>
+<p>Eine von Hand erfasste Zeile <strong>ohne</strong> Scan meldet nichts – sie wurde
+ja nie ausgebucht. Mitgeführt wird je <em>Artikel</em>, nicht je Zeile (genau wegen
+der mehreren Artikel pro EDV-Nr.), und es wird mit dem Rapport gespeichert: beim
+Wiederöffnen steht die Meldung noch da.</p>
 
 <h3>Material aus den Massaufnahmen übernehmen</h3>
 <figure><img src="bilder/44-rmat-uebernehmen.png"><figcaption>Was in den Massaufnahmen dieses Objekts erfasst wurde – zum Anhaken.</figcaption></figure>
@@ -3032,7 +3048,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.241</strong>, Stand 30. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.242</strong>, Stand 1. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

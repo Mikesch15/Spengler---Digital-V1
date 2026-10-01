@@ -3,9 +3,39 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.241`
+- Aktueller Entwicklungsstand: `v3.242`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.242: „gebucht ≠ Zeile" wird sichtbar
+
+Das war **meine eigene offene Stelle**, in v3.237 selbst vermerkt: gebucht wird,
+was **gescannt** wurde, nicht was am Ende in der Zeile steht. Bisher stand das
+nur in der Hilfe — also dort, wo es niemand liest, wenn es passiert.
+
+- `rapportGebuchtMerken(m,artikelId,menge)` führt die Buchungen **je Artikel**
+  mit, nicht je Zeile — weil eine EDV-Nr. mehrere Lieferantenartikel tragen kann
+  (n:1 aus v3.234). `m.gebucht=[{artikel_id,menge}]`.
+- `rapportBuchAbweichungen()` meldet **nur** Zeilen, auf die wirklich gebucht
+  wurde und bei denen Zeile und Buchung auseinanderlaufen. Eine von Hand
+  erfasste Zeile ohne Buchung ist **keine** Abweichung (W7).
+- `rapportBuchWarnungZeichnen()` hängt in **`updateTotals()`** — dem einen Weg,
+  den jede Änderung nimmt (Zeichnen, Mengenänderung, Laden eines gespeicherten
+  Rapports) (W10). Keine zweite Stelle, die sich ans Zeichnen erinnern muss.
+- Die Meldung sagt alle drei Dinge: was **gilt** (verrechnet wird die Zeile),
+  was **nicht** gilt (das Lager ist nicht nachgeführt) und was **zu tun** ist
+  (Korrektur am Artikel) (W6).
+- **Keine Migration nötig:** `reports.material_entries` ist `jsonb`, und
+  Speichern/Laden geben das **ganze** Zeilen-Objekt durch (js/08 ↔ js/09) —
+  `gebucht` überlebt mit (W9).
+
+**Bewusst nicht gebaut: automatisches Nachbuchen.** Hinter einer EDV-Nr. können
+mehrere Lieferantenartikel stehen („Rinnenseiher, alle Materialien"). „Die Zeile
+steht jetzt auf 5" sagt deshalb nicht, **welcher** Artikel die zwei zusätzlichen
+Stück liefert. Eine geratene Buchung wäre schlimmer als eine sichtbare
+Differenz — sie sähe richtig aus. Ebenso weiterhin offen (und hier bewusst
+vermerkt): ein echter Abgleich beim **Speichern** des Rapports; v3.242 macht die
+Abweichung nur sichtbar.
 
 ### v3.241: Mehrere Lieferanten in der Bedienung
 

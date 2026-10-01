@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1400,6 +1400,15 @@ einer <b>Korrektur</b> ausgeglichen. Die Wahl wird je Gerät gemerkt.</div>
 steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung nicht.
 Ein negativer Bestand wird gebucht und benannt: er heisst nicht „Fehler“, sondern
 „hier fehlt ein Zugang im Lager“.</p>
+<div class="hin"><b>Das fällt jetzt auf (ab 3.242).</b> Läuft eine Zeile von der
+Buchung weg, steht über der Material-Tabelle: „Zeile 2 (409.373): 3 ausgebucht,
+die Zeile steht auf 5.“ Verrechnet wird, was in der Zeile steht – im Lager steht,
+was gescannt wurde. Soll der Bestand stimmen, buchst du im Lieferanten-Lager am
+Artikel eine <b>Korrektur</b>.<br>
+Nachgebucht wird <b>nicht</b> automatisch, und zwar mit Grund: hinter einer
+EDV-Nr. können mehrere Lieferantenartikel stehen („Rinnenseiher, alle
+Materialien“). „Die Zeile steht jetzt auf 5“ sagt deshalb nicht, welcher Artikel
+die zwei zusätzlichen Stück liefert. Das weiss nur, wer im Lager steht.</div>
 <p>Ist ein Code <b>nicht bekannt</b> oder hat der Artikel <b>noch keine
 Regie-Position</b>, entsteht <b>keine Zeile</b> – und darunter steht, woran es
 liegt. Fehlt nur die Zuordnung, trägst du sie im Lieferanten-Lager unter
