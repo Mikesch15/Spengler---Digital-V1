@@ -1227,7 +1227,7 @@ function lfZuordnenAlleSetzen(){
 // Gemessen: 115 der 158 offenen Artikel koennen gar nicht zugeordnet werden,
 // weil die Regie-Liste ihre Groesse nicht fuehrt.
 function lfZuordnenBefundStand(){
- const st={offen:0,zuEntscheiden:0,groesseFehlt:0,nichts:0};
+ const st={offen:0,zuEntscheiden:0,groesseFehlt:0,nichts:0,ohneMuster:0};
  lfArtikel.forEach(a=>{
   if(a.archiviert||lfRegieVon(a))return;
   st.offen++;
@@ -1235,60 +1235,222 @@ function lfZuordnenBefundStand(){
   if(b.art==="groesse-fehlt")st.groesseFehlt++;
   else if(b.art==="nichts")st.nichts++;
   else st.zuEntscheiden++;
+  // v3.244: zaehlt QUER dazu - diese Artikel sind zuordenbar, aber der
+  // Vorschlag stammt aus einer anderen Gruppe. Keine eigene Spalte in der
+  // Summe, sonst zaehlte derselbe Artikel zweimal.
+  if(lfOhneMuster(a))st.ohneMuster++;
  });
  return st;
+}
+// ---- Welche Position fehlt? (v3.244) --------------------------------------
+//
+// v3.243 sagt, dass 115 Artikel nicht zuordenbar sind. Die naechste Frage ist
+// "und was muss ich tun?" - und die Antwort steht in SEINER eigenen Liste.
+//
+// Gemessen am 01.10.2026: seine Regie-Liste benutzt ZWEI Stile, und zwar je
+// Warenart verschieden.
+//   je Werkstoff:      201.01/02 Dachrinnen halbrund Kupfer, 201.11/12
+//                      Titanzink, 201.13/14 Chromnickelstahl
+//   alle Materialien:  203.41/42 Einhaengestutzen gerade, 203.21/22
+//                      Rinnenboden gerade, 203.01/02 Rinnenwinkel
+// Beim Blech ist der Werkstoff der Preis, beim Formteil nicht. Welcher Stil
+// in einer Gruppe gilt, muss deshalb nicht geraten werden: die bereits
+// zugeordneten Artikel derselben Gruppe sagen es.
+// Alle Groessen, in denen die Regie-Liste eine Position dieses Namens fuehrt
+// - gelesen aus der Liste selbst, nicht aus den Zuordnungen.
+function lfRegieDimsFuerName(name){
+ const raus=[];
+ lfRegieListe().forEach(r=>{
+  if(String(r.name||"")!==String(name||""))return;
+  lfRegieDimZahlen(r).forEach(z=>{ if(raus.indexOf(z)<0)raus.push(z) });
+ });
+ return raus.sort((x,y)=>x-y);
+}
+// v3.244, zweiter Befund - und der war mir in v3.243 entgangen:
+// die Groessenregel faengt nur Groessen. Ein "Rinnenkugelboden 250" bekommt
+// "Rinnenboden gerade, alle Materialien" Groesse 250 angeboten: die Groesse
+// PASST, nur die Form nicht. Dasselbe bei "Schraegstutzen" gegen
+// "Einhaengestutzen gerade" und bei "Rinnenhaken eckig" gegen "Rinnenhalter".
+// In rmatBewerte steht "gerade" sogar ausdruecklich auf der Ignorierliste -
+// genau deshalb gewinnt es.
+//
+// Eine Wortregel dafuer waere Spenglerfachsprache, und die gehoert ihm, nicht
+// mir. Messbar ist aber etwas anderes, und es genuegt: in diesen Gruppen ist
+// noch GAR NICHTS zugeordnet. Die App hat also keinen Beleg, dass diese
+// Gruppe auf irgendetwas zeigt - der Vorschlag kommt aus einer anderen
+// Gruppe. Das wird gesagt.
+//
+// Geblockt wird es NICHT: genau so hat er die 281 vorhandenen Zuordnungen
+// gemacht - eine von Hand, dann traegt das Gruppenmuster den Rest. Wer hier
+// zusperrt, nimmt ihm bei jeder neuen Lieferantenliste den Einstieg.
+// Betrifft 47 Artikel: Rinnenhaken eckig (17), Rinnenkugelboeden (15),
+// Schraegstutzen (15).
+function lfOhneMuster(a){
+ return !!a&&!lfRegieVon(a)&&lfMusterFuer(a)===null&&lfRegieVorschlaege(a).length>0;
+}
+function lfMusterFuer(a){
+ if(!a)return null;
+ const g=String(a.gruppe||"");
+ const namen={};
+ lfArtikel.forEach(x=>{
+  if(x.archiviert||String(x.gruppe||"")!==g)return;
+  const r=lfRegieVon(x);
+  if(!r)return;
+  const k=String(r.name||"");
+  if(!namen[k])namen[k]={name:k,einheit:String(r.unit||""),dims:[],materialien:[]};
+  const mt=String(x.material||"");
+  if(mt&&namen[k].materialien.indexOf(mt)<0)namen[k].materialien.push(mt);
+ });
+ const liste=Object.keys(namen).map(k=>namen[k]);
+ // v3.244, behobener Fehler: die vorhandenen Groessen muessen aus der
+ // REGIE-LISTE kommen, nicht aus den Zuordnungen. Sonst fehlt eine Groesse,
+ // die er schon fuehrt, nur weil ihr noch kein Lieferantenartikel zugeordnet
+ // ist - und die Arbeitsliste verlangte eine Position, die es gibt.
+ liste.forEach(x=>{ x.dims=lfRegieDimsFuerName(x.name) });
+ if(!liste.length)return null;
+ // Ein Name fuer die ganze Gruppe: "alle Materialien".
+ if(liste.length===1)return Object.assign({stil:"alle"},liste[0]);
+ // Mehrere Namen: je Werkstoff. Das Muster ist der Name, den die Artikel
+ // MIT DEMSELBEN Werkstoff benutzen - nicht der haeufigste.
+ const mt=String(a.material||"");
+ const treffer=liste.filter(x=>x.materialien.indexOf(mt)>=0);
+ if(treffer.length===1)return Object.assign({stil:"werkstoff"},treffer[0]);
+ // Mehrdeutig: der Werkstoff ist noch nirgends zugeordnet. Dann werden die
+ // Kandidaten genannt, statt einen zu behaupten.
+ return {stil:"unklar",kandidaten:liste.map(x=>x.name),dims:[],einheit:""};
 }
 // Was der Regie-Liste fehlt, nach Gruppe und Groesse - zum Mitnehmen.
 // Die Regie-Liste zu erweitern ist SEINE Entscheidung (sie ist die Grundlage
 // der Verrechnung); die App sagt nur, was dort fehlen wuerde.
+// v3.244: Zusammengefasst wird nach der POSITION, die fehlen wuerde - nicht
+// nach dem Artikel. Eine Zeile hier ist genau eine Position, die er anlegen
+// koennte; 115 Einzelzeilen waeren keine Auskunft.
+//
+// Zwei Arten von Luecke, und sie bedeuten Verschiedenes:
+//   "muster"  seine Liste fuehrt die Position schon, nur in anderer Groesse
+//             -> Name und Einheit stehen fest, es fehlen EDV-Nr. und Preis
+//   "neu"     seine Liste fuehrt diese Warenart gar nicht (Rinnenhaken
+//             eckig, Kugelboeden, Schraegstutzen) -> das ist eine fachliche
+//             Entscheidung, nicht eine Kopie
 function lfFehlendeRegie(){
  const m={};
  lfArtikel.forEach(a=>{
   if(a.archiviert||lfRegieVon(a))return;
   const b=lfGroessenBefund(a);
-  if(b.art==="ok")return;
+  // v3.244: Eine Gruppe ohne jede Zuordnung gehoert in die Arbeitsliste, auch
+  // wenn die Groesse passt - sonst fehlen dort genau die 47 Artikel, bei
+  // denen die Form nicht stimmt.
+  if(b.art==="ok"&&!lfOhneMuster(a))return;
   const g=String(a.gruppe||"Ohne Gruppe");
-  const k=g+"|"+(b.groesse||0)+"|"+b.art;
-  if(!m[k])m[k]={gruppe:g,groesse:b.groesse,art:b.art,anzahl:0,
-   vorhanden:b.vorhanden,beispiel:a.bezeichnung};
-  m[k].anzahl++;
+  const mu=lfMusterFuer(a);
+  const dazu=e=>{
+   e.anzahl++;
+   if(e.beispiele.length<2&&e.beispiele.indexOf(a.bezeichnung)<0)e.beispiele.push(a.bezeichnung);
+  };
+  if(mu&&(mu.stil==="alle"||mu.stil==="werkstoff")){
+   const k="M|"+mu.name+"|"+(b.groesse||0);
+   if(!m[k])m[k]={art:"muster",name:mu.name,einheit:mu.einheit,stil:mu.stil,
+    gruppe:g,groesse:b.groesse,vorhanden:mu.dims.slice(),anzahl:0,beispiele:[]};
+   dazu(m[k]);
+  }else{
+   const k="N|"+g+"|"+(b.groesse||0);
+   if(!m[k])m[k]={art:"neu",gruppe:g,groesse:b.groesse,anzahl:0,beispiele:[],
+    nahe:(mu&&mu.kandidaten)?mu.kandidaten.slice(0,2)
+         :lfRegieVorschlaege(a).slice(0,1).map(v=>{
+            const r=lfRegieZuNummer(v.no); return r?String(r.name||""):"" }).filter(Boolean),
+    vorhanden:b.vorhanden.slice()};
+   dazu(m[k]);
+  }
  });
  return Object.keys(m).map(k=>m[k]).sort((x,y)=>
-  x.gruppe.localeCompare(y.gruppe,"de")||x.groesse-y.groesse);
+  (x.art===y.art?0:(x.art==="muster"?-1:1))
+  ||String(x.name||x.gruppe).localeCompare(String(y.name||y.gruppe),"de")
+  ||x.groesse-y.groesse);
 }
+// Der Text ist eine ARBEITSLISTE, nicht ein Befund: je Zeile eine Position,
+// die er in der Lagerverwaltung unter "neues Material anlegen" erfassen
+// kann. Name und Einheit stehen dort schon - EDV-Nr. und Preis sind seine
+// Entscheidung, und die App schlaegt dafuer bewusst nichts vor: eine
+// geratene EDV-Nr. landet in seinem Nummernsystem, und ein geratener Preis
+// auf einer Rechnung.
 function lfFehlendeRegieText(){
  const liste=lfFehlendeRegie();
  if(!liste.length)return "";
- const zeilen=["Was der Regie-Liste fehlt – Stand "+new Date().toLocaleDateString("de-CH"),""];
- let letzte=null;
- liste.forEach(x=>{
-  if(x.gruppe!==letzte){ if(letzte!==null)zeilen.push(""); zeilen.push(x.gruppe+":"); letzte=x.gruppe }
-  zeilen.push("  "+x.anzahl+" Artikel"
-   +(x.groesse?"  Grösse "+lfZahlText(x.groesse):"  ohne erkennbare Grösse")
-   +(x.art==="nichts"?"  (keine Position gefunden)"
-     :(x.vorhanden.length?"  (vorhanden: "+x.vorhanden.map(lfZahlText).join(", ")+")":""))
-   +"   z. B. "+x.beispiel);
- });
- zeilen.push("");
- zeilen.push("Solange es die Position nicht gibt, bleiben diese Artikel ohne Regie-Position –");
- zeilen.push("sie lassen sich dann im Regierapport nicht scannen. Das ist kein Fehler der App,");
- zeilen.push("sondern eine Entscheidung: die Regie-Liste ist die Grundlage der Verrechnung.");
- return zeilen.join("\n");
+ const z=[];
+ z.push("Was der Regie-Liste fehlt – Stand "+new Date().toLocaleDateString("de-CH"));
+ z.push("");
+ const muster=liste.filter(x=>x.art==="muster");
+ const neue=liste.filter(x=>x.art!=="muster");
+ if(muster.length){
+  z.push("A) VORHANDENE POSITION IN ANDERER GRÖSSE  ("+muster.length+" Positionen)");
+  z.push("   Name und Einheit stehen schon fest – es fehlen EDV-Nr. und Preis.");
+  z.push("");
+  muster.forEach(x=>{
+   z.push("  "+x.name+(x.groesse?"   Grösse "+lfZahlText(x.groesse):"   Grösse ?")
+    +(x.einheit?"   Einheit "+x.einheit:""));
+   z.push("      vorhanden in: "+(x.vorhanden.length?x.vorhanden.map(lfZahlText).join(", "):"—")
+    +"   ·   deckt "+x.anzahl+" Artikel"
+    +(x.stil==="werkstoff"?"   ·   diese Gruppe wird je Werkstoff geführt":""));
+   x.beispiele.forEach(b=>z.push("      z. B. "+b));
+   z.push("");
+  });
+ }
+ if(neue.length){
+  z.push("B) IN DIESER GRUPPE IST NOCH NICHTS ZUGEORDNET  ("+neue.length+" Gruppen/Grössen)");
+  z.push("   Hier ist es keine Kopie, sondern eine fachliche Entscheidung: gibt es");
+  z.push("   diese Position bei euch, und unter welchem Namen? Die App hat keinen");
+  z.push("   Beleg - die genannte ähnliche Position stammt aus einem ANDEREN");
+  z.push("   Produktbereich (ein Kugelboden ist kein gerader Boden, ein");
+  z.push("   Schrägstutzen kein Einhängestutzen gerade). Ordnet ihr einen Artikel");
+  z.push("   von Hand zu, trägt das Gruppenmuster danach den Rest.");
+  z.push("");
+  neue.forEach(x=>{
+   z.push("  "+x.gruppe+(x.groesse?"   Grösse "+lfZahlText(x.groesse):"")
+    +"   ·   deckt "+x.anzahl+" Artikel");
+   if(x.nahe&&x.nahe.length)z.push("      ähnlich vorhanden: "+x.nahe.join(" / "));
+   x.beispiele.forEach(b=>z.push("      z. B. "+b));
+   z.push("");
+  });
+ }
+ z.push("Angelegt wird in der Lagerverwaltung unter „neues Material anlegen“.");
+ z.push("Die App legt dort NICHTS von selbst an: die Regie-Liste ist die Grundlage");
+ z.push("der Verrechnung, und EDV-Nr. und Preis sind eure Entscheidung.");
+ z.push("");
+ z.push("Die angegebene Grösse ist die aus dem Zuschnitt-Feld des Artikels. Wo sie");
+ z.push("nicht stimmt, sagen die Beispielartikel, was gemeint ist – bei B-Team steht");
+ z.push("die Rinnengrösse teils in der Artikelnummer (20.160.400.100 = 400er Rinne,");
+ z.push("100 mm Ablauf).");
+ z.push("");
+ z.push("Solange die Position fehlt, bleiben diese Artikel ohne Regie-Position und");
+ z.push("lassen sich im Regierapport nicht scannen. Auch das ist eine Antwort.");
+ return z.join("\n");
 }
+// v3.244: Der Knopf ZEIGT die Liste und kopiert sie zusaetzlich. Auf dem
+// Handy ist Lesen das Wichtigere - eine Arbeitsliste, die nur in der
+// Zwischenablage liegt, muss man erst irgendwohin einfuegen, um sie zu
+// sehen. Das Kopieren darf deshalb auch fehlschlagen, ohne dass die
+// Auskunft verloren geht.
 async function lfFehlendeRegieKopieren(){
  if(typeof $!=="function")return;
  const text=lfFehlendeRegieText();
  const h=$("liefZuordnenMeldung");
- if(!text){ if(h){h.style.color="var(--muted)";h.textContent="Es fehlt nichts – jeder offene Artikel hat eine passende Position zur Wahl."} return }
+ const f=$("liefZuordnenFehlendText");
+ if(!text){
+  if(f){ f.hidden=true; f.value="" }
+  if(h){h.style.color="var(--muted)";h.textContent="Es fehlt nichts – jeder offene Artikel hat eine passende Position zur Wahl."}
+  return;
+ }
+ if(f){ f.hidden=false; f.value=text }
+ const n=lfFehlendeRegie().length;
  try{
   if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("keine Zwischenablage");
   await navigator.clipboard.writeText(text);
-  if(h){h.style.color="var(--muted)";h.textContent="Die Liste ist kopiert – sie lässt sich jetzt einfügen."}
- }catch(e){
-  const f=$("liefZuordnenFehlendText");
-  if(f){ f.hidden=false; f.value=text; f.focus(); f.select() }
   if(h){h.style.color="var(--muted)";
-   h.textContent="Das Kopieren hat dieses Gerät nicht erlaubt. Der Text steht unten und ist markiert – von Hand kopieren."}
+   h.textContent=n+" Position(en) – die Liste steht unten und ist zusätzlich kopiert."}
+ }catch(e){
+  if(f){ f.focus(); f.select() }
+  if(h){h.style.color="var(--muted)";
+   h.textContent=n+" Position(en) – die Liste steht unten. Das Kopieren hat dieses Gerät nicht erlaubt; der Text ist markiert."}
  }
 }
 function lfZuordnenKopfZeichnen(){
@@ -1307,10 +1469,19 @@ function lfZuordnenKopfZeichnen(){
  if(hin){
   const st=lfZuordnenBefundStand();
   const blockiert=st.groesseFehlt+st.nichts;
+  // v3.244: Der Satz zu den Gruppen, in denen noch nichts zugeordnet ist -
+  // er gilt unabhaengig davon, ob eine Groesse fehlt.
+  const fremd=st.ohneMuster
+   ? `<div class="small" style="margin-top:4px">Bei <b>${st.ohneMuster}</b> Artikel(n) ist in ihrer
+      <b>Produktgruppe noch nichts zugeordnet</b> – deren Vorschlag kommt aus einem anderen
+      Produktbereich (ein <i>Kugelboden</i> bekommt den <i>geraden</i> Boden angeboten: Grösse passt,
+      Form nicht). Geblockt wird nichts – ordne einen von Hand zu, dann trägt das Gruppenmuster
+      den Rest.</div>`
+   : "";
   if(!st.offen){ hin.hidden=true; hin.innerHTML="" }
   else if(!blockiert){
    hin.hidden=false;
-   hin.innerHTML=`<b>${st.offen}</b> offen – für jeden steht eine passende Position zur Wahl.`;
+   hin.innerHTML=`<b>${st.offen}</b> offen – für jeden steht eine passende Position zur Wahl.`+fremd;
   }else{
    hin.hidden=false;
    hin.innerHTML=`Von <b>${st.offen}</b> offenen Artikeln sind <b>${st.zuEntscheiden}</b> zu entscheiden.
@@ -1318,8 +1489,10 @@ function lfZuordnenKopfZeichnen(){
     ${st.groesseFehlt?`bei <b>${st.groesseFehlt}</b> die Grösse nicht`:""}${
      st.groesseFehlt&&st.nichts?" und ":""}${st.nichts?`für <b>${st.nichts}</b> gar keine passende Position`:""}.
     Das ist keine Arbeit, die noch wartet: es gibt die Position nicht.
-    <div class="small" style="margin-top:4px">Die Regie-Liste zu erweitern ist deine Entscheidung – sie ist die
-    Grundlage der Verrechnung. Was fehlen würde, steht in der Liste unten; <b>📋 Fehlendes kopieren</b> gibt sie zum Mitnehmen.</div>`;
+    <div class="small" style="margin-top:4px">Das wären <b>${lfFehlendeRegie().length}</b> Regie-Position(en) –
+    <b>📋 Was fehlt</b> zeigt sie als Arbeitsliste: Name und Einheit stehen schon fest, EDV-Nr. und Preis sind
+    deine Entscheidung. Angelegt wird in der <b>Lagerverwaltung</b>; die App legt dort nichts von selbst an.</div>`
+    +fremd;
   }
  }
  const offen=$("liefZuordnenSpeichern");
@@ -1374,6 +1547,7 @@ function lfZuordnenZeichnen(){
   // wird aber.
   const jetztR=lfRegieVon(a);
   const jetztFalsch=(jetztR&&lfGroesseWiderspricht(a,jetztR))?(jetztR.dim||""):"";
+  const fremdeGruppe=lfOhneMuster(a);
   // Die Auswahl enthaelt: keine Zuordnung, die Vorschlaege, und - falls
   // der Artikel schon eine Position hat, die nicht unter den Vorschlaegen
   // ist - diese ebenfalls. Sonst wuerde das Oeffnen der Ansicht eine
@@ -1414,9 +1588,12 @@ function lfZuordnenZeichnen(){
         :grp?' · <span style="color:var(--green)">wie '+grp.anzahl+'× in dieser Gruppe</span>'
         :(befund.art==="groesse-fehlt"
           ? ' · <span style="color:var(--red)">'+esc(lfGroessenBefundText(befund))+'</span>'
-          :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
-                              :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
-                      :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>'))}</div>
+          :(fremdeGruppe
+            ? ' · <span style="color:var(--orange,#c97a00)">in dieser Gruppe ist noch nichts zugeordnet – '
+              +'der Vorschlag kommt aus einem anderen Produktbereich</span>'
+            :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
+                                :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
+                        :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>')))}</div>
     <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%">${optionen.join("")}</select>
    </div>
   </div>`;
@@ -1430,7 +1607,7 @@ function lfZuordnenSichereUebernehmen(){
  // v3.235: wirkt auf die ANGEZEIGTEN Artikel, nicht auf alle. Sonst
  // aenderte der Knopf Zeilen in Gruppen, die gerade gar nicht zu sehen
  // sind - und man merkte es erst beim Speichern.
- let n=0, ausGruppe=0, uebersprungen=0;
+ let n=0, ausGruppe=0, uebersprungen=0, fremd=0;
  lfZuordnenKandidaten().forEach(a=>{
   if(lfRegieVon(a))return;
   // Die eigene Entscheidung in der Gruppe zaehlt mehr als die
@@ -1449,11 +1626,17 @@ function lfZuordnenSichereUebernehmen(){
   if(!lfRegieSicher(vor))return;
   const r=lfRegieZuNummer(vor[0].no);
   if(!r)return;
+  const fremd0=lfOhneMuster(a);
   // Doppelt gesichert: auch ein sicherer Namenstreffer darf die Groesse
   // nicht ueberstimmen.
   if(lfGroesseWiderspricht(a,r)){ uebersprungen++; return }
   lfZuordnungen[String(a.id)]=String(r.id);
   n++;
+  // v3.244: Nicht geblockt - so hat er die 281 vorhandenen Zuordnungen
+  // gemacht, und bei jeder neuen Lieferantenliste ist jede Gruppe zuerst
+  // leer. Aber gezaehlt und genannt: der Vorschlag kam aus einer anderen
+  // Gruppe, und das ist die Zeile, die er zuerst anschauen sollte.
+  if(fremd0)fremd++;
  });
  lfZuordnenZeichnen();
  const h=$("liefZuordnenMeldung");
@@ -1461,12 +1644,15 @@ function lfZuordnenSichereUebernehmen(){
   h.style.color="var(--muted)";
   // v3.243: Was NICHT gesetzt wurde, wird genannt. Ein Knopf, der stumm
   // weniger tut als erwartet, laesst den Anwender die Zeilen suchen.
+  const wegFremd=fremd
+   ? " "+fremd+" davon stammen aus einer Gruppe, in der noch nichts zugeordnet war – die bitte zuerst ansehen."
+   : "";
   const wegGroesse=uebersprungen
    ? " "+uebersprungen+" Artikel wurden ausgelassen, weil die Regie-Liste ihre Grösse nicht führt – sie stehen unten mit Begründung."
    : "";
   h.textContent=n
    ? n+" Vorschlag(e) eingesetzt"+(ausGruppe?" ("+ausGruppe+" davon nach dem Muster dieser Gruppe)":"")
-     +" – noch nicht gespeichert. Bitte durchsehen und speichern."+wegGroesse
+     +" – noch nicht gespeichert. Bitte durchsehen und speichern."+wegFremd+wegGroesse
    : (uebersprungen
       ? "Nichts eingesetzt: bei allen "+uebersprungen+" angezeigten Artikeln führt die Regie-Liste die Grösse nicht. "
         +"Das ist keine Zuordnung, die noch fehlt – es gibt die Position nicht. Unten steht je Zeile, welche Grössen vorhanden sind."
