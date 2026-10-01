@@ -263,6 +263,12 @@ function updateTotals(){
  $("grossTotal").value=money((wt+mt)*(1+vat/100));
  $("employee").value=currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"";
  updatePrintRates(wt);
+ // v3.242: Die Warnung haengt HIER, weil updateTotals von jedem Weg aus
+ // laeuft - renderMain, Mengenaenderung, Laden eines gespeicherten
+ // Rapports. Sie an jeder einzelnen Stelle aufzurufen hiesse, eine davon
+ // zu vergessen; und das waere genau die Stelle, an der die Abweichung dann
+ // unsichtbar bleibt.
+ if(typeof rapportBuchWarnungZeichnen==="function")rapportBuchWarnungZeichnen();
 }
 
 $("workBody").addEventListener("input",e=>{
@@ -399,6 +405,10 @@ $("matBody").addEventListener("input",e=>{
    const totalCell=document.querySelector(`[data-mat-total="${n}"]`);
    if(totalCell)totalCell.textContent=matBekannt(mats[n])?money(matZeileTotal(mats[n])):"0.00";
    updateTotals();
+   // v3.242: Wird eine gescannte Zeile von Hand geaendert, stimmt der
+   // Lagerbestand nicht mehr mit ihr ueberein. Das wird JETZT gesagt, waehrend
+   // es passiert - nicht erst, wenn das Material auf der Baustelle fehlt.
+   rapportBuchWarnungZeichnen();
 }
 });
 $("matBody").addEventListener("change",e=>{
@@ -471,6 +481,65 @@ function rapportScanHinweis(text,fehler){
  h.textContent=text||"";
  h.style.color=fehler?"var(--red)":"var(--muted)";
 }
+
+// ---------------------------------------------------------------------------
+// v3.242  Was gebucht wurde, steht an der Zeile
+// ---------------------------------------------------------------------------
+// In v3.237 habe ich selbst vermerkt: gebucht wird, was GESCANNT wurde, nicht
+// was am Ende in der Zeile steht. Wer die Menge hinterher von Hand aendert,
+// aendert die Buchung nicht - und der Lagerbestand ist um die Differenz
+// falsch, ohne dass es jemand merkt.
+//
+// Diese Luecke wird jetzt nicht mehr verschwiegen, sondern angezeigt.
+//
+// WARUM NICHT GLEICH NACHBUCHEN: eine Rapportzeile traegt eine EDV-Nr., und
+// auf dieselbe EDV-Nr. koennen MEHRERE Lieferantenartikel zeigen (das
+// Verhaeltnis ist n:1, siehe v3.234). Aus "die Zeile steht jetzt auf 5" folgt
+// deshalb nicht, WELCHER Artikel die zwei Stueck mehr hergeben soll. Darum
+// wird festgehalten, was je Artikel gebucht wurde - damit ein spaeterer
+// Abgleich beim Speichern darauf aufbauen kann - und bis dahin gesagt, dass
+// die Zeile und das Lager auseinanderlaufen.
+//
+// Gespeichert wird das in reports.material_entries (jsonb) und braucht
+// deshalb keine Migration: ein zusaetzlicher Schluessel an der Zeile.
+function rapportGebucht(m){
+ const l=(m&&Array.isArray(m.gebucht))?m.gebucht:[];
+ return l.reduce((s,x)=>s+(Number(x&&x.menge)||0),0);
+}
+function rapportGebuchtMerken(m,artikelId,menge){
+ if(!m)return;
+ if(!Array.isArray(m.gebucht))m.gebucht=[];
+ const da=m.gebucht.find(x=>String(x.artikel_id)===String(artikelId));
+ if(da)da.menge=(Number(da.menge)||0)+menge;
+ else m.gebucht.push({artikel_id:artikelId,menge});
+}
+// Nur Zeilen, auf die wirklich gebucht wurde, und nur solche, bei denen
+// Zeile und Buchung auseinanderlaufen. Eine Zeile ohne Buchung ist keine
+// Abweichung - sie wurde von Hand erfasst, und das ist in Ordnung.
+function rapportBuchAbweichungen(){
+ const raus=[];
+ (mats||[]).forEach((m,i)=>{
+  const g=rapportGebucht(m);
+  if(!g)return;
+  const q=Number(m.qty)||0;
+  if(Math.abs(q-g)<1e-9)return;
+  raus.push({zeile:i+1,no:String(m.no||""),gebucht:g,menge:q});
+ });
+ return raus;
+}
+function rapportBuchWarnungZeichnen(){
+ const box=$("matBuchWarnung");
+ if(!box)return;
+ const ab=rapportBuchAbweichungen();
+ if(!ab.length){ box.hidden=true; box.innerHTML=""; return }
+ box.hidden=false;
+ box.innerHTML=`<b>Zeile und Lager laufen auseinander.</b> `
+  +ab.map(x=>`Zeile ${x.zeile} (${esc(x.no)}): <b>${esc(String(x.gebucht))}</b> ausgebucht, `
+    +`die Zeile steht auf <b>${esc(String(x.menge))}</b>`).join(" · ")
+  +`<div class="small" style="margin-top:4px">Verrechnet wird, was in der Zeile steht. `
+  +`Im Lager steht, was gescannt wurde – die Differenz ist dort <b>nicht</b> nachgeführt. `
+  +`Wenn sie stimmen soll: im Lieferanten-Lager am Artikel eine <b>Korrektur</b> buchen.</div>`;
+}
 function rapportMaterialScannen(){
  if(!rapportScannerMoeglich())return;
  barcodeScannen(async code=>{
@@ -495,15 +564,22 @@ function rapportMaterialScannen(){
   const i=mats.findIndex(m=>String(m.no)===String(t.regie.edv_nr)&&String(m.date||"")===heute);
   if(i>=0){
    mats[i].qty=(Number(mats[i].qty)||0)+1;
+   // v3.242: festhalten, WAS auf diese Zeile gebucht wurde - je Artikel,
+   // weil mehrere Lieferantenartikel auf dieselbe EDV-Nr. zeigen koennen.
+   if(t.gebucht&&t.artikel)rapportGebuchtMerken(mats[i],t.artikel.id,1);
    renderMain();
    updateMaterialRowTotal(i);
    updateTotals();
+   rapportBuchWarnungZeichnen();
    rapportScanHinweis(t.text+" · jetzt "+mats[i].qty+zusatz,schlecht);
    return;
   }
-  mats.push({date:heute,no:String(t.regie.edv_nr),qty:1});
+  const neu={date:heute,no:String(t.regie.edv_nr),qty:1};
+  if(t.gebucht&&t.artikel)rapportGebuchtMerken(neu,t.artikel.id,1);
+  mats.push(neu);
   renderMain();
   updateTotals();
+  rapportBuchWarnungZeichnen();
   rapportScanHinweis(t.text+" · als neue Zeile mit Menge 1"+zusatz,schlecht);
  });
 }

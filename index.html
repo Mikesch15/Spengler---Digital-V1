@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.241</div>
+<div id="appVersion">Version 3.242</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -330,6 +330,10 @@
 <label class="rechte-schalter"><input type="checkbox" id="matScanAusbuchen" checked> Beim Scannen auch aus dem Lieferanten-Lager <b>ausbuchen</b></label>
 </div>
 <div class="small no-print" id="matScanHinweis" style="min-height:18px;margin:4px 0;color:var(--muted)"></div>
+<!-- v3.242: Läuft eine gescannte Zeile mit dem Lager auseinander, wird das
+     gesagt - nicht verschwiegen. Die Zeile bleibt gültig (verrechnet ist
+     verrechnet), aber im Lager steht, was gescannt wurde. -->
+<div class="small no-print" id="matBuchWarnung" hidden style="margin:4px 0;padding:8px;border-radius:6px;background:var(--red-light);color:var(--ink)"></div>
 <div class="total">Total Material CHF <span id="matTotal">0.00</span></div>
 </div>
 
@@ -2485,7 +2489,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 120 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3236,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
