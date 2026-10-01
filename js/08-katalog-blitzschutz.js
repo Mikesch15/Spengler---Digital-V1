@@ -209,7 +209,11 @@ function initExcelImport(cfg){
    // der importAutoZuordnen wirklich arbeitet.
    const namen=[f.label].concat(f.alias||[]);
    return `<tr><td><b>${esc(f.label)}</b></td>`
-    +`<td>${f.pflicht?'<span style="color:#d9534f">Pflicht</span>':"freiwillig"}</td>`
+    +`<td>${f.pflicht
+      ?(nurNeuPflicht(f)
+        ?'<span style="color:#8a5312">nur für neue</span>'
+        :'<span style="color:#d9534f">Pflicht</span>')
+      :"freiwillig"}</td>`
     +`<td class="small">${esc(namen.join(", "))}</td></tr>`;
   };
   const zahlFelder=cfg.felder.filter(f=>f.zahl).map(f=>f.label);
@@ -231,8 +235,13 @@ ${cfg.felder.map(zeile).join("")}</table>
 ${schl?`Der Abgleich läuft über die <b>${esc(schl.label)}</b>: eine Nummer, die es schon gibt,
 wird aktualisiert statt doppelt angelegt. Dieselbe Nummer darf in der Datei nur
 <b>einmal</b> vorkommen.<br>`:""}
-Zeilen ohne ${esc(cfg.felder.filter(f=>f.pflicht).map(f=>f.label).join(" bzw. ohne "))}
+Zeilen ohne ${esc(cfg.felder.filter(f=>f.pflicht&&!nurNeuPflicht(f)).map(f=>f.label).join(" bzw. ohne "))}
 werden übersprungen – wie viele das sind, steht über der Vorschau.
+${cfg.felder.filter(f=>f.pflicht&&nurNeuPflicht(f)).length
+ ?`<br><b>${esc(cfg.felder.filter(f=>f.pflicht&&nurNeuPflicht(f)).map(f=>f.label).join(" und "))}</b>
+braucht nur eine <b>neue</b> Position. Eine Datei ohne diese Spalte pflegt deshalb die
+vorhandenen weiter – so lässt sich eine reine <b>Preisliste</b> (nur ${esc((cfg.felder.find(f=>f.key===cfg.schluessel)||{label:"Nr."}).label)}
+und Preis) einlesen. Zeilen, die es noch nicht gibt, werden dabei ausgelassen.`:""}
 ${zahlFelder.length?`<br><b>${esc(zahlFelder.join(", "))}</b> als reine Zahl schreiben
 (<code>7.90</code> oder <code>7,90</code>, auch <code>1'250.00</code>). Steht Text in der
 Zelle (<code>Fr. 7.90</code>, <code>7.90 CHF</code>), kann sie nicht als Zahl gelesen werden –
@@ -336,13 +345,38 @@ die Vorschau weist darauf hin.`:""}</div>`;
  function pruefen(daten){
   const meldungen=[];
   cfg.felder.filter(f=>f.pflicht).forEach(f=>{
-   if(zuordnung[f.key]===undefined)meldungen.push(`Das Pflichtfeld „${f.label}" ist keiner Spalte zugeordnet.`);
+   if(zuordnung[f.key]!==undefined)return;
+   // v3.245: Fehlt ein Feld, das nur fuer NEUE Zeilen Pflicht ist, ist das
+   // kein Fehler - es ist eine Pflegedatei (z. B. eine Preisliste). Gesagt
+   // wird, was daraus folgt: bestehende werden gepflegt, neue ausgelassen.
+   if(nurNeuPflicht(f)){
+    const neueOhne=daten.filter(z=>!schonDa(z)).length;
+    meldungen.push(`Ohne Spalte „${f.label}": bestehende Positionen werden trotzdem gepflegt `
+     +`(so lässt sich z. B. eine reine Preisliste einlesen).`
+     +(neueOhne?` ${neueOhne} Zeile(n) sind noch nicht im Lager und werden ausgelassen – `
+       +`eine neue Position ohne „${f.label}" wäre eine Zeile ohne Namen.`:""));
+    return;
+   }
+   meldungen.push(`Das Pflichtfeld „${f.label}" ist keiner Spalte zugeordnet.`);
   });
   if(!daten.length)meldungen.push("Die Datei enthält keine Datenzeilen.");
   // Leere Pflichtwerte je Zeile
   cfg.felder.filter(f=>f.pflicht&&zuordnung[f.key]!==undefined).forEach(f=>{
-   const leer=daten.filter(z=>String(wert(z,f)).trim()==="").length;
-   if(leer)meldungen.push(`${leer} Zeile(n) haben kein „${f.label}" – sie werden nicht importiert.`);
+   const leerZeilen=daten.filter(z=>String(wert(z,f)).trim()==="");
+   if(!leerZeilen.length)return;
+   // v3.245: Eine leere Zelle in einem Feld, das nur fuer NEUE Pflicht ist,
+   // laesst eine vorhandene Position weiterhin pflegen. "werden nicht
+   // importiert" waere hier falsch - und wer das liest, sucht einen Fehler,
+   // den es nicht gibt.
+   if(nurNeuPflicht(f)){
+    const weg=leerZeilen.filter(z=>!schonDa(z)).length;
+    const bleibt=leerZeilen.length-weg;
+    meldungen.push(`${leerZeilen.length} Zeile(n) haben kein „${f.label}"`
+     +(bleibt?` – ${bleibt} davon sind schon im Lager und werden trotzdem gepflegt`:"")
+     +(weg?`; ${weg} sind neu und werden ausgelassen`:"")+`.`);
+    return;
+   }
+   meldungen.push(`${leerZeilen.length} Zeile(n) haben kein „${f.label}" – sie werden nicht importiert.`);
   });
   // Eine Zahlenspalte, in der Text steht ("Fr. 7.90"), wird still zu 0.00 -
   // das faellt sonst erst auf, wenn jemand nach dem Preis sucht. Ein echtes
@@ -361,9 +395,45 @@ die Vorschau weist darauf hin.`:""}</div>`;
   });
   return meldungen;
  }
+ // v3.245: Pflicht gilt fuer NEUE Zeilen - nicht fuer die Pflege einer
+ // bestehenden.
+ //
+ // WARUM: Eine Preisliste vom Haendler hat zwei Spalten, Artikelnummer und
+ // Preis. Keine Bezeichnung. Bisher war "Bezeichnung" unbedingt Pflicht,
+ // also waren NULL Zeilen verwendbar und der Import tat nichts - fuer die
+ // eine Datei, die mit Sicherheit noch kommt (0 von 439 Artikeln haben einen
+ // Preis, gemessen 01.10.2026). Eine Bezeichnung braucht aber nur, wer einen
+ // Artikel ANLEGT; wer einen vorhandenen pflegt, hat sie schon in der
+ // Datenbank, und ein nicht zugeordnetes Feld wird ohnehin nicht geleert
+ // (zugeordneteFelder).
+ //
+ // cfg.pflichtNurNeu ist freiwillig: ohne die Angabe verhaelt sich jeder
+ // vorhandene Aufrufer genau wie vorher.
+ function nurNeuPflicht(f){
+  return !!(cfg.pflichtNurNeu&&cfg.pflichtNurNeu.indexOf(f.key)>=0);
+ }
+ function schluesselWert(z){
+  const f=cfg.felder.filter(x=>x.key===cfg.schluessel)[0];
+  return f?String(wert(z,f)).trim():"";
+ }
+ // Fehlt bei dieser Zeile ein Pflichtfeld, das nur fuer Neue Pflicht ist?
+ function nurPflegbar(z){
+  const weich=cfg.felder.filter(f=>f.pflicht&&nurNeuPflicht(f));
+  return weich.some(f=>zuordnung[f.key]===undefined||String(wert(z,f)).trim()==="");
+ }
+ function schonDa(z){
+  const bestand=(typeof cfg.bestand==="function")?(cfg.bestand()||{}):{};
+  return !!bestand[schluesselWert(z)];
+ }
  function verwendbar(daten){
-  return daten.filter(z=>cfg.felder.filter(f=>f.pflicht)
-    .every(f=>zuordnung[f.key]!==undefined&&String(wert(z,f)).trim()!==""));
+  return daten.filter(z=>{
+   // Die harten Pflichtfelder - ohne die geht nichts, auch keine Pflege.
+   const hart=cfg.felder.filter(f=>f.pflicht&&!nurNeuPflicht(f));
+   if(!hart.every(f=>zuordnung[f.key]!==undefined&&String(wert(z,f)).trim()!==""))return false;
+   if(!nurPflegbar(z))return true;
+   // Sonst nur, wenn die Position schon da ist: dann ist es Pflege.
+   return schonDa(z);
+  });
  }
  function zeichneVorschau(){
   const daten=datenZeilen();

@@ -2430,6 +2430,11 @@ if(typeof initExcelImport==="function")initExcelImport({
  tableName:"lieferanten_artikel",
  schluessel:"artikelnr",
  onConflict:"company_id,lieferant,artikelnr",
+ // v3.245: Eine Preisliste vom Haendler hat Artikelnummer und Preis, keine
+ // Bezeichnung. Fuer einen NEUEN Artikel bleibt sie Pflicht - eine Zeile
+ // ohne Namen ist keine Position. Fuer einen vorhandenen nicht: die
+ // Bezeichnung steht schon da und wird nicht angefasst.
+ pflichtNurNeu:["bezeichnung"],
  festwerte:()=>lfExcelFestwerte(),
  festwerteFehler:"Bitte oben eintragen, von welchem Lieferanten die Datei ist.\n\n"
   +"Artikelnummern sind nur je Lieferant eindeutig – ohne diese Angabe wäre "
