@@ -2216,6 +2216,98 @@ const KATALOG=`()=>{
    .filter(i=>!document.getElementById(i)));
  p(z.length===0,"X25 alle Bedienteile stehen im Dokument",z);
 
+ // ---- Z  Die Einkaufsliste gehoert zu EINEM Lieferanten (v3.246) --------
+ //
+ // Eine Unstimmigkeit in meinem eigenen v3.241: der Filter wirkte in
+ // Artikelliste, Zuordnen und Inventur - nicht in der Einkaufsliste. Dabei
+ // geht eine Bestellung an GENAU EINEN Haendler, und die Summe darunter
+ // rechnete quer ueber alle: eine Zahl, die zu keiner Bestellung gehoert.
+ console.log("\nZ · Die Einkaufsliste gehoert zu EINEM Lieferanten");
+ const ZWEIK=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"B1",bezeichnung:"Dachrinne 333",gruppe:"Dachrinnen",
+    mindestbestand:5,vpe:1,preis:20},
+   {id:2,lieferant:"B-Team",artikelnr:"B2",bezeichnung:"Rinnenwinkel 333",gruppe:"Rinnenwinkel",
+    mindestbestand:4,vpe:1,preis:10},
+   {id:3,lieferant:"Gyso",artikelnr:"G1",bezeichnung:"Dichtungsmasse 310ml",gruppe:"Dichtstoffe",
+    mindestbestand:3,vpe:1,preis:12}];
+  lfBewegungen=[]; lfEinkauf=[];
+  lfLieferant=""; lfSuche=""; lfVorschlagCache={};
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const alle=lfEinkaufsliste().map(a=>a.artikelnr);
+  lfLieferant="B-Team";
+  return {alle, gefiltert:lfEinkaufAnzeige().map(a=>a.artikelnr),
+          verdeckt:lfEinkaufVerdeckt(),
+          wertAlle:(lfLieferant="",lfEinkaufsWert()),
+          wertB:(lfLieferant="B-Team",lfEinkaufsWert())};
+ },{k:KATALOG,z:ZWEIK});
+ p(z.alle.sort().join(",")==="B1,B2,G1",
+   "Z1 lfEinkaufsliste() bleibt die EINE Wahrheit darueber, was ueberhaupt fehlt - alle drei",z.alle);
+ p(z.gefiltert.sort().join(",")==="B1,B2"&&z.verdeckt===1,
+   "Z2 angezeigt wird nur der gewaehlte Lieferant - und was ausgeblendet ist, wird GEZAEHLT",z);
+ p(z.wertAlle.summe===20*5+10*4+12*3&&z.wertB.summe===20*5+10*4,
+   "Z3 DIE SUMME gehoert zum gefilterten Teil - quer ueber zwei Haendler waere sie eine Zahl, die zu keiner Bestellung gehoert",
+   {alle:z.wertAlle.summe,b:z.wertB.summe});
+ // Der verschickte Text ist die Bestellung - er traegt den Haendler im Titel
+ // und enthaelt den anderen nicht.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const ohne=lfEinkaufsText();
+  lfLieferant="B-Team";
+  return {ohne, mit:lfEinkaufsText()};
+ },{k:KATALOG,z:ZWEIK});
+ p(/Einkaufsliste B-Team vom/.test(z.mit)&&!/Gyso/.test(z.mit)&&/Dichtungsmasse/.test(z.ohne),
+   "Z4 der verschickte Text traegt den Haendler im Titel und enthaelt den anderen NICHT - er ist die Bestellung",z.mit.slice(0,120));
+ p(/^Einkaufsliste vom/.test(z.ohne)&&/Gyso/.test(z.ohne)&&/B-Team/.test(z.ohne),
+   "Z5 GEGENPROBE: ohne Wahl bleibt es die Uebersicht ueber alle, nach Lieferant gruppiert wie bisher",z.ohne.slice(0,120));
+ // Der Kasten sagt, was er nicht zeigt - und bei leerer Auswahl, WELCHER der
+ // drei Gruende zutrifft.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfLieferant="B-Team";
+  lfEinkaufZeichnen();
+  const mit=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  // Jetzt ein Lieferant, bei dem nichts fehlt: Gyso deckt seinen Bedarf.
+  lfBewegungen=[{id:1,artikel_id:3,art:"zugang",menge:10}];
+  lfLieferant="Gyso";
+  lfEinkaufZeichnen();
+  const leer=$("liefEinkaufListe").textContent.replace(/\s+/g," ");
+  return {mit, leer};
+ },{k:KATALOG,z:ZWEIK});
+ p(/anderen Lieferanten/.test(z.mit)&&/1 Position/.test(z.mit),
+   "Z6 was der Filter ausblendet, steht da - eine Bestellung, die niemand aufgibt, weil sie hinter einem Filter lag, ist der teure Fall",z.mit.slice(-200));
+ p(/Bei Gyso ist nichts zu bestellen/.test(z.leer)&&/anderen Lieferanten/.test(z.leer),
+   "Z7 und bei leerer Auswahl steht, dass es an DIESEM Lieferanten liegt - nicht das irrefuehrende 'nichts zu bestellen'",z.leer.slice(0,200));
+ // DIE WICHTIGSTE GEGENPROBE: der Knopf-Zaehler filtert NICHT mit. Er ist
+ // das Signal "es liegt Arbeit" und steht ausserhalb der gefilterten
+ // Ansicht; ein Zaehler, der still einen Haendler unterschlaegt, waere die
+ // gefaehrliche Richtung.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfLieferant="B-Team";
+  lfZeichnen();
+  return $("liefEinkaufKnopf").textContent;
+ },{k:KATALOG,z:ZWEIK});
+ p(/\(3\)/.test(z),
+   "Z8 GEGENPROBE: der Knopf zaehlt WEITERHIN alle drei - er ist das Signal 'es liegt Arbeit', nicht die Bestellung",z);
+ p(await page.evaluate(()=>["liefEinkaufLieferant","liefEinkaufLieferantBox"]
+   .filter(i=>!document.getElementById(i))).then(x=>x.length===0),
+   "Z9 die Bedienteile stehen im Dokument",null);
+ // Und bei nur EINEM Lieferanten bleibt die Wahl weg - wie in den anderen
+ // drei Ansichten.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfArtikel=lfArtikel.filter(a=>a.lieferant==="B-Team");
+  lfLieferant="Gyso";                 // Rest aus einer frueheren Wahl
+  lfEinkaufZeichnen();
+  return {versteckt:$("liefEinkaufLieferantBox").hidden, filter:lfLieferant,
+          liste:lfEinkaufAnzeige().length};
+ },{k:KATALOG,z:ZWEIK});
+ p(z.versteckt===true&&z.filter===""&&z.liste===2,
+   "Z10 bei nur einem Lieferanten bleibt die Wahl weg - und ein Rest aus einer frueheren Wahl wird zurueckgesetzt, sonst waere die Liste leer",z);
+
  // ---- Y  Welche Position fehlt? (v3.244) --------------------------------
  //
  // v3.243 sagt, WAS nicht geht. Y prueft die Antwort auf "und was muss ich
