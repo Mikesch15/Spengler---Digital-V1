@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.244.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.245.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1687,6 +1687,14 @@ Preis steht auch, von wann er ist \u2013 ist er \u00e4lter als ein Jahr, sagt di
 Einzelne Preise tr\u00e4gst du am Artikel ein; die <b>Preisliste des H\u00e4ndlers</b>
 kommt als Excel-Datei \u00fcber denselben Import wie alles andere (Spalte
 \u201ePreis\u201c).</div>
+<div class="hin"><b>Eine Preisliste darf nur zwei Spalten haben</b> (ab 3.245):
+<b>Artikel-Nr.</b> und <b>Preis</b>. Die <b>Bezeichnung</b> braucht nur eine
+<i>neue</i> Position \u2013 wer einen vorhandenen Artikel pflegt, hat sie schon in
+der App, und eine Spalte, die in der Datei fehlt, wird ohnehin nie geleert. Eine
+Nummer, die das Lager noch nicht kennt, wird dabei <b>ausgelassen</b> und
+gez\u00e4hlt: ein neuer Artikel ohne Bezeichnung w\u00e4re eine Zeile ohne Namen.
+Genauso l\u00e4uft eine Datei nur mit <b>Mindestbestand</b> oder nur mit
+<b>Barcodes</b> durch.</div>
 <p><b>\U0001f517 Zuordnen \u2013 die Br\u00fccke zur Regieliste.</b> Jeder Lieferantenartikel
 kann auf eine <b>Regie-Position</b> zeigen: die Zeile eures Katalogs, mit der
 er im <b>Regierapport</b> verrechnet wird \u2013 eure EDV-Nr., euer Preis.</p>

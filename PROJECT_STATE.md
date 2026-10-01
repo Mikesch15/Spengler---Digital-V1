@@ -3,9 +3,47 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.244`
+- Aktueller Entwicklungsstand: `v3.245`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.245: Eine Pflegedatei darf eine Spalte weniger haben
+
+**Gefunden, bevor die Datei da war.** Eine Preisliste vom Händler hat zwei
+Spalten: Artikel-Nr. und Preis. Keine Bezeichnung. Die war in
+`initExcelImport` unbedingt `pflicht:true`, und `verwendbar()` verwirft jede
+Zeile, bei der ein Pflichtfeld fehlt — sein Upload hätte **0 Zeilen**
+importiert, mit „Das Pflichtfeld „Bezeichnung" ist keiner Spalte zugeordnet".
+Gemessen (01.10.2026): 0 von 439 Artikeln haben einen Preis, 427 haben einen
+Barcode. Der Preis ist die eine Lücke, die noch kommt.
+
+Die Verwechslung lag in meinem eigenen Code: eine Bezeichnung braucht, wer
+einen Artikel **anlegt**. Wer einen vorhandenen **pflegt**, hat sie in der
+Datenbank — und `zugeordneteFelder()` nimmt ein nicht zugeordnetes Feld
+ohnehin nicht in den Datensatz, es wird also nie geleert. Dass `bezeichnung`
+`NOT NULL` ist, sagt beides: für neue Zeilen bleibt sie Pflicht, sonst bricht
+der **ganze** Upsert ab, nicht nur die Zeile.
+
+- `cfg.pflichtNurNeu:[keys]` — **freiwillig**, wie `festwerte`/`onConflict` in
+  v3.231. Ohne die Angabe verhält sich jeder vorhandene Aufrufer genau wie
+  vorher (F11: der Materialkatalog verlangt den Namen weiterhin unbedingt).
+- js/82 setzt `pflichtNurNeu:["bezeichnung"]` (H6).
+- Die Meldung ist keine Fehlermeldung mehr, sondern eine Auskunft: „Ohne
+  Spalte „Bezeichnung": bestehende Positionen werden trotzdem gepflegt … N
+  Zeile(n) sind noch nicht im Lager und werden ausgelassen" (F3/F4).
+- Auch die Zeilen-Meldung stimmt jetzt: eine leere Zelle in einem solchen Feld
+  lässt eine **vorhandene** Position weiter pflegen — „werden nicht
+  importiert" wäre falsch gewesen, und wer das liest, sucht einen Fehler, den
+  es nicht gibt.
+- Der Aufbau-Hinweis sagt es ebenfalls („nur für neue" statt „Pflicht") samt
+  dem Hinweis auf die Preisliste (H7).
+- Nebenbei frei mit: eine Datei nur mit **Mindestbestand** oder nur mit
+  **Barcodes** läuft genauso durch.
+
+**Eine zweite Vermutung durch Messen verworfen, statt sie zu bauen:**
+`preis_stand` wird schon von `lieferanten_artikel_normalisieren` gesetzt (seit
+v3.233) — und zwar nur bei echter Preisänderung, sonst würde ein Import mit
+400 unveränderten Zeilen 400 alte Preise auf heute datieren.
 
 ### v3.244: „Was fehlt" wird eine Arbeitsliste
 

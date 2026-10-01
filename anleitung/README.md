@@ -1,7 +1,7 @@
 # Anleitung als PDF
 
-`Spengler-DIGITAL-Anleitung-v3.244.pdf` – Bedienungsanleitung der App,
-121 Seiten, mit Bildschirmfotos aus der App selbst.
+`Spengler-DIGITAL-Anleitung-v3.245.pdf` – Bedienungsanleitung der App,
+122 Seiten, mit Bildschirmfotos aus der App selbst.
 
 ## Wie sie entsteht
 
@@ -27,7 +27,7 @@ Dann im Wurzelverzeichnis des Repos:
 
     SP=<Ordner mit node_modules> \
     HTML=$PWD/anleitung/anleitung.html \
-    PDF=anleitung/Spengler-DIGITAL-Anleitung-v3.244.pdf \
+    PDF=anleitung/Spengler-DIGITAL-Anleitung-v3.245.pdf \
     node anleitung/pdf.js
 
 ## Die Dateien
