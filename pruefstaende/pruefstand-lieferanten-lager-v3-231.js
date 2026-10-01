@@ -2065,23 +2065,57 @@ const KATALOG=`()=>{
  p(z.liste.length===2&&z.liste.every(x=>x.gruppe==="Dachrinnen")
    &&z.liste.map(x=>x.groesse).sort((a,b)=>a-b).join(",")==="200,400",
    "X14 die Fehlliste fasst nach Gruppe UND Groesse zusammen - 115 Einzelzeilen waeren keine Auskunft",z.liste);
- p(/Grösse 400/.test(z.text)&&/Grösse 200/.test(z.text)&&/vorhanden: 333/.test(z.text)
-   &&/Entscheidung/.test(z.text),
+ // v3.244 hat den Text zu einer Arbeitsliste gemacht (Abschnitt Y). Die
+ // Erwartung hier ist deshalb auf den JETZIGEN Wortlaut umgestellt - die
+ // Aussage bleibt dieselbe: was fehlt, was vorhanden ist, wessen
+ // Entscheidung es ist.
+ p(/Grösse 400/.test(z.text)&&/Grösse 200/.test(z.text)&&/vorhanden in: 333/.test(z.text)
+   &&/eure Entscheidung/.test(z.text),
    "X15 der Text sagt, was fehlt, was vorhanden ist - und dass die Regie-Liste zu erweitern SEINE Entscheidung ist",z.text.slice(0,400));
+ // GEGENPROBE zum alten Wortlaut: die blosse Aufzaehlung "N Artikel, Grösse
+ // X" ohne Name und Einheit darf nicht zurueckkommen - sie war ein Befund,
+ // keine Arbeitsliste.
+ p(!/^\s+\d+ Artikel\s/m.test(z.text)&&/Einheit m1/.test(z.text),
+   "X15a GEGENPROBE: und zwar je POSITION mit Name und Einheit, nicht je Artikel",null);
  // Gegenprobe: ist alles zuordenbar, steht der Kasten nicht da.
- z=await page.evaluate((o)=>{
-  eval("("+o.k+")()");
-  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D333",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",
-   gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333}];
+ //
+ // Der zweite Artikel ist NEU (v3.244) und noetig: er ist zugeordnet und gibt
+ // der Gruppe damit ein Muster. Ohne ihn waere in der Gruppe gar nichts
+ // zugeordnet - und dann ist "zuordenbar" eben nicht wahr, weil der
+ // Vorschlag aus einem anderen Produktbereich stammen koennte. Genau das
+ // prueft X16a.
+ const EINS=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"D333",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333},
+   {id:2,lieferant:"B-Team",artikelnr:"D333b",bezeichnung:"Dachrinnen 333x0.8 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333,material_id:7002}];
   lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
   lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfLieferant="";
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.e+")()");
   lfZuordnenZeichnen();
   return {befund:$("liefZuordnenBefund").innerHTML,
           versteckt:$("liefZuordnenBefund").hidden,
           fehlt:lfFehlendeRegie().length};
- },{k:KATALOG,g:GROESSE});
- p(z.versteckt===false&&/zur Wahl/.test(z.befund)&&z.fehlt===0,
+ },{k:KATALOG,e:EINS});
+ p(z.versteckt===false&&/zur Wahl/.test(z.befund)&&z.fehlt===0
+   &&!/noch nichts zugeordnet/.test(z.befund),
    "X16 GEGENPROBE: ist jeder offene Artikel zuordenbar, sagt die App genau das - und die Fehlliste ist leer",z);
+ // Und ohne das Muster in der Gruppe sagt sie das Gegenteil - derselbe
+ // Artikel, dieselbe Groesse, nur ohne Beleg in der Gruppe.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.e+")()");
+  lfArtikel=[lfArtikel[0]];
+  lfVorschlagCache={};
+  lfZuordnenZeichnen();
+  return {befund:$("liefZuordnenBefund").textContent.replace(/\s+/g," "),
+          fehlt:lfFehlendeRegie().length,
+          ohne:lfOhneMuster(lfArtikelZuId(1))};
+ },{k:KATALOG,e:EINS});
+ p(z.ohne===true&&z.fehlt===1&&/noch nichts zugeordnet/.test(z.befund),
+   "X16a GEGENPROBE DAZU: ohne jede Zuordnung in der Gruppe sagt die App, dass der Vorschlag aus einem anderen Produktbereich kommt",z);
  // DER FALL, DER DIE REGEL FAST FALSCH GEMACHT HAETTE.
  //
  // Gemessen an den echten Daten: bei "Rinnenstutzen 100 mm 20.160.330.100"
@@ -2173,6 +2207,128 @@ const KATALOG=`()=>{
  z=await page.evaluate(()=>["liefZuordnenBefund","liefZuordnenFehlend","liefZuordnenFehlendText"]
    .filter(i=>!document.getElementById(i)));
  p(z.length===0,"X25 alle Bedienteile stehen im Dokument",z);
+
+ // ---- Y  Welche Position fehlt? (v3.244) --------------------------------
+ //
+ // v3.243 sagt, WAS nicht geht. Y prueft die Antwort auf "und was muss ich
+ // tun?" - und die steht in seiner eigenen Liste. Gemessen am 01.10.2026:
+ // sie benutzt ZWEI Stile, je Warenart verschieden.
+ //   je Werkstoff:     201.01/02 Dachrinnen halbrund Kupfer, 201.11/12
+ //                     Titanzink, 201.13/14 Chromnickelstahl
+ //   alle Materialien: 203.41/42 Einhaengestutzen, 203.21/22 Rinnenboden
+ // Beim Blech ist der Werkstoff der Preis, beim Formteil nicht. Welcher
+ // Stil gilt, darf deshalb nicht geraten werden.
+ console.log("\nY · Welche Position fehlt - nach dem Muster seiner eigenen Liste");
+ const MUSTER=`()=>{
+  settings.materials=[
+   ["201.01","Dachrinnen halbrund Kupfer","250","m1",18],
+   ["201.02","Dachrinnen halbrund Kupfer","330","m1",22],
+   ["201.11","Dachrinnen halbrund Titanzink","250","m1",16],
+   ["201.12","Dachrinnen halbrund Titanzink","330","m1",20],
+   ["203.41","Einhängestutzen gerade, alle Materialien","250","St",12],
+   ["203.42","Einhängestutzen gerade, alle Materialien","330","St",14],
+   ["203.21","Rinnenboden gerade, alle Materialien","250","St",9]];
+  materialIds=[7001,7002,7011,7012,7041,7042,7021];
+  lfArtikel=[
+   // Dachrinnen: je Werkstoff. Kupfer 250 ist zugeordnet, Kupfer 400 offen.
+   {id:1,artikelnr:"K250",bezeichnung:"Dachrinnen 250x0.6 mm Kupfer",gruppe:"Dachrinnen",
+    material:"Kupfer",zuschnitt_mm:250,material_id:7001,lieferant:"B-Team"},
+   {id:2,artikelnr:"K400",bezeichnung:"Dachrinnen 400x0.6 mm Kupfer",gruppe:"Dachrinnen",
+    material:"Kupfer",zuschnitt_mm:400,lieferant:"B-Team"},
+   // Titanzink 250 zugeordnet, Titanzink 400 offen - MUSS das Titanzink-
+   // Muster treffen, nicht das Kupfer-Muster.
+   {id:3,artikelnr:"T250",bezeichnung:"Dachrinnen 250x0.7 mm Titanzink",gruppe:"Dachrinnen",
+    material:"Titanzink",zuschnitt_mm:250,material_id:7011,lieferant:"B-Team"},
+   {id:4,artikelnr:"T400",bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",gruppe:"Dachrinnen",
+    material:"Titanzink",zuschnitt_mm:400,lieferant:"B-Team"},
+   // Rinnenstutzen: alle Materialien. Zwei Werkstoffe, EIN Muster.
+   {id:5,artikelnr:"S250",bezeichnung:"Rinnenstutzen 250 Kupfer",gruppe:"Rinnenstutzen",
+    material:"Kupfer",zuschnitt_mm:250,material_id:7041,lieferant:"B-Team"},
+   {id:6,artikelnr:"S400a",bezeichnung:"Rinnenstutzen 400 Kupfer",gruppe:"Rinnenstutzen",
+    material:"Kupfer",zuschnitt_mm:400,lieferant:"B-Team"},
+   {id:7,artikelnr:"S400b",bezeichnung:"Rinnenstutzen 400 CrNi-Stahl",gruppe:"Rinnenstutzen",
+    material:"CrNi-Stahl",zuschnitt_mm:400,lieferant:"B-Team"},
+   // Kugelboeden: in seiner Liste gar nicht vorhanden - "Rinnenboden
+   // gerade" ist eine andere Form.
+   {id:8,artikelnr:"KB250",bezeichnung:"Rinnenkugelboden 250 Kupfer",gruppe:"Rinnenkugelböden",
+    material:"Kupfer",zuschnitt_mm:250,lieferant:"B-Team"}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfLieferant="";
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.m+")()");
+  return {
+   kupfer:lfMusterFuer(lfArtikelZuId(2)),
+   titan:lfMusterFuer(lfArtikelZuId(4)),
+   stutzenKupfer:lfMusterFuer(lfArtikelZuId(6)),
+   stutzenCrNi:lfMusterFuer(lfArtikelZuId(7)),
+   kugel:lfMusterFuer(lfArtikelZuId(8))
+  };
+ },{m:MUSTER});
+ p(z.kupfer&&z.kupfer.stil==="werkstoff"&&z.kupfer.name==="Dachrinnen halbrund Kupfer"
+   &&z.kupfer.dims.join(",")==="250,330",
+   "Y1 beim Blech trifft das Muster den WERKSTOFF des Artikels - 'Dachrinnen halbrund Kupfer', vorhanden in 250 und 330",z.kupfer);
+ p(z.titan&&z.titan.name==="Dachrinnen halbrund Titanzink",
+   "Y2 GEGENPROBE: die 400er Titanzink-Rinne trifft das Titanzink-Muster, nicht das haeufigere Kupfer-Muster",z.titan);
+ p(z.stutzenKupfer&&z.stutzenKupfer.stil==="alle"
+   &&z.stutzenCrNi&&z.stutzenCrNi.name==="Einhängestutzen gerade, alle Materialien",
+   "Y3 beim Formteil gilt EIN Muster fuer alle Werkstoffe - auch fuer einen Werkstoff, der dort noch nie zugeordnet war",z);
+ p(z.kugel===null,
+   "Y4 fuer eine Warenart, die seine Liste gar nicht fuehrt, gibt es KEIN Muster - 'Rinnenboden gerade' ist eine andere Form",z.kugel);
+ // Zusammengefasst wird nach der POSITION, nicht nach dem Artikel.
+ z=await page.evaluate((o)=>{
+  eval("("+o.m+")()");
+  return lfFehlendeRegie();
+ },{m:MUSTER});
+ p(z.length===4,
+   "Y5 vier offene Artikel in drei Gruppen ergeben VIER Positionen - eine Zeile ist eine Position, nicht ein Artikel",z.map(x=>x.name||x.gruppe));
+ p(z.filter(x=>x.art==="muster").length===3&&z.filter(x=>x.art==="neu").length===1,
+   "Y6 getrennt nach 'gleiche Position in anderer Groesse' und 'Warenart fehlt ganz' - das bedeutet Verschiedenes",z.map(x=>x.art));
+ const stutzen=z.filter(x=>x.name==="Einhängestutzen gerade, alle Materialien")[0];
+ p(stutzen&&stutzen.anzahl===2&&stutzen.einheit==="St"&&stutzen.vorhanden.join(",")==="250,330",
+   "Y7 die 'alle Materialien'-Position deckt beide Werkstoffe in EINER Zeile - und Einheit und vorhandene Groessen stehen dran",stutzen);
+ p(z.filter(x=>x.art==="muster").every(x=>x.beispiele.length>=1&&x.beispiele.length<=2),
+   "Y8 je Zeile ein bis zwei Beispielartikel - sie sagen, was gemeint ist, wo die erkannte Groesse danebenliegt",z.map(x=>x.beispiele));
+ const neu=z.filter(x=>x.art==="neu")[0];
+ p(neu&&neu.gruppe==="Rinnenkugelböden"&&neu.nahe.length>=1,
+   "Y9 bei der fehlenden Warenart nennt die App die aehnlichste vorhandene Position zur Orientierung",neu);
+ // Der Text ist eine Arbeitsliste - und schlaegt WEDER EDV-Nr. NOCH Preis vor.
+ z=await page.evaluate((o)=>{
+  eval("("+o.m+")()");
+  return lfFehlendeRegieText();
+ },{m:MUSTER});
+ p(/A\) VORHANDENE POSITION IN ANDERER GRÖSSE  \(3 Positionen\)/.test(z)
+   &&/B\) IN DIESER GRUPPE IST NOCH NICHTS ZUGEORDNET  \(1 Gruppen\/Grössen\)/.test(z),
+   "Y10 der Text ist in die beiden Teile geteilt, mit Anzahl",z.slice(0,200));
+ p(/Einheit St/.test(z)&&/Einheit m1/.test(z),
+   "Y11 die Einheit kommt aus dem Muster mit - sie ist keine Entscheidung mehr",null);
+ p(!/EDV-Nr\.\s*2\d\d\.\d\d/.test(z)&&!/Preis\s+CHF/.test(z)&&/eure Entscheidung/.test(z),
+   "Y12 EDV-Nr. und Preis schlaegt die App NICHT vor - eine geratene Nummer landet in seinem Nummernsystem, ein geratener Preis auf einer Rechnung",null);
+ p(/Lagerverwaltung/.test(z)&&/legt dort NICHTS/.test(z),
+   "Y13 und es steht da, wo angelegt wird - und dass die App es nicht selbst tut",null);
+ // Der Knopf ZEIGT die Liste, nicht nur kopieren.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.m+")()");
+  await lfFehlendeRegieKopieren();
+  const f=$("liefZuordnenFehlendText");
+  return {versteckt:f.hidden, laenge:f.value.length, meldung:$("liefZuordnenMeldung").textContent};
+ },{m:MUSTER});
+ p(z.versteckt===false&&z.laenge>200,
+   "Y14 der Knopf ZEIGT die Arbeitsliste im Dialog - auf dem Handy ist Lesen wichtiger als Einfuegen",z);
+ p(/4 Position/.test(z.meldung),
+   "Y15 und die Meldung nennt die Anzahl",z.meldung);
+ // Und der Kopf nennt sie auch.
+ z=await page.evaluate((o)=>{
+  eval("("+o.m+")()");
+  lfZuordnenZeichnen();
+  return $("liefZuordnenBefund").textContent.replace(/\s+/g," ");
+ },{m:MUSTER});
+ p(/4 Regie-Position/.test(z)&&/Lagerverwaltung/.test(z),
+   "Y16 der Kopf sagt, wie viele Positionen es waeren - das ist die Zahl, die er braucht",z);
+ // UND DIE ZUSAGE BLEIBT: js/82 schreibt NICHTS in die Regie-Liste.
+ z=lies("js/82-lieferanten-lager.js");
+ p(!/from\("materials"\)/.test(z)&&!/katalogPositionAnlegen/.test(z),
+   "Y17 DIE ZUSAGE: js/82 liest die Regie-Liste, legt dort aber nichts an - weder direkt noch ueber js/59",null);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
