@@ -892,6 +892,23 @@ function lfEinkaufsliste(){
  return lfArtikel.filter(a=>!a.archiviert&&lfBedarf(a)>0).sort((x,y)=>
   t(x.lieferant,y.lieferant)||t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
 }
+// v3.246: Was ANGEZEIGT und verschickt wird. lfEinkaufsliste() bleibt die
+// eine Wahrheit darueber, was ueberhaupt fehlt - gefiltert wird erst an der
+// Ansicht, und zwar mit demselben lfLieferant wie Artikelliste, Zuordnen und
+// Inventur. Vier Ansichten, ein Filter.
+//
+// WARUM es die Einkaufsliste besonders braucht: eine Bestellung geht an
+// GENAU EINEN Haendler. Eine Liste quer ueber zwei Lieferanten ist kein
+// Bestellvorgang, und die Summe darunter waere eine Zahl, die zu keiner
+// Bestellung gehoert.
+function lfEinkaufAnzeige(){
+ return lfEinkaufsliste().filter(a=>lfLieferantPasst(a));
+}
+// Was der Filter gerade AUSBLENDET. Still verschwinden lassen waere hier der
+// teure Fall: eine Bestellung, die niemand aufgibt.
+function lfEinkaufVerdeckt(){
+ return lfEinkaufsliste().length-lfEinkaufAnzeige().length;
+}
 // Woher eine Zeile kommt - als Text, an einer Stelle. Liste und verschickter
 // Text lesen denselben Satz; zwei Fassungen waeren zwei Wahrheiten darueber,
 // warum etwas bestellt wird.
@@ -913,7 +930,7 @@ function lfZeilenwert(a){
 // sie nicht kennt. Eine Summe, die fehlende Preise als 0 mitnimmt, ist
 // schlimmer als gar keine: sie sieht vollstaendig aus und ist zu klein.
 function lfEinkaufsWert(){
- const liste=lfEinkaufsliste();
+ const liste=lfEinkaufAnzeige();
  let summe=0, mit=0, ohne=0;
  liste.forEach(a=>{
   const w=lfZeilenwert(a);
@@ -922,10 +939,12 @@ function lfEinkaufsWert(){
  return {summe,mit,ohne};
 }
 function lfEinkaufsText(){
- const liste=lfEinkaufsliste();
+ const liste=lfEinkaufAnzeige();
  if(!liste.length)return "";
  const heute=new Date().toLocaleDateString("de-CH");
- const zeilen=["Einkaufsliste vom "+heute,""];
+ // Ist ein Lieferant gewaehlt, steht er im Titel: der Text ist dann die
+ // Bestellung, die verschickt wird, und nicht eine Uebersicht.
+ const zeilen=[(lfLieferant?"Einkaufsliste "+lfLieferant+" vom ":"Einkaufsliste vom ")+heute,""];
  let letzter=null;
  liste.forEach(a=>{
   const l=String(a.lieferant||"Ohne Lieferant");
@@ -948,24 +967,37 @@ function lfEinkaufZeichnen(){
  if(typeof $!=="function")return;
  const box=$("liefEinkaufListe"), feld=$("liefEinkaufText");
  if(!box)return;
- const liste=lfEinkaufsliste();
- const ueberwacht=lfArtikel.filter(a=>lfMindest(a)>0).length;
+ // v3.246: angezeigt wird, was zum gewaehlten Lieferanten gehoert - eine
+ // Bestellung geht an genau einen Haendler.
+ lfLieferantWahlZeichnen("liefEinkaufLieferant","liefEinkaufLieferantBox");
+ const liste=lfEinkaufAnzeige();
+ const verdeckt=lfEinkaufVerdeckt();
+ const ueberwacht=lfArtikel.filter(a=>lfMindest(a)>0&&lfLieferantPasst(a)).length;
  if(feld)feld.value=lfEinkaufsText();
  const knopf=$("liefEinkaufKopieren");
  if(knopf)knopf.disabled=!liste.length;
+ // Was der Filter ausblendet, wird GENANNT. Eine Bestellung, die niemand
+ // aufgibt, weil sie hinter einem Filter lag, ist der teure Fall.
+ const andere=verdeckt
+  ? `<div class="small" style="color:var(--muted);margin-top:8px">Bei <b>anderen Lieferanten</b>
+     fehlen zusätzlich <b>${verdeckt}</b> Position(en) – dafür oben den Lieferanten wechseln.
+     Jede Bestellung geht an einen Händler.</div>`
+  : "";
  if(!liste.length){
-  // Eine leere Einkaufsliste bedeutet zweierlei, und die beiden zu
-  // verwechseln waere teuer: "nichts fehlt" oder "es wird nichts
-  // ueberwacht". Also wird gesagt, welches von beiden zutrifft.
-  box.innerHTML=ueberwacht
-   ? `<div class="info">Nichts zu bestellen – von allen <b>${ueberwacht}</b>
-      überwachten Artikeln ist genug da. Einzelnes lässt sich jederzeit von Hand
-      dazusetzen: im Lager den Artikel antippen, <b>🛒 Auf die Einkaufsliste</b>.</div>`
-   : `<div class="info">Für noch keinen Artikel ist ein <b>Mindestbestand</b>
-      hinterlegt, und von Hand ist auch nichts gesetzt – deshalb kann die Liste
-      nichts melden. Im Lager einen Artikel antippen: dort trägst du einen
-      <b>Mindestbestand</b> ein (dann meldet er sich selbst) oder setzt ihn mit
-      <b>🛒 Auf die Einkaufsliste</b> einmalig dazu.</div>`;
+  // Eine leere Einkaufsliste bedeutet mehreres, und die zu verwechseln waere
+  // teuer: "nichts fehlt", "es wird nichts ueberwacht" - oder, seit v3.246,
+  // "bei DIESEM Lieferanten fehlt nichts".
+  box.innerHTML=(verdeckt
+   ? `<div class="info">Bei <b>${esc(lfLieferant)}</b> ist nichts zu bestellen.</div>`
+   : (ueberwacht
+    ? `<div class="info">Nichts zu bestellen – von allen <b>${ueberwacht}</b>
+       überwachten Artikeln ist genug da. Einzelnes lässt sich jederzeit von Hand
+       dazusetzen: im Lager den Artikel antippen, <b>🛒 Auf die Einkaufsliste</b>.</div>`
+    : `<div class="info">Für noch keinen Artikel ist ein <b>Mindestbestand</b>
+       hinterlegt, und von Hand ist auch nichts gesetzt – deshalb kann die Liste
+       nichts melden. Im Lager einen Artikel antippen: dort trägst du einen
+       <b>Mindestbestand</b> ein (dann meldet er sich selbst) oder setzt ihn mit
+       <b>🛒 Auf die Einkaufsliste</b> einmalig dazu.</div>`))+andere;
   return;
  }
  let letzter=null, html="";
@@ -1022,7 +1054,7 @@ function lfEinkaufZeichnen(){
    steht hier keine Summe. Preise kommen mit der Preisliste des Händlers als Excel-Datei
    oder lassen sich am Artikel von Hand eintragen.</div>`;
  }
- box.innerHTML=html;
+ box.innerHTML=html+andere;
 }
 function lfEinkaufOeffnen(){
  if(typeof $!=="function")return;
@@ -2533,6 +2565,7 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  lw("liefLieferantWahl",()=>lfZeichnen());
  lw("liefZuordnenLieferant",()=>{ lfZuordnenZeichnen(); lfZeichnen() });
  lw("liefInvLieferant",()=>{ lfInvZeichnen(); lfZeichnen() });
+ lw("liefEinkaufLieferant",()=>{ lfEinkaufZeichnen(); lfZeichnen() });
  const le=$("liefExcelLieferant");
  if(le)le.addEventListener("input",()=>lfLieferantHinweisZeichnen());
 });
