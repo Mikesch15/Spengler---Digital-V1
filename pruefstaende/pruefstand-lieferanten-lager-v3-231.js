@@ -345,6 +345,14 @@ const KATALOG=`()=>{
    "H4 und der Hinweis 'wie muss die Datei aufgebaut sein' nennt die Spalten - erzeugt aus der Feldliste, nicht danebengeschrieben",z.aufbau.slice(0,160));
  p(/Artikel-Nr\./.test(z.aufbau)&&/aktualisiert/.test(z.aufbau),
    "H5 samt der Regel, dass eine bekannte Artikel-Nr. aktualisiert statt verdoppelt wird",z.aufbau.slice(0,200));
+ // v3.245: Eine Preisliste hat keine Bezeichnungsspalte. Dass sie trotzdem
+ // laeuft, prueft der Import-Pruefstand am Verhalten (Abschnitt F dort);
+ // hier wird festgehalten, dass die Angabe am LIEFERANTEN-Import haengt und
+ // nicht etwa im gemeinsamen js/08 fuer alle gesetzt wurde.
+ p(/pflichtNurNeu:\["bezeichnung"\]/.test(quelle),
+   "H6 die Bezeichnung ist nur fuer NEUE Artikel Pflicht - so laeuft eine reine Preisliste durch",null);
+ p(/nur für neue/.test(z.aufbau),
+   "H7 und der Aufbau-Hinweis sagt das, samt dem Hinweis auf die Preisliste",z.aufbau.slice(0,400));
 
  // ---- I  Der leere Barcode (v3.230) -------------------------------------
  // ECHTER FEHLER, so gemeldet: beim Excel-Upload brach der Import ab mit

@@ -256,6 +256,90 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(upb.length===1&&upb[0].daten.every(x=>!("material" in x)),
    "GEGENPROBE: die fehlende Material-Spalte leert nichts",upb.length?upb[0].daten:null);
 
+ // ---- Eine Pflegedatei darf eine Spalte weniger haben (v3.245) ----------
+ //
+ // WARUM: Eine Preisliste vom Haendler hat zwei Spalten - Artikelnummer und
+ // Preis. Keine Bezeichnung. Die war bisher unbedingt Pflicht, also war
+ // KEINE Zeile verwendbar und der Import tat nichts, mit der Meldung "Das
+ // Pflichtfeld Bezeichnung ist keiner Spalte zugeordnet". Genau fuer die
+ // eine Datei, die mit Sicherheit noch kommt: 0 von 439 Artikeln im
+ // Lieferanten-Lager haben einen Preis (gemessen 01.10.2026).
+ //
+ // Eine Bezeichnung braucht, wer einen Artikel ANLEGT. Wer einen vorhandenen
+ // pflegt, hat sie in der Datenbank - und ein nicht zugeordnetes Feld wird
+ // ohnehin nie geleert. Dass bezeichnung dort NOT NULL ist, sagt beides:
+ // fuer neue Zeilen bleibt sie Pflicht, sonst braeche der ganze Upsert ab.
+ console.log("\nF · Eine Pflegedatei darf eine Spalte weniger haben");
+ const LIEF={count:"liefExcelCount",confirm:"liefExcelConfirm",
+   fehler:"liefExcelFehler",table:"liefExcelTable"};
+ async function lagerSetzen(){
+  await page.evaluate(()=>{
+   lfArtikel=[
+    {id:1,lieferant:"B-Team",artikelnr:"409373",bezeichnung:"Dachrinnen 330x0.7 mm Titanzink",
+     gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:330,vpe:5,ean:"111"},
+    {id:2,lieferant:"B-Team",artikelnr:"422640",bezeichnung:"Rinnenseiher 60 mm Kupfer",
+     gruppe:"Rinnenseiher",material:"Kupfer",vpe:1,ean:"222"}];
+   lfBewegungen=[]; lfEinkauf=[];
+   $("liefExcelLieferant").value="B-Team";
+  });
+ }
+ await lagerSetzen();
+ // Die Preisliste: zwei Spalten. Eine Nummer kennt das Lager, eine nicht.
+ await dateiLaden([["Artikel-Nr.","Preis"],
+   ["409373","24.50"],
+   ["422640","11.80"],
+   ["999999","3.20"]],"liefExcelInput");
+ const vp=await vorschau(LIEF);
+ p(/\b0\b[^0-9]*neu/.test(vp.zahl)&&/2[^0-9]*werden geändert/.test(vp.zahl),
+   "F1 die Preisliste ohne Bezeichnungsspalte wird GELESEN: zwei bekannte Artikel werden geaendert",vp.zahl);
+ p(/2 von 3 Zeilen sind vollständig/.test(vp.zahl),
+   "F2 und es steht da, dass 2 von 3 Zeilen verwendbar sind",vp.zahl);
+ // Das Anfuehrungszeichen bewusst als . - der Wortlaut der Meldung soll
+ // nicht an der Typografie haengen.
+ p(/Ohne Spalte .Bezeichnung./.test(vp.hinweis)&&/trotzdem gepflegt/.test(vp.hinweis),
+   "F3 der Hinweis nennt es eine Pflegedatei, nicht einen Fehler",vp.hinweis);
+ p(/1 Zeile\(n\) sind noch nicht im Lager und werden ausgelassen/.test(vp.hinweis),
+   "F4 und sagt, dass die unbekannte Nummer ausgelassen wird - eine neue Position ohne Namen waere eine Zeile ohne Namen",vp.hinweis);
+ p(vp.gesperrt===false,
+   "F5 der Knopf ist nicht gesperrt - die Datei ist brauchbar",vp.gesperrt);
+ // GEGENPROBE zum alten Verhalten: es darf NICHT mehr "Das Pflichtfeld
+ // Bezeichnung ist keiner Spalte zugeordnet" heissen und nicht 0 Zeilen.
+ p(!/Pflichtfeld .Bezeichnung. ist keiner Spalte/.test(vp.hinweis)
+   &&!/0 von 3 Zeilen/.test(vp.zahl),
+   "F6 GEGENPROBE: das alte 'Pflichtfeld nicht zugeordnet' mit null verwendbaren Zeilen ist weg",vp);
+ await page.evaluate(()=>{window.__db.log=[]});
+ dialoge=[];
+ await page.evaluate(()=>$("liefExcelConfirm").click());
+ await page.waitForTimeout(700);
+ const sb3=await schreibungen();
+ const upl=sb3.filter(x=>x.t==="lieferanten_artikel"&&x.op==="upsert");
+ p(upl.length===1&&upl[0].daten.length===2,
+   "F7 geschrieben werden genau die zwei bekannten Artikel",upl.length?upl[0].daten:null);
+ p(upl.length===1&&upl[0].daten.every(x=>!("bezeichnung" in x)),
+   "F8 UND ZWAR OHNE bezeichnung - sonst haette die Pflegedatei die Namen geleert",upl.length?upl[0].daten:null);
+ p(upl.length===1&&upl[0].daten.every(x=>x.lieferant==="B-Team"),
+   "F9 der Lieferant kommt aus dem Feld mit - der Schluessel bleibt vollstaendig",upl.length?upl[0].daten:null);
+ p(upl.length===1&&upl[0].daten.map(x=>String(x.preis)).sort().join(",")==="11.8,24.5",
+   "F10 und die Preise stehen drin",upl.length?upl[0].daten.map(x=>x.preis):null);
+ // GEGENPROBE: beim MATERIALKATALOG (js/08s eigener Import) hat sich nichts
+ // geaendert - dort ist der Name unbedingt Pflicht, und eine Datei ohne ihn
+ // bleibt unbrauchbar. Sonst waere die Regel still ueberall weicher
+ // geworden, auch wo sie gelten soll.
+ await katalogSetzen();
+ await dateiLaden([["EDV-Nr.","Preis"],["101.10","44.00"]]);
+ const vm=await vorschau(MAT);
+ p(/Pflichtfeld .Material. ist keiner Spalte/.test(vm.hinweis)&&/0 von 1 Zeilen/.test(vm.zahl)
+   &&vm.gesperrt===true,
+   "F11 GEGENPROBE: der Materialkatalog verlangt den Namen weiterhin unbedingt - die Regel gilt nur, wo sie gesetzt ist",vm);
+ // Und noch eine: eine Lieferantendatei MIT Bezeichnung legt weiterhin neue
+ // Artikel an - die Aufweichung gilt nur fuer die fehlende Spalte.
+ await lagerSetzen();
+ await dateiLaden([["Artikel-Nr.","Bezeichnung","Preis"],
+   ["888888","Neuer Artikel",'7.50']],"liefExcelInput");
+ const vn=await vorschau(LIEF);
+ p(/\b1\b[^0-9]*neu/.test(vn.zahl)&&/1 von 1 Zeilen sind vollständig/.test(vn.zahl),
+   "F12 GEGENPROBE: mit Bezeichnungsspalte wird ein neuer Artikel weiterhin angelegt",vn.zahl);
+
  p(fehler.length===0,"keine JavaScript-Fehler waehrend des Laufs",fehler.slice(0,3));
  console.log(`\n=== ${ok} ok, ${fail} fehlgeschlagen ===`);
  await b.close(); process.exit(fail?1:0);
