@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.245.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.246.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1769,10 +1769,20 @@ nie eine Warnung aus; ein 60er-Seiher auf \u201ebis 120\u201c ist richtig.</div>
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
 <p><b>Mehrere Lieferanten.</b> Sobald mehr als einer da ist, erscheint oben eine
 <b>Übersicht</b> (je Lieferant: Artikel, zugeordnet, mit Preis, mit Bestand) und
-ein <b>Filter</b>. Der Filter ist <i>einer</i> für alle drei Ansichten –
-Artikelliste, Zuordnen und Inventur: „an welchem Lieferanten arbeite ich
-gerade“ ist eine Frage, nicht drei. Mit nur einem Lieferanten bleiben beide
-weg.</p>
+ein <b>Filter</b>. Der Filter ist <i>einer</i> für alle <b>vier</b> Ansichten –
+Artikelliste, Zuordnen, Inventur und <b>Einkaufsliste</b> (ab 3.246): „an welchem
+Lieferanten arbeite ich gerade“ ist eine Frage, nicht vier. Mit nur einem
+Lieferanten bleiben beide weg.</p>
+<div class="hin"><b>Bei der Einkaufsliste ist das mehr als Übersicht:</b> eine
+Bestellung geht an <b>genau einen</b> Händler. Deshalb gehören auch die
+<b>Summe</b> und der <b>verschickte Text</b> zum gewählten Lieferanten – der Text
+trägt ihn im Titel und enthält den anderen nicht. Eine Summe quer über zwei
+Händler wäre eine Zahl, die zu keiner Bestellung gehört.<br>
+Was der Filter ausblendet, <b>steht da</b>: „Bei anderen Lieferanten fehlen
+zusätzlich 4 Positionen." Und der Zähler am Knopf <b>📋 Einkaufsliste (7)</b>
+zählt weiterhin <i>alle</i> – er ist das Signal „es liegt Arbeit", nicht die
+Bestellung. Eine Bestellung, die niemand aufgibt, weil sie hinter einem Filter
+lag, wäre der teure Fall.</div>
 <div class="hin">Wichtig dabei: <b>„Alle angezeigten setzen“</b> greift nie über
 den gewählten Lieferanten hinaus – weder beim Zuordnen noch beim
 Mindestbestand. Und die Gruppenauswahl zeigt nur die Gruppen dieses

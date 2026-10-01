@@ -3,9 +3,50 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.245`
+- Aktueller Entwicklungsstand: `v3.246`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.246: Die Einkaufsliste gehört zu einem Lieferanten — und der Rundgang
+
+**Zwei Dinge, beide Aufräumen an der eigenen Arbeit.**
+
+**1. Vier Ansichten, ein Filter.** v3.241 hat `lfLieferant` für Artikelliste,
+Zuordnen und Inventur eingeführt — die Einkaufsliste blieb aussen. Dabei geht
+eine Bestellung an **genau einen** Händler, und `lfEinkaufsWert()` rechnete
+quer über alle: eine Zahl, die zu keiner Bestellung gehört.
+
+- `lfEinkaufsliste()` bleibt die **eine Wahrheit** darüber, was überhaupt
+  fehlt. Gefiltert wird erst an der Ansicht: `lfEinkaufAnzeige()` (Z1/Z2).
+- Liste, Summe und **verschickter Text** gehören zum gewählten Lieferanten;
+  der Text trägt ihn im Titel und enthält den anderen nicht (Z3/Z4). Ohne
+  Wahl bleibt alles wie bisher (Z5).
+- `lfEinkaufVerdeckt()` wird **genannt** (Z6), und eine leere Auswahl sagt,
+  dass es an *diesem* Händler liegt (Z7).
+- **Der Knopf-Zähler filtert NICHT mit** (Z8). Er ist das Signal „es liegt
+  Arbeit" und steht ausserhalb der gefilterten Ansicht. Ein Zähler, der still
+  einen Händler unterschlägt, wäre die gefährliche Richtung: eine Bestellung,
+  die niemand aufgibt, weil sie hinter einem Filter lag.
+
+**2. `pruefstand-lager-rundgang-v3-246.js` — der ganze Kreis in einem
+Durchgang.** v3.231–v3.246 haben je ein Stück gebaut, jedes mit eigenem
+Prüfstand. Die **Übergaben** dazwischen waren nirgends gemessen, weil jeder
+Einzelprüfstand sich seinen eigenen Anfangszustand baut. Der Rundgang läuft in
+**einer** Sitzung:
+
+```
+Inventur (10 gezählt, Mindest 8) → Bestand 10, Liste leer
+3× scannen im Rapport           → Bestand 7, Liste meldet 1 fehlend
+Wareneingang (VPE-Rundung 5)    → Bestand 12, Zeile verschwindet von selbst
+Wunsch von Hand 3 → Teillieferung 2 → Rest 1 → erledigt
+Bewegungen: 2 Korrektur, 3 Abgang, 3 Zugang
+Bestand = Summe der Buchungen (und ein Feld `bestand` ändert nichts)
+```
+
+**Ergebnis: 32 von 32, kein App-Fehler.** Die drei Fehlschläge beim ersten
+Lauf waren meine eigenen falschen Erwartungen: die EDV-Nr. kommt als
+`t.regie.edv_nr` (nicht `t.no`), der Kasten heisst `liefBuchenWunschHinweis`,
+und ohne Buchungen fehlen **beide** überwachten Artikel, nicht einer.
 
 ### v3.245: Eine Pflegedatei darf eine Spalte weniger haben
 
