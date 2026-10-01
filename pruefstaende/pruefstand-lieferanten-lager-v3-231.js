@@ -1939,6 +1939,241 @@ const KATALOG=`()=>{
    ||/rapportBuchWarnungZeichnen/.test(lies("js/06-rapport.js").split("function updateTotals")[1].split("\n}")[0]),
    "W10 die Warnung haengt in updateTotals - dem einen Weg, den jede Aenderung nimmt (Zeichnen, Mengenaenderung, Laden)",null);
 
+ // ---- X  Groesse: Widerspruch statt Beinahe-Treffer (v3.243) ------------
+ //
+ // Gemessen am 01.10.2026 an den echten 439 Artikeln: Groesse 400 -> 63
+ // Artikel, 0 zugeordnet. Groesse 200 -> 46 Artikel, 0 zugeordnet. Die
+ // Regie-Liste fuehrt die Rinnenpositionen nur in 250 und 330.
+ //
+ // Der gefaehrliche Teil war nicht das Offenbleiben, sondern dass die App
+ // fuer eine 400er-Rinne die 333er-Position anbot - mit "wie 2x in dieser
+ // Gruppe" davor. Eine 400er-Rinne mit dem Preis der 333er ist ein falscher
+ // Betrag auf einer Rechnung.
+ console.log("\nX · Groesse: Widerspruch statt Beinahe-Treffer");
+ // Zwei Dachrinnen in einer Gruppe: eine 333er (passt zu 201.01) und eine
+ // 400er (passt zu nichts). Die 333er ist zugeordnet - damit es ein
+ // Gruppenmuster GIBT, das der 400er angeboten werden koennte.
+ const GROESSE=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"D333",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333,material_id:7002},
+   {id:2,lieferant:"B-Team",artikelnr:"D400",bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:400},
+   {id:3,lieferant:"B-Team",artikelnr:"D200",bezeichnung:"Dachrinnen 200x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:200}];
+  lfBewegungen=[]; lfEinkauf=[];
+  lfLieferant=""; lfSuche=""; lfVorschlagCache={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfZuordnungen={};
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  const a400=lfArtikelZuId(2), a333=lfArtikelZuId(1);
+  const r201=lfRegieZuNummer("201.01");
+  return {
+   g400:lfGroesse(a400), g333:lfGroesse(a333),
+   dim:lfRegieDimZahlen(r201),
+   widerspricht400:lfGroesseWiderspricht(a400,r201),
+   widerspricht333:lfGroesseWiderspricht(a333,r201),
+   befund400:lfGroessenBefund(a400), befund333:lfGroessenBefund(a333)
+  };
+ },{k:KATALOG,g:GROESSE});
+ p(z.g400===400&&z.g333===333&&z.dim.join(",")==="333",
+   "X1 die Groesse kommt aus zuschnitt_mm, die der Regie-Position aus dim",z);
+ p(z.widerspricht400===true&&z.widerspricht333===false,
+   "X2 333 passt zur 333er-Position, 400 widerspricht ihr",z);
+ p(z.befund400.art==="groesse-fehlt"&&z.befund400.vorhanden.join(",")==="333",
+   "X3 der Befund sagt nicht 'kein Vorschlag', sondern WELCHE Groessen die Regie-Liste hat",z.befund400);
+ // Eine Position ohne Zahl in der Dimension sagt ueber die Groesse nichts
+ // aus - die darf nicht als Widerspruch gelten, sonst faellt "alle
+ // Materialien" ueberall heraus.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  const a400=lfArtikelZuId(2);
+  return {alle:lfGroesseWiderspricht(a400,lfRegieZuNummer("203.06")),
+          leer:lfGroesseWiderspricht(a400,lfRegieZuNummer("811.04")),
+          ohneGroesse:lfGroesseWiderspricht({bezeichnung:"Dichtmasse",zuschnitt_mm:null},
+                                            lfRegieZuNummer("201.01"))};
+ },{k:KATALOG,g:GROESSE});
+ p(z.alle===false&&z.leer===false&&z.ohneGroesse===false,
+   "X4 GEGENPROBE: eine Position OHNE Zahl in der Dimension ist kein Widerspruch - und ein Artikel ohne Groesse auch nicht",z);
+ // Der teuerste Weg: das Gruppenmuster.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  const grp400=lfGruppenVorschlag(lfArtikelZuId(2));
+  const grp333=lfGruppenVorschlag(lfArtikelZuId(3));
+  return {grp400:grp400?String(grp400.regie.edv_nr):null,
+          grp200:grp333?String(grp333.regie.edv_nr):null};
+ },{k:KATALOG,g:GROESSE});
+ p(z.grp400===null&&z.grp200===null,
+   "X5 das Gruppenmuster schlaegt die 333er-Position NICHT fuer die 400er und die 200er vor - 'wie 2x in dieser Gruppe' liest sich wie eine Zusage",z);
+ // "Sichere Vorschlaege einsetzen" darf nichts setzen - und muss sagen,
+ // warum nicht.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  lfZuordnenSichereUebernehmen();
+  return {gesetzt:Object.keys(lfZuordnungen).sort().join(","),
+          text:$("liefZuordnenMeldung").textContent};
+ },{k:KATALOG,g:GROESSE});
+ p(z.gesetzt==="",
+   "X6 'Sichere Vorschlaege einsetzen' setzt bei widersprechender Groesse NICHTS - ein starker Namenstreffer bei falscher Groesse ist der teure Fall",z);
+ p(/Grösse/.test(z.text)&&/nicht/.test(z.text),
+   "X7 und sagt, dass es an der Groesse liegt - ein Knopf, der stumm weniger tut, laesst ihn die Zeilen suchen",z.text);
+ // Und der Sammelsetzen-Knopf: er laesst die widersprechenden aus, benannt.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  lfZuordnenNurOffene=false;
+  $("liefZuordnenRegie").value="201.01";
+  lfZuordnenAlleSetzen();
+  return {gesetzt:Object.keys(lfZuordnungen).sort().join(","),
+          text:$("liefZuordnenMeldung").textContent};
+ },{k:KATALOG,g:GROESSE});
+ p(z.gesetzt==="1",
+   "X8 'Alle angezeigten setzen' trifft nur die 333er - 200 und 400 bleiben aussen, obwohl sie angezeigt sind",z);
+ p(/ausgelassen/.test(z.text)&&/Grösse/.test(z.text),
+   "X9 und es steht da, wie viele ausgelassen wurden und warum",z.text);
+ // Gegenprobe: eine Position OHNE Groessenangabe setzt weiterhin alle.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  lfZuordnenNurOffene=false;
+  $("liefZuordnenRegie").value="203.06";
+  lfZuordnenAlleSetzen();
+  return Object.keys(lfZuordnungen).sort().join(",");
+ },{k:KATALOG,g:GROESSE});
+ p(z==="1,2,3",
+   "X10 GEGENPROBE: eine Position ohne Groessenangabe setzt weiterhin alle angezeigten - geblockt wird nur der Widerspruch",z);
+ // Die Zeile selbst: der Beinahe-Treffer darf nicht wie ein Treffer
+ // aussehen, und der Befund steht dran.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  lfZuordnenZeichnen();
+  const html=$("liefZuordnenListe").innerHTML;
+  return {html, befund:$("liefZuordnenBefund").innerHTML,
+          versteckt:$("liefZuordnenBefund").hidden};
+ },{k:KATALOG,g:GROESSE});
+ p(/ANDERE GRÖSSE/.test(z.html),
+   "X11 in der Auswahl steht beim Beinahe-Treffer 'ANDERE GRÖSSE' - sonst liest er 'Dachrinnen halbrund Titanzink (Grösse 333)' als den richtigen Eintrag",null);
+ p(/die Regie-Liste hat die Grösse 400 nicht/.test(z.html)
+   &&/die Regie-Liste hat die Grösse 200 nicht/.test(z.html),
+   "X12 und an der Zeile steht, dass die Groesse fehlt - nicht das irrefuehrende 'Vorschlag, bitte pruefen'",null);
+ p(z.versteckt===false&&/2/.test(z.befund)&&/nicht/.test(z.befund),
+   "X13 oben steht die Aufteilung: was zu entscheiden ist und was nicht zuordenbar ist",z.befund);
+ // Was der Regie-Liste fehlt, zum Mitnehmen.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  return {liste:lfFehlendeRegie(), text:lfFehlendeRegieText()};
+ },{k:KATALOG,g:GROESSE});
+ p(z.liste.length===2&&z.liste.every(x=>x.gruppe==="Dachrinnen")
+   &&z.liste.map(x=>x.groesse).sort((a,b)=>a-b).join(",")==="200,400",
+   "X14 die Fehlliste fasst nach Gruppe UND Groesse zusammen - 115 Einzelzeilen waeren keine Auskunft",z.liste);
+ p(/Grösse 400/.test(z.text)&&/Grösse 200/.test(z.text)&&/vorhanden: 333/.test(z.text)
+   &&/Entscheidung/.test(z.text),
+   "X15 der Text sagt, was fehlt, was vorhanden ist - und dass die Regie-Liste zu erweitern SEINE Entscheidung ist",z.text.slice(0,400));
+ // Gegenprobe: ist alles zuordenbar, steht der Kasten nicht da.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D333",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",
+   gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfLieferant="";
+  lfZuordnenZeichnen();
+  return {befund:$("liefZuordnenBefund").innerHTML,
+          versteckt:$("liefZuordnenBefund").hidden,
+          fehlt:lfFehlendeRegie().length};
+ },{k:KATALOG,g:GROESSE});
+ p(z.versteckt===false&&/zur Wahl/.test(z.befund)&&z.fehlt===0,
+   "X16 GEGENPROBE: ist jeder offene Artikel zuordenbar, sagt die App genau das - und die Fehlliste ist leer",z);
+ // DER FALL, DER DIE REGEL FAST FALSCH GEMACHT HAETTE.
+ //
+ // Gemessen an den echten Daten: bei "Rinnenstutzen 100 mm 20.160.330.100"
+ // steht in zuschnitt_mm die 100 - der ABLAUFdurchmesser -, waehrend die
+ // Rinnengroesse 330 in der Artikelnummer sitzt. Bei "Rinnenstutzen 50 mm
+ // 20.160.200.050" steht in DEMSELBEN Feld 200, also die Rinnengroesse.
+ //
+ // Eine Regel, die nur zuschnitt_mm vergleicht, haette diese 12 bereits von
+ // Hand gemachten, RICHTIGEN Zuordnungen rot markiert und kuenftig
+ // blockiert. Verglichen werden deshalb alle Zahlen des Artikels, mit
+ // rmatZahlen() aus js/57 - derselben Funktion, die die Bewertung schon
+ // immer benutzt.
+ const STUTZEN=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"20.160.333.100",bezeichnung:"Rinnenstutzen 100 mm 20.160.333.100",
+    gruppe:"Rinnenstutzen",zuschnitt_mm:100},
+   {id:2,lieferant:"B-Team",artikelnr:"20.160.400.100",bezeichnung:"Rinnenstutzen 100 mm 20.160.400.100",
+    gruppe:"Rinnenstutzen",zuschnitt_mm:100}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfLieferant="";
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.g+")()");
+  const r201=lfRegieZuNummer("201.01");    // dim 333
+  return {
+   zahlen333:lfArtikelZahlen(lfArtikelZuId(1)),
+   passt333:lfGroessePasst(r201,lfArtikelZuId(1)),
+   passt400:lfGroessePasst(r201,lfArtikelZuId(2))
+  };
+ },{k:KATALOG,g:STUTZEN});
+ p(z.passt333===true&&z.zahlen333.indexOf(333)>=0,
+   "X17 die 333 aus der Artikelnummer zaehlt mit - zuschnitt_mm traegt hier den Ablauf (100), nicht die Rinnengroesse",z);
+ p(z.passt400===false,
+   "X18 GEGENPROBE: derselbe Stutzen fuer eine 400er Rinne widerspricht der 333er-Position trotzdem - die Regel ist nicht einfach weicher geworden",z);
+ // Und sie benutzt die VORHANDENE Funktion, nicht eine eigene Zahlenlogik.
+ p(/rmatZahlen/.test(lies("js/82-lieferanten-lager.js")),
+   "X19 geprueft wird mit rmatZahlen() aus js/57 - keine zweite Rechnung fuer dieselbe Frage",null);
+ // DER ZWEITE FEHLALARM, auch an den echten Daten gefunden:
+ // "Rinnenseiher, alle Materialien" traegt dim "bis 120". Das ist eine
+ // OBERGRENZE, keine Groesse - 60, 75 und 100 mm passen alle. Eine Regel,
+ // die daraus "120 oder Widerspruch" macht, haette 9 richtige Zuordnungen
+ // rot markiert. Entschieden wird deshalb nur bei einer EINDEUTIGEN
+ // Dimension: blanke Zahl oder Liste blanker Zahlen.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  settings.materials=settings.materials.concat([
+   ["203.51","Rinnenseiher, alle Materialien","bis 120","St",12],
+   ["241.11","Flachdachrinne rostfrei, B 125, Höhen in mm","40 / 60","m1",30],
+   ["241.22","Loch- und Schlitzrost rostfrei","B 122","m1",22],
+   ["999.01","Spannweite","250-330","St",5]]);
+  materialIds=materialIds.concat([7051,7111,7122,7991]);
+  const seiher={bezeichnung:"Rinnenseiher 60 mm Kupfer",artikelnr:"422640",gruppe:"Rinnenseiher"};
+  const flach={bezeichnung:"Flachdachrinne 60 mm",artikelnr:"F60",gruppe:"Flachdachrinnen"};
+  const flach2={bezeichnung:"Flachdachrinne 80 mm",artikelnr:"F80",gruppe:"Flachdachrinnen"};
+  return {
+   bis:lfRegieDimZahlen(lfRegieZuNummer("203.51")),
+   buchstabe:lfRegieDimZahlen(lfRegieZuNummer("241.22")),
+   bereich:lfRegieDimZahlen(lfRegieZuNummer("999.01")),
+   liste:lfRegieDimZahlen(lfRegieZuNummer("241.11")),
+   seiherOk:lfGroessePasst(lfRegieZuNummer("203.51"),seiher),
+   flachOk:lfGroessePasst(lfRegieZuNummer("241.11"),flach),
+   flach2:lfGroessePasst(lfRegieZuNummer("241.11"),flach2)
+  };
+ },{k:KATALOG});
+ p(z.bis.length===0&&z.buchstabe.length===0&&z.bereich.length===0,
+   "X20 'bis 120', 'B 122' und '250-330' entscheiden NICHTS - eine Obergrenze, eine Breite und ein Bereich sind keine Groessenangabe",z);
+ p(z.seiherOk===true,
+   "X21 GEGENPROBE: der 60er Rinnenseiher auf 'bis 120' bleibt richtig - 9 bereits gemachte Zuordnungen waeren sonst rot geworden",z);
+ p(z.liste.join(",")==="40,60"&&z.flachOk===true&&z.flach2===false,
+   "X22 eine AUFZAEHLUNG blanker Zahlen entscheidet weiterhin: 60 passt zu '40 / 60', 80 nicht",z);
+ // Eine bereits GESPEICHERTE Zuordnung, die der Groesse widerspricht, wird
+ // nicht stillschweigend hingenommen - gemessen: zwei Faelle (330er Rinne
+ // auf der 250er Position). Geaendert wird aber nichts von selbst.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()");
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D400",bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",
+   gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:400,material_id:7002}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=false; lfLieferant="";
+  lfZuordnenZeichnen();
+  return {html:$("liefZuordnenListe").innerHTML, id:lfArtikelZuId(1).material_id};
+ },{k:KATALOG});
+ p(/stimmt das\?/.test(z.html)&&/Grösse 333/.test(z.html),
+   "X23 eine bestehende Zuordnung mit widersprechender Groesse wird GEFRAGT, nicht hingenommen",null);
+ p(z.id===7002,
+   "X24 GEGENPROBE: geaendert wird dabei nichts - es ist seine Zuordnung, und nur er weiss, ob sie Absicht war",z.id);
+
+ // Und die Bedienteile stehen im Dokument.
+ z=await page.evaluate(()=>["liefZuordnenBefund","liefZuordnenFehlend","liefZuordnenFehlendText"]
+   .filter(i=>!document.getElementById(i)));
+ p(z.length===0,"X25 alle Bedienteile stehen im Dokument",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();
