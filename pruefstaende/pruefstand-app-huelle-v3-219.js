@@ -159,6 +159,45 @@ const U=x=>"https://beispiel.test/"+x;
  p(!!gezeigt&&JETZT==="spengler-digital-"+gezeigt,
    "E4 der Cache-Name traegt die angezeigte Versionsnummer",{cache:JETZT,angezeigt:gezeigt});
 
+ // ---- F  Jede Datei der Huelle ist ueberhaupt erst lesbarer Code --------
+ //
+ // WARUM ES DIESEN ABSCHNITT GIBT (v3.244, echter Fehler von mir selbst)
+ // In js/67-was-ist-neu.js stand in einem deutschen Text ein GERADES
+ // Anfuehrungszeichen: "...„Was fehlt" ist jetzt...". Das beendet den
+ // JavaScript-String, und die ganze Datei war kaputt - damit jede Funktion
+ // daraus. Gefunden hat es erst pruefstand-zuteilung als 130. Pruefstand,
+ // ueber "F1 keine Javascript-Fehler", mit der Meldung "Unexpected
+ // identifier 'ist'" - richtig, aber weit weg von der Ursache.
+ //
+ // Ohne Build-Schritt gibt es nichts, was so etwas vorher abfaengt
+ // (CLAUDE.md 7). Diese Probe ist dieses Etwas: sie kostet eine Sekunde und
+ // nennt Datei und Stelle. Geprueft wird die ganze Huelle, nicht nur die
+ // Datei, an der gerade gearbeitet wurde.
+ console.log("\nF · Jede Datei der Huelle ist lesbarer Code");
+ const jsDateien=[...new Set((QUELLE.match(/["'`]\.\/(js\/[^"'`]+\.js)["'`]/g)||[])
+   .map(t=>t.replace(/^["'`]\.\//,"").replace(/["'`]$/,"")))];
+ p(jsDateien.length>50,"F1 die App-Shell-Liste nennt die JavaScript-Dateien",jsDateien.length);
+ const kaputt=[];
+ jsDateien.forEach(rel=>{
+  const voll=path.join(WURZEL,rel);
+  if(!fs.existsSync(voll)){ kaputt.push({datei:rel,fehler:"fehlt"}); return }
+  try{ new Function(fs.readFileSync(voll,"utf8")) }
+  catch(e){ kaputt.push({datei:rel,fehler:String(e.message).slice(0,120)}) }
+ });
+ p(kaputt.length===0,
+   "F2 jede davon laesst sich fehlerfrei einlesen - ein gerades Anfuehrungszeichen in deutschem Text reicht, um eine ganze Datei zu zerstoeren",kaputt);
+ // Dieselbe Probe fuer die Dateien, die NICHT in der Huelle stehen - sonst
+ // prueft dieser Abschnitt genau die Datei nicht, die jemand neu angelegt
+ // und in sw.js vergessen hat.
+ const alleJs=fs.readdirSync(path.join(WURZEL,"js")).filter(f=>f.endsWith(".js"));
+ const kaputt2=[];
+ alleJs.forEach(f=>{
+  try{ new Function(fs.readFileSync(path.join(WURZEL,"js",f),"utf8")) }
+  catch(e){ kaputt2.push({datei:"js/"+f,fehler:String(e.message).slice(0,120)}) }
+ });
+ p(kaputt2.length===0,
+   "F3 GEGENPROBE: auch jede Datei im Ordner js/ - auch eine, die in sw.js noch fehlt",kaputt2);
+
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  process.exit(fail?1:0);
 })();
