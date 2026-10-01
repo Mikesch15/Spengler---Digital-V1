@@ -250,6 +250,136 @@ function lfRegieSicher(liste){
  return (typeof rmatIstSicher==="function")?rmatIstSicher(liste):false;
 }
 
+// ---- Groesse: Widerspruch statt Beinahe-Treffer (v3.243) ------------------
+//
+// Gemessen am 01.10.2026 an den 439 Artikeln von B-Team:
+//   Groesse 400 -> 63 Artikel, davon 0 zugeordnet
+//   Groesse 200 -> 46 Artikel, davon 0 zugeordnet
+// Die Regie-Liste fuehrt die Rinnenpositionen nur in 250 und 330. 115 der
+// 158 offenen Artikel sind deshalb NICHT zuordenbar - es gibt die Position
+// gar nicht. Dazu kommen Formen, die in der Regie-Liste fehlen: Rinnenhaken
+// eckig, Rinnenkugelboeden, Schraegstutzen.
+//
+// Gefaehrlich war daran nicht das Offenbleiben, sondern das Gegenteil: die
+// App bot fuer eine 400er-Rinne die 250er-Position an - mit "wie 44x in
+// dieser Gruppe" davor, und "sichere uebernehmen" haette sie gesetzt. Eine
+// 400er-Rinne mit dem Preis der 250er im Regierapport ist ein falscher
+// Betrag auf einer Rechnung, und niemand haette es gesehen.
+//
+// Deshalb: eine Groesse, die der Regie-Position widerspricht, ist kein
+// schwacher Treffer, sondern ein Ausschluss. Automatisch gesetzt wird sie
+// nie. Von Hand bleibt sie moeglich - es gibt Faelle, die nur der Spengler
+// kennt - aber sie steht dann benannt da.
+// Gemessen und korrigiert am 01.10.2026: zuschnitt_mm allein als "die
+// Groesse" zu lesen war falsch. Bei "Rinnenstutzen 100 mm 20.160.330.100"
+// steht dort 100 - der ABLAUFdurchmesser -, waehrend die Rinnengroesse 330
+// in der Artikelnummer sitzt; bei "Rinnenstutzen 50 mm 20.160.200.050"
+// steht in demselben Feld 200, also die Rinnengroesse. Das Feld hat je
+// Gruppe eine andere Bedeutung.
+//
+// Eine Regel, die nur zuschnitt_mm vergleicht, haette 12 bereits von Hand
+// gemachte, RICHTIGE Zuordnungen rot markiert und blockiert. Verglichen
+// werden deshalb ALLE Zahlen des Artikels - und zwar mit rmatZahlen() aus
+// js/57, derselben Funktion, mit der die Vorschlagsbewertung die Dimension
+// schon immer prueft. Keine zweite Rechnung fuer dieselbe Frage.
+//
+// Zusatz, gemessen im Pruefstand (X17): rmatZahlen() liest "20.160.330.100"
+// als Dezimalzahlen - 20.16 und 330.1 - und die 330 kommt darin nie vor.
+// Bei B-Team traegt aber genau diese punktierte Nummer die Rinnengroesse.
+// Deshalb kommen auf der ARTIKELseite zusaetzlich die reinen Ziffergruppen
+// dazu (20, 160, 330, 100). Das ist keine zweite Regel fuer dieselbe Frage:
+// die Pruefung bleibt dieselbe, nur der Artikel wird vollstaendig gelesen.
+// Und es kann den Riegel nur LOCKERN, nie zusaetzlich zuschlagen - eine
+// breitere Zahlenmenge findet mehr Treffer, nicht weniger.
+function lfArtikelZahlen(a){
+ if(!a)return [];
+ const t=[a.bezeichnung,a.artikelnr,a.zuschnitt_mm,a.laenge_m].filter(x=>x!==null&&x!==undefined).join(" ");
+ const raus=(typeof rmatZahlen==="function")?rmatZahlen(t).slice():[];
+ (String(t).match(/\d+/g)||[]).forEach(x=>{
+  const z=Number(x);
+  if(Number.isFinite(z)&&raus.indexOf(z)<0)raus.push(z);
+ });
+ return raus;
+}
+// Die Groesse fuer die ANZEIGE ("die Regie-Liste hat die Grösse 400 nicht").
+// zuschnitt_mm ist dafuer die beste Angabe, die es gibt - sie steht in 426
+// von 439 Faellen da. Fuer die ENTSCHEIDUNG zaehlt sie nicht allein.
+function lfGroesse(a){
+ if(!a)return 0;
+ const z=Number(a.zuschnitt_mm);
+ if(z>0)return z;
+ const t=String(a.bezeichnung||"").match(/(^|[^\d.,])(\d{3})([^\d.,]|$)/);
+ return t?Number(t[2]):0;
+}
+// Entschieden wird nur bei einer EINDEUTIGEN Dimension: eine blanke Zahl
+// oder eine Liste blanker Zahlen ("250", "40 / 60"). Alles andere sagt ueber
+// die Groesse nichts Entscheidbares und bleibt offen.
+//
+// Gemessen an den echten Daten (01.10.2026): "Rinnenseiher, alle
+// Materialien" traegt dim "bis 120". Das ist eine OBERGRENZE - 60, 75 und
+// 100 mm passen alle. Eine Regel, die daraus "120 oder Widerspruch" macht,
+// haette 9 richtige Zuordnungen rot markiert. Dasselbe gilt fuer "B 122"
+// (eine Breite) und "bis 150".
+function lfRegieDimZahlen(r){
+ const roh=String((r&&r.dim)||"").trim();
+ if(!roh)return [];
+ // Erlaubt sind nur Zahlen und Trennzeichen. Ein Buchstabe ("bis", "B",
+ // "re", "CrNiS") macht die Angabe uneindeutig.
+ // Ein Bindestrich waere ein Bereich ("250-330") - der ist ebenfalls nicht
+ // als Aufzaehlung zu lesen und bleibt deshalb aussen.
+ if(!/^[\d\s.,/x×]+$/.test(roh))return [];
+ const t=roh.match(/\d+(?:[.,]\d+)?/g)||[];
+ return t.map(x=>Number(String(x).replace(",",".")));
+}
+// Eine Position OHNE Zahl in der Dimension sagt ueber die Groesse nichts
+// aus ("alle Materialien") - die ist kein Widerspruch, sondern offen.
+// Ebenso ein Artikel, in dem gar keine Zahl steht.
+function lfGroessePasst(r,a){
+ const z=lfRegieDimZahlen(r);
+ if(!z.length)return true;
+ const zahlen=lfArtikelZahlen(a);
+ if(!zahlen.length)return true;
+ return z.some(x=>zahlen.some(y=>Math.abs(x-y)<1e-9));
+}
+function lfGroesseWiderspricht(a,r){
+ return !lfGroessePasst(r,a);
+}
+// Welche Groessen fuehrt die Regie-Liste fuer die Positionen, die zu diesem
+// Artikel ueberhaupt in Frage kommen? Das ist die Auskunft, die er braucht:
+// nicht "kein Vorschlag", sondern "die Liste hat 250 und 330, nicht 400".
+function lfRegieGroessenFuer(a){
+ const raus=[];
+ lfRegieVorschlaege(a).forEach(v=>{
+  const r=lfRegieZuNummer(v.no);
+  if(!r)return;
+  lfRegieDimZahlen(r).forEach(z=>{ if(raus.indexOf(z)<0)raus.push(z) });
+ });
+ return raus.sort((x,y)=>x-y);
+}
+// Ein Befund je Artikel, und zwar genau einer - sonst steht an zwei Stellen
+// eine eigene Rechnung.
+//   "ok"            es gibt einen Kandidaten, der die Groesse traegt
+//   "groesse-fehlt" es gibt Kandidaten, aber alle mit anderer Groesse
+//   "nichts"        es gibt gar keinen Kandidaten
+function lfGroessenBefund(a){
+ const vor=lfRegieVorschlaege(a);
+ const g=lfGroesse(a);
+ if(!vor.length)return {art:"nichts",groesse:g,vorhanden:[]};
+ const passend=vor.filter(v=>{
+  const r=lfRegieZuNummer(v.no);
+  return r&&lfGroessePasst(r,a);
+ });
+ if(passend.length)return {art:"ok",groesse:g,vorhanden:lfRegieGroessenFuer(a)};
+ return {art:"groesse-fehlt",groesse:g,vorhanden:lfRegieGroessenFuer(a)};
+}
+function lfGroessenBefundText(b){
+ if(!b)return "";
+ if(b.art==="nichts")return "keine Regie-Position gefunden";
+ if(b.art!=="groesse-fehlt")return "";
+ return "die Regie-Liste hat die Grösse "+lfZahlText(b.groesse)+" nicht"
+  +(b.vorhanden.length?" (vorhanden: "+b.vorhanden.map(lfZahlText).join(", ")+")":"");
+}
+
 // ---- Barcode -> Regie-Position (v3.236) -----------------------------------
 //
 // Der Zweck der ganzen Bruecke: auf der Baustelle den Artikel scannen und
@@ -994,10 +1124,20 @@ function lfGruppenVorschlag(a){
   if(!id)return;
   zaehler[id]=(zaehler[id]||0)+1;
  });
- const beste=Object.keys(zaehler).sort((x,y)=>zaehler[y]-zaehler[x])[0];
- if(!beste)return null;
- const r=lfRegieZuId(beste);
- return r?{regie:r,anzahl:zaehler[beste]}:null;
+ // v3.243: Das Gruppenmuster ist stark - "wie 44x in dieser Gruppe" liest
+ // sich wie eine Zusage. Genau deshalb darf es keine Position tragen, deren
+ // Groesse dem Artikel widerspricht: in der Gruppe "Dachrinnen" ist das
+ // Muster die 250er-Position, der Artikel aber eine 400er Rinne. Statt der
+ // naechstbesten Behauptung wird der naechste Kandidat genommen, der nicht
+ // widerspricht - und wenn es keinen gibt, gar keiner.
+ const sortiert=Object.keys(zaehler).sort((x,y)=>zaehler[y]-zaehler[x]);
+ for(const id of sortiert){
+  const r=lfRegieZuId(id);
+  if(!r)continue;
+  if(lfGroesseWiderspricht(a,r))continue;
+  return {regie:r,anzahl:zaehler[id]};
+ }
+ return null;
 }
 function lfZuordnungWert(a){
  const s=String(a.id);
@@ -1055,15 +1195,102 @@ function lfZuordnenAlleSetzen(){
   if(h){ h.style.color="var(--red)"; h.textContent="Die EDV-Nr. „"+nr+"“ steht nicht im Regie-Katalog." }
   return;
  }
+ // v3.243: Dieser Knopf war der teuerste Weg in eine falsche Rechnung.
+ // In der Gruppe "Dachrinnen" sind die offenen Artikel 200er und 400er; mit
+ // der 250er-Position im Feld haette ein Druck 11 Artikel auf einen falschen
+ // Preis gesetzt. Artikel, deren Groesse der gewaehlten Position
+ // widerspricht, werden deshalb ausgelassen - und zwar benannt, nicht still.
+ const passend=liste.filter(a=>!lfGroesseWiderspricht(a,r));
+ const weg=liste.length-passend.length;
+ if(!passend.length){
+  if(h){ h.style.color="var(--red)";
+   h.textContent="Nichts gesetzt: „"+r.edv_nr+" · "+r.name+"“ hat die Grösse "
+    +(r.dim?"„"+r.dim+"“":"ohne Angabe")+", die angezeigten Artikel eine andere. "
+    +"Eine andere Grösse ist ein anderer Preis – deshalb setzt die App das nicht in einem Zug. "
+    +"Einzeln geht es weiterhin, wenn es fachlich stimmt." }
+  return;
+ }
  if(typeof confirm==="function"&&!confirm(
-   "Alle "+liste.length+" angezeigten Artikel auf „"+r.edv_nr+" · "+r.name+"“ setzen?\n\n"
+   (weg?passend.length+" von "+liste.length+" angezeigten Artikeln":"Alle "+passend.length+" angezeigten Artikel")
+  +" auf „"+r.edv_nr+" · "+r.name+"“ setzen?\n\n"
+  +(weg?weg+" Artikel werden ausgelassen: ihre Grösse passt nicht zu dieser Position.\n\n":"")
   +"Gespeichert wird erst mit „Speichern“ – bis dahin lässt sich jede Zeile noch einzeln ändern."))return;
- liste.forEach(a=>{ lfZuordnungen[String(a.id)]=String(r.id) });
+ passend.forEach(a=>{ lfZuordnungen[String(a.id)]=String(r.id) });
  lfZuordnenZeichnen();
  if(h){ h.style.color="var(--muted)";
-  h.textContent=liste.length+" Artikel auf „"+r.edv_nr+"“ gesetzt – noch nicht gespeichert." }
+  h.textContent=passend.length+" Artikel auf „"+r.edv_nr+"“ gesetzt – noch nicht gespeichert."
+   +(weg?" "+weg+" ausgelassen, weil die Grösse nicht passt.":"") }
 }
 
+// v3.243: Wie viele der offenen Artikel sind ueberhaupt zuordenbar? Das ist
+// eine andere Frage als "wie viele sind noch offen" - und die wichtigere.
+// Gemessen: 115 der 158 offenen Artikel koennen gar nicht zugeordnet werden,
+// weil die Regie-Liste ihre Groesse nicht fuehrt.
+function lfZuordnenBefundStand(){
+ const st={offen:0,zuEntscheiden:0,groesseFehlt:0,nichts:0};
+ lfArtikel.forEach(a=>{
+  if(a.archiviert||lfRegieVon(a))return;
+  st.offen++;
+  const b=lfGroessenBefund(a);
+  if(b.art==="groesse-fehlt")st.groesseFehlt++;
+  else if(b.art==="nichts")st.nichts++;
+  else st.zuEntscheiden++;
+ });
+ return st;
+}
+// Was der Regie-Liste fehlt, nach Gruppe und Groesse - zum Mitnehmen.
+// Die Regie-Liste zu erweitern ist SEINE Entscheidung (sie ist die Grundlage
+// der Verrechnung); die App sagt nur, was dort fehlen wuerde.
+function lfFehlendeRegie(){
+ const m={};
+ lfArtikel.forEach(a=>{
+  if(a.archiviert||lfRegieVon(a))return;
+  const b=lfGroessenBefund(a);
+  if(b.art==="ok")return;
+  const g=String(a.gruppe||"Ohne Gruppe");
+  const k=g+"|"+(b.groesse||0)+"|"+b.art;
+  if(!m[k])m[k]={gruppe:g,groesse:b.groesse,art:b.art,anzahl:0,
+   vorhanden:b.vorhanden,beispiel:a.bezeichnung};
+  m[k].anzahl++;
+ });
+ return Object.keys(m).map(k=>m[k]).sort((x,y)=>
+  x.gruppe.localeCompare(y.gruppe,"de")||x.groesse-y.groesse);
+}
+function lfFehlendeRegieText(){
+ const liste=lfFehlendeRegie();
+ if(!liste.length)return "";
+ const zeilen=["Was der Regie-Liste fehlt – Stand "+new Date().toLocaleDateString("de-CH"),""];
+ let letzte=null;
+ liste.forEach(x=>{
+  if(x.gruppe!==letzte){ if(letzte!==null)zeilen.push(""); zeilen.push(x.gruppe+":"); letzte=x.gruppe }
+  zeilen.push("  "+x.anzahl+" Artikel"
+   +(x.groesse?"  Grösse "+lfZahlText(x.groesse):"  ohne erkennbare Grösse")
+   +(x.art==="nichts"?"  (keine Position gefunden)"
+     :(x.vorhanden.length?"  (vorhanden: "+x.vorhanden.map(lfZahlText).join(", ")+")":""))
+   +"   z. B. "+x.beispiel);
+ });
+ zeilen.push("");
+ zeilen.push("Solange es die Position nicht gibt, bleiben diese Artikel ohne Regie-Position –");
+ zeilen.push("sie lassen sich dann im Regierapport nicht scannen. Das ist kein Fehler der App,");
+ zeilen.push("sondern eine Entscheidung: die Regie-Liste ist die Grundlage der Verrechnung.");
+ return zeilen.join("\n");
+}
+async function lfFehlendeRegieKopieren(){
+ if(typeof $!=="function")return;
+ const text=lfFehlendeRegieText();
+ const h=$("liefZuordnenMeldung");
+ if(!text){ if(h){h.style.color="var(--muted)";h.textContent="Es fehlt nichts – jeder offene Artikel hat eine passende Position zur Wahl."} return }
+ try{
+  if(!navigator.clipboard||!navigator.clipboard.writeText)throw new Error("keine Zwischenablage");
+  await navigator.clipboard.writeText(text);
+  if(h){h.style.color="var(--muted)";h.textContent="Die Liste ist kopiert – sie lässt sich jetzt einfügen."}
+ }catch(e){
+  const f=$("liefZuordnenFehlendText");
+  if(f){ f.hidden=false; f.value=text; f.focus(); f.select() }
+  if(h){h.style.color="var(--muted)";
+   h.textContent="Das Kopieren hat dieses Gerät nicht erlaubt. Der Text steht unten und ist markiert – von Hand kopieren."}
+ }
+}
 function lfZuordnenKopfZeichnen(){
  if(typeof $!=="function")return;
  const kopf=$("liefZuordnenKennzahlen");
@@ -1072,6 +1299,28 @@ function lfZuordnenKopfZeichnen(){
   const noch=lfZuordnenOffen();
   kopf.innerHTML=`<b>${lfZugeordnet()}</b> von <b>${gesamt}</b> Artikeln haben eine Regie-Position`
    +(noch?` · <b style="color:var(--red)">${noch}</b> Änderung(en) noch nicht gespeichert`:"");
+ }
+ // v3.243: Die offenen Artikel aufgeteilt in "da ist zu entscheiden" und
+ // "da gibt es nichts zu entscheiden". Ohne diese Trennung sucht man in der
+ // Liste nach einer Position, die es nicht gibt.
+ const hin=$("liefZuordnenBefund");
+ if(hin){
+  const st=lfZuordnenBefundStand();
+  const blockiert=st.groesseFehlt+st.nichts;
+  if(!st.offen){ hin.hidden=true; hin.innerHTML="" }
+  else if(!blockiert){
+   hin.hidden=false;
+   hin.innerHTML=`<b>${st.offen}</b> offen – für jeden steht eine passende Position zur Wahl.`;
+  }else{
+   hin.hidden=false;
+   hin.innerHTML=`Von <b>${st.offen}</b> offenen Artikeln sind <b>${st.zuEntscheiden}</b> zu entscheiden.
+    <b style="color:var(--red)">${blockiert}</b> lassen sich <b>nicht</b> zuordnen – die Regie-Liste führt
+    ${st.groesseFehlt?`bei <b>${st.groesseFehlt}</b> die Grösse nicht`:""}${
+     st.groesseFehlt&&st.nichts?" und ":""}${st.nichts?`für <b>${st.nichts}</b> gar keine passende Position`:""}.
+    Das ist keine Arbeit, die noch wartet: es gibt die Position nicht.
+    <div class="small" style="margin-top:4px">Die Regie-Liste zu erweitern ist deine Entscheidung – sie ist die
+    Grundlage der Verrechnung. Was fehlen würde, steht in der Liste unten; <b>📋 Fehlendes kopieren</b> gibt sie zum Mitnehmen.</div>`;
+  }
  }
  const offen=$("liefZuordnenSpeichern");
  if(offen){
@@ -1117,6 +1366,14 @@ function lfZuordnenZeichnen(){
   const sicher=lfRegieSicher(vor);
   const grp=lfGruppenVorschlag(a);
   const wert=lfZuordnungWert(a);
+  const befund=lfGroessenBefund(a);
+  // v3.243: Auch eine BESTEHENDE Zuordnung kann der Groesse widersprechen -
+  // sie ist aus der Zeit vor dieser Pruefung. Gemessen wurden zwei Faelle
+  // (330er Rinne auf der 250er Position). Geaendert wird nichts von selbst:
+  // es ist seine Zuordnung, und nur er weiss, ob sie Absicht war. Gefragt
+  // wird aber.
+  const jetztR=lfRegieVon(a);
+  const jetztFalsch=(jetztR&&lfGroesseWiderspricht(a,jetztR))?(jetztR.dim||""):"";
   // Die Auswahl enthaelt: keine Zuordnung, die Vorschlaege, und - falls
   // der Artikel schon eine Position hat, die nicht unter den Vorschlaegen
   // ist - diese ebenfalls. Sonst wuerde das Oeffnen der Ansicht eine
@@ -1135,7 +1392,12 @@ function lfZuordnenZeichnen(){
    const r=lfRegieZuNummer(v.no);
    if(!r||drin.has(String(r.id)))return;
    drin.add(String(r.id));
-   const grund=v.gruende&&v.gruende.length?" ("+v.gruende.join(", ")+")":"";
+   // v3.243: Ein Beinahe-Treffer darf nicht wie ein Treffer aussehen. Steht
+   // in der Auswahl nur "Dachrinnen halbrund Kupfer (Grösse 250)", liest
+   // sich das bei einer 400er-Rinne wie der richtige Eintrag.
+   const grund=lfGroesseWiderspricht(a,r)
+    ? " ⚠ ANDERE GRÖSSE ("+(r.dim||"ohne Angabe")+")"
+    : (v.gruende&&v.gruende.length?" ("+v.gruende.join(", ")+")":"");
    optionen.push(`<option value="${esc(r.id)}"${String(wert)===String(r.id)?" selected":""}>${
     esc(lfRegieText(r))}${esc(grund)}</option>`);
   });
@@ -1148,10 +1410,13 @@ function lfZuordnenZeichnen(){
     <b>${esc(a.bezeichnung)}</b>
     <div class="small" style="color:var(--muted)">${esc(a.artikelnr)}${
      a.material?" · "+esc(a.material):""}${
-     grp?' · <span style="color:var(--green)">wie '+grp.anzahl+'× in dieser Gruppe</span>'
-        :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
-                            :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
-                    :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>')}</div>
+     jetztFalsch?' · <span style="color:var(--red)">zugeordnet auf Grösse '+esc(jetztFalsch)+' – stimmt das?</span>'
+        :grp?' · <span style="color:var(--green)">wie '+grp.anzahl+'× in dieser Gruppe</span>'
+        :(befund.art==="groesse-fehlt"
+          ? ' · <span style="color:var(--red)">'+esc(lfGroessenBefundText(befund))+'</span>'
+          :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
+                              :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
+                      :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>'))}</div>
     <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%">${optionen.join("")}</select>
    </div>
   </div>`;
@@ -1165,17 +1430,28 @@ function lfZuordnenSichereUebernehmen(){
  // v3.235: wirkt auf die ANGEZEIGTEN Artikel, nicht auf alle. Sonst
  // aenderte der Knopf Zeilen in Gruppen, die gerade gar nicht zu sehen
  // sind - und man merkte es erst beim Speichern.
- let n=0, ausGruppe=0;
+ let n=0, ausGruppe=0, uebersprungen=0;
  lfZuordnenKandidaten().forEach(a=>{
   if(lfRegieVon(a))return;
   // Die eigene Entscheidung in der Gruppe zaehlt mehr als die
   // Textaehnlichkeit - siehe lfGruppenVorschlag.
   const grp=lfGruppenVorschlag(a);
   if(grp){ lfZuordnungen[String(a.id)]=String(grp.regie.id); n++; ausGruppe++; return }
+  // v3.243: Der Grund, aus dem ein Artikel offen BLEIBT, wird hier
+  // festgestellt - vor der Frage, ob ein Vorschlag sicher genug ist. Sonst
+  // haengt die Begruendung an der Reihenfolge der Pruefungen: ein 400er
+  // Artikel, dessen Vorschlag ohnehin nicht sicher war, waere als "kein
+  // Vorschlag sicher genug" gemeldet worden - und der Rat darunter ("setze
+  // eine Zeile von Hand, die uebrigen schlaegt die App dann genauso vor")
+  // waere genau der falsche: die Position gibt es nicht.
+  if(lfGroessenBefund(a).art==="groesse-fehlt"){ uebersprungen++; return }
   const vor=lfRegieVorschlaege(a);
   if(!lfRegieSicher(vor))return;
   const r=lfRegieZuNummer(vor[0].no);
   if(!r)return;
+  // Doppelt gesichert: auch ein sicherer Namenstreffer darf die Groesse
+  // nicht ueberstimmen.
+  if(lfGroesseWiderspricht(a,r)){ uebersprungen++; return }
   lfZuordnungen[String(a.id)]=String(r.id);
   n++;
  });
@@ -1183,10 +1459,18 @@ function lfZuordnenSichereUebernehmen(){
  const h=$("liefZuordnenMeldung");
  if(h){
   h.style.color="var(--muted)";
+  // v3.243: Was NICHT gesetzt wurde, wird genannt. Ein Knopf, der stumm
+  // weniger tut als erwartet, laesst den Anwender die Zeilen suchen.
+  const wegGroesse=uebersprungen
+   ? " "+uebersprungen+" Artikel wurden ausgelassen, weil die Regie-Liste ihre Grösse nicht führt – sie stehen unten mit Begründung."
+   : "";
   h.textContent=n
    ? n+" Vorschlag(e) eingesetzt"+(ausGruppe?" ("+ausGruppe+" davon nach dem Muster dieser Gruppe)":"")
-     +" – noch nicht gespeichert. Bitte durchsehen und speichern."
-   : "Kein Vorschlag ist sicher genug zum Vorwählen. Setze eine Zeile von Hand – die übrigen der Gruppe schlägt die App dann von selbst genauso vor.";
+     +" – noch nicht gespeichert. Bitte durchsehen und speichern."+wegGroesse
+   : (uebersprungen
+      ? "Nichts eingesetzt: bei allen "+uebersprungen+" angezeigten Artikeln führt die Regie-Liste die Grösse nicht. "
+        +"Das ist keine Zuordnung, die noch fehlt – es gibt die Position nicht. Unten steht je Zeile, welche Grössen vorhanden sind."
+      : "Kein Vorschlag ist sicher genug zum Vorwählen. Setze eine Zeile von Hand – die übrigen der Gruppe schlägt die App dann von selbst genauso vor.");
  }
 }
 async function lfZuordnenSpeichern(){
@@ -2016,6 +2300,7 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefArtikelWunschSetzen",()=>lfAufEinkaufsliste());
  an("liefZuordnenKnopf",()=>lfZuordnenOeffnen());
  an("liefZuordnenSichere",()=>lfZuordnenSichereUebernehmen());
+ an("liefZuordnenFehlend",()=>lfFehlendeRegieKopieren());
  an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
  an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());

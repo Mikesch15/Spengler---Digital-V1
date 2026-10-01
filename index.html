@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.242</div>
+<div id="appVersion">Version 3.243</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2489,7 +2489,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.243.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3236,7 +3236,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.242.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.243.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3513,6 +3513,11 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <h2>🔗 Artikel zuordnen <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
    <div class="small" id="liefZuordnenKennzahlen" style="color:var(--muted)"></div>
    <div class="small" style="color:var(--muted);margin-top:6px">Viele Artikel zeigen auf <b>dieselbe</b> Regie-Position – das ist richtig so. Ein Artikel ohne passende Position bleibt ohne; es wird keine erfunden.</div>
+   <!-- v3.243: "offen" und "nicht zuordenbar" sind nicht dasselbe. Gemessen
+        am 01.10.2026: 115 der 158 offenen Artikel sind 200er und 400er, die
+        Regie-Liste führt die Rinnenpositionen nur in 250 und 330. -->
+   <div class="small" id="liefZuordnenBefund" hidden style="margin-top:8px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:8px;background:var(--bg2)"></div>
    <!-- v3.235: Ansage des Anwenders - "können wir das so machen das ich die
         zuordnung pro kategorie machen kann damit es übersichtlicher ist".
         439 Artikel in 13 Gruppen, und je Gruppe ist die Zuordnung fast
@@ -3528,7 +3533,10 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <label class="rechte-schalter" style="margin-top:8px"><input type="checkbox" id="liefZuordnenNurOffene" checked> Nur noch nicht zugeordnete zeigen</label>
    <div class="bar" style="margin-top:8px">
     <button type="button" id="liefZuordnenSichere" class="blue">✅ Sichere Vorschläge einsetzen</button>
+    <button type="button" id="liefZuordnenFehlend" class="gray">📋 Fehlendes kopieren</button>
    </div>
+   <textarea id="liefZuordnenFehlendText" hidden rows="8" readonly
+    style="width:100%;margin-top:6px;font-family:ui-monospace,monospace;font-size:12px"></textarea>
    <!-- Sammelsetzen. Was angezeigt wird, wird gesetzt - nichts Unsichtbares. -->
    <div class="grid" style="margin-top:8px">
     <div class="wide"><label>Alle angezeigten auf diese Regie-Position setzen</label>
