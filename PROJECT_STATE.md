@@ -7,6 +7,69 @@
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
+### Datenbank-Durchsicht 01.10.2026 (ohne neue Version — am Code ändert sich nichts)
+
+Erstmals in dieser Sitzung den **Supabase-Linter** befragt statt weiter am
+Lager zu bauen. Migration `trigger_funktionen_aufraeumen`.
+
+**Behoben, beides von mir verursacht:**
+
+| Befund | Schwere |
+|---|---|
+| `lieferanten_artikel_normalisieren` ohne `search_path` — die **einzige** Funktion im Schema ohne | echt, aber klein: `SECURITY INVOKER`, ruft nur Eingebautes (`btrim`, `nullif`, `current_date`) |
+| Drei **Trigger**-Funktionen trugen noch `PUBLIC EXECUTE` (`lieferanten_artikel_normalisieren`, `lieferanten_artikel_regie_pruefen`, `lager_standard_variante`) | Unordnung, **kein** ausnutzbares Loch |
+
+Zum zweiten Punkt, ohne Übertreibung: alle drei geben `trigger` zurück und
+sind über PostgREST nicht aufrufbar — der Aufruf scheitert, bevor etwas
+geschieht. Es war nur das Standardrecht, das beim Anlegen mitkommt.
+
+**Bewiesen statt vermutet** (zweimal, je in einer sich selbst zurückrollenden
+Transaktion gegen die *Testfirma*): nach dem Entzug feuern alle drei Trigger
+unverändert — Lager-Variante entsteht, `artikelnr` wird geputzt, `preis_stand`
+gesetzt, fremde Regie-Position weiterhin abgelehnt. PostgreSQL prüft `EXECUTE`
+beim **Anlegen** eines Triggers, nicht beim Feuern. Kein echter Datensatz
+wurde verändert.
+
+**Geprüft und in Ordnung** — der Punkt, der nach einem Loch aussah: 13
+`system_admin_*`-Funktionen sind für jeden angemeldeten Nutzer aufrufbar,
+darunter `system_admin_delete_company_data`. **Alle prüfen `is_system_admin()`
+selbst**; die `measurement_*` prüfen `is_admin` oder die Firma,
+`admin_*` und `set_projektmodule` die Firma, `mark_own_password_set` wirkt nur
+auf `auth.uid()`. Nachprüfbar mit:
+
+```sql
+select p.proname, p.prosecdef,
+ coalesce(array_to_string(p.proconfig,','),'(kein search_path)') as config,
+ (p.prosrc ~* 'is_system_admin') as prueft_system_admin,
+ (p.prosrc ~* 'is_admin') as prueft_admin,
+ (p.prosrc ~* 'my_company_id') as prueft_firma
+from pg_proc p join pg_namespace n on n.oid=p.pronamespace
+where n.nspname='public' and p.prosecdef
+ and (p.proname like 'system_admin%' or p.proname like 'admin_%'
+      or p.proname like 'measurement_%') order by 1;
+```
+
+**Bewusst NICHT gemacht, mit Grund:**
+
+- **62 fehlende FK-Indizes** — fast alle auf `created_by`/`updated_by`, nach
+  denen niemand sucht. 62 Indizes verlangsamen jedes Schreiben für Abfragen,
+  die es nicht gibt. Wird relevant, wenn `lieferanten_bewegungen` zehntausende
+  Zeilen trägt; dann zuerst `artikel_id`.
+- **19 „unbenutzte" Indizes** — bei einem Lager, das nicht in Betrieb ist,
+  heisst das „noch nicht benutzt". `lieferanten_einkauf_artikel` zu löschen
+  wäre falsch.
+- **16 mehrfache Policies** — bestehende RLS-Entwürfe (feedback, companies,
+  feature_access). Zusammenlegen könnte Zugriffsrechte verschieben; dafür ist
+  ein Leistungshinweis auf Tabellen mit einer Handvoll Zeilen kein Grund
+  (CLAUDE.md 6: keine Policies ohne Prüfung ersetzen).
+- `password_reset_tokens` hat RLS **ohne** Policies = deny-all. Gemessen: im
+  Frontend kommt die Tabelle nicht vor, sie wird nur serverseitig benutzt.
+  Gewollt, kein Mangel.
+
+**Offen, liegt beim Anwender:** „Leaked Password Protection" ist aus
+(Supabase-Dashboard → Authentication → Passwords). Ein Konto-Schalter, den ich
+nicht ohne seine Entscheidung umlege.
+
 ### v3.246: Die Einkaufsliste gehört zu einem Lieferanten — und der Rundgang
 
 **Zwei Dinge, beide Aufräumen an der eigenen Arbeit.**
