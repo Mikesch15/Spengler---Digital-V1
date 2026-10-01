@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.243";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.244";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.243<br>
+  Version 3.244<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2700,11 +2700,26 @@ noch <span class="tasten">Alle angezeigten setzen</span> gehen deshalb über ein
 widersprechende Grösse hinweg; was ausgelassen wird, steht mit Anzahl und Grund da. In
 der Auswahl trägt so eine Zeile <strong>⚠ ANDERE GRÖSSE</strong>. Von Hand geht es
 weiterhin – es gibt Fälle, die nur der Spengler kennt.</div>
-<p><span class="tasten">📋 Fehlendes kopieren</span> gibt die Liste zum Mitnehmen: je
-Produktgruppe und Grösse, wie viele Artikel betroffen sind und welche Grössen vorhanden
-wären. <strong>Ob die Regieliste erweitert wird, ist eure Entscheidung</strong> – sie ist
-die Grundlage der Verrechnung, und die App legt dort nichts an. Solange die Position
-fehlt, bleiben diese Artikel ohne und lassen sich im Regierapport nicht scannen.</p>
+<p><span class="tasten">📋 Was fehlt</span> macht daraus eine <strong>Arbeitsliste</strong>
+(ab 3.244): je Zeile <em>eine</em> Position, die angelegt werden könnte – nicht je
+Artikel. Sie steht direkt im Dialog und ist zusätzlich kopiert. Zwei Teile, weil sie
+Verschiedenes bedeuten.</p>
+<p><strong>A) Vorhandene Position in anderer Grösse.</strong> Die Regieliste führt sie
+schon; <strong>Name und Einheit stehen fest</strong>, es fehlen nur EDV-Nr. und Preis.
+Die App folgt dabei dem Stil der eigenen Liste: beim Blech je Werkstoff (201.01 Kupfer,
+201.11 Titanzink, 201.13 Chromnickelstahl), beim Formteil als „alle Materialien“ (203.41
+Einhängestutzen, 203.21 Rinnenboden, 203.01 Rinnenwinkel). Welcher Stil in einer Gruppe
+gilt, verraten die bereits zugeordneten Artikel derselben Gruppe – geraten wird nichts.</p>
+<p><strong>B) Warenart fehlt ganz.</strong> Rinnenhaken eckig, Rinnenkugelböden,
+Schrägstutzen: hier ist es keine Kopie, sondern eine fachliche Entscheidung – gibt es
+diese Position im Betrieb, und unter welchem Namen? Die App nennt die ähnlichste
+vorhandene zur Orientierung.</p>
+<div class="hin"><strong>EDV-Nr. und Preis schlägt die App bewusst nicht vor.</strong>
+Eine geratene Nummer landet im Nummernsystem des Betriebs, ein geratener Preis auf einer
+Rechnung. Angelegt wird in der <strong>Lagerverwaltung</strong> unter „neues Material
+anlegen“ – die App legt in der Regieliste von selbst nichts an. Solange die Position
+fehlt, bleiben diese Artikel ohne Regie-Position und lassen sich im Regierapport nicht
+scannen; auch das ist eine Antwort.</div>
 <div class="hin">Auch eine <strong>bereits gespeicherte</strong> Zuordnung wird gefragt,
 wenn die Grössen nicht zusammenpassen: „zugeordnet auf Grösse 250 – stimmt das?“.
 Geändert wird nichts von selbst. Und eine Dimension, die <em>keine</em> Grösse ist –
@@ -3071,7 +3086,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.243</strong>, Stand 1. Oktober 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.244</strong>, Stand 1. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

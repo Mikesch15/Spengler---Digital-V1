@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.243.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.244.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1732,12 +1732,26 @@ eine widersprechende Gr\u00f6sse hinweg \u2013 ausgelassen wird benannt, nicht
 stillschweigend. In der Auswahl steht bei so einer Zeile <b>\u26a0 ANDERE
 GR\u00d6SSE</b>. Von Hand geht es weiterhin: es gibt F\u00e4lle, die nur du
 kennst.</div>
-<p><b>\U0001f4cb Fehlendes kopieren</b> gibt die Liste zum Mitnehmen: je
-Produktgruppe und Gr\u00f6sse, wie viele Artikel betroffen sind und welche
-Gr\u00f6ssen vorhanden w\u00e4ren. <b>Ob die Regieliste erweitert wird, ist deine
-Entscheidung</b> \u2013 sie ist die Grundlage der Verrechnung, und die App legt
-dort nichts an. Solange die Position fehlt, bleiben diese Artikel ohne und
-lassen sich im Regierapport nicht scannen.</p>
+<p><b>\U0001f4cb Was fehlt</b> macht daraus eine <b>Arbeitsliste</b> (ab 3.244)
+\u2013 je Zeile <i>eine</i> Position, die du anlegen k\u00f6nntest, nicht je
+Artikel. Sie steht direkt im Dialog und ist zus\u00e4tzlich kopiert. Zwei Teile,
+weil sie Verschiedenes bedeuten:</p>
+<p><b>A) Vorhandene Position in anderer Gr\u00f6sse.</b> Deine Liste f\u00fchrt sie
+schon \u2013 <b>Name und Einheit stehen fest</b>, es fehlen nur EDV-Nr. und Preis.
+Dabei folgt die App dem Stil <i>deiner</i> Liste: beim Blech je Werkstoff
+(201.01 Kupfer, 201.11 Titanzink, 201.13 Chromnickelstahl), beim Formteil als
+\u201ealle Materialien\u201c (203.41 Einh\u00e4ngestutzen, 203.21 Rinnenboden). Welcher
+Stil in einer Gruppe gilt, verr\u00e4t sie selbst \u2013 geraten wird nichts.</p>
+<p><b>B) Warenart fehlt ganz.</b> Rinnenhaken eckig, Rinnenkugelb\u00f6den,
+Schr\u00e4gstutzen: hier ist es keine Kopie, sondern eine fachliche Entscheidung
+\u2013 gibt es die Position bei euch, und unter welchem Namen? Die App nennt dazu
+die \u00e4hnlichste vorhandene zur Orientierung.</p>
+<div class="hin"><b>EDV-Nr. und Preis schl\u00e4gt die App bewusst NICHT vor.</b>
+Eine geratene Nummer landet in deinem Nummernsystem, ein geratener Preis auf
+einer Rechnung. Angelegt wird in der <b>Lagerverwaltung</b> unter \u201eneues
+Material anlegen\u201c; die App legt in der Regieliste von selbst nichts an.
+Solange die Position fehlt, bleiben diese Artikel ohne und lassen sich im
+Regierapport nicht scannen \u2013 auch das ist eine Antwort.</div>
 <div class="hin">Auch eine <b>bereits gespeicherte</b> Zuordnung wird gefragt,
 wenn die Gr\u00f6ssen nicht zusammenpassen: \u201ezugeordnet auf Gr\u00f6sse 250 \u2013
 stimmt das?\u201c. Ge\u00e4ndert wird nichts von selbst. Eine Dimension, die

@@ -3,9 +3,58 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.243`
+- Aktueller Entwicklungsstand: `v3.244`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.244: „Was fehlt" wird eine Arbeitsliste
+
+v3.243 sagt, **was** nicht geht. v3.244 beantwortet „und was muss ich tun?" —
+und die Antwort steht in **seiner eigenen Liste**.
+
+**Befund** (01.10.2026): seine Regie-Liste benutzt **zwei Stile**, je Warenart
+verschieden.
+
+| Stil | Beispiele |
+|---|---|
+| je Werkstoff | 201.01/02 Dachrinnen halbrund Kupfer · 201.11/12 Titanzink · 201.13/14 Chromnickelstahl |
+| alle Materialien | 203.41/42 Einhängestutzen · 203.21/22 Rinnenboden · 203.01/02 Rinnenwinkel · 203.31/32 Dehnungselement |
+
+Beim Blech ist der Werkstoff der Preis, beim Formteil nicht. Das ist eine
+fachliche Unterscheidung, die er getroffen hat — **geraten wird sie nicht**:
+`lfMusterFuer(a)` liest sie aus den bereits zugeordneten Artikeln derselben
+Gruppe ab. Ein Name für die Gruppe → `alle`; mehrere Namen → `werkstoff`, und
+das Muster ist der Name, den die Artikel **mit demselben Werkstoff** benutzen,
+nicht der häufigste (Y2).
+
+- `lfFehlendeRegie()` fasst jetzt nach der **Position** zusammen, nicht nach
+  dem Artikel: eine Zeile ist eine Position, die er anlegen könnte (Y5).
+- Zwei Arten von Lücke, weil sie Verschiedenes bedeuten (Y6):
+  `muster` (Name + Einheit stehen fest, es fehlen EDV-Nr. und Preis) und
+  `neu` (die Warenart fehlt ganz — Rinnenhaken eckig, Kugelböden,
+  Schrägstutzen; dazu die ähnlichste vorhandene zur Orientierung, Y9).
+- **EDV-Nr. und Preis schlägt die App nicht vor** (Y12). Eine geratene Nummer
+  landet in seinem Nummernsystem, ein geratener Preis auf einer Rechnung.
+- Der Knopf **zeigt** die Liste im Dialog und kopiert sie zusätzlich (Y14) —
+  eine Arbeitsliste nur in der Zwischenablage muss man erst irgendwohin
+  einfügen, um sie zu lesen.
+- **Die Zusage bleibt** (Y17): js/82 **liest** die Regie-Liste, legt dort aber
+  nichts an — weder direkt noch über `katalogPositionAnlegen()` aus js/59.
+  Angelegt wird in der Lagerverwaltung, wie bisher.
+
+**Grenze, offen benannt:** die angezeigte Grösse kommt aus `zuschnitt_mm`. Bei
+den Rinnenstutzen 100/120 ist das der **Ablauf**, nicht die Rinnengrösse (die
+steht in der Artikelnummer: `20.160.400.100` = 400er Rinne, 100 mm Ablauf).
+Betrifft 6 der 158 Artikel. Statt das zu erraten — die Nummer trägt auch
+Codesegmente wie `160`, und ein dritter Fehlalarm wäre teurer als eine offene
+Angabe — stehen je Zeile **ein bis zwei Beispielartikel** (Y8), und der Text
+sagt diese Grenze ausdrücklich.
+
+**Arbeitsregel (aus diesem Lauf gelernt):** während `ci-lauf.js` läuft, nicht
+am Arbeitsbaum ändern. Die Prüfstände lesen die Dateien zur Laufzeit; der
+v3.243-Lauf war ab etwa Prüfstand 96 schon gegen v3.244-Code unterwegs.
+Beides grün, aber der Lauf war dadurch nicht mehr sauber einer Version
+zuzuordnen.
 
 ### v3.243: Die Grösse entscheidet mit — kein Beinahe-Treffer
 
