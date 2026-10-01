@@ -1728,6 +1728,125 @@ const KATALOG=`()=>{
  });
  p(z.length===0,"U18 alle Bedienteile stehen im Dokument",z);
 
+ // ---- V  Mehrere Lieferanten in der Bedienung (v3.241) -----------------
+ //
+ // Ansage des Anwenders: "weitere produkte werden folgen."
+ //
+ // Das Datenmodell ist seit v3.231 mehrlieferantenfaehig, die BEDIENUNG war
+ // es nicht. Der teure Fehler: "alle angezeigten setzen" greift quer ueber
+ // zwei Haendler, oder eine Gruppenauswahl zeigt Gruppen, die danach keine
+ // Zeile haben.
+ console.log("\nV · Mehrere Lieferanten in der Bedienung");
+ const ZWEI=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",gruppe:"Rinnenstutzen",mindestbestand:0},
+   {id:2,lieferant:"B-Team",artikelnr:"S2",bezeichnung:"Rinnenstutzen 330",gruppe:"Rinnenstutzen",mindestbestand:0,material_id:7001},
+   {id:3,lieferant:"Gyso",artikelnr:"G1",bezeichnung:"Dichtungsmasse 310ml",gruppe:"Dichtstoffe",mindestbestand:0,preis:12.5},
+   {id:4,lieferant:"Gyso",artikelnr:"G2",bezeichnung:"Butylband 100mm",gruppe:"Bänder",mindestbestand:0}];
+  lfBewegungen=[{id:1,artikel_id:1,art:"zugang",menge:10}];
+  lfEinkauf=[];
+  lfLieferant=""; lfSuche=""; lfVorschlagCache={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfZuordnungen={};
+  lfInvGruppe=""; lfInvSuche=""; lfInvGezaehlt={}; lfInvMindest={};
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const stand=lfLieferantenStand();
+  return {stand, lieferanten:lfLieferanten()};
+ },{k:KATALOG,z:ZWEI});
+ p(z.lieferanten.join(",")==="B-Team,Gyso"&&z.stand.length===2,
+   "V1 die Lieferanten werden aus den Artikeln abgeleitet - keine zweite Liste",z);
+ p(z.stand[0].artikel===2&&z.stand[0].zugeordnet===1&&z.stand[0].mitPreis===0
+   &&z.stand[0].mitBestand===1&&z.stand[1].mitPreis===1,
+   "V2 die Uebersicht zaehlt je Lieferant: Artikel, zugeordnet, mit Preis, mit Bestand",z.stand);
+ // Der Filter wirkt in ALLEN drei Ansichten - er ist EINER, nicht drei.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfLieferant="Gyso";
+  return {
+   haupt:lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a)&&lfPasstZurSuche(a)).map(a=>a.artikelnr),
+   zuordnen:lfZuordnenKandidaten().map(a=>a.artikelnr),
+   inventur:lfInvKandidaten().map(a=>a.artikelnr),
+   gruppenZu:lfZuordnenGruppen().map(g=>g.name)
+  };
+ },{k:KATALOG,z:ZWEI});
+ p(z.haupt.sort().join(",")==="G1,G2"&&z.zuordnen.sort().join(",")==="G1,G2"
+   &&z.inventur.sort().join(",")==="G1,G2",
+   "V3 EIN Filter wirkt in Artikelliste, Zuordnen und Inventur - 'an welchem Lieferanten arbeite ich' ist eine Frage, nicht drei",z);
+ p(z.gruppenZu.sort().join(",")==="Bänder,Dichtstoffe",
+   "V4 und die Gruppenauswahl zeigt nur die Gruppen dieses Lieferanten - sonst stehen dort Gruppen, die danach keine Zeile haben",z.gruppenZu);
+ // Sammelsetzen darf NICHT ueber den Lieferanten hinausgreifen.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfLieferant="Gyso";
+  $("liefZuordnenRegie").value="203.06";
+  lfZuordnenAlleSetzen();
+  const zu=Object.keys(lfZuordnungen).sort();
+  lfInvGezaehlt={}; lfInvMindest={};
+  $("liefInvMindestAlle").value="10";
+  lfInvMindestAlle();
+  return {zu, inv:Object.keys(lfInvMindest).sort()};
+ },{k:KATALOG,z:ZWEI});
+ p(z.zu.join(",")==="3,4",
+   "V5 GEGENPROBE: 'Alle angezeigten setzen' im Zuordnen bleibt beim gewaehlten Lieferanten",z);
+ p(z.inv.join(",")==="3,4",
+   "V6 GEGENPROBE: und 'allen angezeigten diesen Mindestbestand' ebenso - quer ueber zwei Haendler zu setzen waere der teure Fehler",z);
+ // Die Kennzahl zaehlt, was der Filter durchlaesst.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfZeichnen();
+  const alle=$("liefKennzahlen").textContent.replace(/\s+/g," ");
+  lfLieferant="B-Team";
+  lfZeichnen();
+  const nurB=$("liefKennzahlen").textContent.replace(/\s+/g," ");
+  return {alle,nurB};
+ },{k:KATALOG,z:ZWEI});
+ p(/4 Artikel/.test(z.alle)&&/2 Artikel/.test(z.nurB)&&/nur B-Team/.test(z.nurB),
+   "V7 die Kennzahl zaehlt die GEFILTERTEN Artikel und sagt, dass gefiltert ist",z);
+ // Bei nur EINEM Lieferanten bleibt der Filter weg und setzt sich zurueck.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfArtikel=lfArtikel.filter(a=>a.lieferant==="B-Team");
+  lfLieferant="Gyso";                 // Rest aus einer frueheren Wahl
+  lfLieferantWahlZeichnen("liefLieferantWahl","liefLieferantWahlBox");
+  lfLieferantenUebersichtZeichnen();
+  return {box:$("liefLieferantWahlBox").hidden, filter:lfLieferant,
+          uebersicht:$("liefLieferantenUebersicht").hidden};
+ },{k:KATALOG,z:ZWEI});
+ p(z.box===true&&z.uebersicht===true,
+   "V8 bei nur einem Lieferanten bleiben Filter und Uebersicht weg - ein Filter mit einer Wahl ist Rauschen",z);
+ p(z.filter==="",
+   "V9 GEGENPROBE: und ein Rest aus einer frueheren Wahl wird zurueckgesetzt - sonst waere die Liste leer und niemand wuesste warum",z);
+ // Tippfehler-Schutz: "Bteam" neben "B-Team" waere ein zweiter Lieferant.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const setze=v=>{ $("liefExcelLieferant").value=v; lfLieferantHinweisZeichnen();
+   return {weg:$("liefExcelLieferantHinweis").hidden,
+           text:$("liefExcelLieferantHinweis").textContent.replace(/\s+/g," ")} };
+  const aehnlich=setze("bteam");
+  const gleich=setze("B-Team");
+  const neu=setze("Würth");
+  // Uebernehmen-Knopf
+  setze("b team");
+  const k=document.querySelector("#liefExcelLieferantHinweis [data-lf-lieferant-uebernehmen]");
+  if(k)k.click();
+  const nachKlick=$("liefExcelLieferant").value;
+  $("liefExcelLieferant").value="";
+  return {aehnlich,gleich,neu,nachKlick};
+ },{k:KATALOG,z:ZWEI});
+ p(z.aehnlich.weg===false&&/B-Team/.test(z.aehnlich.text)&&/zweiter/.test(z.aehnlich.text),
+   "V10 'bteam' warnt vor dem vorhandenen 'B-Team' und sagt, was sonst passiert",z.aehnlich);
+ p(z.gleich.weg===true&&z.neu.weg===true,
+   "V11 GEGENPROBE: der genaue Name und ein wirklich neuer Haendler loesen KEINE Warnung aus - geblockt wird nichts",z);
+ p(z.nachKlick==="B-Team",
+   "V12 'Übernehmen' setzt den vorhandenen Namen ein, statt ihn tippen zu lassen",z);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefLieferantWahl","liefLieferantWahlBox","liefLieferantenUebersicht",
+          "liefZuordnenLieferant","liefInvLieferant","liefExcelLieferantHinweis"].filter(x=>!el(x));
+ });
+ p(z.length===0,"V13 alle Bedienteile stehen im Dokument",z);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();

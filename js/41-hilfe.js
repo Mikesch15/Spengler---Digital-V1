@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1711,6 +1711,21 @@ umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
 Elektromaschinen). Erfunden wird nichts.</p>
 <div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
+<p><b>Mehrere Lieferanten.</b> Sobald mehr als einer da ist, erscheint oben eine
+<b>Übersicht</b> (je Lieferant: Artikel, zugeordnet, mit Preis, mit Bestand) und
+ein <b>Filter</b>. Der Filter ist <i>einer</i> für alle drei Ansichten –
+Artikelliste, Zuordnen und Inventur: „an welchem Lieferanten arbeite ich
+gerade“ ist eine Frage, nicht drei. Mit nur einem Lieferanten bleiben beide
+weg.</p>
+<div class="hin">Wichtig dabei: <b>„Alle angezeigten setzen“</b> greift nie über
+den gewählten Lieferanten hinaus – weder beim Zuordnen noch beim
+Mindestbestand. Und die Gruppenauswahl zeigt nur die Gruppen dieses
+Lieferanten.</div>
+<p>Beim <b>Hochladen</b> warnt die App, wenn der eingetippte Lieferantenname
+einem vorhandenen zu ähnlich ist („bteam“ neben „B-Team“) – sonst entstünde
+ein <b>zweiter</b> Lieferant mit eigenem Nummernkreis, und auffallen würde das
+erst viel später. Geblockt wird nichts: es kann einen Händler geben, der
+wirklich so ähnlich heisst.</p>
 <p><b>\U0001f9ee Inventur – Bestand und Mindestbestand erfassen.</b> Regal für Regal
 durchgehen: oben die <b>Produktgruppe</b> wählen, dann je Zeile <b>gezählt</b>
 eintragen und gleich daneben, wie viel immer da sein soll. Mit

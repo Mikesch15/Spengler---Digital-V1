@@ -67,6 +67,70 @@ function lfLieferanten(){
  return [...new Set(lfArtikel.map(a=>String(a.lieferant||"").trim()).filter(Boolean))].sort();
 }
 
+// ---- Der Lieferanten-Filter (v3.241) --------------------------------------
+//
+// Ansage des Anwenders: "weitere produkte werden folgen."
+//
+// Das Datenmodell ist seit v3.231 mehrlieferantenfaehig, die BEDIENUNG war es
+// nicht: Artikelliste, Zuordnen und Inventur mischten alle Lieferanten in
+// dieselben Produktgruppen. Mit einer zweiten Liste heisst das, dass unter
+// "Dachrinnen" die Ware zweier Haendler untereinander steht und
+// "alle angezeigten setzen" quer darueber greift.
+//
+// EIN Filter fuer alle drei Ansichten, nicht drei. "An welchem Lieferanten
+// arbeite ich gerade" ist eine Frage, nicht drei - und drei Schalter, die
+// dasselbe meinen, laufen auseinander.
+let lfLieferant="";     // "" = alle
+
+function lfLieferantPasst(a){
+ if(!lfLieferant)return true;
+ return String(a&&a.lieferant||"").trim()===lfLieferant;
+}
+// Kennzahlen je Lieferant - abgeleitet aus den Artikeln, nicht gefuehrt.
+function lfLieferantenStand(){
+ const m={};
+ lfArtikel.filter(a=>!a.archiviert).forEach(a=>{
+  const l=String(a.lieferant||"").trim()||"Ohne Lieferant";
+  if(!m[l])m[l]={name:l,artikel:0,zugeordnet:0,mitPreis:0,mitBestand:0,unterMindest:0};
+  const s=m[l];
+  s.artikel++;
+  if(lfRegieVon(a))s.zugeordnet++;
+  if(lfHatPreis(a))s.mitPreis++;
+  if(lfBestand(a.id)!==0)s.mitBestand++;
+  if(lfFehlt(a)>0)s.unterMindest++;
+ });
+ return Object.keys(m).sort((x,y)=>x.localeCompare(y,"de")).map(k=>m[k]);
+}
+// Ein Auswahlfeld, gefuellt aus den vorhandenen Lieferanten. Bei nur EINEM
+// Lieferanten bleibt es weg - ein Filter mit einer Wahl ist kein Filter,
+// sondern Rauschen.
+function lfLieferantWahlZeichnen(selId,boxId){
+ if(typeof $!=="function")return;
+ const sel=$(selId), box=boxId?$(boxId):null;
+ if(!sel)return;
+ const liste=lfLieferantenStand();
+ const mehrere=liste.length>1;
+ if(box)box.hidden=!mehrere;
+ if(!mehrere){ lfLieferant=""; return }
+ sel.innerHTML=`<option value=""${lfLieferant===""?" selected":""}>Alle Lieferanten (${
+  liste.reduce((s,x)=>s+x.artikel,0)} Artikel)</option>`
+  +liste.map(x=>`<option value="${esc(x.name)}"${lfLieferant===x.name?" selected":""}>${
+   esc(x.name)} – ${x.artikel} Artikel</option>`).join("");
+}
+function lfLieferantenUebersichtZeichnen(){
+ if(typeof $!=="function")return;
+ const box=$("liefLieferantenUebersicht");
+ if(!box)return;
+ const liste=lfLieferantenStand();
+ if(liste.length<2){ box.innerHTML=""; box.hidden=true; return }
+ box.hidden=false;
+ box.innerHTML=liste.map(x=>`<div class="small" style="color:var(--muted)">
+  <b>${esc(x.name)}</b> · ${x.artikel} Artikel · ${x.zugeordnet} zugeordnet · ${
+  x.mitPreis} mit Preis · ${x.mitBestand} mit Bestand${
+  x.unterMindest?` · <b style="color:var(--red)">${x.unterMindest}</b> unter Mindestbestand`:""}
+ </div>`).join("");
+}
+
 // ---- Laden ----------------------------------------------------------------
 async function lfLaden(){
  if(typeof sb==="undefined")return false;
@@ -261,6 +325,7 @@ function lfInvKandidaten(){
  const q=lfInvSuche.trim().toLowerCase();
  return lfArtikel.filter(a=>{
   if(a.archiviert)return false;
+  if(!lfPasstZumFilter(a))return false;
   if(lfInvGruppe&&String(a.gruppe||"Ohne Gruppe")!==lfInvGruppe)return false;
   if(q&&![a.bezeichnung,a.artikelnr,a.ean,a.material].some(x=>String(x||"").toLowerCase().indexOf(q)>=0))return false;
   return true;
@@ -316,7 +381,8 @@ function lfInvGruppenZeichnen(){
  const sel=$("liefInvGruppe");
  if(!sel)return;
  const m={};
- lfArtikel.filter(a=>!a.archiviert).forEach(a=>{
+ // v3.241: nur die Gruppen des gewaehlten Lieferanten.
+ lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a)).forEach(a=>{
   const g=String(a.gruppe||"Ohne Gruppe");
   if(!m[g])m[g]={name:g,gesamt:0,gezaehlt:0};
   m[g].gesamt++;
@@ -332,6 +398,7 @@ function lfInvZeichnen(){
  const box=$("liefInvListe");
  if(!box)return;
  lfInvKopfZeichnen();
+ lfLieferantWahlZeichnen("liefInvLieferant","liefInvLieferantBox");
  lfInvGruppenZeichnen();
  const liste=lfInvKandidaten();
  if(!liste.length){
@@ -878,7 +945,9 @@ let lfZuordnenSuche="";    // v3.235: innerhalb der Gruppe weiter eingrenzen
 // Zug setzen.
 function lfZuordnenGruppen(){
  const m={};
- lfArtikel.filter(a=>!a.archiviert).forEach(a=>{
+ // v3.241: nur die Gruppen des gewaehlten Lieferanten - sonst stehen in der
+ // Auswahl Gruppen, die danach keine Zeile zeigen.
+ lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a)).forEach(a=>{
   const g=String(a.gruppe||"Ohne Gruppe");
   if(!m[g])m[g]={name:g,gesamt:0,offen:0};
   m[g].gesamt++;
@@ -891,6 +960,7 @@ function lfZuordnenKandidaten(){
  const q=lfZuordnenSuche.trim().toLowerCase();
  return lfArtikel.filter(a=>{
   if(a.archiviert)return false;
+  if(!lfPasstZumFilter(a))return false;
   if(lfZuordnenNurOffene&&lfRegieVon(a))return false;
   if(lfZuordnenGruppe&&String(a.gruppe||"Ohne Gruppe")!==lfZuordnenGruppe)return false;
   if(q&&![a.bezeichnung,a.artikelnr,a.material].some(x=>String(x||"").toLowerCase().indexOf(q)>=0))return false;
@@ -1015,6 +1085,7 @@ function lfZuordnenZeichnen(){
  const box=$("liefZuordnenListe");
  if(!box)return;
  lfZuordnenKopfZeichnen();
+ lfLieferantWahlZeichnen("liefZuordnenLieferant","liefZuordnenLieferantBox");
  lfZuordnenGruppenZeichnen();
  const liste=lfZuordnenKandidaten();
  const setzen=$("liefZuordnenAlle");
@@ -1602,6 +1673,9 @@ function lfScannenUndBuchen(art){
 }
 
 // ---- Anzeige --------------------------------------------------------------
+// v3.241: Der Lieferanten-Filter wirkt VOR der Suche - er sagt, womit man
+// gerade arbeitet, die Suche sagt, was man darin sucht.
+function lfPasstZumFilter(a){ return lfLieferantPasst(a) }
 function lfPasstZurSuche(a){
  const q=lfSuche.trim().toLowerCase();
  if(!q)return true;
@@ -1647,13 +1721,22 @@ function lfZeichnen(){
  const box=$("liefListe");
  if(!box)return;
  const mitLieferant=lfLieferanten().length>1;
- const treffer=lfArtikel.filter(a=>!a.archiviert&&lfPasstZurSuche(a));
+ lfLieferantWahlZeichnen("liefLieferantWahl","liefLieferantWahlBox");
+ lfLieferantenUebersichtZeichnen();
+ const treffer=lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a)&&lfPasstZurSuche(a));
  const k=$("liefKennzahlen");
  if(k){
-  const mitBestand=lfArtikel.filter(a=>lfBestand(a.id)>0).length;
-  const fehlt=lfUnterMindest().length;
-  k.innerHTML=`<b>${lfArtikel.length}</b> Artikel · <b>${mitBestand}</b> mit Bestand · <b>${lfBewegungen.length}</b> Buchungen`
-   +(fehlt?` · <b style="color:var(--red)">${fehlt}</b> unter Mindestbestand`:"");
+  // Gezaehlt wird, was der Filter durchlaesst - eine Zahl, die etwas
+  // anderes meint als die Liste darunter, ist schlimmer als keine.
+  const imFilter=lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a));
+  const mitBestand=imFilter.filter(a=>lfBestand(a.id)>0).length;
+  const fehlt=imFilter.filter(a=>lfFehlt(a)>0).length;
+  const buchungen=lfLieferant
+   ? lfBewegungen.filter(b=>{ const a=lfArtikelZuId(b.artikel_id); return a&&lfPasstZumFilter(a) }).length
+   : lfBewegungen.length;
+  k.innerHTML=`<b>${imFilter.length}</b> Artikel · <b>${mitBestand}</b> mit Bestand · <b>${buchungen}</b> Buchungen`
+   +(fehlt?` · <b style="color:var(--red)">${fehlt}</b> unter Mindestbestand`:"")
+   +(lfLieferant?` · <span style="color:var(--muted)">nur ${esc(lfLieferant)}</span>`:"");
  }
  // v3.232: Der Knopf zaehlt die ganze Einkaufsliste, nicht nur die
  // unterschrittenen Mindestbestaende - sonst fehlte von Hand Gesetztes in
@@ -1743,6 +1826,36 @@ function lfVergleichsstand(){
  return m;
 }
 
+// v3.241: Tippfehler-Schutz beim Import.
+//
+// Der Lieferant ist ein Freitextfeld - "Bteam" neben "B-Team" waere ein
+// ZWEITER Lieferant, mit eigenem Nummernkreis, eigener Gruppenliste und
+// doppelten Artikeln. Auffallen wuerde es erst viel spaeter.
+//
+// Geblockt wird nichts: es kann einen Haendler geben, der wirklich so
+// aehnlich heisst. Gefragt wird, und das Uebernehmen ist ein Knopf.
+function lfAehnlich(a,b){
+ const k=s=>String(s||"").toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .replace(/[^a-z0-9]/g,"");
+ const x=k(a), y=k(b);
+ return !!x&&!!y&&x===y;
+}
+function lfLieferantHinweisZeichnen(){
+ if(typeof $!=="function")return;
+ const feld=$("liefExcelLieferant"), hin=$("liefExcelLieferantHinweis");
+ if(!feld||!hin)return;
+ const wert=feld.value.trim();
+ const treffer=lfLieferanten().find(l=>l!==wert&&lfAehnlich(l,wert));
+ if(!treffer){ hin.innerHTML=""; hin.hidden=true; return }
+ hin.hidden=false;
+ hin.innerHTML=`Es gibt schon <b>${esc(treffer)}</b> – gemeint?
+  <button type="button" class="gray" data-lf-lieferant-uebernehmen="${esc(treffer)}"
+   style="margin-left:6px">Übernehmen</button>
+  <div class="small" style="color:var(--muted);margin-top:4px">Sonst entsteht ein
+  <b>zweiter</b> Lieferant mit eigenem Nummernkreis – auffallen würde das erst viel später.</div>`;
+}
+
 // Die Auswahlliste am Import wird aus den vorhandenen Lieferanten gefuellt -
 // tippen muss man nur beim ersten Mal, und ein Tippfehler legt keinen
 // zweiten Lieferanten an, den es gar nicht gibt.
@@ -1773,6 +1886,13 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
  if(aus){ lfBuchenOeffnen(aus.getAttribute("data-lf-aus"),"abgang"); return }
  const art=t.closest("[data-lf-artikel]");
  if(art){ lfArtikelOeffnen(art.getAttribute("data-lf-artikel")); return }
+ // v3.241: den vorhandenen Lieferantennamen uebernehmen statt ihn neu zu tippen.
+ const lu=t.closest("[data-lf-lieferant-uebernehmen]");
+ if(lu){
+  const f=$("liefExcelLieferant");
+  if(f){ f.value=lu.getAttribute("data-lf-lieferant-uebernehmen"); lfLieferantHinweisZeichnen() }
+  return;
+ }
  const erl=t.closest("[data-lf-erledigt]");
  if(erl){ lfEinkaufErledigt(erl.getAttribute("data-lf-erledigt")); return }
  // v3.239: Wareneingang aus der Einkaufsliste.
@@ -1921,4 +2041,22 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  if(sz)sz.oninput=()=>{ lfZuordnenSuche=sz.value; lfZuordnenZeichnen() };
  const s=$("liefSuche");
  if(s)s.oninput=()=>{ lfSuche=s.value; lfZeichnen() };
+ // v3.241: EIN Filter, drei Ansichten. Wird er irgendwo gewechselt, gilt er
+ // ueberall - "an welchem Lieferanten arbeite ich gerade" ist eine Frage,
+ // nicht drei. Gruppen- und Suchfilter werden dabei zurueckgesetzt: eine
+ // Gruppe des alten Lieferanten gibt es beim neuen meist nicht, und eine
+ // Auswahl, die ins Leere zeigt, sieht wie ein Fehler aus.
+ const lw=(id,danach)=>{
+  const el=$(id);
+  if(el)el.onchange=()=>{
+   lfLieferant=el.value;
+   lfZuordnenGruppe=""; lfInvGruppe="";
+   danach();
+  };
+ };
+ lw("liefLieferantWahl",()=>lfZeichnen());
+ lw("liefZuordnenLieferant",()=>{ lfZuordnenZeichnen(); lfZeichnen() });
+ lw("liefInvLieferant",()=>{ lfInvZeichnen(); lfZeichnen() });
+ const le=$("liefExcelLieferant");
+ if(le)le.addEventListener("input",()=>lfLieferantHinweisZeichnen());
 });

@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.240</div>
+<div id="appVersion">Version 3.241</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2485,7 +2485,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 119 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 120 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3232,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.241.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3278,6 +3278,12 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
   <div class="card">
    <h2>📦 Lieferanten-Lager <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
    <div class="small" id="liefKennzahlen" style="color:var(--muted)"></div>
+   <!-- v3.241: Lieferanten-Übersicht und -Filter. Beide bleiben weg, solange
+        es nur EINEN Lieferanten gibt - ein Filter mit einer Wahl ist kein
+        Filter, sondern Rauschen. -->
+   <div id="liefLieferantenUebersicht" hidden style="margin-top:4px"></div>
+   <div class="wide" id="liefLieferantWahlBox" hidden style="margin-top:8px">
+    <label>Lieferant</label><select id="liefLieferantWahl"></select></div>
    <!-- Scannen zuerst und gross: das ist die Arbeit, alles andere ist
         Verwaltung. Dieselbe Reihenfolge wie in der Lagerverwaltung. -->
    <div class="bar" style="margin-top:10px">
@@ -3305,7 +3311,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
          im Lager schon gibt: tippen muss man nur beim ersten Mal. -->
     <div class="wide" style="margin-top:8px"><label>Von welchem Lieferanten ist die Datei?</label>
      <input id="liefExcelLieferant" list="liefLieferantenListe" placeholder="z. B. B-Team" autocomplete="off">
-     <datalist id="liefLieferantenListe"></datalist></div>
+     <datalist id="liefLieferantenListe"></datalist>
+     <div class="info" id="liefExcelLieferantHinweis" hidden style="margin-top:6px"></div></div>
     <div class="bar" style="margin-top:8px">
      <button type="button" class="blue" id="liefExcelBtn">📥 Excel-Datei wählen</button>
      <button type="button" class="gray" id="liefEinlesen">⬇ Startsortiment einlesen</button>
@@ -3437,6 +3444,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <h2>🧮 Inventur <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
    <div class="small" id="liefInvKennzahlen" style="color:var(--muted)"></div>
    <div class="small" style="color:var(--muted);margin-top:6px">Regal für Regal durchgehen: <b>gezählt</b> eintragen, und gleich daneben, wie viel immer da sein soll. Ein <b>leeres</b> Feld heisst „nicht gezählt“ – der Artikel wird dann nicht angefasst.</div>
+   <div class="wide" id="liefInvLieferantBox" hidden style="margin-top:8px">
+    <label>Lieferant</label><select id="liefInvLieferant"></select></div>
    <div class="grid" style="margin-top:8px">
     <div class="wide"><label>Produktgruppe</label>
      <select id="liefInvGruppe"></select></div>
@@ -3504,6 +3513,8 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
         zuordnung pro kategorie machen kann damit es übersichtlicher ist".
         439 Artikel in 13 Gruppen, und je Gruppe ist die Zuordnung fast
         immer dieselbe. -->
+   <div class="wide" id="liefZuordnenLieferantBox" hidden style="margin-top:8px">
+    <label>Lieferant</label><select id="liefZuordnenLieferant"></select></div>
    <div class="grid" style="margin-top:8px">
     <div class="wide"><label>Produktgruppe</label>
      <select id="liefZuordnenGruppe"></select></div>

@@ -3,9 +3,29 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.240`
+- Aktueller Entwicklungsstand: `v3.241`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.241: Mehrere Lieferanten in der Bedienung
+
+Ansage: „weitere produkte werden folgen." Das Datenmodell ist seit v3.231
+mehrlieferantenfähig, die **Bedienung** war es nicht.
+
+- **Ein** Filter `lfLieferant` für **alle drei** Ansichten (Artikelliste,
+  Zuordnen, Inventur) — drei Schalter, die dasselbe meinen, laufen auseinander.
+  Beim Wechsel werden Gruppen-/Suchfilter zurückgesetzt (eine Gruppe des alten
+  Lieferanten gibt es beim neuen meist nicht).
+- **Übersicht je Lieferant** (`lfLieferantenStand`): Artikel, zugeordnet, mit
+  Preis, mit Bestand, unter Mindestbestand — abgeleitet, nicht geführt.
+- Filter und Übersicht **bleiben weg bei nur einem Lieferanten**, und ein Rest
+  aus einer früheren Wahl wird zurückgesetzt (V8/V9).
+- **„Alle angezeigten setzen" greift nie über den Lieferanten hinaus** — weder
+  beim Zuordnen (V5) noch beim Mindestbestand (V6). Das war der teure Fall.
+- Gruppenauswahl zeigt nur die Gruppen des gewählten Lieferanten (V4).
+- **Tippfehler-Schutz beim Import**: „bteam" neben „B-Team" warnt und bietet
+  Übernahme (V10–V12). Geblockt wird nichts — es kann einen Händler geben, der
+  wirklich so ähnlich heisst.
 
 ### v3.240: Inventur — Bestand und Mindestbestand gruppenweise
 
