@@ -54,8 +54,12 @@ const SB=`()=>{
      if(q.__filter)d=d.filter(q.__filter);
      return r({data:d,error:null}) } };
    return q; },
+  // insert nimmt auch ein ARRAY - die Inventur bucht alle Korrekturen in
+  // EINEM Aufruf. Eine Attrappe, die nur Einzelzeilen kennt, haette das
+  // stillschweigend verschluckt.
   insert(zeile){ window.__db.ruf.push({tisch:name,was:"insert",zeile});
-   window.__db[name].push(Object.assign({id:++n},zeile));
+   (Array.isArray(zeile)?zeile:[zeile]).forEach(z=>
+    window.__db[name].push(Object.assign({id:++n},z)));
    return Promise.resolve({error:null}); },
   upsert(zeilen,opt){ window.__db.ruf.push({tisch:name,was:"upsert",anzahl:zeilen.length,opt,zeilen});
    zeilen.forEach(z=>{
@@ -97,7 +101,9 @@ const SB=`()=>{
   window.__db.ruf.push({tisch:"rpc:"+name,was:"rpc",args});
   ((args&&args.paare)||[]).forEach(p=>{
    const a=window.__db.lieferanten_artikel.find(x=>String(x.id)===String(p.id));
-   if(a)a.material_id=p.material_id===""?null:p.material_id;
+   if(!a)return;
+   if(name==="lieferanten_mindestbestand_setzen")a.mindestbestand=p.mindestbestand;
+   else a.material_id=p.material_id===""?null:p.material_id;
   });
   return Promise.resolve({data:((args&&args.paare)||[]).length,error:null});
  };
@@ -1589,6 +1595,138 @@ const KATALOG=`()=>{
  },{f:SB,k:KATALOG,e:EINGANG});
  p(z.menge==="15"&&z.vorbelegt==="15"&&z.auf===true,
    "T17 der 📥 in der Einkaufsliste oeffnet den Zugang mit der BESTELLmenge (12 auf VPE 5 aufgerundet = 15) - mit der Liste in der Hand ist das die Zahl vom Lieferschein",z);
+
+ // ---- U  Inventur (v3.240) ---------------------------------------------
+ //
+ // BEFUND VOR DEM BAUEN: 0 von 439 Artikeln hatten einen Mindestbestand.
+ // Die Einkaufsliste lief leer, weil 439 Artikel einzeln zu erfassen eine
+ // Wand ist.
+ //
+ // Die teuren Fehler hier: einen NICHT gezaehlten Artikel anfassen (dann
+ // kann man kein einzelnes Regal zaehlen), oder das Gezaehlte als Zugang
+ // buchen (dann behauptet die Bewegungsliste, Ware sei angekommen).
+ console.log("\nU · Inventur");
+ const INV=`()=>{
+  window.__db.lieferanten_artikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",gruppe:"Rinnenstutzen",vpe:5,mindestbestand:0},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Rinnenstutzen 330",gruppe:"Rinnenstutzen",vpe:5,mindestbestand:0},
+   {id:3,lieferant:"B",artikelnr:"W1",bezeichnung:"Rinnenwinkel 250",gruppe:"Rinnenwinkel",vpe:1,mindestbestand:4}];
+  window.__db.lieferanten_bewegungen=[{id:1,artikel_id:1,art:"zugang",menge:10}];
+  window.__db.lieferanten_einkauf=[];
+  lfInvGruppe=""; lfInvSuche=""; lfInvGezaehlt={}; lfInvMindest={};
+ }`;
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
+  await lfLaden();
+  lfInvZeichnen();
+  const z1=lfInvZeile(lfArtikelZuId(1));
+  lfInvGezaehlt["1"]="14";
+  const z2=lfInvZeile(lfArtikelZuId(1));
+  lfInvGezaehlt["2"]="";
+  const z3=lfInvZeile(lfArtikelZuId(2));
+  return {z1,z2,z3,offen:lfInvOffen()};
+ },{f:SB,k:KATALOG,i:INV});
+ p(z.z1.ist===10&&z.z1.gezaehlt===null&&z.z1.diff===0,
+   "U1 ungezaehlt heisst: Bestand 10, keine Differenz, nichts zu tun",z.z1);
+ p(z.z2.gezaehlt===14&&z.z2.diff===4,
+   "U2 gezaehlt 14 bei Bestand 10 ergibt eine Korrektur von +4",z.z2);
+ p(z.z3.gezaehlt===null&&z.z3.diff===0,
+   "U3 GEGENPROBE: ein LEERES Feld heisst 'nicht gezaehlt', nicht 'null Stueck' - sonst koennte man kein einzelnes Regal zaehlen",z.z3);
+ p(z.offen.korrekturen===1&&z.offen.minima===0,
+   "U4 offen ist genau die eine Korrektur",z.offen);
+ // Gebucht wird als KORREKTUR, in EINEM Aufruf, und nur fuer das Gezaehlte.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
+  await lfLaden();
+  lfInvGezaehlt["1"]="14";     // +4
+  lfInvGezaehlt["2"]="3";      // Bestand 0 -> +3
+  lfInvGezaehlt["3"]="";       // nicht gezaehlt
+  lfInvMindest["1"]="10";
+  window.__db.ruf=[];
+  await lfInvSpeichern();
+  await new Promise(r=>setTimeout(r,160));
+  const ins=window.__db.ruf.filter(r=>r.was==="insert");
+  const rpc=window.__db.ruf.filter(r=>r.was==="rpc");
+  return {ins,rpc,meldung:$("liefInvMeldung").textContent,
+          bestand1:lfBestand(1),bestand2:lfBestand(2),bestand3:lfBestand(3)};
+ },{f:SB,k:KATALOG,i:INV});
+ p(z.ins.length===1&&Array.isArray(z.ins[0].zeile)&&z.ins[0].zeile.length===2,
+   "U5 alle Korrekturen gehen in EINEM insert weg - nicht eine Runde pro Artikel",z.ins);
+ p(z.ins[0]&&z.ins[0].zeile.every(x=>x.art==="korrektur"),
+   "U6 und zwar als KORREKTUR, nicht als Zugang - ein Zugang wuerde behaupten, Ware sei angekommen",z.ins[0]&&z.ins[0].zeile);
+ p(z.ins[0]&&z.ins[0].zeile.every(x=>x.ziel==="inventur"&&x.grund==="Inventur"),
+   "U7 mit Herkunft 'inventur' - in der Bewegungsliste muss erkennbar sein, woher die Zahl kommt",z.ins[0]&&z.ins[0].zeile);
+ p(z.ins[0]&&z.ins[0].zeile.map(x=>Number(x.menge)).sort((a,b)=>a-b).join(",")==="3,4",
+   "U8 gebucht wird die DIFFERENZ (+4 und +3), nicht die gezaehlte Menge",z.ins[0]&&z.ins[0].zeile);
+ p(!z.ins[0]||!z.ins[0].zeile.some(x=>String(x.artikel_id)==="3"),
+   "U9 GEGENPROBE: der ungezaehlte Artikel wird NICHT angefasst",z.ins[0]&&z.ins[0].zeile);
+ p(z.rpc.length===1&&z.rpc[0].tisch==="rpc:lieferanten_mindestbestand_setzen"
+   &&z.rpc[0].args.paare.length===1&&Number(z.rpc[0].args.paare[0].mindestbestand)===10,
+   "U10 die Mindestbestaende gehen in EINEM Aufruf weg, und nur die geaenderten",z.rpc);
+ p(z.bestand1===14&&z.bestand2===3&&z.bestand3===0,
+   "U11 danach stimmt der Bestand mit dem Gezaehlten",z);
+ // Scheitern die Buchungen, bleiben die Mindestbestaende unberuehrt - ein
+ // Mindestbestand ohne den gezaehlten Bestand meldet sofort falschen Mangel.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
+  await lfLaden();
+  lfInvGezaehlt["1"]="14";
+  lfInvMindest["1"]="10";
+  const echt=sb.from;
+  sb.from=name=>{
+   const t=echt(name);
+   if(name==="lieferanten_bewegungen")
+    return Object.assign({},t,{insert:()=>Promise.resolve({error:{message:"Netz weg"}})});
+   return t;
+  };
+  window.__db.ruf=[];
+  await lfInvSpeichern();
+  await new Promise(r=>setTimeout(r,160));
+  sb.from=echt;
+  return {rpc:window.__db.ruf.filter(r=>r.was==="rpc").length,
+          meldung:$("liefInvMeldung").textContent,
+          mindest:window.__db.lieferanten_artikel[0].mindestbestand};
+ },{f:SB,k:KATALOG,i:INV});
+ p(z.rpc===0&&Number(z.mindest)===0,
+   "U12 scheitern die Korrekturen, bleiben die Mindestbestaende UNBERUEHRT - einer ohne den gezaehlten Bestand meldet sofort falschen Mangel",z);
+ p(/NICHT gebucht/.test(z.meldung)&&/Netz weg/.test(z.meldung),
+   "U13 und der Fehlschlag wird gesagt",z.meldung);
+ // Gruppenweise und 'allen angezeigten' - derselbe Grundsatz wie beim
+ // Zuordnen: was du siehst, wird gesetzt.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
+  await lfLaden();
+  lfInvGruppe="Rinnenstutzen";
+  const sichtbar=lfInvKandidaten().map(a=>a.artikelnr);
+  $("liefInvMindestAlle").value="10";
+  lfInvMindestAlle();
+  return {sichtbar, gesetzt:Object.assign({},lfInvMindest)};
+ },{f:SB,k:KATALOG,i:INV});
+ p(z.sichtbar.join(",")==="S1,S2",
+   "U14 die Gruppenwahl zeigt nur diese Gruppe",z);
+ p(Object.keys(z.gesetzt).length===2&&z.gesetzt["3"]===undefined,
+   "U15 'allen angezeigten' trifft genau die sichtbaren - der Rinnenwinkel bleibt unberuehrt",z.gesetzt);
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
+  await lfLaden();
+  $("liefInvMindestAlle").value="";
+  lfInvMindestAlle();
+  const leer={anzahl:Object.keys(lfInvMindest).length,meldung:$("liefInvMeldung").textContent};
+  $("liefInvMindestAlle").value="-1";
+  lfInvMindestAlle();
+  const neg={anzahl:Object.keys(lfInvMindest).length,meldung:$("liefInvMeldung").textContent};
+  return {leer,neg};
+ },{f:SB,k:KATALOG,i:INV});
+ p(z.leer.anzahl===0&&/Mindestbestand eintragen/.test(z.leer.meldung),
+   "U16 GEGENPROBE: ein leeres Feld setzt nichts - sonst wuerden alle angezeigten stillschweigend auf 0 fallen",z.leer);
+ p(z.neg.anzahl===0&&/negativ/.test(z.neg.meldung),
+   "U17 GEGENPROBE: ein negativer Mindestbestand ebenso nicht",z.neg);
+ z=await page.evaluate(()=>{
+  const el=id=>!!document.getElementById(id);
+  return ["liefInvKnopf","liefInvModal","liefInvListe","liefInvGruppe","liefInvSuche",
+          "liefInvMindestAlle","liefInvMindestSetzen","liefInvSpeichern"].filter(x=>!el(x));
+ });
+ p(z.length===0,"U18 alle Bedienteile stehen im Dokument",z);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");

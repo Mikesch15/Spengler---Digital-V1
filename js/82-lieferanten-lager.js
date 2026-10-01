@@ -236,6 +236,230 @@ function lfBarcodeZuRegie(code){
   text:"Der Code "+c+" ist weder im Lieferanten-Lager noch in der Lagerverwaltung bekannt."};
 }
 
+// ---- Inventur: Bestand und Mindestbestand gruppenweise (v3.240) -----------
+//
+// BEFUND VOR DEM BAUEN: 0 von 439 Artikeln hatten einen Mindestbestand, 2
+// eine Buchung. Die Einkaufsliste aus v3.231 lief leer - nicht weil sie
+// fehlt, sondern weil 439 Artikel einzeln zu erfassen eine Wand ist.
+// Derselbe Engpass, den der Anwender beim Zuordnen benannt hat.
+//
+// Diese Ansicht folgt dem PHYSISCHEN Weg durch das Lager: man geht mit dem
+// Handy am Regal entlang, zaehlt, und sagt dabei gleich, wie viel immer da
+// sein soll. Deshalb stehen beide Felder in einer Zeile.
+//
+// DAS GEZAEHLTE WIRD ALS KORREKTUR GEBUCHT, nicht als Zugang. Ein Zugang
+// behauptet, Ware sei angekommen; eine Korrektur sagt "der Bestand ist in
+// Wirklichkeit dieser". Genau dafuer ist die Korrektur in diesem Lager
+// vorgesehen, und die Bewegungsliste bleibt dadurch wahr.
+let lfInvGruppe="";
+let lfInvSuche="";
+let lfInvGezaehlt={};    // {artikelId: Text} - noch nicht gebucht
+let lfInvMindest={};     // {artikelId: Text} - noch nicht gespeichert
+
+function lfInvKandidaten(){
+ const t=(x,y)=>String(x||"").localeCompare(String(y||""),"de");
+ const q=lfInvSuche.trim().toLowerCase();
+ return lfArtikel.filter(a=>{
+  if(a.archiviert)return false;
+  if(lfInvGruppe&&String(a.gruppe||"Ohne Gruppe")!==lfInvGruppe)return false;
+  if(q&&![a.bezeichnung,a.artikelnr,a.ean,a.material].some(x=>String(x||"").toLowerCase().indexOf(q)>=0))return false;
+  return true;
+ }).sort((x,y)=>t(x.gruppe,y.gruppe)||t(x.bezeichnung,y.bezeichnung));
+}
+// Was eine Zeile zu tun gibt. Leer heisst NICHT null - es heisst
+// "nicht gezaehlt", und ein nicht gezaehlter Artikel wird nicht angefasst.
+// Das ist der Unterschied, der eine Inventur benutzbar macht: man kann ein
+// Regal zaehlen und den Rest in Ruhe lassen.
+function lfInvZeile(a){
+ const sId=String(a.id);
+ const rohZ=Object.prototype.hasOwnProperty.call(lfInvGezaehlt,sId)?String(lfInvGezaehlt[sId]):"";
+ const rohM=Object.prototype.hasOwnProperty.call(lfInvMindest,sId)?String(lfInvMindest[sId]):"";
+ const ist=lfBestand(a.id);
+ const gezaehlt=rohZ.trim()===""?null:lfZahl(rohZ);
+ const diff=gezaehlt===null?0:gezaehlt-ist;
+ const mindestNeu=rohM.trim()===""?null:lfZahl(rohM);
+ const mindestAlt=lfMindest(a);
+ return {ist,gezaehlt,diff,mindestNeu,mindestAlt,
+         mindestGeaendert:mindestNeu!==null&&mindestNeu!==mindestAlt};
+}
+function lfInvOffen(){
+ let korrekturen=0, minima=0;
+ lfArtikel.forEach(a=>{
+  const z=lfInvZeile(a);
+  if(z.gezaehlt!==null&&z.diff!==0)korrekturen++;
+  if(z.mindestGeaendert)minima++;
+ });
+ return {korrekturen,minima,summe:korrekturen+minima};
+}
+function lfInvKopfZeichnen(){
+ if(typeof $!=="function")return;
+ const o=lfInvOffen();
+ const k=$("liefInvKennzahlen");
+ if(k){
+  const gesamt=lfArtikel.filter(a=>!a.archiviert).length;
+  const mitMindest=lfArtikel.filter(a=>lfMindest(a)>0).length;
+  const mitBestand=lfArtikel.filter(a=>lfBestand(a.id)!==0).length;
+  k.innerHTML=`<b>${mitBestand}</b> von <b>${gesamt}</b> Artikeln haben einen Bestand · `
+   +`<b>${mitMindest}</b> einen Mindestbestand`
+   +(o.summe?` · <b style="color:var(--red)">${o.summe}</b> Änderung(en) offen`:"");
+ }
+ const s=$("liefInvSpeichern");
+ if(s){
+  s.disabled=!o.summe;
+  s.textContent=o.summe
+   ? "💾 "+o.korrekturen+" Korrektur(en), "+o.minima+" Mindestbestand/-bestände speichern"
+   : "💾 Speichern";
+ }
+}
+function lfInvGruppenZeichnen(){
+ if(typeof $!=="function")return;
+ const sel=$("liefInvGruppe");
+ if(!sel)return;
+ const m={};
+ lfArtikel.filter(a=>!a.archiviert).forEach(a=>{
+  const g=String(a.gruppe||"Ohne Gruppe");
+  if(!m[g])m[g]={name:g,gesamt:0,gezaehlt:0};
+  m[g].gesamt++;
+  if(lfBestand(a.id)!==0)m[g].gezaehlt++;
+ });
+ const gr=Object.keys(m).sort((x,y)=>x.localeCompare(y,"de")).map(k=>m[k]);
+ sel.innerHTML=`<option value=""${lfInvGruppe===""?" selected":""}>Alle Gruppen</option>`
+  +gr.map(g=>`<option value="${esc(g.name)}"${lfInvGruppe===g.name?" selected":""}>${
+   esc(g.name)} – ${g.gezaehlt} von ${g.gesamt} mit Bestand</option>`).join("");
+}
+function lfInvZeichnen(){
+ if(typeof $!=="function")return;
+ const box=$("liefInvListe");
+ if(!box)return;
+ lfInvKopfZeichnen();
+ lfInvGruppenZeichnen();
+ const liste=lfInvKandidaten();
+ if(!liste.length){
+  box.innerHTML=`<div class="a2-leer">Kein Artikel passt zu dieser Auswahl.</div>`;
+  return;
+ }
+ let letzte=null, html="";
+ liste.forEach(a=>{
+  const g=String(a.gruppe||"Ohne Gruppe");
+  if(g!==letzte&&!lfInvGruppe){
+   html+=`<div style="margin:14px 0 4px;font-weight:700;color:var(--muted);
+    font-size:13px;letter-spacing:.02em">${esc(g)}</div>`;
+   letzte=g;
+  }
+  const z=lfInvZeile(a);
+  const diffText=z.gezaehlt===null?""
+   :(z.diff===0?"stimmt"
+     :(z.diff>0?"+"+lfZahlText(z.diff):lfZahlText(z.diff))+" als Korrektur");
+  html+=`<div class="kw-zeile" style="align-items:flex-start">
+   <div style="flex:1;min-width:0">
+    <b>${esc(a.bezeichnung)}</b>
+    <div class="small" style="color:var(--muted)">${esc(a.artikelnr)}${
+     a.vpe?" · VPE "+esc(lfZahlText(a.vpe)):""} · Bestand jetzt <b>${esc(lfZahlText(z.ist))}</b>${
+     diffText?' · <span style="color:'+(z.diff===0?"var(--muted)":"var(--red)")+'">'+esc(diffText)+"</span>":""}</div>
+    <div class="grid" style="margin-top:4px">
+     <div><label class="small">gezählt</label>
+      <input data-lf-inv-z="${esc(a.id)}" type="number" step="any" inputmode="decimal"
+       value="${esc(z.gezaehlt===null?"":lfZahlText(z.gezaehlt))}" placeholder="leer = nicht gezählt"></div>
+     <div><label class="small">Mindestbestand</label>
+      <input data-lf-inv-m="${esc(a.id)}" type="number" step="any" min="0" inputmode="decimal"
+       value="${esc(z.mindestNeu!==null?lfZahlText(z.mindestNeu):(z.mindestAlt?lfZahlText(z.mindestAlt):""))}"
+       placeholder="leer = nicht überwachen"></div>
+    </div>
+   </div>
+  </div>`;
+ });
+ box.innerHTML=html;
+}
+// Alle ANGEZEIGTEN auf einen Mindestbestand setzen - derselbe Grundsatz wie
+// beim Zuordnen: was du siehst, wird gesetzt.
+function lfInvMindestAlle(){
+ if(typeof $!=="function")return;
+ const feld=$("liefInvMindestAlle"), h=$("liefInvMeldung");
+ const roh=feld?feld.value.trim():"";
+ const liste=lfInvKandidaten();
+ if(!liste.length){ if(h){h.style.color="var(--muted)";h.textContent="Es wird gerade nichts angezeigt."} return }
+ if(roh===""){
+  if(h){ h.style.color="var(--red)";
+   h.textContent="Bitte einen Mindestbestand eintragen – 0 heisst „nicht überwachen“." }
+  return;
+ }
+ const m=lfZahl(roh);
+ if(m<0){ if(h){h.style.color="var(--red)";h.textContent="Ein Mindestbestand kann nicht negativ sein."} return }
+ if(typeof confirm==="function"&&!confirm(
+   "Allen "+liste.length+" angezeigten Artikeln den Mindestbestand "+lfZahlText(m)+" geben?\n\n"
+  +"Gespeichert wird erst mit „Speichern“."))return;
+ liste.forEach(a=>{ lfInvMindest[String(a.id)]=lfZahlText(m) });
+ lfInvZeichnen();
+ if(h){ h.style.color="var(--muted)";
+  h.textContent=liste.length+" Artikel auf Mindestbestand "+lfZahlText(m)+" gesetzt – noch nicht gespeichert." }
+}
+async function lfInvSpeichern(){
+ if(typeof $!=="function"||typeof sb==="undefined")return;
+ const h=$("liefInvMeldung");
+ const korrekturen=[], minima=[];
+ lfArtikel.forEach(a=>{
+  const z=lfInvZeile(a);
+  if(z.gezaehlt!==null&&z.diff!==0)korrekturen.push({
+   artikel_id:a.id, art:"korrektur", menge:z.diff,
+   grund:"Inventur", ziel:"inventur",
+   created_by:(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null
+  });
+  if(z.mindestGeaendert)minima.push({id:Number(a.id),mindestbestand:z.mindestNeu});
+ });
+ if(!korrekturen.length&&!minima.length){
+  if(h){ h.style.color="var(--muted)"; h.textContent="Es gibt nichts zu speichern." }
+  return;
+ }
+ $("liefInvSpeichern").disabled=true;
+ if(h){ h.style.color="var(--muted)"; h.textContent="Wird gespeichert …" }
+ // Reihenfolge mit Absicht: erst die BUCHUNGEN. Scheitern sie, bleiben die
+ // Mindestbestaende unveraendert - und nicht umgekehrt, denn ein
+ // Mindestbestand ohne den gezaehlten Bestand meldet sofort falschen Mangel.
+ try{
+  if(korrekturen.length){
+   const r=await sb.from("lieferanten_bewegungen").insert(korrekturen);
+   if(r.error)throw r.error;
+  }
+ }catch(e){
+  if(h){ h.style.color="var(--red)"; h.textContent="Die Korrekturen wurden NICHT gebucht: "+((e&&e.message)||e) }
+  $("liefInvSpeichern").disabled=false;
+  return;
+ }
+ let minFehler="";
+ try{
+  if(minima.length){
+   const r=await sb.rpc("lieferanten_mindestbestand_setzen",{paare:minima});
+   if(r.error)throw r.error;
+  }
+ }catch(e){
+  minFehler=" Die Mindestbestände wurden NICHT gespeichert: "+((e&&e.message)||e);
+ }
+ lfInvGezaehlt={}; lfInvMindest={};
+ $("liefInvSpeichern").disabled=false;
+ await lfLaden();
+ lfZeichnen();
+ lfInvZeichnen();
+ if($("liefEinkaufModal")&&!$("liefEinkaufModal").hidden)lfEinkaufZeichnen();
+ if(h){
+  h.style.color=minFehler?"var(--red)":"var(--muted)";
+  h.textContent=korrekturen.length+" Korrektur(en) gebucht, "
+   +(minFehler?"0":minima.length)+" Mindestbestand/-bestände gespeichert."+minFehler;
+ }
+}
+async function lfInvOeffnen(){
+ if(typeof $!=="function")return;
+ const m=$("liefInvModal");
+ if(!m)return;
+ lfInvGezaehlt={}; lfInvMindest={};
+ lfInvSuche="";
+ const sf=$("liefInvSuche"); if(sf)sf.value="";
+ const mf=$("liefInvMindestAlle"); if(mf)mf.value="";
+ const h=$("liefInvMeldung"); if(h)h.textContent="";
+ m.hidden=false;
+ if(!lfGeladen)await lfLaden();
+ lfInvZeichnen();
+}
+
 // ---- Bewegungen ansehen (v3.238) ------------------------------------------
 //
 // Seit v3.237 bucht die App SELBSTAENDIG: jeder Scan im Regierapport nimmt
@@ -1581,6 +1805,17 @@ if(typeof document!=="undefined")document.addEventListener("change",e=>{
  // schlimmste Moment.
  lfZuordnenKopfZeichnen();
 });
+// v3.240: Die Inventur-Felder. Auch hier wird NUR der Kopf neu gezeichnet -
+// beim Tippen die ganze Liste neu zu bauen wuerde den Fokus aus dem Feld
+// nehmen, in dem man gerade steht.
+if(typeof document!=="undefined")document.addEventListener("input",e=>{
+ const f=e.target;
+ if(!f||!f.getAttribute)return;
+ const z=f.getAttribute("data-lf-inv-z");
+ if(z!==null){ lfInvGezaehlt[String(z)]=f.value; lfInvKopfZeichnen(); return }
+ const m=f.getAttribute("data-lf-inv-m");
+ if(m!==null){ lfInvMindest[String(m)]=f.value; lfInvKopfZeichnen(); return }
+});
 
 // ---- Neue Positionen als Excel hochladen ----------------------------------
 // Ansage des Anwenders: "schaue auch direkt das ich in zukunft neue positionen
@@ -1665,6 +1900,14 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
  an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());
  an("liefBewKnopf",()=>lfBewegungenOeffnen());
+ an("liefInvKnopf",()=>lfInvOeffnen());
+ an("liefInvSchliessen",()=>{ $("liefInvModal").hidden=true });
+ an("liefInvMindestSetzen",()=>lfInvMindestAlle());
+ an("liefInvSpeichern",()=>lfInvSpeichern());
+ const ig=$("liefInvGruppe");
+ if(ig)ig.onchange=()=>{ lfInvGruppe=ig.value; lfInvZeichnen() };
+ const isf=$("liefInvSuche");
+ if(isf)isf.oninput=()=>{ lfInvSuche=isf.value; lfInvZeichnen() };
  an("liefBewSchliessen",()=>{ $("liefBewModal").hidden=true });
  const ba=$("liefBewArt");
  if(ba)ba.onchange=()=>{ lfBewArt=ba.value; lfBewegungenZeichnen() };

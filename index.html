@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.239</div>
+<div id="appVersion">Version 3.240</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2485,7 +2485,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 119 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 119 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3232,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3285,6 +3285,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
     <button type="button" id="liefAusscannen" class="blue">📤 Ausscannen</button>
     <button type="button" id="liefEinkaufKnopf" class="gray">📋 Einkaufsliste</button>
     <button type="button" id="liefZuordnenKnopf" class="gray">🔗 Zuordnen</button>
+    <button type="button" id="liefInvKnopf" class="gray">🧮 Inventur</button>
     <button type="button" id="liefBewKnopf" class="gray">📜 Bewegungen</button>
    </div>
    <div class="small" id="liefMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
@@ -3419,6 +3420,42 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <h3 style="margin:0 0 4px">🔗 Regie-Position</h3>
    <div class="small" style="color:var(--muted);margin-bottom:6px">Wofür dieser Artikel im <b>Regierapport</b> verrechnet wird – mit eurer EDV-Nr. und eurem Preis.</div>
    <div id="liefArtikelRegie"></div>
+  </div>
+ </div>
+</div>
+
+<!-- v3.240: Inventur. Befund vor dem Bauen: 0 von 439 Artikeln hatten einen
+     Mindestbestand - die Einkaufsliste lief leer, nicht weil sie fehlt,
+     sondern weil 439 Artikel einzeln zu erfassen eine Wand ist.
+     Die Ansicht folgt dem physischen Weg durchs Lager: am Regal entlang,
+     zählen, und gleich sagen wie viel immer da sein soll. Deshalb stehen
+     beide Felder in einer Zeile. Gezähltes wird als KORREKTUR gebucht -
+     ein Zugang würde behaupten, Ware sei angekommen. -->
+<div id="liefInvModal" class="modal no-print" hidden>
+ <div class="modalbox">
+  <div class="card">
+   <h2>🧮 Inventur <button type="button" class="hilfe-knopf no-print" data-hilfe="lieferanten-lager">i</button></h2>
+   <div class="small" id="liefInvKennzahlen" style="color:var(--muted)"></div>
+   <div class="small" style="color:var(--muted);margin-top:6px">Regal für Regal durchgehen: <b>gezählt</b> eintragen, und gleich daneben, wie viel immer da sein soll. Ein <b>leeres</b> Feld heisst „nicht gezählt“ – der Artikel wird dann nicht angefasst.</div>
+   <div class="grid" style="margin-top:8px">
+    <div class="wide"><label>Produktgruppe</label>
+     <select id="liefInvGruppe"></select></div>
+    <div class="wide"><label>Weiter eingrenzen (freiwillig)</label>
+     <input id="liefInvSuche" placeholder="z. B. 250 oder Kupfer" autocomplete="off"></div>
+   </div>
+   <div class="grid" style="margin-top:8px">
+    <div><label>Allen angezeigten diesen Mindestbestand geben</label>
+     <input id="liefInvMindestAlle" type="number" step="any" min="0" inputmode="decimal" placeholder="z. B. 10"></div>
+    <div style="display:flex;align-items:flex-end">
+     <button type="button" id="liefInvMindestSetzen" class="gray">Setzen</button></div>
+   </div>
+   <div class="small" id="liefInvMeldung" style="min-height:18px;margin:6px 0;color:var(--muted)"></div>
+   <div class="scroll" style="max-height:48vh"><div id="liefInvListe"></div></div>
+   <div class="bar" style="margin-top:12px">
+    <button type="button" id="liefInvSpeichern" class="green">💾 Speichern</button>
+    <button type="button" id="liefInvSchliessen" class="gray">Schliessen</button>
+   </div>
+   <div class="small" style="color:var(--muted);margin-top:8px">Nichts wird gespeichert, bevor du <b>Speichern</b> drückst. Eine Abweichung wird als <b>Korrektur</b> gebucht, nicht als Zugang – eine Korrektur sagt „der Bestand ist in Wirklichkeit dieser“, ein Zugang würde behaupten, Ware sei angekommen.</div>
   </div>
  </div>
 </div>

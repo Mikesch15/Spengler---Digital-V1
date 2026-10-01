@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.239";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.240";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.239<br>
+  Version 3.240<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2557,6 +2557,26 @@ Monaten genauso aus wie gestern. Einzelne Preise trägst du am Artikel ein; die
 ganze <strong>Preisliste des Händlers</strong> kommt als Excel-Datei über denselben
 Import wie alles andere, Spalte „Preis“.</p>
 
+<h3>Inventur – Bestand und Mindestbestand erfassen</h3>
+<p>Ein Lager mit 439 Artikeln einzeln zu erfassen ist eine Wand. <span class="tasten">🧮 Inventur</span>
+folgt deshalb dem <strong>physischen Weg durchs Lager</strong>: oben die
+<strong>Produktgruppe</strong> wählen, dann Regal für Regal je Zeile
+<strong>gezählt</strong> eintragen – und gleich daneben, wie viel immer da sein soll.</p>
+<p>Mit <span class="tasten">Setzen</span> bekommen <strong>alle angezeigten</strong>
+Artikel in einem Zug denselben Mindestbestand. Dasselbe Prinzip wie beim Zuordnen:
+was du siehst, wird gesetzt.</p>
+<div class="hin"><strong>Ein leeres Feld heisst „nicht gezählt“</strong>, nicht „null
+Stück“. Nur so lässt sich ein einzelnes Regal zählen und der Rest in Ruhe lassen.
+Gespeichert wird erst mit <span class="tasten">💾 Speichern</span>.</div>
+<p>Eine Abweichung wird als <strong>Korrektur</strong> gebucht, nicht als Zugang: eine
+Korrektur sagt „der Bestand ist in Wirklichkeit dieser“, ein Zugang würde behaupten,
+Ware sei angekommen. Gebucht wird die <strong>Differenz</strong> – bei Bestand 10 und
+gezählten 14 also +4. In den Bewegungen steht sie mit der Herkunft
+<em>inventur</em>, damit erkennbar bleibt, woher die Zahl kommt.</p>
+<div class="hin">Erst die Buchungen, dann die Mindestbestände – mit Absicht in dieser
+Reihenfolge. Scheitern die Buchungen, bleiben die Mindestbestände unberührt: einer
+ohne den gezählten Bestand würde sofort falschen Mangel melden.</div>
+
 <h3>Wareneingang – wenn die Lieferung kommt</h3>
 <p>In der Einkaufsliste steht bei jeder Zeile ein <span class="tasten">📥</span>: es
 öffnet den Zugang mit der <strong>Bestellmenge</strong> vorbelegt – mit der Liste in
@@ -2992,7 +3012,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.239</strong>, Stand 30. September 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.240</strong>, Stand 30. September 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

@@ -3,9 +3,27 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.239`
+- Aktueller Entwicklungsstand: `v3.240`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.240: Inventur — Bestand und Mindestbestand gruppenweise
+
+**Befund vor dem Bauen:** 0 von 439 Artikeln hatten einen Mindestbestand, 2 eine
+Buchung. Die Einkaufsliste aus v3.231 lief leer — nicht weil sie fehlt, sondern
+weil 439 Artikel einzeln zu erfassen eine Wand ist.
+
+- Gruppenwahl + Suche, je Zeile **gezählt** und **Mindestbestand**; „Setzen"
+  gibt allen **angezeigten** denselben Mindestbestand.
+- **Ein leeres Feld heisst „nicht gezählt"**, nicht „null Stück" (U3) — nur so
+  lässt sich ein einzelnes Regal zählen.
+- Gebucht wird die **Differenz** als **Korrektur** mit `ziel='inventur'` (U6–U8),
+  nicht als Zugang: ein Zugang würde behaupten, Ware sei angekommen.
+- Alle Korrekturen in **einem** insert, alle Minima in **einem** RPC
+  (`lieferanten_mindestbestand_setzen`, ohne `security definer`).
+- **Reihenfolge mit Absicht:** erst die Buchungen, dann die Minima. Scheitern
+  die Buchungen, bleiben die Minima unberührt (U12) — einer ohne den gezählten
+  Bestand meldet sofort falschen Mangel.
 
 ### v3.239: Wareneingang — die Einkaufsliste führt sich selbst nach
 

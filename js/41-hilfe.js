@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.239.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.240.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1711,6 +1711,19 @@ umgekehrt gibt es Regie-Positionen, die gar keine Ware sind (Rollger\u00fcst,
 Elektromaschinen). Erfunden wird nichts.</p>
 <div class="hin">Die <b>Regieliste selbst wird dabei nur gelesen</b>. An euren
 EDV-Nummern, Preisen und am Regierapport \u00e4ndert sich nichts.</div>
+<p><b>\U0001f9ee Inventur – Bestand und Mindestbestand erfassen.</b> Regal für Regal
+durchgehen: oben die <b>Produktgruppe</b> wählen, dann je Zeile <b>gezählt</b>
+eintragen und gleich daneben, wie viel immer da sein soll. Mit
+<b>Setzen</b> bekommen alle angezeigten Artikel in einem Zug denselben
+Mindestbestand.</p>
+<div class="hin"><b>Ein leeres Feld heisst „nicht gezählt“</b>, nicht „null
+Stück“. Nur so lässt sich ein einzelnes Regal zählen und der Rest in Ruhe
+lassen. Gespeichert wird erst mit <b>Speichern</b>.</div>
+<p>Eine Abweichung wird als <b>Korrektur</b> gebucht, nicht als Zugang: eine
+Korrektur sagt „der Bestand ist in Wirklichkeit dieser“, ein Zugang würde
+behaupten, Ware sei angekommen. Gebucht wird die <b>Differenz</b> – bei Bestand
+10 und gezählten 14 also +4. In den Bewegungen steht sie mit der Herkunft
+<i>inventur</i>.</p>
 <p><b>\U0001f4e5 Wareneingang – wenn die Lieferung kommt.</b> In der Einkaufsliste
 steht bei jeder Zeile ein <b>\U0001f4e5</b>: es öffnet den Zugang mit der
 <b>Bestellmenge</b> vorbelegt – mit der Liste in der Hand ist das die Zahl vom
