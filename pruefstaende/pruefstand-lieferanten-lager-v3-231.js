@@ -1847,6 +1847,98 @@ const KATALOG=`()=>{
  });
  p(z.length===0,"V13 alle Bedienteile stehen im Dokument",z);
 
+ // ---- W  Zeile und Lager laufen auseinander (v3.242) -------------------
+ //
+ // In v3.237 habe ich selbst vermerkt: gebucht wird, was GESCANNT wurde,
+ // nicht was am Ende in der Zeile steht. Wer die Menge hinterher aendert,
+ // aendert die Buchung nicht - und der Lagerbestand ist um die Differenz
+ // falsch, OHNE dass es jemand merkt. Genau das wird jetzt sichtbar.
+ //
+ // Nicht gleich nachgebucht wird, weil auf dieselbe EDV-Nr. mehrere
+ // Lieferantenartikel zeigen koennen (n:1, v3.234): aus "die Zeile steht
+ // jetzt auf 5" folgt nicht, WELCHER Artikel die zwei mehr hergeben soll.
+ console.log("\nW · Zeile und Lager laufen auseinander");
+ const WSCAN=`(code)=>{ window.barcodeScannen=cb=>cb(code) }`;
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()");
+  window.__db.lieferanten_artikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",gruppe:"R",ean:"111",material_id:7001},
+   {id:2,lieferant:"B",artikelnr:"S2",bezeichnung:"Rinnenstutzen 330",gruppe:"R",ean:"222",material_id:7001}];
+  window.__db.lieferanten_bewegungen=[{id:1,artikel_id:1,art:"zugang",menge:50},
+                                      {id:2,artikel_id:2,art:"zugang",menge:50}];
+  await lfLaden();
+  mats.length=0;
+  $("matScanAusbuchen").checked=true;
+  const warte=()=>new Promise(r=>setTimeout(r,140));
+  eval("("+o.s+")")("111"); rapportMaterialScannen(); await warte();
+  eval("("+o.s+")")("111"); rapportMaterialScannen(); await warte();
+  const nachZwei={qty:mats[0].qty, gebucht:JSON.parse(JSON.stringify(mats[0].gebucht||[])),
+                  warnWeg:$("matBuchWarnung").hidden};
+  // Jetzt dieselbe EDV-Nr. ueber den ZWEITEN Artikel - n:1.
+  eval("("+o.s+")")("222"); rapportMaterialScannen(); await warte();
+  const nachDrei={qty:mats[0].qty, gebucht:JSON.parse(JSON.stringify(mats[0].gebucht||[])),
+                  zeilen:mats.length, warnWeg:$("matBuchWarnung").hidden};
+  // Von Hand auf 5 aendern -> Abweichung
+  mats[0].qty=5;
+  updateTotals();
+  const nachHand={warnWeg:$("matBuchWarnung").hidden,
+                  text:$("matBuchWarnung").textContent.replace(/\s+/g," "),
+                  abw:rapportBuchAbweichungen()};
+  mats.length=0;
+  return {nachZwei,nachDrei,nachHand};
+ },{f:SB,k:KATALOG,s:WSCAN});
+ p(z.nachZwei.qty===2&&z.nachZwei.gebucht.length===1
+   &&Number(z.nachZwei.gebucht[0].menge)===2,
+   "W1 zwei Scans desselben Artikels: Zeile auf 2, und gebucht wird je ARTIKEL mitgefuehrt",z.nachZwei);
+ p(z.nachZwei.warnWeg===true,
+   "W2 solange Zeile und Buchung uebereinstimmen, steht keine Warnung da",z.nachZwei);
+ p(z.nachDrei.zeilen===1&&z.nachDrei.qty===3&&z.nachDrei.gebucht.length===2,
+   "W3 ein ZWEITER Artikel auf derselben EDV-Nr. landet in derselben Zeile - und wird einzeln mitgefuehrt (n:1, genau deshalb je Artikel)",z.nachDrei);
+ p(z.nachDrei.warnWeg===true,
+   "W4 und auch das ist keine Abweichung: 3 gebucht, Zeile auf 3",z.nachDrei);
+ p(z.nachHand.warnWeg===false&&z.nachHand.abw.length===1
+   &&z.nachHand.abw[0].gebucht===3&&z.nachHand.abw[0].menge===5,
+   "W5 wird die Zeile von Hand auf 5 gesetzt, FAELLT DAS AUF: 3 ausgebucht, Zeile auf 5",z.nachHand);
+ p(/nicht<\/b> nachgeführt|nicht nachgeführt/.test(z.nachHand.text)&&/Korrektur/.test(z.nachHand.text),
+   "W6 und die Meldung sagt, was gilt (verrechnet wird die Zeile), was nicht (das Lager) und was zu tun ist",z.nachHand.text.slice(0,200));
+ // Eine von Hand erfasste Zeile ist KEINE Abweichung.
+ z=await page.evaluate(()=>{
+  mats.length=0;
+  mats.push({date:"2026-10-01",no:"203.06",qty:7});
+  updateTotals();
+  const r={warnWeg:$("matBuchWarnung").hidden, abw:rapportBuchAbweichungen().length};
+  mats.length=0;
+  return r;
+ });
+ p(z.warnWeg===true&&z.abw===0,
+   "W7 GEGENPROBE: eine von Hand erfasste Zeile ohne Buchung ist KEINE Abweichung - sie wurde ja nie ausgebucht",z);
+ // Ohne Ausbuchen wird auch nichts mitgefuehrt - und damit nichts gemeldet.
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()");
+  window.__db.lieferanten_artikel=[
+   {id:1,lieferant:"B",artikelnr:"S1",bezeichnung:"Rinnenstutzen 250",gruppe:"R",ean:"111",material_id:7001}];
+  window.__db.lieferanten_bewegungen=[];
+  await lfLaden();
+  mats.length=0;
+  $("matScanAusbuchen").checked=false;
+  eval("("+o.s+")")("111"); rapportMaterialScannen();
+  await new Promise(r=>setTimeout(r,140));
+  mats[0].qty=9; updateTotals();
+  const r={gebucht:mats[0].gebucht, warnWeg:$("matBuchWarnung").hidden};
+  mats.length=0; $("matScanAusbuchen").checked=true;
+  return r;
+ },{f:SB,k:KATALOG,s:WSCAN});
+ p(z.gebucht===undefined&&z.warnWeg===true,
+   "W8 GEGENPROBE: ohne Ausbuchen wird nichts mitgefuehrt und nichts gemeldet - es gibt ja keine Buchung, von der die Zeile abweichen koennte",z);
+ // Die Angabe haengt an der Zeile und ueberlebt damit das Speichern: sie
+ // reist in reports.material_entries (jsonb) mit, ohne Migration.
+ p(/material_entries:mats/.test(lies("js/08-katalog-blitzschutz.js"))
+   &&/mats=r\.material_entries/.test(lies("js/09-projekte.js")),
+   "W9 gespeichert und geladen wird das GANZE Zeilen-Objekt - die Angabe ueberlebt ohne Migration",null);
+ p(/updateTotals/.test(lies("js/06-rapport.js").split("function updateTotals")[1].split("\n}")[0]+"")
+   ||/rapportBuchWarnungZeichnen/.test(lies("js/06-rapport.js").split("function updateTotals")[1].split("\n}")[0]),
+   "W10 die Warnung haengt in updateTotals - dem einen Weg, den jede Aenderung nimmt (Zeichnen, Mengenaenderung, Laden)",null);
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();
