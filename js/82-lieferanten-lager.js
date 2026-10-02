@@ -211,6 +211,30 @@ function lfRegieText(r){
 function lfRegieVon(a){ return lfRegieZuId(a&&a.material_id) }
 function lfZugeordnet(){ return lfArtikel.filter(a=>lfRegieVon(a)).length }
 
+// ---- "Dafuer gibt es bei uns keine Position" (v3.249) ---------------------
+//
+// Ansage des Anwenders (02.10.2026): "Punkt 1 wird so bleiben, wir haben
+// keine Positionen fuer die fehlenden Artikel."
+//
+// Das kann die App NICHT selbst erkennen. Ob es fuer eine 400er Rinne eine
+// Abrechnungsposition geben soll, ist eine betriebliche Entscheidung. Ohne
+// einen Platz dafuer meldete der Zuordnen-Knopf dauerhaft "158 offen" - und
+// ein Zaehler, der Arbeit anzeigt, die keine ist, verdeckt die echte, sobald
+// eine neue Lieferantenliste kommt.
+//
+// Entschieden heisst NICHT erledigt: der Artikel bleibt im Lager voll
+// brauchbar. Bestand, Mindestbestand, Einkaufsliste und Inventur brauchen
+// keine Regie-Position - nur das Verrechnen im Regierapport braucht sie.
+// Deshalb ist das kein "archiviert".
+function lfKeinePosition(a){ return !!(a&&a.keine_regie_position) }
+// Noch zu entscheiden: weder zugeordnet noch bewusst ohne Position.
+function lfOffeneZuordnung(a){
+ return !!a&&!a.archiviert&&!lfRegieVon(a)&&!lfKeinePosition(a);
+}
+function lfEntschiedenOhne(){
+ return lfArtikel.filter(a=>!a.archiviert&&lfKeinePosition(a)).length;
+}
+
 // Vorschlaege fuer einen Artikel.
 //
 // Gerechnet wird mit rmatVorschlaege() aus js/57 - derselben Bewertung, die
@@ -408,6 +432,16 @@ function lfBarcodeZuRegie(code){
    return {ok:false,grund:"archiviert",artikel:a,
     text:"„"+a.bezeichnung+"“ ist archiviert und wird nicht mehr verrechnet."};
   const r=lfRegieVon(a);
+  // v3.249: Zwei verschiedene Lagen, und sie zu verwechseln ist der Fehler.
+  // "Noch nicht zugeordnet" heisst: trag es nach. "Dafuer gibt es keine
+  // Position" heisst: es gibt nichts nachzutragen - der Rat ins Leere waere
+  // schlimmer als keiner.
+  if(!r&&lfKeinePosition(a))
+   return {ok:false,grund:"keine-position",artikel:a,
+    text:"„"+a.bezeichnung+"“ ist im Lager, hat aber bei euch keine "
+        +"Regie-Position – so entschieden. Er lässt sich deshalb nicht in den "
+        +"Regierapport übernehmen. Material von Hand erfassen, oder die "
+        +"Entscheidung im Lager unter 🔗 Zuordnen zurücknehmen."};
   if(!r)return {ok:false,grund:"ohne-zuordnung",artikel:a,
    text:"„"+a.bezeichnung+"“ ist bekannt, hat aber noch keine Regie-Position. "
        +"Im Lieferanten-Lager unter 🔗 Zuordnen nachtragen – danach geht das Scannen."};
@@ -1113,7 +1147,7 @@ function lfZuordnenGruppen(){
   const g=String(a.gruppe||"Ohne Gruppe");
   if(!m[g])m[g]={name:g,gesamt:0,offen:0};
   m[g].gesamt++;
-  if(!lfRegieVon(a))m[g].offen++;
+  if(lfOffeneZuordnung(a))m[g].offen++;
  });
  return Object.keys(m).sort((x,y)=>x.localeCompare(y,"de")).map(k=>m[k]);
 }
@@ -1123,7 +1157,10 @@ function lfZuordnenKandidaten(){
  return lfArtikel.filter(a=>{
   if(a.archiviert)return false;
   if(!lfPasstZumFilter(a))return false;
-  if(lfZuordnenNurOffene&&lfRegieVon(a))return false;
+  // v3.249: "nur noch nicht zugeordnete" heisst auch: nicht die, bei denen
+  // entschieden ist, dass es keine Position gibt. Ohne die Wahl stehen sie
+  // weiter da - zum Zuruecknehmen der Entscheidung.
+  if(lfZuordnenNurOffene&&!lfOffeneZuordnung(a))return false;
   if(lfZuordnenGruppe&&String(a.gruppe||"Ohne Gruppe")!==lfZuordnenGruppe)return false;
   if(q&&![a.bezeichnung,a.artikelnr,a.material].some(x=>String(x||"").toLowerCase().indexOf(q)>=0))return false;
   return true;
@@ -1232,8 +1269,13 @@ function lfZuordnenAlleSetzen(){
  // der 250er-Position im Feld haette ein Druck 11 Artikel auf einen falschen
  // Preis gesetzt. Artikel, deren Groesse der gewaehlten Position
  // widerspricht, werden deshalb ausgelassen - und zwar benannt, nicht still.
- const passend=liste.filter(a=>!lfGroesseWiderspricht(a,r));
- const weg=liste.length-passend.length;
+ // v3.249: Auch hier die Entschiedenen auslassen. Sie zu setzen waere das
+ // Gegenteil der Entscheidung - und im Gegensatz zu "Sichere Vorschlaege"
+ // war das hier zuerst nicht abgesichert; der Pruefstand hat es gefunden
+ // (AA10).
+ const entschiedene=liste.filter(a=>lfKeinePosition(a)).length;
+ const passend=liste.filter(a=>!lfKeinePosition(a)&&!lfGroesseWiderspricht(a,r));
+ const weg=liste.length-passend.length-entschiedene;
  if(!passend.length){
   if(h){ h.style.color="var(--red)";
    h.textContent="Nichts gesetzt: „"+r.edv_nr+" · "+r.name+"“ hat die Grösse "
@@ -1246,12 +1288,14 @@ function lfZuordnenAlleSetzen(){
    (weg?passend.length+" von "+liste.length+" angezeigten Artikeln":"Alle "+passend.length+" angezeigten Artikel")
   +" auf „"+r.edv_nr+" · "+r.name+"“ setzen?\n\n"
   +(weg?weg+" Artikel werden ausgelassen: ihre Grösse passt nicht zu dieser Position.\n\n":"")
+  +(entschiedene?entschiedene+" weitere, weil bei ihnen festgehalten ist, dass es keine Regie-Position gibt.\n\n":"")
   +"Gespeichert wird erst mit „Speichern“ – bis dahin lässt sich jede Zeile noch einzeln ändern."))return;
  passend.forEach(a=>{ lfZuordnungen[String(a.id)]=String(r.id) });
  lfZuordnenZeichnen();
  if(h){ h.style.color="var(--muted)";
   h.textContent=passend.length+" Artikel auf „"+r.edv_nr+"“ gesetzt – noch nicht gespeichert."
-   +(weg?" "+weg+" ausgelassen, weil die Grösse nicht passt.":"") }
+   +(weg?" "+weg+" ausgelassen, weil die Grösse nicht passt.":"")
+   +(entschiedene?" "+entschiedene+" ausgelassen, weil dort entschieden ist, dass es keine Position gibt.":"") }
 }
 
 // v3.243: Wie viele der offenen Artikel sind ueberhaupt zuordenbar? Das ist
@@ -1259,9 +1303,11 @@ function lfZuordnenAlleSetzen(){
 // Gemessen: 115 der 158 offenen Artikel koennen gar nicht zugeordnet werden,
 // weil die Regie-Liste ihre Groesse nicht fuehrt.
 function lfZuordnenBefundStand(){
- const st={offen:0,zuEntscheiden:0,groesseFehlt:0,nichts:0,ohneMuster:0};
+ const st={offen:0,zuEntscheiden:0,groesseFehlt:0,nichts:0,ohneMuster:0,
+  entschiedenOhne:lfEntschiedenOhne()};
  lfArtikel.forEach(a=>{
-  if(a.archiviert||lfRegieVon(a))return;
+  // v3.249: bewusst ohne Position ist nicht offen.
+  if(!lfOffeneZuordnung(a))return;
   st.offen++;
   const b=lfGroessenBefund(a);
   if(b.art==="groesse-fehlt")st.groesseFehlt++;
@@ -1318,7 +1364,9 @@ function lfRegieDimsFuerName(name){
 // Betrifft 47 Artikel: Rinnenhaken eckig (17), Rinnenkugelboeden (15),
 // Schraegstutzen (15).
 function lfOhneMuster(a){
- return !!a&&!lfRegieVon(a)&&lfMusterFuer(a)===null&&lfRegieVorschlaege(a).length>0;
+ // v3.249: ein bewusst ohne Position entschiedener Artikel ist hier kein
+ // Fall mehr - es gibt nichts zu warnen, wenn nichts zugeordnet werden soll.
+ return lfOffeneZuordnung(a)&&lfMusterFuer(a)===null&&lfRegieVorschlaege(a).length>0;
 }
 function lfMusterFuer(a){
  if(!a)return null;
@@ -1367,7 +1415,10 @@ function lfMusterFuer(a){
 function lfFehlendeRegie(){
  const m={};
  lfArtikel.forEach(a=>{
-  if(a.archiviert||lfRegieVon(a))return;
+  // v3.249: Was bewusst ohne Position bleibt, fehlt der Regie-Liste nicht -
+  // es ist entschieden. Eine Arbeitsliste, die Entschiedenes weiter
+  // verlangt, ist keine Arbeitsliste.
+  if(!lfOffeneZuordnung(a))return;
   const b=lfGroessenBefund(a);
   // v3.244: Eine Gruppe ohne jede Zuordnung gehoert in die Arbeitsliste, auch
   // wenn die Groesse passt - sonst fehlen dort genau die 47 Artikel, bei
@@ -1485,6 +1536,60 @@ async function lfFehlendeRegieKopieren(){
    h.textContent=n+" Position(en) – die Liste steht unten. Das Kopieren hat dieses Gerät nicht erlaubt; der Text ist markiert."}
  }
 }
+// v3.249: Die Entscheidung setzen oder zuruecknehmen - einzeln oder fuer
+// alle angezeigten. 158 Artikel einzeln anzutippen waere ein Nachmittag;
+// gearbeitet wird gruppenweise, wie beim Zuordnen selbst.
+//
+// Geschrieben wird SOFORT, nicht erst mit "Speichern": die Entscheidung
+// haengt an keiner Regie-Position, es gibt also nichts durchzusehen. Und
+// eine Entscheidung, die man noch speichern muss, geht beim Schliessen des
+// Dialogs verloren.
+async function lfKeinePositionSetzen(ids,wert){
+ if(typeof sb==="undefined")return {ok:false,text:"Keine Verbindung."};
+ const liste=(Array.isArray(ids)?ids:[ids]).map(String).filter(Boolean);
+ if(!liste.length)return {ok:false,text:"Es wird gerade nichts angezeigt."};
+ // Die Datenbank laesst die Marke nur ohne Zuordnung zu
+ // (lieferanten_artikel_keine_regie_nur_ohne_zuordnung). Hier wird deshalb
+ // gar nicht erst versucht, sie auf einen zugeordneten Artikel zu setzen -
+ // die Regel steht dort, die Auskunft steht hier.
+ const betroffen=wert
+  ? liste.filter(id=>{ const a=lfArtikelZuId(id); return a&&!lfRegieVon(a) })
+  : liste;
+ if(!betroffen.length)return {ok:false,
+  text:"Diese Artikel haben eine Regie-Position. Erst die Zuordnung entfernen, dann geht es."};
+ let fehler="";
+ for(const id of betroffen){
+  const r=await sb.from("lieferanten_artikel")
+   .update({keine_regie_position:!!wert}).eq("id",Number(id));
+  if(r&&r.error){ fehler=r.error.message||String(r.error); break }
+ }
+ if(fehler)return {ok:false,text:"Nicht gespeichert: "+fehler};
+ await lfLaden();
+ return {ok:true,anzahl:betroffen.length,
+  uebersprungen:liste.length-betroffen.length};
+}
+async function lfKeinePositionAlleSetzen(wert){
+ if(typeof $!=="function")return;
+ const h=$("liefZuordnenMeldung");
+ const liste=lfZuordnenKandidaten();
+ if(!liste.length){ if(h){h.style.color="var(--muted)";h.textContent="Es wird gerade nichts angezeigt."} return }
+ if(typeof confirm==="function"&&wert&&!confirm(
+   "Bei allen "+liste.length+" angezeigten Artikeln festhalten, dass es dafür KEINE Regie-Position gibt?\n\n"
+  +"Sie verschwinden damit aus „noch offen“ und aus „Was fehlt“. Im Lager bleiben sie voll nutzbar – "
+  +"Bestand, Mindestbestand und Einkaufsliste brauchen keine Regie-Position.\n\n"
+  +"Scannen im Regierapport geht bei ihnen nicht; das sagt die App dann auch so."))return;
+ const r=await lfKeinePositionSetzen(liste.map(a=>a.id),wert);
+ lfZuordnenZeichnen(); lfZeichnen();
+ if(h){
+  h.style.color=r.ok?"var(--muted)":"var(--red)";
+  h.textContent=r.ok
+   ? (wert
+      ? r.anzahl+" Artikel festgehalten: dafür gibt es keine Regie-Position."
+        +(r.uebersprungen?" "+r.uebersprungen+" ausgelassen, weil sie eine haben.":"")
+      : "Bei "+r.anzahl+" Artikel(n) zurückgenommen – sie stehen wieder als offen da.")
+   : r.text;
+ }
+}
 function lfZuordnenKopfZeichnen(){
  if(typeof $!=="function")return;
  const kopf=$("liefZuordnenKennzahlen");
@@ -1510,10 +1615,23 @@ function lfZuordnenKopfZeichnen(){
       Form nicht). Geblockt wird nichts – ordne einen von Hand zu, dann trägt das Gruppenmuster
       den Rest.</div>`
    : "";
+  // v3.249: Die Entschiedenen werden GENANNT, nicht verschwiegen. Sonst
+  // fragt er sich, wo die 158 hin sind - und ob die App sie vergessen hat.
+  const entschieden=st.entschiedenOhne
+   ? `<div class="small" style="margin-top:4px;color:var(--muted)">Bei <b>${st.entschiedenOhne}</b>
+      Artikel(n) ist festgehalten, dass es dafür <b>keine</b> Regie-Position gibt. Sie zählen
+      nicht als offen und stehen nicht in „Was fehlt“ – im Lager bleiben sie voll nutzbar.
+      Mit dem Schalter „nur noch nicht zugeordnete“ aus siehst du sie wieder.</div>`
+   : "";
+  if(!st.offen&&st.entschiedenOhne){
+   hin.hidden=false;
+   hin.innerHTML=`<b>Nichts mehr offen.</b>`+entschieden;
+   return;
+  }
   if(!st.offen){ hin.hidden=true; hin.innerHTML="" }
   else if(!blockiert){
    hin.hidden=false;
-   hin.innerHTML=`<b>${st.offen}</b> offen – für jeden steht eine passende Position zur Wahl.`+fremd;
+   hin.innerHTML=`<b>${st.offen}</b> offen – für jeden steht eine passende Position zur Wahl.`+fremd+entschieden;
   }else{
    hin.hidden=false;
    hin.innerHTML=`Von <b>${st.offen}</b> offenen Artikeln sind <b>${st.zuEntscheiden}</b> zu entscheiden.
@@ -1524,7 +1642,7 @@ function lfZuordnenKopfZeichnen(){
     <div class="small" style="margin-top:4px">Das wären <b>${lfFehlendeRegie().length}</b> Regie-Position(en) –
     <b>📋 Was fehlt</b> zeigt sie als Arbeitsliste: Name und Einheit stehen schon fest, EDV-Nr. und Preis sind
     deine Entscheidung. Angelegt wird in der <b>Lagerverwaltung</b>; die App legt dort nichts von selbst an.</div>`
-    +fremd;
+    +fremd+entschieden;
   }
  }
  const offen=$("liefZuordnenSpeichern");
@@ -1580,6 +1698,7 @@ function lfZuordnenZeichnen(){
   const jetztR=lfRegieVon(a);
   const jetztFalsch=(jetztR&&lfGroesseWiderspricht(a,jetztR))?(jetztR.dim||""):"";
   const fremdeGruppe=lfOhneMuster(a);
+  const entschieden=lfKeinePosition(a);
   // Die Auswahl enthaelt: keine Zuordnung, die Vorschlaege, und - falls
   // der Artikel schon eine Position hat, die nicht unter den Vorschlaegen
   // ist - diese ebenfalls. Sonst wuerde das Oeffnen der Ansicht eine
@@ -1616,7 +1735,8 @@ function lfZuordnenZeichnen(){
     <b>${esc(a.bezeichnung)}</b>
     <div class="small" style="color:var(--muted)">${esc(a.artikelnr)}${
      a.material?" · "+esc(a.material):""}${
-     jetztFalsch?' · <span style="color:var(--red)">zugeordnet auf Grösse '+esc(jetztFalsch)+' – stimmt das?</span>'
+     entschieden?' · <span style="color:var(--muted)">bewusst ohne Regie-Position – im Lager weiter nutzbar, im Regierapport nicht verrechenbar</span>'
+        :jetztFalsch?' · <span style="color:var(--red)">zugeordnet auf Grösse '+esc(jetztFalsch)+' – stimmt das?</span>'
         :grp?' · <span style="color:var(--green)">wie '+grp.anzahl+'× in dieser Gruppe</span>'
         :(befund.art==="groesse-fehlt"
           ? ' · <span style="color:var(--red)">'+esc(lfGroessenBefundText(befund))+'</span>'
@@ -1626,7 +1746,14 @@ function lfZuordnenZeichnen(){
             :(vor.length?(sicher?' · <span style="color:var(--green)">sicherer Vorschlag</span>'
                                 :' · <span style="color:var(--muted)">Vorschlag, bitte prüfen</span>')
                         :' · <span style="color:var(--muted)">kein Vorschlag gefunden</span>')))}</div>
-    <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%">${optionen.join("")}</select>
+    <select data-lf-zu="${esc(a.id)}" style="margin-top:4px;width:100%"${
+      entschieden?" disabled":""}>${optionen.join("")}</select>
+    <label class="rechte-schalter" style="margin-top:4px">
+     <input type="checkbox" data-lf-keine="${esc(a.id)}"${entschieden?" checked":""}${
+      jetztR?" disabled":""}>
+     ${entschieden
+       ? 'Dafür gibt es bei uns <b>keine</b> Regie-Position – entschieden'
+       : 'Dafür gibt es bei uns keine Regie-Position'}</label>
    </div>
   </div>`;
  });
@@ -1641,7 +1768,9 @@ function lfZuordnenSichereUebernehmen(){
  // sind - und man merkte es erst beim Speichern.
  let n=0, ausGruppe=0, uebersprungen=0, fremd=0;
  lfZuordnenKandidaten().forEach(a=>{
-  if(lfRegieVon(a))return;
+  // v3.249: auch nichts bei denen setzen, bei denen entschieden ist, dass
+  // es keine Position gibt - das waere das Gegenteil der Entscheidung.
+  if(!lfOffeneZuordnung(a))return;
   // Die eigene Entscheidung in der Gruppe zaehlt mehr als die
   // Textaehnlichkeit - siehe lfGruppenVorschlag.
   const grp=lfGruppenVorschlag(a);
@@ -2256,7 +2385,10 @@ function lfZeichnen(){
  // Regie-Position sind - das ist die Arbeit, die noch aussteht.
  const zk=$("liefZuordnenKnopf");
  if(zk){
-  const offen=lfArtikel.filter(a=>!a.archiviert&&!lfRegieVon(a)).length;
+  // v3.249: gezaehlt wird, was noch zu ENTSCHEIDEN ist - nicht, was
+  // bewusst ohne Position bleibt. Sonst zeigte der Knopf dauerhaft Arbeit
+  // an, die keine ist, und die echte faellt nicht mehr auf.
+  const offen=lfArtikel.filter(a=>lfOffeneZuordnung(a)).length;
   zk.textContent=offen?"🔗 Zuordnen ("+offen+" offen)":"🔗 Zuordnen";
  }
  if(!lfArtikel.length){
@@ -2419,6 +2551,26 @@ if(typeof document!=="undefined")document.addEventListener("click",e=>{
 if(typeof document!=="undefined")document.addEventListener("change",e=>{
  const s=e.target;
  if(!s||!s.getAttribute)return;
+ // v3.249: Die Entscheidung "dafuer gibt es keine Position". Sie wird SOFORT
+ // geschrieben, nicht erst mit "Speichern" - sie haengt an keiner
+ // Regie-Position, es gibt also nichts durchzusehen, und eine Entscheidung,
+ // die man noch speichern muss, geht beim Schliessen verloren.
+ const keineId=s.getAttribute("data-lf-keine");
+ if(keineId!==null){
+  const an=!!s.checked;
+  lfKeinePositionSetzen(keineId,an).then(r=>{
+   const h=$("liefZuordnenMeldung");
+   if(h){
+    h.style.color=r.ok?"var(--muted)":"var(--red)";
+    h.textContent=r.ok
+     ? (an?"Festgehalten: dafür gibt es keine Regie-Position."
+          :"Zurückgenommen – der Artikel steht wieder als offen da.")
+     : r.text;
+   }
+   lfZuordnenZeichnen(); lfZeichnen();
+  });
+  return;
+ }
  const id=s.getAttribute("data-lf-zu");
  if(id===null)return;
  lfZuordnungen[String(id)]=s.value||"";
@@ -2527,6 +2679,8 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
  an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());
+ an("liefKeinePositionAlle",()=>lfKeinePositionAlleSetzen(true));
+ an("liefKeinePositionAlleZurueck",()=>lfKeinePositionAlleSetzen(false));
  an("liefBewKnopf",()=>lfBewegungenOeffnen());
  an("liefInvKnopf",()=>lfInvOeffnen());
  an("liefInvSchliessen",()=>{ $("liefInvModal").hidden=true });
