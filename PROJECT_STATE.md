@@ -3,9 +3,37 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.252`
+- Aktueller Entwicklungsstand: `v3.253`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.253 — „Materialbestand" heisst „Material & Blech"
+
+Seine Entscheidung auf die offene Frage aus v3.251: „Ja umbenennen."
+
+- Abschnitt **„Materialbestand" → „Material & Blech"** (index.html, Hilfe-Thema
+  `lagerbestand`, 20 Stellen in der Anleitung)
+- Register **„Lager" → „Blech"**. Darin stehen nur noch Material & Blech und
+  Reststücke; ein Register namens „Lager", das nicht das Lager ist, wäre
+  genau die Verwechslung zurück, die v3.251 aufgeräumt hat. Nicht gefragt,
+  sondern entschieden und gesagt — es ist eine Beschriftung, ein Wort zurück.
+- Umbenannt sind **nur Beschriftungen**. Die Schlüssel bleiben
+  (`data-settings-tab="lager"`, `data-section="lagerbestand"`, Hilfe-Schlüssel
+  `lagerbestand`, `tab:"lager"` in js/73 und js/75) — sie stehen in
+  Sprungzielen und gespeicherten Zuständen.
+
+**Dabei gefundener Fehler, mitbehoben:** fünf Hilfetexte und Feldhinweise
+nannten den Weg „Einstellungen → **Allgemein** → Materialbestand". Dort war
+der Abschnitt nie — er liegt im Register daneben. Wer dem Text folgte, suchte
+am falschen Ort. Jetzt steht überall „Einstellungen → Blech → Material &
+Blech" (js/61, js/42, js/33, js/29, js/41).
+
+**Nicht angefasst:** `js/67-was-ist-neu.js` (10 Stellen) und
+`CHANGELOG_HISTORIE.md` (27). Sie beschreiben, was in 3.98 bis 3.181 wahr war
+— sie umzuschreiben wäre keine Umbenennung, sondern eine Fälschung der
+Historie. Dasselbe gilt für zwei Hilfe-Stellen, die ausdrücklich „bis Version
+3.175" sagen, und 35 Code-Kommentare, die den alten Namen in ihrer
+Entstehungsgeschichte nennen.
 
 ### v3.252 — nachgezogen: das Lager als Bereich der Ansicht
 

@@ -262,8 +262,8 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(!d.fehlt,"das Feld ist ueberhaupt da",d);
  p(d.wert==="","die Vorgabe ist automatisch",d);
  p(d.werte.join("|")==="|rolle|tafel","drei Moeglichkeiten: automatisch, Rolle, Tafel",d.werte);
- p(/automatisch \(Materialbestand\)/.test(d.texte[0]),"die Vorgabe sagt, woher sie kommt",d.texte);
- p(/Laut Materialbestand: Tafelmaterial/.test(d.hinweis),
+ p(/automatisch \(Material & Blech\)/.test(d.texte[0]),"die Vorgabe sagt, woher sie kommt",d.texte);
+ p(/Laut Material & Blech: Tafelmaterial/.test(d.hinweis),
    "der Hinweis nennt, was der Bestand sagt",d.hinweis);
  p(/2.000 . 1.000 mm/.test(d.hinweis),"und nennt das hinterlegte Format",d.hinweis);
  p(d.info,"das Feld hat einen Info-Knopf",d);

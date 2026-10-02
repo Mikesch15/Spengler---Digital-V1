@@ -198,17 +198,17 @@ const REST_WARUM_TEXT={
  "kein-lager":"für dieses Material steht nichts im Lagerbestand",
  "mehrdeutig":"im Lagerbestand stehen mehrere Stärken/Ausführungen",
  "unvollstaendig":"im Lagerbestand fehlen Stärke oder Ausführung",
- "staerke-nicht-im-lager":"diese Materialstärke steht nicht im Materialbestand"
+ "staerke-nicht-im-lager":"diese Materialstärke steht nicht in Material & Blech"
 };
 // v3.33: warum die Form nicht eindeutig ist. Wird angezeigt, statt
 // stillschweigend Rollenblech anzunehmen.
 const REST_FORM_TEXT={
  "ohne-material":"Für diese Massaufnahme ist kein Material gewählt.",
- "kein-lager":"Für dieses Material steht nichts im Materialbestand.",
- "staerke-nicht-im-lager":"Diese Materialstärke steht nicht im Materialbestand.",
- "ohne-form":"Im Materialbestand ist für dieses Material nicht angegeben, ob es Rolle oder Tafel ist.",
- "form-mehrdeutig":"Dieses Material steht im Materialbestand als Rolle und als Tafel – es wird nichts geraten.",
- "tafel-ohne-format":"Für die Tafel fehlt im Materialbestand das Format (Länge und Breite)."
+ "kein-lager":"Für dieses Material steht nichts in Material & Blech.",
+ "staerke-nicht-im-lager":"Diese Materialstärke steht nicht in Material & Blech.",
+ "ohne-form":"In Material & Blech ist für dieses Material nicht angegeben, ob es Rolle oder Tafel ist.",
+ "form-mehrdeutig":"Dieses Material steht in Material & Blech als Rolle und als Tafel – es wird nichts geraten.",
+ "tafel-ohne-format":"Für die Tafel fehlt in Material & Blech das Format (Länge und Breite)."
 };
 function restFormGrundText(grund){return REST_FORM_TEXT[grund]||""}
 const REST_GRUND_TEXT={

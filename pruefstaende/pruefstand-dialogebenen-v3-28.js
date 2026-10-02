@@ -99,7 +99,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  const wegA=await lagerAbschnittOeffnen();
  await page.waitForTimeout(250);
- p(wegA.kopfDa,"Der Abschnitt «Materialbestand» hat einen Kopf zum Auf- und Zuklappen",wegA);
+ p(wegA.kopfDa,"Der Abschnitt «Material & Blech» hat einen Kopf zum Auf- und Zuklappen",wegA);
  p(wegA.vorher===false,"Zugeklappt ist der Knopf «＋ Material erfassen» nicht sichtbar",wegA);
  p(wegA.nachher===true,"Nach dem Aufklappen ist der Knopf «＋ Material erfassen» sichtbar",wegA);
  // Ueber evaluate ausloesen: ein verdeckter Knopf laesst page.click haengen.

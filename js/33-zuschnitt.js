@@ -862,8 +862,8 @@ const ZU_EINLEITUNG_TAFEL="Aus <b>Tafeln</b> werden quer <b>Streifen der Abwickl
  +"geteilt. Anders als bei der Rolle hat eine Tafel eine <b>feste Länge</b>: jedes Stück muss "
  +"hineinpassen. In einem Streifen dürfen mehrere Stücke hintereinander liegen, solange sie "
  +"zusammen in eine Tafel passen – jedes Blech wird auf seine genaue Länge geschnitten.";
-const ZU_QUELLE_TAFEL="Tafelformate aus dem <b>Materialbestand</b> (Einstellungen → Allgemein → "
- +"Materialbestand), Eintrag mit Form <b>Tafel</b> und Format.";
+const ZU_QUELLE_TAFEL="Tafelformate aus <b>Material &amp; Blech</b> (Einstellungen → Blech → "
+ +"Material &amp; Blech), Eintrag mit Form <b>Tafel</b> und Format.";
 // Einleitung und Quelle je Art - damit kein Modul sie selbst zusammensucht.
 function zuEinleitung(form){return form==="tafel"?ZU_EINLEITUNG_TAFEL:ZU_EINLEITUNG_ROLLE}
 function zuQuelle(form){return form==="tafel"?ZU_QUELLE_TAFEL:ZU_QUELLE_ROLLE}

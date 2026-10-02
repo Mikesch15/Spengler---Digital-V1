@@ -258,7 +258,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   if(!s)return {opt:[],wert:"",gemerkt:measStaerkeGet(),fehlt:true};
   return {opt:[...s.options].map(o=>o.text),wert:s.value,gemerkt:measStaerkeGet()};
  });
- p(/nicht im Materialbestand/.test(b3.opt.join("|"))&&b3.gemerkt===1.5,
+ p(/nicht in Material & Blech/.test(b3.opt.join("|"))&&b3.gemerkt===1.5,
    "ein gespeicherter Wert ausserhalb des Bestands bleibt sichtbar und wird gekennzeichnet",b3);
 
  // =========================================================== C

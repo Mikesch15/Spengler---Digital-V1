@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.252.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.253.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2136,8 +2136,8 @@ Dehnungswerte und steuert die Massaufnahme.</li>
 <li><b>Artikel</b> – die EDV-Nr. im Materialkatalog, mit Preis und Einheit.
 Steuert die Verrechnung. Ein Werkstoff hat oft mehrere Artikel (Kupfer:
 0,6 Rolle, 0,8 Tafel, 1,0 Tafel).</li>
-<li><b>Bestand</b> – der Materialbestand im Lager, mit Stärke und
-Rolle/Tafel. Steuert den Zuschnitt.</li>
+<li><b>Bestand</b> – <b>Material &amp; Blech</b> im Register Blech, mit Stärke
+und Rolle/Tafel. Steuert den Zuschnitt.</li>
 </ul>
 Zusammengelegt werden sie bewusst nicht: ein Werkstoff muss wählbar sein,
 auch wenn er gerade nicht am Lager liegt, und die Dehnungswerte gehören zum
@@ -2376,14 +2376,14 @@ Steht sie auf <i>Ja</i>, ziehen passende Reste den Bedarf ab, <b>bevor</b> von
 der Rolle gerechnet wird.</p>
 <p>Passend heisst: gleicher Werkstoff, gleiche Stärke, gleiche Ausführung.
 0,70 mm Titanzink ist <b>kein</b> Ersatz für 0,80 mm. Woher die App Stärke und
-Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p>
+Ausführung kennt, steht im Register <b>Blech</b> unter <b>Material &amp; Blech</b>.</p>
 <p>Verbucht wird dabei nichts: der Plan zeigt, welche Stücke aus welchem Rest
 kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
 
 "material-position-anlegen":{titel:"Neue Materialposition anlegen",text:`
 <p>Dieser Dialog legt eine <b>Position im Material-Katalog</b> an – dieselbe
 Liste, aus der der Regierapport verrechnet. Danach steht sie überall zur
-Verfügung: Regierapport, Regieofferte, Materialbestand.</p>
+Verfügung: Regierapport, Regieofferte, Material &amp; Blech.</p>
 <p><b>Die EDV-Nr. schlägt die App vor, und sie sagt warum.</b> Der Katalog ist
 nach Gruppen geordnet – 201 Dachrinnen, 202 Rinnenhalter, 203 Rinnenzubehör,
 251 Ablaufrohre, 811 Dichtstoffe, 826 Schrauben. Aus der <b>Bezeichnung</b>
@@ -2402,12 +2402,12 @@ der Abschaffung der alten Lagerverwaltung ist dieser zweite Teil weggefallen;
 die Position – der Teil, den der Katalog braucht – ist geblieben, samt
 Nummernvorschlag.</div>
 `},
-"lagerbestand":{titel:"Materialbestand",text:`
+"lagerbestand":{titel:"Material & Blech",text:`
 <p>Diese Liste legt fest, <b>welche</b> Bleche die Firma führt – Werkstoff,
 Stärke und Ausführung. Sonst nichts: seit Version 3.31 <b>keine Mengen, keine
 Längen, keine Tafelgrössen</b>. Es war nie eine Lagerverwaltung, es wurde nie
 etwas abgebucht, und die Zahlen dort haben nichts bewirkt.</p>
-<p><b>Materialbestand oder Reststück?</b> Der Bestand sagt, was der Betrieb
+<p><b>Material &amp; Blech oder Reststück?</b> Der Bestand sagt, was der Betrieb
 grundsätzlich führt. Ein <b>Reststück</b> ist ein einzelnes, konkretes Stück,
 das beim Zuschnitt übrig geblieben ist, mit genau einer Länge und Breite – und
 nach der Verwendung ist es verbraucht.</p>
@@ -2467,11 +2467,11 @@ kommt aus dem Katalog und wird dort geändert.</p>`},
 
 "meas-staerke":{titel:"Materialstärke",text:`
 <p>Welche Stärke das Blech dieser Massaufnahme hat. Die Auswahl kommt
-<b>ausschliesslich</b> aus dem Materialbestand der Firma (Einstellungen →
-Allgemein → Materialbestand) – es wird nichts vorgeschlagen, was der Betrieb
+<b>ausschliesslich</b> aus <b>Material &amp; Blech</b> (Einstellungen → Blech →
+Material &amp; Blech) – es wird nichts vorgeschlagen, was der Betrieb
 nicht führt, und nichts erfunden.</p>
 <p>Steht für das gewählte Material dort noch nichts, sagt das Feld das
-ausdrücklich. Dann ist zuerst der Materialbestand dran; die Massaufnahme
+ausdrücklich. Dann ist zuerst <b>Material &amp; Blech</b> dran; die Massaufnahme
 lässt sich trotzdem ohne Stärke speichern.</p>
 <p>Wofür sie gebraucht wird: sie macht den Bedarf eindeutig. Führt die Firma
 0,70 <b>und</b> 0,80 mm derselben Art, konnte die App bis Version 3.30 kein
@@ -2489,8 +2489,8 @@ Angabe.</p>`},
 den <b>gesamten</b> Zuschnitt: Registername, Formatvergleich, Belegung,
 Materialbilanz, PDF und Rüstliste sagen danach einheitlich, ob von der Rolle
 oder aus der Tafel geschnitten wird.</p>
-<p><b>Automatisch (Materialbestand)</b> ist die Vorgabe. Dann entscheidet der
-Materialbestand der Firma: ist für Material und Stärke dort ein Tafelformat
+<p><b>Automatisch (Material &amp; Blech)</b> ist die Vorgabe. Dann entscheidet
+<b>Material &amp; Blech</b>: ist für Material und Stärke dort ein Tafelformat
 hinterlegt, wird aus der Tafel geschnitten, sonst von der Rolle. Steht im
 Bestand noch nichts, bleibt es bei der Rolle – das Feld sagt das
 ausdrücklich.</p>
@@ -2533,8 +2533,8 @@ trotzdem.</p>
 den Rest passen. Ohne Angabe bleibt es beim reinen Vermerk.</p>`},
 "reststuecke":{titel:"Reststücke-Lager",text:`
 <p>Ein Reststück ist ein <b>einzelnes, konkretes Stück</b> mit genau einer
-Länge und Breite – nicht zu verwechseln mit dem <b>Materialbestand</b>
-darüber, der das neu eingekaufte Material mit einer Menge führt.</p>
+Länge und Breite – nicht zu verwechseln mit <b>Material &amp; Blech</b>
+darüber, das führt, welche Bleche der Betrieb überhaupt hat.</p>
 <p>Was beim Zuschnitt übrig bleibt und sich noch verwenden lässt. Im Register
 „Zuschnitt“ einer Massaufnahme steht, welche Reste dabei anfallen – von dort
 lassen sie sich mit einem Klick hier aufnehmen.</p>

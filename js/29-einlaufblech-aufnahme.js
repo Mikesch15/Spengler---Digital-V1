@@ -774,7 +774,7 @@ function ebaLeerText(fm,ohneStuecke){
  if(ohneStuecke)return ohneStuecke;
  const tafel=!!(fm&&fm.form==="tafel");
  if(!(fm&&(fm.formate||[]).length))
-  return tafel?"Es ist kein Tafelformat hinterlegt (Einstellungen → Allgemein → Materialbestand)."
+  return tafel?"Es ist kein Tafelformat hinterlegt (Einstellungen → Blech → Material & Blech)."
              :"Es ist keine Rollenbreite hinterlegt.";
  return tafel?"Kein hinterlegtes Tafelformat passt zu diesem Zuschnitt – zu schmal oder zu kurz."
             :"Keine hinterlegte Rollenbreite ist so breit wie die Abwicklung.";

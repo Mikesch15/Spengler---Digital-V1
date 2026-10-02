@@ -449,7 +449,7 @@ fs.mkdirSync(SPRACHE_DIR,{recursive:true});
  await beschriften("Einstellungen. Allgemein","Firmendaten, Ansätze, Materialkatalog, Rollenbreiten.");
  await beschriften("Einstellungen. Massaufnahmen","Zuschlagsmasse und Vorgaben je Massaufnahme-Art.");
  await klicke('[data-settings-tab="measurements"]',{warte:600});
- await beschriften("Einstellungen. Lager","Materialbestand und Reststücke-Lager.");
+ await beschriften("Einstellungen. Blech","Material & Blech und Reststücke.");
  await klicke('[data-settings-tab="lager"]',{warte:600});
  await page.evaluate(()=>{if(typeof renderLagerbestand==="function")renderLagerbestand();
    if(typeof renderRestLager==="function")renderRestLager()});

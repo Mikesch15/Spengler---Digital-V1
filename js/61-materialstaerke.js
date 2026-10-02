@@ -127,16 +127,16 @@ function measStaerkeOptionen(materialId){
  // Ein gespeicherter Wert, den der Bestand nicht (mehr) fuehrt, wird
  // ausdruecklich mitgezeigt statt stillschweigend auf leer zu fallen.
  if(jetzt!==null&&!st.some(x=>Math.abs(x-jetzt)<1e-9))
-  o+=`<option value="${jetzt}" selected>${measStaerkeText(jetzt)} (nicht im Materialbestand)</option>`;
+  o+=`<option value="${jetzt}" selected>${measStaerkeText(jetzt)} (nicht in Material &amp; Blech)</option>`;
  return o;
 }
 function measStaerkeHinweis(materialId){
  const mid=Number(materialId);
  if(!Number.isFinite(mid)||mid<=0)
-  return "Zuerst das Material wählen – die Stärken kommen aus dem Materialbestand der Firma.";
+  return "Zuerst das Material wählen – die Stärken kommen aus Material & Blech.";
  if(!measStaerkenFuer(mid).length)
-  return "Für dieses Material ist im Materialbestand keine Stärke hinterlegt "
-        +"(Einstellungen → Allgemein → Materialbestand).";
+  return "Für dieses Material ist in Material & Blech keine Stärke hinterlegt "
+        +"(Einstellungen → Blech → Material & Blech).";
  return "";
 }
 function measStaerkeInhalt(feld){
@@ -286,18 +286,18 @@ function measFormBedarf(materialId){
 function measZuschnittFormHinweis(materialId){
  const mid=Number(materialId);
  if(!Number.isFinite(mid)||mid<=0)
-  return "Zuerst das Material wählen – Rolle oder Tafel kommt aus dem Materialbestand der Firma.";
+  return "Zuerst das Material wählen – Rolle oder Tafel kommt aus Material & Blech.";
  const b=measFormBedarf(mid);
  if(measZuschnittForm)
   return measZuschnittForm==="tafel"&&!(b.formate||[]).length
-   ? "Für dieses Material ist im Materialbestand kein Tafelformat hinterlegt – "
+   ? "Für dieses Material ist in Material & Blech kein Tafelformat hinterlegt – "
     +"gerechnet wird mit der Rolle, und das steht auch in der Zuschnittliste."
    : "";
- if(b.form==="rolle")return "Laut Materialbestand: Rollenmaterial.";
+ if(b.form==="rolle")return "Laut Material & Blech: Rollenmaterial.";
  if(b.form==="tafel")
   return (b.formate||[]).length
-   ? "Laut Materialbestand: Tafelmaterial ("+(b.formate||[]).map(f=>f.text).join(" · ")+")."
-   : "Laut Materialbestand Tafelmaterial, aber ohne Format – gerechnet wird mit der Rolle.";
+   ? "Laut Material & Blech: Tafelmaterial ("+(b.formate||[]).map(f=>f.text).join(" · ")+")."
+   : "Laut Material & Blech Tafelmaterial, aber ohne Format – gerechnet wird mit der Rolle.";
  return (typeof restFormGrundText==="function")?restFormGrundText(b.grund):"";
 }
 function measZuschnittFormInhalt(feld){
@@ -307,7 +307,7 @@ function measZuschnittFormInhalt(feld){
  const w=measZuschnittForm;
  return `<label>Zuschnitt aus ${info}</label>`
   +`<select data-meas-zform="1">`
-  +`<option value=""${w?"":" selected"}>– automatisch (Materialbestand) –</option>`
+  +`<option value=""${w?"":" selected"}>– automatisch (Material &amp; Blech) –</option>`
   +`<option value="rolle"${w==="rolle"?" selected":""}>Rolle</option>`
   +`<option value="tafel"${w==="tafel"?" selected":""}>Tafel</option>`
   +`</select>`
