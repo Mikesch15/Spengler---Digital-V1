@@ -7,6 +7,33 @@
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
+### Entscheidung: die alte Lagerverwaltung wird abgeschafft (02.10.2026)
+
+Ansage des Anwenders: „die alte Lagerverwaltung wird abgeschafft" — dazu
+„erst einen Plan, dann entscheiden" und für die Altdaten „weg, sauber
+löschen". Damit ist die Sperre aus früheren Sitzungen („`lager_varianten`
+nicht ohne neues Ja anfassen") **aufgehoben**, aber die Reihenfolge steht:
+erst Plan, dann löschen. **Noch ist nichts gelöscht.**
+
+Der durchgerechnete Plan steht in **`PLAN_Lagerverwaltung_abschaffen.md`** —
+Inventar, Reihenfolge, was unwiederbringlich ist. Die drei Kernbefunde:
+
+1. **Zwei Dinge heissen fast gleich.** „Lagerverwaltung" ist `js/68`
+   (`lager_varianten`, `lagerbestand_bewegungen`) — das soll weg.
+   „Materialbestand" ist `js/59` mit den Blechformaten — das bleibt. Ich habe
+   das selbst zuerst verwechselt.
+2. **Der Zuschnitt hängt nicht daran.** Die Blechformate sind Spalten auf
+   `materials`; `artikelFormat()` liest `materialFormate`, nicht
+   `lagerbestand`. Ebenso ist der Einrichtungs-Pflichtpunkt „Blech-Formate"
+   sicher (`einrBlecheEcht()` → `lagFormate()` → `materials`).
+3. **`lagerbestand` ist bereits totes Gewicht:** 6 Zeilen, alle `menge 0`,
+   zur Laufzeit liest sie niemand.
+
+**Blockierend offen:** `📤 Ab Lager ausbuchen` aus einer Massaufnahme ist die
+**eine** Fähigkeit, die mit js/68 verschwindet. Das Lieferanten-Lager kann sie
+nicht übernehmen (439 Handelsartikel, kein Blech, bewusst getrennt von der
+Werkstoff-Kette). Ohne seine Entscheidung dazu wird nichts gelöscht.
+
 ### created_by erzwingen, 02.10.2026 (ohne neue Version — am Code ändert sich nichts)
 
 Ansage des Anwenders: „Ja created by machen." Migration
