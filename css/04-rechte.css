@@ -133,6 +133,16 @@ body.recht-einstellungen-ansehen #settingsModal [data-del-rinne-fitting]{display
   margin-bottom:5px;
 }
 .rechte-paar{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+/* v3.250: min-height und senkrechte Polsterung.
+   GEMESSEN am 02.10.2026: das Kaestchen ist 13 px, die Trefferflaeche ist
+   aber das ganze Label - 340 px breit und nur 19 px hoch. Breit genug,
+   hoch nicht: auf dem Dach, mit kalten oder nassen Haenden, ist eine
+   19 px hohe Zeile fummelig. Die Schalter in den RECHTEN werden einmal
+   gesetzt (siehe Kommentar unten), die im Lager - Zuordnen, Inventur,
+   "beim Scannen ausbuchen" - im Alltag. Dort lohnt es.
+   Maessig gewaehlt: 30 px statt der 44 px aus den Mobilrichtlinien, sonst
+   waechst die Rechtematrix mit ihren vielen Zeilen unnoetig in die
+   Laenge. */
 .rechte-schalter{
   display:flex;
   gap:6px;
@@ -140,6 +150,8 @@ body.recht-einstellungen-ansehen #settingsModal [data-del-rinne-fitting]{display
   font-size:11px;
   color:var(--muted);
   margin-top:9px;
+  min-height:30px;
+  padding:2px 0;
 }
 .rechte-schalter input{width:auto;min-height:0;flex:0 0 auto}
 

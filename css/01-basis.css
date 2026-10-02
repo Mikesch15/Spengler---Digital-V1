@@ -1173,6 +1173,24 @@ input:has(+ .winkel-knopf){min-width:70px}
 .mz-karte-akt button{width:auto;flex:1 1 auto;min-width:0;min-height:40px;font-size:12px}
 .mz-rest{font-size:12px;margin:8px 0 4px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .mz-kompakt{line-height:1.5}
+/* v3.250: Die Aufbau-Tabelle der Excel-Importe ("Wie muss die Datei
+   aufgebaut sein?") ist eine schmale NACHSCHLAGE-Tabelle und gehoert nicht
+   zu den breiten Stuecklisten.
+
+   Die globale Grundregel table{min-width:1000px} (Zeile 36) schob sie auf
+   dem Handy aus dem Bild. GEMESSEN am 02.10.2026 bei 390 px Fensterbreite:
+   die Tabelle 1000 px in einem 342 px Behaelter, und weil weder Tabelle
+   noch Behaelter scrollen (overflow-x:visible), war die dritte Spalte
+   unerreichbar - genau die mit den erlaubten Spaltenueberschriften, also
+   das Einzige, weswegen man diesen Abschnitt oeffnet.
+
+   Dieselbe Ruecksetzung, die .ra-tab, .fpa-tab und .pmat-tab schon haben.
+   table-layout:auto, damit die lange Aliasliste umbricht statt zu
+   ueberlaufen; overflow-wrap fuer den Fall, dass ein einzelner Alias
+   laenger ist als die Spalte. Die Klasse .import-aufbau stand schon an
+   allen vier Importen im Dokument - sie hatte nur nie eine Regel. */
+.import-aufbau table{min-width:0;table-layout:auto}
+.import-aufbau table th,.import-aufbau table td{overflow-wrap:anywhere}
 .mz-details{margin:10px 0}
 .mz-details[hidden]{display:none}
 .mz-details>summary{cursor:pointer;padding:8px 4px;font-size:12px;color:var(--muted)}
