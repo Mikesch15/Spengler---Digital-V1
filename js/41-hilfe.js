@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.247.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.248.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2051,6 +2051,18 @@ nur verschlüsselt. Geht es verloren, setzt ein Administrator in der
 Mitarbeiterliste ein neues.</p>
 <p>Beim ersten Anmelden muss die Person ein eigenes Passwort vergeben – das
 Startpasswort gilt also nur für den einen ersten Zugang.</p>
+<div class="hin"><b>Was ein eigenes Passwort erfüllen muss</b> (ab 3.248):
+mindestens <b>8 Zeichen</b>, und es darf nicht das Offensichtliche sein. Die
+App weist ab, was als Erstes durchprobiert wird – <b>12345678</b>, eine
+durchlaufende Zahlenreihe, immer dasselbe Zeichen, „passwort", „spengler", und
+den eigenen Namen oder den Firmennamen, wenn danach kaum etwas übrig bleibt
+(„Künzi1x" nein, „Mike-Winterdach-7" ja). Jede Ablehnung sagt, <i>woran</i>
+es liegt.<br>
+<b>Sonderzeichen, Ziffern und Grossbuchstaben verlangt die App bewusst
+nicht.</b> Erzwungene Komplexität erzeugt „Sommer2026!" und Zettel am
+Bildschirm. Was wirklich trägt: <b>ein paar Wörter hintereinander</b> –
+leicht zu merken, schwer zu raten. Die Regel gilt überall gleich: beim
+eigenen Passwort, beim Zurücksetzen und bei der Registrierung.</div>
 <p>Wurde beim Anlegen eine <b>E-Mail-Adresse</b> angegeben, steht sie im Text
 mit dabei (die Anmeldung geht dann mit dem Benutzernamen <i>oder</i> der
 Adresse), und die Zugangsdaten gehen zusätzlich per E-Mail hinaus. Ob der

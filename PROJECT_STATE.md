@@ -3,9 +3,56 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.247`
+- Aktueller Entwicklungsstand: `v3.248`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.248: Eine Passwortregel, an einer Stelle
+
+**Rahmenbedingung, nicht Mangel** (Ansage des Anwenders, 02.10.2026):
+„Leaked Password Protection" (HaveIBeenPwned) ist ein **Supabase-Pro-Merkmal**
+und steht diesem Konto **nicht** zur Verfügung. Das ist damit entschieden und
+wird bei künftigen Durchsichten **nicht wieder als offener Punkt gemeldet**.
+
+**Befund.** „Mindestens 8 Zeichen" stand an **drei** Stellen als je eigene
+Zeile: js/03 (eigenes Passwort), js/69 zweimal (Zurücksetzen, Registrierung).
+Drei Kopien derselben Regel laufen auseinander, sobald eine erweitert wird —
+genau das war hier fällig. Und 8 Zeichen allein lassen `12345678` durch.
+
+**Gut und so geblieben:** die 8-Zeichen-Grenze gilt **auch serverseitig** —
+beide Edge Functions (`password-reset`, `register-company`) prüfen sie selbst.
+Eine Umgehung am Formular vorbei greift nicht.
+
+`passwortSchwach(pw,{vorname,nachname,email,firma})` in **js/01**, benutzt von
+allen drei Formularen. Sie gibt den **Grund** zurück, nicht true/false.
+
+| Abgewiesen | Angenommen |
+|---|---|
+| `12345678`, `23456789`, `87654321` (durchlaufende Reihe) | `48271936` (Ziffern **ohne** Reihe) |
+| `aaaaaaaa` | `korrekt pferd batterie` |
+| `passwort`, `Passwort!`, `spengler`, `Spengler123` | `Regenrinne-Nordseite` |
+| `Künzi1x`, `KÜNZI1x`, `künzi-spengler` | `Mike-Winterdach-7` |
+| `mike1234`, `peter-kuenzi-dach`, `ledermann1` | `Hornbach-Dienstag`, `Kupferrinne2026` |
+
+- **Keine** erzwungene Komplexität: keine Sonderzeichen, keine Ziffern, keine
+  Grossbuchstaben. Das erzeugt „Sommer2026!" und Zettel am Bildschirm.
+- Der Namensteil weist **nicht** blosses Vorkommen ab. `pwEigenerRest()`
+  entfernt alle bekannten Bausteine in **einem** Durchgang — Vorname,
+  Nachname, Firma, Teil vor dem @, und **wortweise** (sonst käme
+  `peter-kuenzi-dach` durch, weil der ganze Firmenname so nie im Passwort
+  steht) — plus die Liste der geratenen Wörter; danach müssen **6** Zeichen
+  bleiben. Längste Bausteine zuerst, sonst bleiben Reste stehen.
+- Umlaute und Gross-/Kleinschreibung werden gefaltet (`pwNormal`), sonst wäre
+  `KÜNZI1x` eine Umgehung.
+
+**Gemessen, nicht geschätzt:** 18 erratbare und 7 brauchbare Beispiele, beide
+Richtungen im Prüfstand (6a/6b). Eine Regel, die zu viel abweist, ist genauso
+schädlich wie eine, die zu wenig abweist.
+
+**Der Hilfe-Prüfstand hat mich dabei korrigiert:** im Hilfetext stand
+„kuenzi1x" — er verlangt echte Umlaute im Benutzertext. Richtig: der Name
+heisst Künzi. Gegengeprüft, dass die Regel alle drei Schreibweisen abweist,
+und das Beispiel steht jetzt so da, wie der Name sich schreibt.
 
 ### v3.247: Das Lieferanten-Lager steht in der Stammdaten-Kontrolle
 
@@ -101,9 +148,10 @@ where n.nspname='public' and p.prosecdef
   Frontend kommt die Tabelle nicht vor, sie wird nur serverseitig benutzt.
   Gewollt, kein Mangel.
 
-**Offen, liegt beim Anwender:** „Leaked Password Protection" ist aus
-(Supabase-Dashboard → Authentication → Passwords). Ein Konto-Schalter, den ich
-nicht ohne seine Entscheidung umlege.
+**~~Offen~~ ENTSCHIEDEN (02.10.2026):** „Leaked Password Protection" ist aus
+und **bleibt** es — das Merkmal gehört zum Supabase-Pro-Plan, den dieses Konto
+nicht hat. Keine offene Aufgabe, sondern eine Rahmenbedingung; nicht wieder
+melden. Der freie Ersatz dafür ist die Passwortregel in v3.248.
 
 ### v3.246: Die Einkaufsliste gehört zu einem Lieferanten — und der Rundgang
 
