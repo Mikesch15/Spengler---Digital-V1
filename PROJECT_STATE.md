@@ -3,9 +3,51 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.249`
+- Aktueller Entwicklungsstand: `v3.250`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.250: Auf dem Handy bedienbar — gemessen statt vermutet
+
+**Methode.** Die Prüfstände prüfen, ob Bedienteile **da** sind — nicht, ob sie
+**passen**. Also einmal gemessen, was ein Spengler auf dem Dach sieht: die
+fünf Lager-Dialoge bei 320 und 390 px, auf waagrechten Überlauf und
+Trefferflächen.
+
+**Befund 1 (echter Fehler).** Im Lager-Dialog stand eine Tabelle von
+**1000 px in einem 342 px Behälter**: die Aufbau-Tabelle der Excel-Importe
+(„Wie muss die Datei aufgebaut sein?"). 46 bzw. 60 Elemente ausserhalb des
+Bildes. Weder Tabelle noch Behälter scrollen (`overflow-x:visible`) — die
+dritte Spalte war **unerreichbar**, also genau die mit den erlaubten
+Spaltenüberschriften.
+
+Die Ursache war eine **richtige Regel an der falschen Stelle**:
+`table{…min-width:1000px…}` in `css/01-basis.css` Zeile 36 — korrekt für die
+breiten Stücklisten, die in einem scrollenden Kasten stehen. `.ra-tab`,
+`.fpa-tab` und `.pmat-tab` setzen das längst zurück; die Aufbau-Tabelle hatte
+den Rücksetzer nie bekommen.
+
+Behoben mit **einer** Regel auf der Klasse `.import-aufbau`, die schon an
+allen vier Importen im Dokument stand und nur nie eine Regel hatte — kein
+JavaScript angefasst, alle vier Importe (Materialkatalog, Blitzschutz,
+Lieferanten-Lager) auf einmal.
+
+**Befund 2 (Verbesserung).** Das Kästchen eines `.rechte-schalter` ist 13 px,
+die Trefferfläche ist aber das **Label**: 340 px breit, **19 px hoch**. Breit
+genug, hoch nicht. Jetzt `min-height:30px`. Bewusst nicht die 44 px der
+Mobilrichtlinien — die Rechtematrix hat viele Zeilen und würde unnötig
+wachsen.
+
+**Abschnitt AB im Prüfstand** hält beides fest: AB1/AB2 kein Überlauf bei
+320 und 390 px in allen fünf Dialogen, AB3/AB4 die Aufbau-Tabelle setzt die
+globale Regel zurück und passt in ihren Behälter, AB5/AB6 der Tipp landet im
+Label und die Zeile ist hoch genug.
+
+**Zwei eigene Messfehler dabei**, beide im Prüfstand vermerkt: `elementFromPoint`
+gibt bei einem entschiedenen Artikel das `<b>` im Label zurück (ein Klick
+darauf schaltet trotzdem — Containment prüfen, nicht Identität), und bei acht
+Artikeln liegt die erste Zeile unter dem Fenster, dann gibt es `null` — erst
+`scrollIntoView`, dann messen.
 
 ### v3.249: „Dafür gibt es bei uns keine Regie-Position"
 

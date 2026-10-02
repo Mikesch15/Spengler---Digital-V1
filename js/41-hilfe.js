@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.249.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.250.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2093,6 +2093,12 @@ Versand geklappt hat, steht unter dem Textfeld – und zwar so, wie der Server
 es meldet. Hat er <b>nicht</b> geklappt, ist der Text hier der einzige Weg:
 bitte weitergeben, bevor die Box geschlossen wird.</p>`},
 "excel-import":{titel:"Liste aus Excel einlesen",text:`
+<p><b>📄 Wie muss die Datei aufgebaut sein?</b> klappt eine Tabelle auf, in der
+jede Spalte steht – und darunter, wie ihre Überschrift heissen darf. Das ist
+die Stelle zum Nachsehen, bevor du eine Datei hochlädst. <i>Ab 3.250 passt
+diese Tabelle auch auf das Handy:</i> sie war 1000 px breit und lief rechts aus
+dem Bild, ohne sich schieben zu lassen – ausgerechnet die Spalte mit den
+erlaubten Überschriften war damit unerreichbar.</p>
 <p>Eine Lieferantenliste als Excel- oder CSV-Datei einlesen, statt sie
 abzutippen. Die Datei muss <b>keine bestimmte Spaltenreihenfolge</b> haben:
 nach dem Auswählen wird gezeigt, welche Spalte die App wofür hält, und das
