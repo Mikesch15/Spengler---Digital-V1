@@ -148,26 +148,44 @@ const KATALOG=`()=>{
  // ---- A  Wirklich separat -----------------------------------------------
  console.log("A · Wirklich separat, nicht nur separat aussehend");
  const quelle=lies("js/82-lieferanten-lager.js");
- // Die Tabellennamen der bestehenden Lagerverwaltung und des Regierapports.
+ // Die Tabellennamen der ehemaligen Lagerverwaltung und des Regierapports.
+ // v3.251: Die Lagerverwaltung ist abgeschafft. Die Zusage bleibt dieselbe
+ // und wird nicht gegenstandslos - ihre Tabellen stehen bis zur Datenbank-
+ // Stufe noch da, und ein Zugriff von hier aus waere jetzt erst recht
+ // falsch.
  const FREMD=["materials","lager_varianten","lagerbestand_bewegungen","lagerbestand","reports","report_materials"];
  const angefasst=FREMD.filter(t=>new RegExp('from\\("'+t+'"\\)').test(quelle));
  p(angefasst.length===0,
-   "A1 js/82 spricht KEINE Tabelle der bestehenden Lagerverwaltung und des Regierapports an",angefasst);
+   "A1 js/82 spricht KEINE Tabelle der ehemaligen Lagerverwaltung und des Regierapports an",angefasst);
  p(/from\("lieferanten_artikel"\)/.test(quelle)&&/from\("lieferanten_bewegungen"\)/.test(quelle),
    "A2 sondern ausschliesslich die eigenen",null);
  // Gegenprobe in die andere Richtung: die alten Dateien wissen nichts von
  // der neuen. Waere dort etwas eingebaut worden, waere "nicht anfassen"
  // gebrochen - unabhaengig davon, wie sauber js/82 selbst ist.
- const alt68=lies("js/68-lagerverwaltung.js"), alt59=lies("js/59-lagerbestand.js"), alt06=lies("js/06-rapport.js");
+ const alt59=lies("js/59-lagerbestand.js"), alt06=lies("js/06-rapport.js");
  // v3.236: js/06 DARF das Lieferanten-Lager seit dem Scannen etwas FRAGEN -
  // aber nach wie vor keine seiner Tabellen anfassen und keine eigene
  // Lagerlogik fuehren. Die Zusage ist damit nicht weicher geworden, sie ist
  // genauer: geprueft werden die TABELLEN und die Buchungsfunktionen, nicht
  // mehr jede Erwaehnung.
  const spur=t=>/from\("lieferanten_(artikel|bewegungen|einkauf)"\)|lfBuchenSpeichern|lfZuordnenSpeichern|bteam/i.test(t);
- p(!spur(alt68)&&!spur(alt59)&&!spur(alt06),
-   "A3 GEGENPROBE: js/68, js/59 und js/06 sprechen KEINE Tabelle des neuen Lagers an und buchen dort nichts",
-   {js68:spur(alt68),js59:spur(alt59),js06:spur(alt06)});
+ p(!spur(alt59)&&!spur(alt06),
+   "A3 GEGENPROBE: js/59 und js/06 sprechen KEINE Tabelle des neuen Lagers an und buchen dort nichts",
+   {js59:spur(alt59),js06:spur(alt06)});
+ // v3.251: js/68-lagerverwaltung.js stand hier als dritte Datei. Sie ist
+ // abgeschafft - und das ist der Punkt: die Trennung dieser Datei von der
+ // alten Lagerverwaltung war der Grund, weshalb das neue Lager die
+ // Abschaffung unbeschadet ueberlebt hat. Die Pruefung wird deshalb nicht
+ // gestrichen, sondern gedreht: sie haelt jetzt fest, dass die alte Datei
+ // wirklich weg ist - aus dem Ordner UND aus der App-Huelle. Eine Datei, die
+ // nur aus index.html ausgehaengt wurde, kaeme beim naechsten Script-Tag
+ // zurueck.
+ const weg68=!fs.existsSync(path.join(process.cwd(),"js","68-lagerverwaltung.js"));
+ const inHuelle=/68-lagerverwaltung/.test(lies("sw.js"));
+ const inSeite=/68-lagerverwaltung/.test(lies("index.html"));
+ p(weg68&&!inHuelle&&!inSeite,
+   "A3b GEGENPROBE: js/68-lagerverwaltung.js ist weg - aus dem Ordner, aus sw.js und aus index.html",
+   {weg68,inHuelle,inSeite});
  // Und die Gegenprobe zur Gegenprobe: js/06 fragt wirklich nur, und zwar
  // ueber die eine dafuer vorgesehene Funktion.
  // Gemessen wird, WELCHE Funktionen des Lagers js/06 aufruft - nicht, wie
@@ -307,15 +325,31 @@ const KATALOG=`()=>{
  p(/"\.\/js\/82-lieferanten-lager\.js"/.test(sw),"F2 und in der App-Huelle - ohne Verbindung sonst weg",null);
  p(/id="liefModal"/.test(html)&&/id="liefBuchenModal"/.test(html),"F3 beide Dialoge stehen im Dokument",null);
  p(/"lieferanten-lager":\{titel/.test(lies("js/41-hilfe.js")),"F4 der Hilfetext ist hinterlegt",null);
+ // v3.251: Bis v3.250 stand das Lieferanten-Lager als eigener Punkt unter
+ // "Mehr", NEBEN dem Lager-Tab, der in die alte Lagerverwaltung fuehrte. Die
+ // ist abgeschafft - der Tab fuehrt jetzt hierher, und der zweite Weg ist
+ // weg. Die Zusage ist dieselbe und wird am neuen Ort gemessen: mit dem
+ // Recht erscheint das Lager in der Leiste, ohne das Recht nicht.
  z=await page.evaluate(()=>{
-  const mit=(()=>{ $("navLagerverwaltung").hidden=false; return /data-a2-tu="lieferantenlager"/.test(a2SeiteMehr()) })();
-  const ohne=(()=>{ $("navLagerverwaltung").hidden=true; return /data-a2-tu="lieferantenlager"/.test(a2SeiteMehr()) })();
+  const tabs=()=>a2Leisten().map(x=>x.k);
+  const mit=(()=>{ $("navLagerverwaltung").hidden=false; return tabs().indexOf("lager")>=0 })();
+  const ohne=(()=>{ $("navLagerverwaltung").hidden=true; return tabs().indexOf("lager")>=0 })();
   $("navLagerverwaltung").hidden=false;
-  return {mit,ohne};
+  return {mit,ohne,
+   // Und der Tab fuehrt wirklich ins Lager, nicht in die Einstellungen.
+   handler:String($("navLagerverwaltung").onclick||""),
+   // GEGENPROBE: der zweite Weg unter "Mehr" ist weg - zwei Wege zum selben
+   // Schirm waeren zwei Stellen, an denen dieselbe Sichtbarkeit gepflegt
+   // werden muesste.
+   mehr:/data-a2-tu="lieferantenlager"/.test(a2SeiteMehr())};
  });
- p(z.mit===true,"F5 mit Lager-Zugriff steht der Eintrag unter Mehr",z);
+ p(z.mit===true,"F5 mit Lager-Zugriff steht das Lager in der Leiste",z);
  p(z.ohne===false,
-   "F6 GEGENPROBE: ohne Lager-Zugriff nicht - dieselbe Freigabe wie fuer die Lagerverwaltung",z);
+   "F6 GEGENPROBE: ohne Lager-Zugriff nicht - es ist dasselbe Recht wie zuvor",z);
+ p(/lfOeffnen/.test(z.handler),
+   "F5a und der Lager-Knopf fuehrt ins Lieferanten-Lager, nicht in die Einstellungen",z.handler.slice(0,80));
+ p(z.mehr===false,
+   "F5b GEGENPROBE: der frueher doppelte Eintrag unter Mehr ist weg",z.mehr);
  // v3.231: Die Umbenennung ist erst dann vollstaendig, wenn kein alter Name
  // mehr irgendwo haengt. Eine halb umbenannte App faellt nicht beim Start
  // auf, sondern erst, wenn jemand den einen Knopf drueckt, der vergessen
@@ -1175,8 +1209,15 @@ const KATALOG=`()=>{
    "Q2 ein bekannter Artikel OHNE Regie-Position liefert nichts - und sagt, wo man sie nachträgt",z.ohneZuordnung);
  p(z.archiviert.ok===false&&z.archiviert.grund==="archiviert",
    "Q3 ein archivierter Artikel wird nicht verrechnet",z.archiviert);
- p(z.unbekannt.ok===false&&/weder/.test(z.unbekannt.text)&&/999/.test(z.unbekannt.text),
+ // v3.251: Der Satz nennt nur noch EIN Lager ("im Lager nicht bekannt")
+ // statt "weder im Lieferanten-Lager noch in der Lagerverwaltung" - es gibt
+ // nur noch eines. Die Zusage ist unveraendert: der Code steht drin, und es
+ // wird gesagt, dass er nicht bekannt ist.
+ p(z.unbekannt.ok===false&&z.unbekannt.grund==="unbekannt"
+   &&/nicht bekannt/.test(z.unbekannt.text)&&/999/.test(z.unbekannt.text),
    "Q4 ein unbekannter Code nennt den Code - ein Scanner, der schweigt, ist auf dem Dach schlimmer als einer, der 'kenne ich nicht' sagt",z.unbekannt);
+ p(!/Lagerverwaltung/.test(z.unbekannt.text),
+   "Q4a GEGENPROBE: und verweist nicht mehr auf ein Lager, das es nicht gibt",z.unbekannt.text);
  p(z.leer.ok===false&&z.leer.grund==="leer","Q5 und ein leerer Code ebenso",z.leer);
  // Das Verhalten im Rapport: Zeile anlegen, hochzaehlen, und bei jedem
  // Misserfolg NICHTS anlegen.
@@ -1331,25 +1372,41 @@ const KATALOG=`()=>{
    "R8 scheitert das Buchen, bleibt die Rapportzeile gueltig - verrechnet ist verrechnet",z);
  p(/NICHT ausgebucht/.test(z.hinweis||"")&&/Netz weg/.test(z.hinweis||""),
    "R9 GEGENPROBE: der Fehlschlag wird aber NICHT verschwiegen - sonst glaubte der Anwender, der Bestand sei nachgefuehrt",z);
- // Ein Treffer in der alten Lagerverwaltung wird nicht gebucht - dort
- // hineinzuschreiben waere genau das Anfassen, das nicht passieren soll.
+ // v3.251: Hier stand der Rueckfall auf die alte Lagerverwaltung - ein
+ // Treffer dort fuellte die Rapportzeile, wurde aber NICHT gebucht, weil
+ // dieses Modul dort nie hineinschreibt. Die Lagerverwaltung ist
+ // abgeschafft; betroffen war genau EIN Barcode (gemessen).
+ //
+ // Die Pruefung ist deshalb nicht gestrichen, sondern gedreht. Was sie jetzt
+ // festhaelt, ist der Zustand, der an die Stelle getreten ist: ein Code, den
+ // dieses Lager nicht kennt, fuehrt zu KEINER Rapportzeile und zu KEINER
+ // Buchung - und es gibt keinen stillen Weg mehr in ein fremdes Modul.
  z=await page.evaluate(async(o)=>{
   eval("("+o.f+")()");
   eval("("+o.k+")()");
   eval("("+o.l+")()");
   await lfLaden();
   window.__db.ruf=[];
-  const echt=window.lagerVarianteZuBarcode;
-  window.lagerVarianteZuBarcode=c=>c==="777"?{id:5,bezeichnung:"Altprodukt",material_id:7001}:null;
   const t=await lfScanVerbrauch("777",{menge:1,ausbuchen:true});
-  window.lagerVarianteZuBarcode=echt;
-  return {ok:t.ok,quelle:t.quelle,gebucht:t.gebucht,hinweis:t.buchhinweis,
+  return {ok:t.ok,grund:t.grund,quelle:t.quelle,gebucht:t.gebucht,
           ruf:window.__db.ruf.filter(r=>r.was==="insert").length};
  },{f:SB,k:KATALOG,l:LAGERSTAND});
- p(z.ok===true&&z.quelle==="lager"&&z.gebucht===false&&z.ruf===0,
-   "R10 ein Treffer in der alten Lagerverwaltung fuellt die Zeile, wird aber NICHT gebucht - dort schreibt dieses Modul nicht hinein",z);
- p(/Nicht ausgebucht/.test(z.hinweis||"")&&/Lagerverwaltung/.test(z.hinweis||""),
-   "R11 und auch das wird gesagt statt verschwiegen",z.hinweis);
+ p(z.ok===false&&z.grund==="unbekannt"&&z.ruf===0,
+   "R10 ein Code, den dieses Lager nicht kennt, fuehrt zu keiner Zeile und zu keiner Buchung",z);
+ // GEGENPROBE am Text: kein Zweig ruft mehr in ein fremdes Modul, und keiner
+ // behauptet mehr, der Artikel liege 'in der Lagerverwaltung'.
+ // Gemessen wird der CODE, nicht der Kommentar - der Kommentar sagt ja
+ // gerade, was weggefallen ist, und nennt es dabei beim Namen. Ohne das
+ // Herausnehmen wuerde die Gegenprobe an der Erklaerung scheitern.
+ const q82=lies("js/82-lieferanten-lager.js")
+   .split("\n").filter(l=>!/^\s*\/\//.test(l)).join("\n");
+ p(!/lagerVarianteZuBarcode\s*\(/.test(q82)
+   &&!/quelle!=="lieferant"/.test(q82)
+   &&!/quelle:"lager"/.test(q82),
+   "R11 GEGENPROBE: der Rueckfall in die alte Lagerverwaltung ist samt seinem Zweig und seinem Hinweis weg",
+   {ruf:/lagerVarianteZuBarcode\s*\(/.test(q82),
+    zweig:/quelle!=="lieferant"/.test(q82),
+    quelle:/quelle:"lager"/.test(q82)});
  // Der Schalter: sichtbar, eingeschaltet, und je Geraet gemerkt.
  z=await page.evaluate(()=>{
   const box=document.getElementById("matScanAusbuchenBox");

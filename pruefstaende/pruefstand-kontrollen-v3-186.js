@@ -502,49 +502,94 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
 
  // ---- I  Sauberkeit --------------------------------------------------------
  // ---- L · Position ohne Produkt im Lager (v3.224) -----------------------
- console.log("\nL · Position ohne Produkt im Lager");
- // ECHTER FEHLER, vom Anwender gemeldet: in der Lagerverwaltung standen
- // Positionen mit "kein Produkt erfasst", ohne dass er je etwas daran
- // gemacht hatte. Behoben ist die Ursache in der Datenbank (Trigger
- // lager_standard_variante_trg auf materials, v3.224). Diese Kontrolle ist
- // die Gegenprobe fuer den zweiten Weg in denselben Zustand: wer das letzte
- // Produkt loescht und die Position behaelt.
+ console.log("\nL · Die Kontrolle \u201ePosition ohne Produkt\u201c ist WEG (v3.251)");
+ // Hier standen drei Pruefungen zur Kontrolle "position-ohne-produkt"
+ // (v3.224). Sie verglich den Material-Katalog mit lager_varianten - den
+ // Produkten der alten Lagerverwaltung. Die ist abgeschafft; es gibt keine
+ // Produkte mehr, zu denen eine Position fehlen koennte.
+ //
+ // Abschnitt L ist deshalb nicht geloescht, sondern GEDREHT. Was er jetzt
+ // festhaelt, ist die eigentliche Gefahr beim Abschaffen: eine Kontrolle,
+ // die stehen bleibt, nachdem ihre Grundlage weg ist, meldet fuer immer
+ // "alles in Ordnung". Das ist schlimmer als keine Kontrolle - sie wird
+ // geglaubt. Genau davor warnte schon der Kommentar zu L1: ohne geladene
+ // Lagerdaten durfte sie NICHTS melden, und die leere Liste war deshalb ein
+ // "weiss nicht", kein "nichts gefunden". Ohne Lagerverwaltung ist das
+ // "weiss nicht" dauerhaft - also muss sie weg sein, und das wird gemessen.
  const L=await page.evaluate(()=>{
-  // WICHTIG: ohne den window-Vorsatz zuweisen. lagerVarianten ist ein let
-  // auf Modulebene - eine Zuweisung ueber das window-Objekt legt daneben
-  // eine ZWEITE Eigenschaft an, die die Kontrolle nie sieht. Beim ersten
-  // Anlauf genau so passiert: L1 und L3 waren dadurch nur zufaellig gruen.
-  const vorher=(typeof lagerVarianten!=="undefined"&&Array.isArray(lagerVarianten))?lagerVarianten.slice():null;
-  // Die Kontrolle schaut durch konKatalog() - dort sind Beispielpositionen
-  // schon heraus. Die Ausgangsliste muss deshalb von DORT kommen und nicht
-  // aus materialIds, sonst prueft man an einer Zeile, die gar nicht zaehlt.
-  const katalog=konKatalog().filter(x=>x.id!=null);
-  const ids=katalog.map(x=>x.id);
-  const ohneMich=katalog[0];
-
-  // 1) Lagerdaten NICHT geladen (leere Liste): darf nichts melden.
-  lagerVarianten=[];
-  const leer=window.__offen("position-ohne-produkt");
-
-  // 2) Lagerdaten da, aber zu GENAU EINER Position fehlt das Produkt.
-  lagerVarianten=ids.filter(id=>String(id)!==String(ohneMich.id))
-    .map((id,i)=>({id:900+i,material_id:id,bezeichnung:"x",archiviert:false}));
-  const eineFehlt=window.__offen("position-ohne-produkt");
-
-  // 3) Gegenprobe: zu JEDER Position ein Produkt -> keine Meldung mehr.
-  lagerVarianten=ids
-    .map((id,i)=>({id:800+i,material_id:id,bezeichnung:"x",archiviert:false}));
-  const alleDa=window.__offen("position-ohne-produkt");
-
-  if(vorher)lagerVarianten=vorher;
-  return {leer,eineFehlt,alleDa,erwartet:ohneMich.edv_nr,anzahlKatalog:katalog.length};
+  const alle=(typeof KON_PRUEFUNGEN!=="undefined"?KON_PRUEFUNGEN:[])
+    .map(x=>String(x.schluessel));
+  return {alle,
+    weg:alle.indexOf("position-ohne-produkt")<0,
+    // Keine Kontrolle darf noch auf die Tabellen der alten Lagerverwaltung
+    // zeigen - ueber einen Namen, der ins Leere faellt, oder ueber einen
+    // Abschnitt, der nicht mehr existiert.
+    reste:(typeof KON_PRUEFUNGEN!=="undefined"?KON_PRUEFUNGEN:[])
+      .filter(x=>/lager_varianten|lagerVarianten|lagerverwaltung/
+        .test(String(x.finden||"")+String(x.abschnitt||"")+String(x.tab||"")))
+      .map(x=>String(x.schluessel)),
+    // Und es gibt sie im Katalog der Kontrollen nicht mehr - auch nicht als
+    // Abweisung, die auf eine Pruefung zeigt, die keiner mehr findet.
+    anzahl:alle.length};
  });
- p(L.leer.length===0,
-   "L1 GEGENPROBE: ohne geladene Lagerdaten meldet die Kontrolle NICHTS - sonst haette jeder ohne Lager-Zugriff den ganzen Katalog als Fehler dastehen",L);
- p(L.eineFehlt.length===1&&L.eineFehlt[0]===L.erwartet,
-   "L2 fehlt zu genau einer Position das Produkt, meldet sie genau diese eine - und keine andere",L);
- p(L.alleDa.length===0,
-   "L3 GEGENPROBE: hat jede Position ihr Produkt, meldet sie nichts",L);
+ p(L.weg,
+   "L1 die Kontrolle \u201eposition-ohne-produkt\u201c steht nicht mehr im Katalog - ihre Grundlage ist weg, und eine Kontrolle ohne Grundlage meldet fuer immer gruen",L.alle.length);
+ p(L.reste.length===0,
+   "L2 GEGENPROBE: keine andere Kontrolle zeigt noch auf die Tabellen oder den Abschnitt der alten Lagerverwaltung",L.reste);
+ // Gegenprobe gegen das Gegenteil des Fehlers: beim Entfernen darf nicht
+ // der halbe Katalog mitgegangen sein. Geprueft werden die Schluessel, nicht
+ // eine Zahl - eine Zahl waere beim naechsten Zuwachs falsch, ohne dass
+ // etwas kaputt waere.
+ p(["blech-ohne-werkstoff","werkstoff-ohne-dila","tafel-ohne-mass",
+    "position-ohne-einheit","position-ohne-preis","blech-mehrdeutig",
+    "rest-unter-mindestmass","werkstoff-ohne-blech","position-nie-benutzt",
+    "lieferant-groesse-widerspruch","lieferant-negativer-bestand"]
+   .every(k=>L.alle.indexOf(k)>=0),
+   "L3 GEGENPROBE: und jede andere Kontrolle steht unveraendert im Katalog",L.alle);
+
+ console.log("\nL2 \u00b7 \u201ePosition, die nie vorkam\u201c sieht wieder etwas (v3.251)");
+ // GEMESSENER FEHLER, bei der Abschaffung aufgefallen - und er bestand schon
+ // vorher. Die Pruefung galt eine Position als benutzt, sobald es ein
+ // Lager-Produkt dazu gab (lager_varianten). Seit v3.224 legt ein Trigger
+ // aber JE POSITION automatisch eine Variante an: an der Produktivdatenbank
+ // gemessen 760 Positionen, 760 mit Variante, keine ohne. Die Pruefung
+ // meldete damit NIE etwas - nicht weil alles in Ordnung war, sondern weil
+ // ihre Grundlage nichts aussagte.
+ const L2=await page.evaluate(()=>{
+  const quelle=String(konDatenLaden);
+  return {
+   quelle,
+   liestVarianten:/lager_varianten/.test(quelle),
+   liestLagerbestand:/from\("lagerbestand"\)/.test(quelle),
+   liestReste:/reststuecke/.test(quelle)};
+ });
+ p(!L2.liestVarianten,
+   "L2a die Grundlage liest lager_varianten NICHT mehr - eine Variante je Position belegt keine Verwendung",L2.liestVarianten);
+ p(!L2.liestLagerbestand,
+   "L2b und lagerbestand ebenso nicht - 6 Zeilen, alle mit Menge 0",L2.liestLagerbestand);
+ p(L2.liestReste,
+   "L2c was BELEGT wird weiterhin gelesen: ein Reststueck aus diesem Material",L2.liestReste);
+ // Und die Pruefung muss wirklich wieder etwas finden koennen.
+ const L3=await page.evaluate(()=>{
+  // Auf dem Stand KAPUTT: dort deckt das Zaehlwerk sechs der sieben echten
+  // Positionen ab - 601.01 bleibt uebrig und ist genau der Fall, den die
+  // Pruefung finden soll.
+  window.__kaputt();
+  const vorher=konLagerArtikel;
+  const katalog=konKatalog().filter(x=>x.id!=null);
+  konLagerArtikel=new Set();
+  const ohneAlles=window.__offen("position-nie-benutzt");
+  konLagerArtikel=new Set(katalog.map(x=>String(x.id)));
+  const alleBelegt=window.__offen("position-nie-benutzt");
+  konLagerArtikel=vorher;
+  return {ohneAlles:ohneAlles?ohneAlles.length:null,
+          alleBelegt:alleBelegt?alleBelegt.length:null,
+          katalog:katalog.length};
+ });
+ p(L3.ohneAlles>0,
+   "L2d ohne jeden Belegt-Nachweis meldet sie wieder etwas - das konnte sie bis v3.250 nicht",L3);
+ p(L3.alleBelegt===0,
+   "L2e GEGENPROBE: liegt zu jeder Position ein Reststueck, meldet sie nichts",L3);
 
  console.log("\nM · Lieferanten-Lager (v3.247)");
  // Aufgenommen sind BEWUSST nur zwei Zustaende - die, die man sonst nicht

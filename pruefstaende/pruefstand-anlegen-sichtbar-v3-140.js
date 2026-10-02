@@ -14,6 +14,14 @@
 // Dieser Pruefstand misst die STELLUNG im Dokument, nicht nur die Existenz -
 // ein Knopf, den man erst nach 20 Zeilen sieht, ist praktisch keiner.
 //
+// NACHTRAG v3.251: Befund 3 betraf die alte Lagerverwaltung, die abgeschafft
+// ist. Ihr Anlege-Knopf ist mit ihr gegangen - es gibt im Lieferanten-Lager
+// keinen: das Sortiment kommt aus der Preisliste des Lieferanten, nicht von
+// Hand. Was von Abschnitt C BLEIBT, ist die Zusicherung aus v3.223, und die
+// stammt von der Ansage des Anwenders: "die ein un ausscannen buttons sollen
+// prominent sein und die anderen im hintergrund". Sie wird deshalb hier
+// nicht gestrichen, sondern am Lager gemessen, das es heute gibt.
+//
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-anlegen-sichtbar-v3-140.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
@@ -42,7 +50,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  console.log("\nA · Jeder Anlege-Knopf sagt, WAS er anlegt");
  const texte=await page.evaluate(()=>{
-  const ids=["newMaterial","newBzMaterial","newMeasMaterial","lagerNeu","lagerNeuesProduktStart"];
+  const ids=["newMaterial","newBzMaterial","newMeasMaterial","lagerNeu"];
   const o={}; ids.forEach(i=>{ o[i]=$(i)?$(i).textContent.trim():null; });
   return o;
  });
@@ -99,51 +107,51 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(stellung.matVorBlaettern===true,
    "GEGENPROBE: und VOR den Blaetter-Knoepfen - nicht dahinter wie bis v3.139",stellung);
 
- console.log("\nC · Die Lagerverwaltung kommt ohne die Einstellungen aus");
- // GEAENDERTER VERTRAG (v3.223). Der Kern von v3.140 gilt unveraendert: neues
- // Material muss aus der Lagerverwaltung heraus erreichbar sein, ohne den
- // Umweg ueber die Einstellungen, und der Knopf darf nicht hinten
- // verschwinden. Was sich geaendert hat, ist die GEWICHTUNG: bis v3.222 war
- // er der einzige farbige Knopf der Leiste, weil er neu war und gefunden
- // werden musste. Ansage des Anwenders zu v3.223: "die ein un ausscannen
- // buttons sollen prominent sein und die anderen im hintergrund". Gescannt
- // wird jeden Tag, Material angelegt selten - die Farbe wandert dorthin, wo
- // die taegliche Handlung ist.
+ console.log("\nC · Im Lager ist die Prominenz bei Ein- und Ausscannen");
+ // GEAENDERTER VERTRAG (v3.223, in v3.251 auf das Lieferanten-Lager
+ // gezogen). Ansage des Anwenders zu v3.223: "die ein un ausscannen buttons
+ // sollen prominent sein und die anderen im hintergrund". Gescannt wird jeden
+ // Tag, alles andere im Lager selten - die Farbe gehoert der taeglichen
+ // Handlung.
  //
- // Die Pruefung ist deshalb nicht geloescht, sondern gedreht: sie haelt
- // jetzt fest, dass er grau ist UND dass die Prominenz nicht verschwunden,
- // sondern an eine bestimmte Stelle gewandert ist.
+ // Bis v3.250 stand hier die Leiste der alten Lagerverwaltung. Die ist
+ // abgeschafft; die Zusicherung ist nicht weggefallen, sondern gilt fuer das
+ // Lager, das es gibt. Gemessen wird deshalb dieselbe Sache am neuen Ort -
+ // und das ist keine Abschwaechung: geprueft wird jetzt die GANZE Leiste,
+ // nicht nur, dass ein Knopf grau ist.
  const lager=await page.evaluate(()=>{
-  const leiste=$("lagerNeuesProduktStart")?$("lagerNeuesProduktStart").parentNode:null;
-  const knoepfe=leiste?Array.from(leiste.querySelectorAll("button")).map(k=>k.id):[];
-  const scan=document.querySelector(".lager-scan");
-  const scanK=scan?Array.from(scan.querySelectorAll("button")):[];
-  return {ersterKnopf:knoepfe[0]||null, knoepfe,
-    klasse:$("lagerNeuesProduktStart")?$("lagerNeuesProduktStart").className:null,
-    scanIds:scanK.map(k=>k.id), scanGrau:scanK.some(k=>k.classList.contains("gray")),
-    scanUeberLeiste:!!(scan&&leiste&&(scan.compareDocumentPosition(leiste)&4))};
+  const ein=$("liefEinscannen");
+  const leiste=ein?ein.parentNode:null;
+  const knoepfe=leiste?Array.from(leiste.querySelectorAll("button")).map(k=>({
+    id:k.id, grau:k.classList.contains("gray"), farbig:/\b(blue|green|red)\b/.test(k.className)
+  })):[];
+  return {knoepfe, erste:knoepfe.slice(0,2).map(k=>k.id)};
  });
- p(lager.ersterKnopf==="lagerNeuesProduktStart",
-   "er steht an erster Stelle seiner Leiste - vorne, nicht hinten wie bis v3.139",lager);
- p(/gray/.test(lager.klasse||""),
-   "seit v3.223 ist er grau: die Farbe gehoert der taeglichen Handlung, nicht der seltenen",lager.klasse);
- p(lager.scanIds.join(",")==="lagerEinscannen,lagerAusscannen"&&lager.scanGrau===false,
-   "GEGENPROBE: die Prominenz ist nicht weg, sondern bei Ein- und Ausscannen - die sind farbig und stehen allein",lager);
- p(lager.scanUeberLeiste===true,
-   "GEGENPROBE: und zwar UEBER dieser Leiste - der Anlege-Knopf ist der Nebenweg, nicht der Hauptweg",lager);
- p((lager.knoepfe.indexOf("lagerNeuesProduktStart"))
-     <(lager.knoepfe.indexOf("lagerAlleZuklappen")),
-   "GEGENPROBE: er steht weiterhin VOR „Alle anzeigen\" - unter den Nebenknoepfen ist er der erste",lager.knoepfe);
- // Und er muss wirklich in den gemeinsamen Dialog fuehren.
- await page.evaluate(()=>$("lagerNeuesProduktStart").click());
- await page.waitForTimeout(400);
- const auf=await page.evaluate(()=>!$("lagerNeuesProduktModal").hidden);
- p(auf,"und er oeffnet den gemeinsamen Anlege-Dialog",auf);
+ p(lager.erste.join(",")==="liefEinscannen,liefAusscannen",
+   "Ein- und Ausscannen stehen an erster und zweiter Stelle der Leiste",lager.knoepfe);
+ p(lager.knoepfe.slice(0,2).every(k=>k.farbig&&!k.grau),
+   "und sind farbig - sie sind die taegliche Handlung",lager.knoepfe.slice(0,2));
+ // DIE Gegenprobe: die Prominenz ist nur dann bei ihnen, wenn sie NICHT
+ // auch bei allen anderen ist. Ein durchgehend farbiges Band waere dasselbe
+ // wie ein durchgehend graues.
+ p(lager.knoepfe.length>2&&lager.knoepfe.slice(2).every(k=>k.grau&&!k.farbig),
+   "GEGENPROBE: jeder weitere Knopf der Leiste ist grau",lager.knoepfe.slice(2));
+ // Und das Lager ist ohne den Umweg ueber die Einstellungen erreichbar -
+ // der Kern von v3.140, unveraendert. Seit v3.251 fuehrt der Lager-Knopf der
+ // Ansicht direkt hinein, nicht mehr in die Einstellungen.
+ const weg=await page.evaluate(()=>({
+   knopf:!!$("navLagerverwaltung"),
+   fn:typeof lfOeffnen==="function",
+   handler:$("navLagerverwaltung")?String($("navLagerverwaltung").onclick||""):""}));
+ p(weg.knopf&&weg.fn,"der Lager-Knopf der Ansicht und lfOeffnen() sind da",weg);
+ p(/lfOeffnen/.test(weg.handler),
+   "GEGENPROBE: er fuehrt ins Lager, nicht in die Einstellungen",weg.handler.slice(0,80));
 
  console.log("\nD · Kein Knopf ist doppelt im Dokument");
  const mehrfach=await page.evaluate(()=>{
   const o={};
-  ["newMaterial","newBzMaterial","newMeasMaterial","lagerNeuesProduktStart","lagerNeu"]
+  ["newMaterial","newBzMaterial","newMeasMaterial","lagerNeu",
+   "liefEinscannen","liefAusscannen"]
    .forEach(i=>{o[i]=document.querySelectorAll("#"+i).length});
   return o;
  });

@@ -245,17 +245,20 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  // Die alte Warnung zaehlte Zeilen in der inzwischen ungenutzten Tabelle
  // lagerbestand und versicherte, sie "bleiben bestehen": sie verschwieg also
  // ausgerechnet die eine Folge, die endgueltig ist.
+ //
+ // v3.251: Gemessen wird jetzt der Text selbst
+ // (katalogPositionLoeschenWarnung, js/83) statt der Weg, auf dem er bis
+ // v3.250 zu sehen war (lagerPositionAufraeumenAnbieten in der abgeschafften
+ // Lagerverwaltung). Das ist keine Abschwaechung, sondern die Behebung einer
+ // Luecke, die dabei aufgefallen ist: dieser Text stand NUR auf dem Weg
+ // "letztes Lagerprodukt geloescht" - der Weg, den der Anwender benutzt
+ // (Einstellungen -> Material -> Löschen), fragte bloss "Dieses Material
+ // wirklich löschen?". Abschnitt E2b haelt fest, dass er dort jetzt haengt.
  console.log("\nE · Loeschen der Katalogposition warnt richtig");
- const E=await page.evaluate(async()=>{
+ const E=await page.evaluate(()=>{
   meineRechte={admin:true,lager:true,kataloge:true};
-  lagerVarianten=[];                 // kein Produkt mehr an der Position
-  const gefragt=[];
-  const echt=window.confirm;
-  window.confirm=t=>{gefragt.push(t);return false};   // abbrechen, nichts loeschen
-  await lagerPositionAufraeumenAnbieten(36);          // Kupferblech 0,6 Rolle
-  await lagerPositionAufraeumenAnbieten(205);         // Dichtband, kein Blech
-  window.confirm=echt;
-  return {blech:gefragt[0]||"",kein:gefragt[1]||""};
+  return {blech:katalogPositionLoeschenWarnung(36),   // Kupferblech 0,6 Rolle
+          kein:katalogPositionLoeschenWarnung(205)};  // Dichtband, kein Blech
  });
  p(/als BLECH gef/.test(E.blech)&&/0,6 mm/.test(E.blech)&&/Rolle/.test(E.blech),
    "E1 bei einem Blech nennt die Warnung das Format, das mit verschwindet",E.blech);
@@ -269,6 +272,18 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  p(/Reststücke/.test(E.blech)&&/verlieren nur ihre Zuordnung/.test(E.blech),
    "E5 fuer Reststuecke gilt weiterhin SET NULL - sie bleiben, und das steht "
    +"auch so da",E.blech);
+ // E2b: und die Warnung haengt am Weg, den der Anwender wirklich geht.
+ const js08=lies("js/08-katalog-blitzschutz.js");
+ p(/katalogPositionLoeschenWarnung\(/.test(js08),
+   "E2b das Löschen im Material-Katalog (js/08) benutzt diese Warnung");
+ p(!/confirm\("Dieses Material wirklich/.test(js08),
+   "E2c GEGENPROBE: die alte, nichtssagende Frage \u201eDieses Material wirklich "
+   +"löschen?\u201c steht dort nicht mehr - sie verschwieg das Format");
+ // E2d: und der Text steht an EINER Stelle, nicht zweimal.
+ p((lies("js/83-katalog-position.js").match(/als BLECH gef/g)||[]).length===1
+   &&!/als BLECH gef/.test(js08),
+   "E2d GEGENPROBE: der Warntext steht genau einmal, in js/83 - nicht noch "
+   +"einmal in js/08");
 
  // ---- F  Ein neues Blech in EINEM Dialog (v3.179) --------------------------
  // GEMELDET: "So wies jetzt ist muss ein neues Blech immer zweimal erfasst

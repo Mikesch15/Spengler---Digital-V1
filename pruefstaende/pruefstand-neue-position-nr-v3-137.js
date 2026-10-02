@@ -21,11 +21,19 @@
 //
 // NACHTRAG v3.138: Seither oeffnet der Knopf den gemeinsamen Anlege-Dialog,
 // statt direkt zu schreiben (siehe pruefstand-gemeinsamer-dialog-v3-138.js).
-// Der direkte Weg lebt weiter als RUECKFALL, wenn die Lagerverwaltung nicht
-// geladen ist - genau der wird hier geprueft, und zwar unveraendert scharf:
-// die Erwartungen sind nicht abgeschwaecht, sondern auf den Rueckfall
-// gezogen. Die urspruengliche Zusicherung "kein fester Text" gilt fuer
-// beide Wege und steht weiterhin.
+// Der direkte Weg lebt weiter als RUECKFALL, wenn der Dialog fehlt - genau
+// der wird hier geprueft, und zwar unveraendert scharf: die Erwartungen sind
+// nicht abgeschwaecht, sondern auf den Rueckfall gezogen. Die
+// urspruengliche Zusicherung "kein fester Text" gilt fuer beide Wege und
+// steht weiterhin.
+//
+// NACHTRAG v3.251: Der Dialog heisst jetzt katalogPositionModal und steht in
+// js/83-katalog-position.js. Bis v3.250 war er die eine Haelfte des
+// Neues-Produkt-Dialogs der abgeschafften Lagerverwaltung. Geaendert sind
+// hier nur die Namen - kein einziger Vertrag ist weicher geworden, und die
+// Zusicherung aus Abschnitt A ("eine Nummer, ein Verfahren") ist seither
+// SCHAERFER: js/08 schreibt die Nummernregel nicht mehr selbst ein zweites
+// Mal auf, sondern ruft nur noch lagerNaechsteFreieEdvNr().
 //
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-neue-position-nr-v3-137.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
@@ -71,12 +79,12 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
  p(fehler.length===0,"die App laedt ohne JavaScript-Fehler",fehler.slice(0,3));
  if(fehler.length){console.log("\n=== Abbruch ===");await b.close();process.exit(1)}
 
- // Den Rueckfall erzwingen: ohne den Dialog der Lagerverwaltung geht js/08
- // den direkten Weg. Das ist der Fall, den dieser Pruefstand abdeckt.
+ // Den Rueckfall erzwingen: ohne den Anlege-Dialog geht js/08 den direkten
+ // Weg. Das ist der Fall, den dieser Pruefstand abdeckt.
  const rueckfallErzwingen=()=>page.evaluate(()=>{
-  const m=$("lagerNeuesProduktModal");
-  if(m&&m.parentNode){ m.id="lagerNeuesProduktModal_weg"; }
-  window.lagerNeuesProduktOeffnen=undefined;
+  const m=$("katalogPositionModal");
+  if(m&&m.parentNode){ m.id="katalogPositionModal_weg"; }
+  window.katalogPositionOeffnen=undefined;
  });
  const klick=async()=>{ await page.evaluate(()=>$("newMaterial").click()); await page.waitForTimeout(400); };
  const stand=()=>page.evaluate(()=>({gesendet:window.__db.log.slice(),
@@ -84,22 +92,31 @@ window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:nu
 
  console.log("\nA · Die Nummer wird gerechnet, nicht gesetzt");
  const fn=await page.evaluate(()=>({eigen:typeof katalogNaechsteFreieEdvNr==="function",
-   lager:typeof lagerNaechsteFreieEdvNr==="function"}));
+   lager:typeof lagerNaechsteFreieEdvNr==="function",
+   quelle:typeof katalogNaechsteFreieEdvNr==="function"
+     ?String(katalogNaechsteFreieEdvNr):""}));
  p(fn.eigen,"katalogNaechsteFreieEdvNr ist vorhanden",fn);
- // Eine Nummer, zwei Wege: der Katalog rechnet mit derselben Funktion wie
- // die Lagerverwaltung, es gibt kein zweites Verfahren.
- p(fn.lager,"und stuetzt sich auf die Funktion der Lagerverwaltung",fn);
+ // Eine Nummer, EIN Verfahren: der Katalog rechnet mit der Funktion aus
+ // js/83-katalog-position.js, es gibt kein zweites.
+ p(fn.lager,"und stuetzt sich auf lagerNaechsteFreieEdvNr (js/83)",
+   {eigen:fn.eigen,lager:fn.lager});
+ // GEGENPROBE auf v3.250: dort stand in js/08 ein Rueckfall, der dieselbe
+ // 999er-Regel ein zweites Mal aufschrieb. Zwei Fassungen einer Nummernregel
+ // sind zwei Wahrheiten - die zweite ist weg, und das steht hier fest.
+ p(!/999\./.test(fn.quelle),
+   "GEGENPROBE: js/08 schreibt die Nummernregel nicht noch einmal selbst auf",
+   fn.quelle.slice(0,120));
  // Seit v3.138: solange es den gemeinsamen Dialog gibt, schreibt der Knopf
  // gar nicht selbst. Das haelt fest, dass der Rueckfall wirklich nur ein
  // Rueckfall ist und nicht der Normalweg.
  await page.evaluate(()=>{window.__db.log=[];$("newMaterial").click()});
  await page.waitForTimeout(400);
  const normal=await page.evaluate(()=>({log:window.__db.log.slice(),
-   dialogOffen:$("lagerNeuesProduktModal")&&!$("lagerNeuesProduktModal").hidden}));
- p(normal.dialogOffen,"im Normalfall oeffnet der Knopf den gemeinsamen Dialog",normal);
+   dialogOffen:$("katalogPositionModal")&&!$("katalogPositionModal").hidden}));
+ p(normal.dialogOffen,"im Normalfall oeffnet der Knopf den Anlege-Dialog",normal);
  p(normal.log.length===0,
    "GEGENPROBE: und schreibt dabei selbst nichts",normal.log);
- await page.evaluate(()=>{ if(typeof lagerNeuesProduktSchliessen==="function")lagerNeuesProduktSchliessen(); });
+ await page.evaluate(()=>{ if(typeof katalogPositionSchliessen==="function")katalogPositionSchliessen(); });
 
  console.log("\nB · Vier Klicks hintereinander - der gemeldete Fall (Rueckfall)");
  await rueckfallErzwingen();
