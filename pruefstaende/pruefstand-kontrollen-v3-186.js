@@ -546,6 +546,91 @@ const offenVon=`s=>{const b=konBefunde().find(x=>x.schluessel===s);return b?b.of
  p(L.alleDa.length===0,
    "L3 GEGENPROBE: hat jede Position ihr Produkt, meldet sie nichts",L);
 
+ console.log("\nM · Lieferanten-Lager (v3.247)");
+ // Aufgenommen sind BEWUSST nur zwei Zustaende - die, die man sonst nicht
+ // sieht. "158 Artikel ohne Regie-Position" und "Gruppen ohne Muster" stehen
+ // schon am Knopf und im Kopf der Zuordnen-Ansicht; sie hier zu wiederholen
+ // waere eine zweite Wahrheit ueber dieselbe Zahl. M7 haelt das fest.
+ const M=await page.evaluate(()=>{
+  // Modulebene, OHNE window-Vorsatz - derselbe Grund wie bei L.
+  const vorA=(typeof lfArtikel!=="undefined")?lfArtikel:null;
+  const vorB=(typeof lfBewegungen!=="undefined")?lfBewegungen:null;
+  const vorG=(typeof lfGeladen!=="undefined")?lfGeladen:null;
+  const o=s=>window.__offen(s);
+
+  // Ein Regie-Katalog mit einer 333er-Position.
+  settings.materials=[["201.12","Dachrinnen halbrund Titanzink","333","m1",22]];
+  materialIds=[7012];
+
+  // 1) Lager NICHT geladen: beide Pruefungen melden NICHTS und sagen warum.
+  lfGeladen=false;
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D400",
+    bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",zuschnitt_mm:400,material_id:7012}];
+  lfBewegungen=[{id:1,artikel_id:1,art:"abgang",menge:3}];
+  lfVorschlagCache={};
+  const ungeladen={gr:o("lieferant-groesse-widerspruch"), neg:o("lieferant-negativer-bestand")};
+  const texte=konBefunde().filter(b=>b.gruppe==="Lieferanten-Lager")
+    .map(b=>({moeglich:b.moeglich,nichtMoeglich:b.nichtMoeglich}));
+
+  // 2) Geladen: jetzt muessen genau beide Faelle dastehen.
+  lfGeladen=true;
+  const geladen={gr:o("lieferant-groesse-widerspruch"), neg:o("lieferant-negativer-bestand")};
+
+  // 3) Gegenprobe: passende Groesse und ein Zugang -> nichts mehr.
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D333",
+    bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",zuschnitt_mm:333,material_id:7012}];
+  lfBewegungen=[{id:1,artikel_id:1,art:"zugang",menge:5}];
+  lfVorschlagCache={};
+  const sauber={gr:o("lieferant-groesse-widerspruch"), neg:o("lieferant-negativer-bestand")};
+
+  // 4) Ein Artikel OHNE Zuordnung ist kein Groessen-Widerspruch.
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D400",
+    bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",zuschnitt_mm:400}];
+  lfVorschlagCache={};
+  const ohneZuordnung=o("lieferant-groesse-widerspruch");
+
+  // 5) Und ein archivierter Artikel zaehlt nicht mit.
+  lfArtikel=[{id:1,lieferant:"B-Team",artikelnr:"D400",archiviert:true,
+    bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",zuschnitt_mm:400,material_id:7012}];
+  lfBewegungen=[{id:1,artikel_id:1,art:"abgang",menge:3}];
+  lfVorschlagCache={};
+  const archiviert={gr:o("lieferant-groesse-widerspruch"), neg:o("lieferant-negativer-bestand")};
+
+  const schweren=konBefunde().filter(b=>b.gruppe==="Lieferanten-Lager")
+    .map(b=>({s:b.schluessel,schwere:b.schwere,abweisbar:b.abweisbar,
+              eigenerWeg:typeof (KON_PRUEFUNGEN.find(x=>x.schluessel===b.schluessel)||{}).oeffnen==="function"}));
+
+  if(vorA!==null)lfArtikel=vorA;
+  if(vorB!==null)lfBewegungen=vorB;
+  if(vorG!==null)lfGeladen=vorG;
+  return {ungeladen,texte,geladen,sauber,ohneZuordnung,archiviert,schweren,
+          anzahl:konBefunde().filter(b=>b.gruppe==="Lieferanten-Lager").length};
+ });
+ p(M.ungeladen.gr.length===0&&M.ungeladen.neg.length===0,
+   "M1 GEGENPROBE: ohne geladenes Lager melden beide Pruefungen NICHTS - die leere Liste waere sonst die Auskunft 'alles in Ordnung'",M.ungeladen);
+ p(M.texte.length===2&&M.texte.every(t=>t.moeglich===false&&/nicht geladen/.test(t.nichtMoeglich)),
+   "M2 und sie sagen, WARUM sie nicht laufen - statt stumm leer zu bleiben",M.texte);
+ p(M.geladen.gr.length===1&&M.geladen.neg.length===1,
+   "M3 geladen: die 400er Rinne auf der 333er Position UND der negative Bestand stehen da",M.geladen);
+ p(M.sauber.gr.length===0&&M.sauber.neg.length===0,
+   "M4 GEGENPROBE: passende Groesse und ein Zugang - keine Meldung mehr",M.sauber);
+ p(M.ohneZuordnung.length===0,
+   "M5 GEGENPROBE: ein Artikel OHNE Regie-Position ist kein Groessen-Widerspruch - das ist die andere Frage",M.ohneZuordnung);
+ p(M.archiviert.gr.length===0&&M.archiviert.neg.length===0,
+   "M6 GEGENPROBE: ein archivierter Artikel zaehlt in beiden nicht mit",M.archiviert);
+ p(M.anzahl===2,
+   "M7 es sind GENAU zwei Pruefungen - 'ohne Regie-Position' und 'Gruppe ohne Muster' stehen schon am Knopf und im Zuordnen-Kopf; hier waeren sie eine zweite Wahrheit",M.anzahl);
+ const gw=M.schweren.find(x=>x.s==="lieferant-groesse-widerspruch");
+ const nb=M.schweren.find(x=>x.s==="lieferant-negativer-bestand");
+ p(gw&&gw.schwere==="fehler"&&gw.abweisbar===true,
+   "M8 der Groessen-Widerspruch ist ein FEHLER (falscher Preis auf der Rechnung), aber abweisbar - es kann fachlich gewollt sein",gw);
+ p(nb&&nb.schwere==="fehler"&&nb.abweisbar===false,
+   "M9 der negative Bestand ist NICHT abweisbar - eine falsche Zahl bleibt falsch, behoben wird sie mit einer Buchung",nb);
+ p(gw&&gw.eigenerWeg&&nb&&nb.eigenerWeg,
+   "M10 beide tragen einen eigenen Weg zum Oeffnen - das Lieferanten-Lager liegt nicht in den Einstellungen",M.schweren);
+ p(/p\.oeffnen==="function"/.test(lies("js/75-kontrollen.js")),
+   "M11 und der vorhandene Sprung wurde ERWEITERT, nicht verdoppelt",null);
+
  console.log("\nI · Sauberkeit");
  p(fehler.length===0,"keine JavaScript-Fehler auf der Seite",fehler);
 
