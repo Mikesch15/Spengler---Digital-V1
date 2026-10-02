@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.246.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.247.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1928,7 +1928,29 @@ aus den echten Daten gerechnet. Verschwindet die Ursache, verschwindet auch
 die Meldung – ohne dass jemand etwas quittieren muss.</div>
 <p>Die Prüfung „Katalogposition, die nie vorkam“ braucht das Zählwerk. Ist es
 ausgeschaltet, fällt sie aus und sagt das – ohne Zählung wäre jede Position
-„nie benutzt“.</p>`},
+„nie benutzt“.</p>
+<p><b>Lieferanten-Lager</b> (ab 3.247): zwei Prüfungen, und bewusst nur diese
+zwei – nämlich die Zustände, die man sonst <i>nicht sieht</i>.</p>
+<ul>
+<li><b>Artikel auf einer Position anderer Grösse</b> (rot). Der Artikel zeigt
+auf eine Regie-Position, deren Grösse nicht zu ihm passt – eine 400er Rinne
+auf der 250er. Wird er gescannt, steht der Preis der anderen Grösse auf der
+Rechnung. Seit 3.243 setzt die App das nicht mehr von selbst; bestehende
+Zuordnungen sind aus der Zeit davor. <b>Abhakbar</b>, denn es kann fachlich
+gewollt sein.</li>
+<li><b>Artikel mit negativem Bestand</b> (rot). Es wurde mehr ausgebucht als
+je eingebucht – meist ein Scan ohne erfassten Zugang. <b>Nicht abhakbar</b>:
+eine falsche Zahl bleibt falsch, behoben wird sie mit einem Zugang oder einer
+Korrektur.</li>
+</ul>
+<div class="hin"><b>Warum nicht mehr?</b> „158 Artikel ohne Regie-Position“ und
+„in dieser Gruppe ist noch nichts zugeordnet“ stehen schon am Knopf
+<b>🔗 Zuordnen</b> und im Kopf der Zuordnen-Ansicht. Hier wären sie eine
+zweite Stelle für dieselbe Zahl – und zwei Stellen laufen irgendwann
+auseinander.<br>
+Beide Prüfungen brauchen das <b>geladene</b> Lieferanten-Lager. Warst du noch
+nicht dort, fallen sie aus und sagen das – eine leere Liste wäre sonst die
+Auskunft „alles in Ordnung“, und das ist der teure Irrtum.</div>`},
 
 "einst-rollen":{titel:"Rollenbreiten des Blechlagers",text:`
 <p>Welche Blechrollen die Firma an Lager führt. Gilt <b>firmenweit</b> und

@@ -3,9 +3,44 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.246`
+- Aktueller Entwicklungsstand: `v3.247`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.247: Das Lieferanten-Lager steht in der Stammdaten-Kontrolle
+
+Das Lager ist seit v3.231 da und kam in `js/75-kontrollen.js` nicht vor. Die
+Befunde aus v3.243/v3.244 sah er nur, wenn er den Zuordnen-Dialog öffnet.
+
+**Vor dem Bauen gemessen** (01.10.2026, PETER KÜNZI AG): 0 negative Bestände,
+0 firmenfremde Regie-Positionen, 0 Buchungen ohne Artikel, 0 Wünsche ohne
+Artikel, 0 Artikel ohne Lieferant, 0 archivierte mit Bestand. Die einzigen
+echten Befunde sind die zwei Grössen-Widersprüche aus v3.243.
+
+**Genau zwei Prüfungen, und das ist eine Entscheidung** (M7): aufgenommen
+wurde nur, was sonst **unsichtbar** ist.
+
+| Prüfung | Schwere | abweisbar |
+|---|---|---|
+| `lieferant-groesse-widerspruch` | fehler (falscher Preis auf der Rechnung) | **ja** — kann fachlich gewollt sein |
+| `lieferant-negativer-bestand` | fehler | **nein** — eine falsche Zahl bleibt falsch |
+
+**Nicht aufgenommen, mit Grund:** „158 Artikel ohne Regie-Position" und
+„Gruppe ohne Muster" stehen schon am Knopf `🔗 Zuordnen (158 offen)` und im
+Kopf der Zuordnen-Ansicht. In den Kontrollen wären sie eine **zweite Stelle
+für dieselbe Zahl** — und zwei Stellen laufen auseinander. Dieselbe Regel, die
+ich dem Code auferlege, gilt für mich.
+
+- Beide hängen an `nurMit:()=>lfGeladen===true` mit `nichtMoeglich`-Text —
+  dem **vorhandenen** Mechanismus des Moduls (wie `position-nie-benutzt` am
+  Zählwerk). Ohne geladenes Lager melden sie nichts und sagen warum (M1/M2);
+  die leere Liste wäre sonst die Auskunft „alles in Ordnung".
+- Der Sprung-Knopf wurde **erweitert, nicht verdoppelt**: eine Prüfung darf
+  statt `tab`/`abschnitt` ein eigenes `oeffnen()` tragen, weil das Lager ein
+  eigener Dialog ist (`lfOeffnen`, js/82) und nicht in den Einstellungen liegt
+  (M10/M11).
+- Gegenproben: ein Artikel **ohne** Zuordnung ist kein Grössen-Widerspruch
+  (M5), ein **archivierter** zählt in beidem nicht (M6).
 
 ### Datenbank-Durchsicht 01.10.2026 (ohne neue Version — am Code ändert sich nichts)
 

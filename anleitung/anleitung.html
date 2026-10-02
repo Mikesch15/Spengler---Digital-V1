@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.246";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.247";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.246<br>
+  Version 3.247<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -2317,7 +2317,16 @@ Alltag niemand, weil niemand 381 Zeilen durchgeht.</p>
 <tr><td>Reststück unter dem eigenen Mindestmass</td><td>Es liegt im Lager, aber der Zuschnitt greift nie danach.</td></tr>
 <tr><td>Werkstoff, zu dem kein Blech geführt wird</td><td>Er steht in der Auswahl, aber es gibt kein Material dazu.</td></tr>
 <tr><td>Katalogposition, die nie vorkam</td><td>Meist eine Zeile aus einer Lieferantenliste, die der Betrieb gar nicht führt.</td></tr>
+<tr><td><strong>Lieferantenartikel auf einer Position anderer Grösse</strong> (ab 3.247)</td><td>Eine 400er Rinne auf der 250er Position: wird der Artikel gescannt, steht der Preis der anderen Grösse auf der Rechnung. Kann fachlich gewollt sein – dann abhaken.</td></tr>
+<tr><td><strong>Lieferantenartikel mit negativem Bestand</strong> (ab 3.247)</td><td>Es wurde mehr ausgebucht als je eingebucht, meist ein Scan ohne erfassten Zugang. Nicht abhakbar – behoben wird es mit einem Zugang oder einer Korrektur.</td></tr>
 </table>
+<div class="hin"><strong>Warum beim Lieferanten-Lager nur diese zwei?</strong> Weil nur
+sie unsichtbar sind. „158 Artikel ohne Regie-Position“ und „in dieser Gruppe ist noch
+nichts zugeordnet“ stehen schon am Knopf <span class="tasten">🔗 Zuordnen</span> und im
+Kopf der Zuordnen-Ansicht; hier wären sie eine zweite Stelle für dieselbe Zahl – und
+zwei Stellen laufen irgendwann auseinander.<br>
+Beide brauchen das <strong>geladene</strong> Lieferanten-Lager. War niemand dort, fallen
+sie aus und sagen das: eine leere Liste wäre sonst die Auskunft „alles in Ordnung“.</div>
 <p><strong>Rot</strong> heisst: die App rechnet an dieser Stelle nicht oder
 falsch. <strong>Blau</strong> ist ein Hinweis – es funktioniert, sieht aber
 nach einem Versehen aus. Nur bei Rot erscheint eine Karte auf der Startseite;
@@ -3105,7 +3114,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.246</strong>, Stand 1. Oktober 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.247</strong>, Stand 2. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
