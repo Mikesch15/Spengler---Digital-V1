@@ -7,6 +7,62 @@
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
+### created_by erzwingen, 02.10.2026 (ohne neue Version — am Code ändert sich nichts)
+
+Ansage des Anwenders: „Ja created by machen." Migration
+`lieferanten_tabellen_creator_meta`.
+
+**Zuerst eine Korrektur meiner eigenen Meldung.** Ich hatte berichtet, nichts
+in der App erzwinge `created_by`. Das war aus den **RLS-Regeln** geschlossen,
+ohne die **Trigger** zu prüfen — und damit falsch:
+`set_creator_editor_meta()` läuft seit längerem auf **18 Tabellen**, erzwingt
+`created_by = auth.uid()` beim Anlegen und stellt es beim Ändern aus `OLD`
+wieder her. `reports`, mein eigenes Beispiel, war die ganze Zeit abgedeckt.
+
+**Die echte Lücke waren die Tabellen ohne diesen Trigger — und darunter waren
+meine drei** aus v3.231: `lieferanten_artikel`, `lieferanten_bewegungen`,
+`lieferanten_einkauf`. Ich hatte sie angelegt, ohne die Hausregel mitzunehmen.
+
+- `lieferanten_artikel` bekommt die vorhandene `set_creator_editor_meta()`.
+- Die beiden anderen führen bewusst **kein** `updated_by`/`updated_at` (eine
+  Buchung ist unveränderlich, ein Einkaufswunsch wird abgehakt). Die
+  Hausfunktion würde dort zur Laufzeit scheitern, weil sie `new.updated_by`
+  schreibt. Deshalb `set_creator_meta()` — dieselbe Regel, nur die
+  Anleger-Spalten.
+
+**Bewiesen in zurückgerollten Transaktionen**, vor und nach dem Eingriff: ein
+gefälschtes `created_by` wird beim Anlegen überschrieben und lässt sich beim
+Ändern nicht nachträglich umschreiben; die übrigen Trigger derselben Tabelle
+feuern weiter (`preis_stand` wird gesetzt); Buchungen und Einkaufswünsche
+laufen unverändert.
+
+**Nicht angefasst, mit Grund:**
+
+| Tabelle | Warum nicht |
+|---|---|
+| `companies`, `company_invites` | entstehen in Edge Functions mit `service_role`, dort ist `auth.uid()` NULL. Der strenge Trigger würde das absichtlich gesetzte `created_by` auf NULL ziehen und die Zuordnung zerstören, die `register-company` herstellt. |
+| `feedback` | `feedback_insert_own` erzwingt `created_by = auth.uid()` schon per RLS. Ein Trigger könnte einen etwaigen serverseitigen Weg still auf NULL ziehen — für den Rest kein guter Tausch. |
+| `system_settings` | hat gar kein `created_by`. |
+
+**Keine App-Änderung.** Die Hausregel ist, dass der Client `created_by`
+mitschickt und die Datenbank es überschreibt — so machen es `reports`,
+`projects`, `measurements`, `ausmass`. js/82 macht es genauso; es allein
+umzubauen würde es zum Sonderfall machen.
+
+**Nebenbefund, nicht behoben:** 0 von 439 Lieferantenartikeln haben ein
+`created_by` — sie kamen über den Import herein, bevor es die Regel gab.
+Nachträglich einen Urheber zu erfinden wäre falsch.
+
+Nachprüfbar mit:
+
+```sql
+select c.relname, t.tgname, p.proname
+from pg_trigger t join pg_class c on c.oid=t.tgrelid
+ join pg_proc p on p.oid=t.tgfoid
+where p.proname in ('set_creator_editor_meta','set_creator_meta')
+ and not t.tgisinternal order by 1;
+```
+
 ### v3.250: Auf dem Handy bedienbar — gemessen statt vermutet
 
 **Methode.** Die Prüfstände prüfen, ob Bedienteile **da** sind — nicht, ob sie
