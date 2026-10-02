@@ -147,10 +147,29 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  // anderen funktion." Gewollter Stand, kein Codefehler; die Liste wird
  // nachgezogen, nicht der Code - die Gegenprobe darunter haelt fest, dass
  // es wirklich ZWEI verschiedene Bereiche sind und nicht einer doppelt.
- const SOLL=["stand","angebote","offerten","leistungen","meas","matzu","am","rep","lager",
+ // v3.251: "lager" ist raus. Der Abschnitt "Material ab Lager" zeigte, was
+ // fuer dieses Projekt aus der alten Lagerverwaltung ausgebucht wurde
+ // (lagerbestand_bewegungen) - die ist abgeschafft, es gibt diese Buchungen
+ // nicht mehr. Gemessen waren es 8 im ganzen Betrieb. Das Lieferanten-Lager
+ // bucht nicht auf Projekte, es fuehrt Handelsware; ein Abschnitt, der immer
+ // leer bliebe, waere kein Ersatz, sondern eine Behauptung. Gewollter Stand,
+ // kein Codefehler; die Liste wird nachgezogen, nicht der Code - und die
+ // Gegenprobe darunter haelt fest, dass er wirklich weg ist und nicht bloss
+ // nicht gezeichnet wurde.
+ const SOLL=["stand","angebote","offerten","leistungen","meas","matzu","am","rep",
              "files","fotos","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));
+ // GEGENPROBE zu v3.251: der Lager-Abschnitt ist aus dem Dokument weg, samt
+ // seiner Ladefunktion. Eine Karte, die nur nicht gezeichnet wird, kaeme mit
+ // dem naechsten Zeichenlauf zurueck.
+ const lagerWeg=await page.evaluate(()=>({
+  karte:!document.getElementById("cockpitLagerCard"),
+  laden:typeof cockpitLagerAnzeigen!=="function",
+  hilfe:!document.querySelector('[data-hilfe="cockpit-lager"]')
+ }));
+ p(lagerWeg.karte&&lagerWeg.laden&&lagerWeg.hilfe,
+   "GEGENPROBE: die Karte \u201eMaterial ab Lager\u201c ist wirklich weg - Karte, Ladefunktion und Hilfe-Knopf",lagerWeg);
  // Gegenprobe zur nachgezogenen Liste: der neue Abschnitt ist nicht
  // irgendwo angehaengt, sondern steht in der Reihenfolge genau dort, wo er
  // fachlich hingehoert - direkt bei den Dateien und vor dem Verlauf.

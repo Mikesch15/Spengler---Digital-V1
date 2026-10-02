@@ -631,7 +631,14 @@ html.a2-an #adminMeasModal:not([hidden]),
 html.a2-an #systemAdminModal:not([hidden]),
 html.a2-an #matZuModal:not([hidden]),
 html.a2-an #projectCockpitModal:not([hidden]),
-html.a2-an #projectsModal:not([hidden]){
+html.a2-an #projectsModal:not([hidden]),
+/* v3.251: Das Lieferanten-Lager ist seit der Abschaffung der alten
+   Lagerverwaltung der Schirm des Lager-Knopfs - vorher stand hier
+   settingsModal dafuer. Ohne diese Zeile legte es sich mit seinem z-index 500
+   ueber die untere Leiste, und der Anwender stand ohne den Weg da, ueber den
+   er gekommen war: genau der Fehler von v3.155, nur an einem neuen Schirm.
+   Gemeldet hat es der Pruefstand bereiche-v3-156 (A4). */
+html.a2-an #liefModal:not([hidden]){
  top:var(--a2-kopf);
  bottom:calc(var(--a2-leiste) + env(safe-area-inset-bottom,0px));
  z-index:30;

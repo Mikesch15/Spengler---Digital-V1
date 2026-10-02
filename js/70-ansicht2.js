@@ -131,7 +131,14 @@ const A2_BEREICHE={
  projectCockpitModal:{zu:"cockpitBack"},
  projectsModal:     {zu:"closeProjects"},
  zaehlwerkModal:    {zu:"closeZaehlwerk"},
- abwicklungModal:   {zu:"closeAbwicklung"}
+ abwicklungModal:   {zu:"closeAbwicklung"},
+ // v3.251: Das Lieferanten-Lager ist seit der Abschaffung der alten
+ // Lagerverwaltung der Schirm des Lager-Knopfs. Vorher stand hier
+ // settingsModal dafuer. Ohne diesen Eintrag merkt die Kopfzeile nicht, wenn
+ // der Schirm sich ueber seinen eigenen Schliessen-Knopf zumacht - ihr
+ // Zurueck waere dann ein Knopf ohne Wirkung. Genau das hat der Pruefstand
+ // zurueck-oben-v3-175 (D1) gemeldet.
+ liefModal:         {zu:"liefSchliessen"}
 };
 
 // Oeffnet einen Bereich ueber den vorhandenen Weg der App und merkt sich,

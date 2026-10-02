@@ -118,22 +118,30 @@ const tab=(page,k)=>page.evaluate(k=>{
  z=await rahmen(page);
  p(z.leisteDa&&!z.verdeckt&&z.markiert[0]==="lager"&&/Lager/.test(z.kopf),
    "A4 Lager: eigener Bereich, Leiste bleibt, Kopfzeile nennt ihn",z);
- // Das Lager ist ein Bereich, keine Einstellungsseite: die Registerleiste
- // der Einstellungen hat hier nichts zu suchen.
- const tabsWeg=await page.evaluate(()=>{
-  const t=document.querySelector("#settingsModal .settings-tabs");
-  return !t||getComputedStyle(t).display==="none";
- });
- p(tabsWeg,"A5 Lager: die Registerleiste der Einstellungen ist nicht zu sehen");
- // v3.157: und wirklich NUR die Lagerverwaltung. Im Lager-Register der
- // Einstellungen stehen drei Abschnitte; Materialbestand und Reststuecke
- // sind Firmeneinstellungen, nicht der taegliche Arbeitsplatz.
- const abschnitte=await page.evaluate(()=>
-  [...document.querySelectorAll("#settingsModal [data-section]")]
-   .filter(e=>getComputedStyle(e).display!=="none"&&e.getBoundingClientRect().height>0)
-   .map(e=>e.getAttribute("data-section")));
- p(abschnitte.length===1&&abschnitte[0]==="lagerverwaltung",
-   "A5b Lager: nur die Lagerverwaltung, nicht Materialbestand und Reststuecke",abschnitte);
+ // Das Lager ist ein Bereich, keine Einstellungsseite.
+ //
+ // v3.251: Bis v3.250 fuehrte der Lager-Knopf in die EINSTELLUNGEN, und dort
+ // musste ein Ausschnitt (a2-nur-lager) die Registerleiste und die beiden
+ // Nachbarabschnitte wieder ausblenden - A5 und A5b prueften genau diesen
+ // Ausschnitt. Mit der Abschaffung der alten Lagerverwaltung fuehrt der
+ // Knopf ins Lieferanten-Lager, einen eigenen Schirm. Die Zusage ist
+ // dieselbe und wird jetzt direkter gemessen: es sind gar keine
+ // Einstellungen mehr im Spiel. Das ist der schaerfere Nachweis - ein
+ // Ausschnitt kann luecken haben, ein nicht geoeffneter Schirm nicht.
+ const lagerBereich=await page.evaluate(()=>({
+  lief:!!$("liefModal")&&!$("liefModal").hidden,
+  einstellungen:!!$("settingsModal")&&!$("settingsModal").hidden,
+  bereich:a2Zustand.bereich?a2Zustand.bereich.id:null,
+  // Und das Lager ist wirklich da, nicht nur sein Rahmen.
+  arbeit:["liefEinscannen","liefAusscannen","liefSuche","liefListe"]
+    .filter(i=>$(i)&&$(i).getBoundingClientRect().height>0)
+ }));
+ p(lagerBereich.lief&&lagerBereich.bereich==="liefModal",
+   "A5 Lager: der Bereich IST das Lieferanten-Lager",lagerBereich);
+ p(lagerBereich.einstellungen===false,
+   "A5b GEGENPROBE: die Einstellungen sind dabei gar nicht offen - es braucht keinen Ausschnitt mehr, der sie zurechtschneidet",lagerBereich);
+ p(lagerBereich.arbeit.length===4,
+   "A5c und die Arbeitsteile des Lagers stehen im Rahmen: Ein-, Ausscannen, Suche, Liste",lagerBereich.arbeit);
 
  // v3.162: auch das Erfassungsformular laesst die Leiste stehen.
  await aufraeumen();

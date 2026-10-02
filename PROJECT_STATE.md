@@ -3,9 +3,41 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.251`
+- Aktueller Entwicklungsstand: `v3.252`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.252 — nachgezogen: das Lager als Bereich der Ansicht
+
+Die volle Regression nach dem Veröffentlichen von v3.251 meldete **fünf
+Fehlschläge**, alle dieselbe Ursache: der Lager-Knopf führt jetzt nach
+`liefModal`, und dieser Schirm war nirgends als **Bereich** der Ansicht 2
+eingetragen. Vorher stand dort `settingsModal`, das beides war.
+
+- `A2_BEREICHE` (js/70) kannte `liefModal` nicht → das „‹ Zurück" oben wusste
+  nichts davon; wer den Schirm über seinen eigenen Knopf schloss, hatte einen
+  Zurück-Knopf ohne Wirkung (`zurueck-oben-v3-175`, D1)
+- die Rahmen-Regel in `css/05-ansicht2.css` kannte ihn nicht → er legte sich
+  mit z-index 500 über die untere Leiste. Genau der Fehler von v3.155, nur an
+  einem neuen Schirm (`bereiche-v3-156` A4, `startknopf-v3-159` D2)
+
+Beides eingetragen. Drei weitere Fehlschläge waren Prüfstände, die den
+**alten** Lager-Bereich beschrieben; sie sind umgestellt, nicht gelöscht:
+
+- `bereiche-v3-156` A5/A5b prüften den Ausschnitt `a2-nur-lager`, der in den
+  Einstellungen die Registerleiste wegschnitt. Jetzt wird direkter gemessen:
+  es sind gar keine Einstellungen mehr im Spiel (A5/A5b/A5c)
+- `admin-und-lager-v3-163` A2 war die Gegenprobe „im Lager-Bereich ist die
+  Lagerverwaltung da". Jetzt: dort steht das Lieferanten-Lager mit seinen vier
+  Arbeitsteilen — und A1c hält fest, dass der Abschnitt gar nicht mehr im
+  Dokument steht, nicht bloss ausgeblendet ist
+- `cockpit-zurueck-v3-11`: „lager" aus der Soll-Liste der Cockpit-Abschnitte,
+  mit Gegenprobe, dass Karte, Ladefunktion und Hilfe-Knopf wirklich weg sind
+
+**Was daraus zu lernen war:** die Schnellprüfung deckte die geänderten Module
+ab, aber nicht die Ansicht-2-Mechanik, die an einem *ausgetauschten Schirm*
+hängt. Bei einem Umzug von einem Schirm auf einen anderen gehören die
+Bereichs-Prüfstände künftig in die Schnellprüfung.
 
 ### v3.251 — die alte Lagerverwaltung ist abgeschafft (Schritte 2–6)
 

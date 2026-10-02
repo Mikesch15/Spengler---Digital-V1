@@ -90,18 +90,35 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    "A1 im Register Lager der Einstellungen steht die Lagerverwaltung nicht mehr",ab);
  p(ab.length>0,
    "A1b Gegenprobe: das Register ist wirklich offen - sonst saehe A1 gar nichts",ab);
+ // v3.251: Seine Meldung war "die lagerverwaltung ist in den einstellungen
+ // immernoch vorhanden, das will ich nicht". v3.157 nahm sie aus dem
+ // Register, v3.251 nimmt sie ganz weg. A1c haelt das fest - der Abschnitt
+ // ist nicht bloss ausgeblendet, es gibt ihn im Dokument nicht mehr. Ein
+ // ausgeblendeter Abschnitt kaeme mit der naechsten Stilregel zurueck.
+ const garNichtDa=await page.evaluate(()=>({
+  abschnitt:!document.querySelector('#settingsModal [data-section="lagerverwaltung"]'),
+  modul:typeof renderLagerverwaltung!=="function"
+ }));
+ p(garNichtDa.abschnitt&&garNichtDa.modul,
+   "A1c und zwar gar nicht mehr im Dokument - nicht nur ausgeblendet",garNichtDa);
 
- // Gegenprobe: im Lager-BEREICH ist genau sie das, was gezeigt wird.
+ // Gegenprobe: der Lager-Bereich ist nicht leer geworden. Er fuehrt seit
+ // v3.251 ins Lieferanten-Lager - das eine Lager, das die App noch hat.
  await page.evaluate(()=>{
   document.querySelectorAll(".modal").forEach(m=>{if(m.id!=="authScreen")m.hidden=true});
   $("navLagerverwaltung").click();
  });
  await page.waitForTimeout(600);
- await page.evaluate(()=>{$("settingsModal").classList.add("a2-nur-lager")});
- await page.waitForTimeout(250);
- ab=await lagerAbschnitte();
- p(ab.indexOf("lagerverwaltung")>=0,
-   "A2 Gegenprobe: im Lager-Bereich ist sie da - sonst waere das Lager leer",ab);
+ const bereich=await page.evaluate(()=>({
+  lief:!!$("liefModal")&&!$("liefModal").hidden,
+  einstellungen:!!$("settingsModal")&&!$("settingsModal").hidden,
+  arbeit:["liefEinscannen","liefAusscannen","liefSuche","liefListe"]
+    .filter(i=>$(i)&&$(i).getBoundingClientRect().height>0)
+ }));
+ p(bereich.lief&&bereich.arbeit.length===4,
+   "A2 Gegenprobe: im Lager-Bereich steht das Lieferanten-Lager - sonst waere das Lager leer",bereich);
+ p(bereich.einstellungen===false,
+   "A2b und die Einstellungen sind dabei gar nicht offen - der Arbeitsplatz liegt nicht mehr in ihnen",bereich);
  await page.evaluate(()=>{$("settingsModal").classList.remove("a2-nur-lager")});
 
  // v3.218: Bis v3.217 stand hier die Gegenprobe "in der klassischen Ansicht
