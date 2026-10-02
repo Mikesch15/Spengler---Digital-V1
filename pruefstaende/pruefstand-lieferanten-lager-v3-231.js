@@ -75,6 +75,9 @@ const SB=`()=>{
   // IMMER mit .eq("id",...) - ein update ohne eq traefe das ganze Lager.
   // Die Attrappe bildet das deshalb genauso ab und schreibt mit, worauf es
   // gezielt hat.
+  // v3.249: update traegt auch keine_regie_position. Die Attrappe bildet
+  // dabei die REGEL der Datenbank nach - die Marke nur ohne Zuordnung -,
+  // sonst koennte der Pruefstand den Widerspruch gar nicht bemerken.
   update(werte){ const w=werte; return {
     eq(spalte,wert){
      window.__db.ruf.push({tisch:name,was:"update",spalte,wert,werte:w});
@@ -2429,6 +2432,121 @@ const KATALOG=`()=>{
  z=lies("js/82-lieferanten-lager.js");
  p(!/from\("materials"\)/.test(z)&&!/katalogPositionAnlegen/.test(z),
    "Y17 DIE ZUSAGE: js/82 liest die Regie-Liste, legt dort aber nichts an - weder direkt noch ueber js/59",null);
+
+ // ---- AA  "Dafuer gibt es bei uns keine Position" (v3.249) ---------------
+ //
+ // Ansage des Anwenders (02.10.2026): "Punkt 1 wird so bleiben, wir haben
+ // keine Positionen fuer die fehlenden Artikel."
+ //
+ // Das kann die App nicht selbst erkennen. Ohne einen Platz dafuer meldete
+ // der Zuordnen-Knopf dauerhaft "158 offen" - ein Zaehler, der Arbeit
+ // anzeigt, die keine ist, verdeckt die echte, sobald eine neue
+ // Lieferantenliste kommt.
+ console.log("\nAA · Bewusst ohne Regie-Position");
+ const KEINE=`()=>{
+  lfArtikel=[
+   {id:1,lieferant:"B-Team",artikelnr:"D400",bezeichnung:"Dachrinnen 400x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:400,ean:"400400",
+    mindestbestand:2,keine_regie_position:false},
+   {id:2,lieferant:"B-Team",artikelnr:"D333",bezeichnung:"Dachrinnen 333x0.7 mm Titanzink",
+    gruppe:"Dachrinnen",material:"Titanzink",zuschnitt_mm:333,material_id:7002},
+   {id:3,lieferant:"B-Team",artikelnr:"K250",bezeichnung:"Rinnenkugelboden 250 Kupfer",
+    gruppe:"Rinnenkugelböden",material:"Kupfer",zuschnitt_mm:250,keine_regie_position:false}];
+  lfBewegungen=[]; lfEinkauf=[]; lfVorschlagCache={}; lfZuordnungen={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=true; lfLieferant="";
+ }`;
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const vorher={offen:lfZuordnenKandidaten().length,
+                fehlt:lfFehlendeRegie().length,
+                stand:lfZuordnenBefundStand()};
+  lfArtikelZuId(1).keine_regie_position=true;
+  lfArtikelZuId(3).keine_regie_position=true;
+  const nachher={offen:lfZuordnenKandidaten().length,
+                 fehlt:lfFehlendeRegie().length,
+                 stand:lfZuordnenBefundStand(),
+                 entschieden:lfEntschiedenOhne()};
+  return {vorher,nachher};
+ },{k:KATALOG,z:KEINE});
+ p(z.vorher.offen===2&&z.vorher.fehlt>0&&z.vorher.stand.offen===2,
+   "AA1 vorher: zwei offene Artikel, und die Arbeitsliste verlangt Positionen",z.vorher);
+ p(z.nachher.offen===0&&z.nachher.stand.offen===0,
+   "AA2 nach der Entscheidung sind sie NICHT mehr offen - der Zaehler zeigt keine Arbeit mehr an, die keine ist",z.nachher);
+ p(z.nachher.fehlt===0,
+   "AA3 und die Arbeitsliste verlangt nichts mehr - eine Liste, die Entschiedenes weiter verlangt, ist keine Arbeitsliste",z.nachher);
+ p(z.nachher.entschieden===2,
+   "AA4 gezaehlt werden sie trotzdem - verschwiegen waere schlimmer als gezeigt",z.nachher);
+ // Im LAGER bleibt der Artikel voll brauchbar - das ist der Unterschied zu
+ // "archiviert".
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfArtikelZuId(1).keine_regie_position=true;
+  lfBewegungen=[];
+  return {imLager:lfArtikel.filter(a=>!a.archiviert&&lfPasstZumFilter(a)).length,
+          einkauf:lfEinkaufsliste().map(a=>a.artikelnr),
+          inventur:lfInvKandidaten().map(a=>a.artikelnr),
+          mindest:lfMindest(lfArtikelZuId(1))};
+ },{k:KATALOG,z:KEINE});
+ p(z.imLager===3&&z.einkauf.indexOf("D400")>=0&&z.inventur.indexOf("D400")>=0&&z.mindest===2,
+   "AA5 im Lager bleibt er voll nutzbar: Artikelliste, Einkaufsliste, Inventur und Mindestbestand brauchen keine Regie-Position - DESHALB ist es kein 'archiviert'",z);
+ // Der Scanner sagt etwas ANDERES als bei "noch nicht zugeordnet".
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  const offen=lfBarcodeZuRegie("400400");
+  lfArtikelZuId(1).keine_regie_position=true;
+  const entschieden=lfBarcodeZuRegie("400400");
+  return {offen:{grund:offen.grund,text:offen.text},
+          entschieden:{grund:entschieden.grund,text:entschieden.text}};
+ },{k:KATALOG,z:KEINE});
+ p(z.offen.grund==="ohne-zuordnung"&&/nachtragen/.test(z.offen.text),
+   "AA6 solange offen, raet der Scanner zum Nachtragen - wie bisher",z.offen);
+ p(z.entschieden.grund==="keine-position"&&!/nachtragen/.test(z.entschieden.text)
+   &&/so entschieden/.test(z.entschieden.text),
+   "AA7 ist es entschieden, raet er NICHT mehr zum Nachtragen - ein Rat ins Leere ist schlimmer als keiner",z.entschieden);
+ p(/von Hand/.test(z.entschieden.text),
+   "AA8 sondern sagt, was stattdessen geht",z.entschieden);
+ // Kein automatischer Weg setzt eine Zuordnung auf einen Entschiedenen.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.z+")()");
+  lfArtikelZuId(1).keine_regie_position=true;
+  lfArtikelZuId(3).keine_regie_position=true;
+  lfZuordnenNurOffene=false;
+  lfZuordnenSichereUebernehmen();
+  const nachSicher=Object.keys(lfZuordnungen).sort().join(",");
+  lfZuordnungen={};
+  $("liefZuordnenRegie").value="203.06";
+  lfZuordnenAlleSetzen();
+  return {nachSicher, nachAlle:Object.keys(lfZuordnungen).sort().join(",")};
+ },{k:KATALOG,z:KEINE});
+ p(z.nachSicher==="",
+   "AA9 GEGENPROBE: 'Sichere Vorschlaege' fasst einen Entschiedenen nicht an - das waere das Gegenteil der Entscheidung",z);
+ p(z.nachAlle.indexOf("1")<0&&z.nachAlle.indexOf("3")<0,
+   "AA10 GEGENPROBE: und 'Alle angezeigten setzen' ebenso nicht",z);
+ // Zuruecknehmen geht, und ein zugeordneter Artikel kann die Marke nicht
+ // tragen (die Regel steht in der Datenbank, die Auskunft hier).
+ z=await page.evaluate(async(o)=>{
+  eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.z+")()");
+  // WICHTIG: lfKeinePositionSetzen() laedt am Ende neu (wie die App nach
+  // jedem Schreiben). Die ATTRAPPE muss deshalb dieselben Artikel tragen -
+  // sonst ueberschreibt das Nachladen den Aufbau, und der Pruefstand misst
+  // an anderen Daten als er gesetzt hat. Beim ersten Anlauf genau so
+  // passiert: AA11 und AA12 waren dadurch gruen bzw. rot ohne Aussage.
+  window.__db.lieferanten_artikel=lfArtikel.map(a=>Object.assign({},a));
+  await lfLaden();
+  const r1=await lfKeinePositionSetzen("2",true);      // hat eine Zuordnung
+  const r2=await lfKeinePositionSetzen("1",true);      // offen
+  const rufe=window.__db.ruf.filter(x=>x.was==="update")
+    .map(x=>({wert:x.wert,marke:x.werte&&x.werte.keine_regie_position}));
+  return {r1,r2,rufe};
+ },{f:SB,k:KATALOG,z:KEINE});
+ p(z.r1.ok===false&&/Regie-Position/.test(z.r1.text),
+   "AA11 ein ZUGEORDNETER Artikel kann die Marke nicht tragen - die Regel steht in der Datenbank, die Auskunft hier",z.r1);
+ p(z.r2.ok===true&&z.rufe.length===1&&z.rufe[0].marke===true&&String(z.rufe[0].wert)==="1",
+   "AA12 und beim offenen wird genau EIN update geschrieben, auf genau diese id",z);
+ // Die Bedienteile stehen im Dokument.
+ z=await page.evaluate(()=>["liefKeinePositionAlle","liefKeinePositionAlleZurueck"]
+   .filter(i=>!document.getElementById(i)));
+ p(z.length===0,"AA13 die Bedienteile stehen im Dokument",z);
 
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
