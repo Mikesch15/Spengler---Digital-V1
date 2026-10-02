@@ -215,6 +215,64 @@ const KON_PRUEFUNGEN=[
     .map(w=>({id:String(w.id),text:konText(w.name)}));
   }},
 
+ // ---- Gruppe E: Lieferanten-Lager (v3.247) ------------------------------
+ //
+ // Das Lieferanten-Lager steht seit v3.231 da, in den Kontrollen kam es nicht
+ // vor. Aufgenommen werden bewusst NUR zwei Zustaende - die, die man sonst
+ // gar nicht sieht:
+ //
+ //   "158 Artikel ohne Regie-Position" und "Gruppen ohne Muster" stehen
+ //   schon am Knopf (🔗 Zuordnen (158 offen)) und im Kopf der
+ //   Zuordnen-Ansicht. Sie hier zu wiederholen waere eine zweite Wahrheit
+ //   ueber dieselbe Zahl - deshalb stehen sie NICHT hier.
+ //
+ // Beide Pruefungen haengen an lfGeladen. Ohne geladenes Lager melden sie
+ // NICHTS und sagen, warum - die leere Liste waere sonst die Auskunft "alles
+ // in Ordnung", und das ist der teure Irrtum (derselbe Fall wie bei
+ // position-ohne-produkt oben).
+ {schluessel:"lieferant-groesse-widerspruch", gruppe:"Lieferanten-Lager",
+  schwere:"fehler", abweisbar:true,
+  oeffnen:()=>{ if(typeof lfOeffnen==="function")lfOeffnen() },
+  titel:"Lieferantenartikel auf einer Position anderer Grösse",
+  warum:"Der Artikel zeigt auf eine Regie-Position, deren Grösse nicht zu ihm passt – eine 400er Rinne auf der 250er Position. Wird er im Regierapport gescannt, steht der Preis der anderen Grösse auf der Rechnung, und auffallen würde es niemandem. Seit 3.243 setzt die App das nicht mehr von selbst; bestehende Zuordnungen sind aus der Zeit davor. Fachlich gewollt? Dann hier abhaken.",
+  nurMit:()=>typeof lfGeladen!=="undefined"&&lfGeladen===true,
+  nichtMoeglich:"Das Lieferanten-Lager ist noch nicht geladen – ohne seine Artikel ist die Frage nicht beantwortbar. Einmal im Lager gewesen, dann steht hier das Ergebnis.",
+  finden:()=>{
+   if(typeof lfArtikel==="undefined"||!Array.isArray(lfArtikel))return [];
+   if(typeof lfGroesseWiderspricht!=="function"||typeof lfRegieVon!=="function")return [];
+   return lfArtikel.filter(a=>{
+    if(a.archiviert)return false;
+    const r=lfRegieVon(a);
+    return !!r&&lfGroesseWiderspricht(a,r);
+   }).map(a=>{
+    const r=lfRegieVon(a);
+    return {id:String(a.lieferant||"")+" "+String(a.artikelnr||""),
+            text:a.bezeichnung+" · "+a.artikelnr+" → "+r.edv_nr+" · "+r.name
+                 +(r.dim?" (Grösse "+r.dim+")":"")};
+   });
+  } },
+
+ // Ein negativer Bestand ist nie richtig - er heisst nicht "Fehler", sondern
+ // "hier fehlt ein Zugang im Lager" (so formuliert seit v3.237, als das
+ // Ausbuchen beim Scannen dazukam). Nicht abweisbar: es gibt keinen Grund,
+ // eine falsche Zahl stehen zu lassen, und behoben wird sie mit einer
+ // Buchung, nicht mit einem Haken.
+ {schluessel:"lieferant-negativer-bestand", gruppe:"Lieferanten-Lager",
+  schwere:"fehler", abweisbar:false,
+  oeffnen:()=>{ if(typeof lfOeffnen==="function")lfOeffnen() },
+  titel:"Lieferantenartikel mit negativem Bestand",
+  warum:"Es wurde mehr ausgebucht als je eingebucht – meist, weil beim Scannen im Regierapport abgezogen wurde, der Zugang aber nie erfasst war. Der Rapport ist deswegen richtig, das Lager nicht. Im Lager am Artikel einen Zugang oder eine Korrektur buchen; abhaken lässt sich das nicht, weil die Zahl falsch bleibt.",
+  nurMit:()=>typeof lfGeladen!=="undefined"&&lfGeladen===true,
+  nichtMoeglich:"Das Lieferanten-Lager ist noch nicht geladen – der Bestand ist die Summe seiner Buchungen und ohne sie nicht zu haben.",
+  finden:()=>{
+   if(typeof lfArtikel==="undefined"||!Array.isArray(lfArtikel))return [];
+   if(typeof lfBestand!=="function")return [];
+   return lfArtikel.filter(a=>!a.archiviert&&lfBestand(a.id)<0)
+    .map(a=>({id:String(a.lieferant||"")+" "+String(a.artikelnr||""),
+              text:a.bezeichnung+" · "+a.artikelnr+" · Bestand "
+                   +((typeof lfZahlText==="function")?lfZahlText(lfBestand(a.id)):lfBestand(a.id))}));
+  } },
+
  {schluessel:"position-nie-benutzt", gruppe:"Verwaistes im Lager",
   schwere:"hinweis", abweisbar:true, tab:"protected", abschnitt:"materials",
   titel:"Katalogposition, die nie vorkam",
@@ -535,6 +593,12 @@ document.addEventListener("click",async e=>{
  if(ziel){
   const p=KON_PRUEFUNGEN.find(x=>x.schluessel===ziel.getAttribute("data-kon-ziel"));
   // Geoeffnet wird die BESTEHENDE Karte - kein Nachbau.
+  //
+  // v3.247: Nicht jede Stelle liegt in den Einstellungen. Das
+  // Lieferanten-Lager ist ein eigener Dialog und wird mit lfOeffnen()
+  // geoeffnet (js/82). Eine Pruefung darf deshalb statt tab/abschnitt einen
+  // eigenen Weg angeben - der Mechanismus wird erweitert, nicht verdoppelt.
+  if(p&&typeof p.oeffnen==="function"){ p.oeffnen(); return }
   if(p&&typeof openSettingsTo==="function")openSettingsTo(p.tab,p.abschnitt);
   return;
  }
