@@ -39,7 +39,9 @@ $("newBzMaterial").onclick=async()=>{
 $("bzMaterialSettings").addEventListener("click",e=>{
  const del=e.target.closest("[data-del-bz-mat]");
  if(del){
-  if(!confirm("Dieses Material wirklich löschen?"))return;
+  // Blitzschutz-Material ist eine EIGENE Tabelle ohne Blechformat und ohne
+  // Reststuecke - hier gilt die Warnung des Material-Katalogs nicht.
+  if(!confirm("Dieses Blitzschutz-Material wirklich löschen?"))return;
   const i=Number(del.dataset.delBzMat);
   sb.from("blitzschutz_materials").delete().eq("id",blitzschutzMaterials[i].id).then(async({error})=>{
    if(error){alert("Fehler: "+error.message);return}
@@ -911,10 +913,6 @@ function renderSettings(){
  // js/05-daten-laden.js) laengst geladen war - gemeldeter Fehler "wird nicht
  // angezeigt".
  if(typeof renderLagerbestand==="function")renderLagerbestand();
- // Lagerverwaltung (v3.98, js/68): dasselbe Muster wie renderLagerbestand()
- // direkt darueber - die Liste braucht lagerbestand[] (js/05-daten-laden.js),
- // deshalb hier erneut zeichnen statt nur beim Login.
- if(typeof renderLagerverwaltung==="function")renderLagerverwaltung();
  const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
  if(madBoden)madBoden.value=madBodenMass;
  if(madSchieber)madSchieber.value=madSchieberMass;
@@ -978,36 +976,35 @@ $("newRate").onclick=async()=>{
 // Der Knopf direkt darueber (Funktionen) macht es seit je richtig und
 // nummeriert durch; beim Material wurde es nie nachgezogen.
 //
-// Gerechnet wird mit derselben Funktion wie in der Lagerverwaltung
-// (lagerNaechsteFreieEdvNr, js/68) und derselben Konvention: eine Position,
-// die noch keiner Katalogruppe zugeordnet ist, bekommt die naechste freie
-// Nummer im eigenen Kreis. Eine Nummer, zwei Wege, kein zweites Verfahren.
+// Gerechnet wird mit lagerNaechsteFreieEdvNr() aus js/83-katalog-position.js
+// und derselben Konvention: eine Position, die noch keiner Katalogruppe
+// zugeordnet ist, bekommt die naechste freie Nummer im eigenen Kreis.
+//
+// v3.251: Hier stand bis v3.250 ein Rueckfall, der die Regel ein zweites Mal
+// aufschrieb - fuer den Fall, dass die Lagerverwaltung (js/68) nicht geladen
+// war, weil sie am Recht "Lager" hing. js/83 haengt an keinem Recht und ist
+// immer da; zwei Fassungen derselben Nummernregel waeren von hier an nur
+// noch eine zweite Wahrheit.
 function katalogNaechsteFreieEdvNr(){
- if(typeof lagerNaechsteFreieEdvNr==="function"&&typeof LAGER_EIGENE_GRUPPE!=="undefined")
-  return lagerNaechsteFreieEdvNr(LAGER_EIGENE_GRUPPE);
- // Rueckfall, falls die Lagerverwaltung nicht geladen ist (eigenes Recht):
- // dieselbe Regel, nur aus settings.materials statt aus lagArtikelListe().
- let hoechste=0;
- ((typeof settings==="object"&&settings&&Array.isArray(settings.materials))?settings.materials:[])
-  .forEach(m=>{
-   const x=/^999\.(\d+)$/.exec(String(m[0]==null?"":m[0]).trim());
-   if(x)hoechste=Math.max(hoechste,parseInt(x[1],10));
-  });
- return "999."+String(hoechste+1).padStart(2,"0");
+ return lagerNaechsteFreieEdvNr(LAGER_EIGENE_GRUPPE);
 }
 $("newMaterial").onclick=async()=>{
- // v3.138: EIN Weg fuer beide Orte. Gibt es den Dialog der Lagerverwaltung
- // (js/68), wird er geoeffnet - mit Bezeichnung, Einheit, Preis und dem
- // begruendeten Nummernvorschlag, und auf Wunsch gleich mit einem
- // Lager-Produkt dazu. Bis v3.137 legte der Knopf stumm eine leere Zeile an,
- // die man danach ausfuellen musste; die Lagerverwaltung hatte laengst den
- // besseren Dialog, nur an der falschen Stelle.
- if(typeof lagerNeuesProduktOeffnen==="function"&&$("lagerNeuesProduktModal")){
-  lagerNeuesProduktOeffnen(null,"",{nurPosition:true});
+ // v3.138: Der Knopf oeffnet einen Dialog - mit Bezeichnung, Einheit, Preis
+ // und dem begruendeten Nummernvorschlag. Bis v3.137 legte er stumm eine
+ // leere Zeile an, die man danach ausfuellen musste (gemeldeter Fehler).
+ //
+ // v3.251: Der Dialog heisst jetzt katalogPositionModal und steht in
+ // js/83-katalog-position.js, wo er fachlich hingehoert. Bis v3.250 war er
+ // die eine Haelfte des Neues-Produkt-Dialogs der Lagerverwaltung
+ // (lagerNeuesProduktOeffnen mit nurPosition:true, js/68) - die ist
+ // abgeschafft, der Dialog nicht.
+ if(typeof katalogPositionOeffnen==="function"&&$("katalogPositionModal")){
+  katalogPositionOeffnen();
   return;
  }
- // Rueckfall ohne die Lagerverwaltung (fehlendes Recht, Datei nicht
- // geladen): wie bisher direkt anlegen, mit berechneter Nummer.
+ // Rueckfall, falls der Dialog fehlt: wie bisher direkt anlegen, mit
+ // berechneter Nummer. Er bleibt, weil er der einzige Weg ohne Dialog ist -
+ // und weil pruefstand-neue-position-nr-v3-137 ihn scharf prueft.
  const knopf=$("newMaterial");
  knopf.disabled=true;
  try{
@@ -1083,8 +1080,17 @@ $("materialSettings").addEventListener("change",e=>{
 $("materialSettings").addEventListener("click",async e=>{
  const del=e.target.closest("[data-del-material]");
  if(del){
-  if(!confirm("Dieses Material wirklich löschen?"))return;
-  await sb.from("materials").delete().eq("id",materialIds[Number(del.dataset.delMaterial)]);
+  // v3.251: Es wird gesagt, WAS mit verschwindet. Bis v3.250 fragte diese
+  // Stelle nur, ob das Material wirklich weg soll - die Warnung, dass bei
+  // einem Blech auch das Format mitgeht und dass Reststücke ihre Zuordnung
+  // verlieren, gab es nur auf dem Weg über die Lagerverwaltung (js/68),
+  // also dort, wo sie fast niemand zu sehen bekam. Der Text steht jetzt an
+  // genau EINER Stelle (js/83-katalog-position.js) und hängt an der
+  // Löschung selbst. Kein Rückfall daneben: ein zweiter, kürzerer Text wäre
+  // genau die Lücke wieder, die hier geschlossen wird.
+  const mid=materialIds[Number(del.dataset.delMaterial)];
+  if(!confirm(katalogPositionLoeschenWarnung(mid)))return;
+  await sb.from("materials").delete().eq("id",mid);
   await loadAllData();renderSettings();renderMain();return;
  }
  const head=e.target.closest("[data-toggle-mat]");
