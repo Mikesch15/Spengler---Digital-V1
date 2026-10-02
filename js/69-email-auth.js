@@ -71,7 +71,11 @@ if($("prSpeichern"))$("prSpeichern").onclick=async()=>{
  const p1=$("prNeuesPasswort").value,p2=$("prNeuesPasswort2").value;
  const err=$("prError");
  err.textContent="";
- if(p1.length<8){err.textContent="Das Passwort muss mindestens 8 Zeichen haben.";return}
+ // v3.248: dieselbe Regel wie ueberall (js/01). Hier ist niemand
+ // angemeldet - Name und Firma sind also nicht bekannt und werden nicht
+ // geraten; geprueft wird, was ohne sie pruefbar ist.
+ const pwGrund=passwortSchwach(p1,{});
+ if(pwGrund){err.textContent=pwGrund;return}
  if(p1!==p2){err.textContent="Die beiden Eingaben stimmen nicht überein.";return}
  $("prSpeichern").disabled=true;
  try{
@@ -99,7 +103,10 @@ if($("ciSubmit"))$("ciSubmit").onclick=async()=>{
  if(!companyName){err.textContent="Bitte einen Firmennamen eingeben.";return}
  if(!vor||!nach){err.textContent="Bitte Vor- und Nachname eingeben.";return}
  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){err.textContent="Bitte eine gültige E-Mail-Adresse eingeben.";return}
- if(pw1.length<8){err.textContent="Das Passwort muss mindestens 8 Zeichen haben.";return}
+ // v3.248: dieselbe Regel - und hier steht der eigene Name im Formular,
+ // also wird er auch geprueft.
+ const pwGrund=passwortSchwach(pw1,{vorname:vor,nachname:nach,email,firma:companyName});
+ if(pwGrund){err.textContent=pwGrund;return}
  if(pw1!==pw2){err.textContent="Die beiden Passwort-Eingaben stimmen nicht überein.";return}
  $("ciSubmit").disabled=true;
  try{

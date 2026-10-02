@@ -1815,6 +1815,110 @@ async function barcodeScannen(callback){
 // Vorher ging er ohne Verbindung ueberhaupt nie, weil die Datei von einem
 // fremden Server kam.
 let xlsxZusage=null;
+// ---- Die Passwortregel, an EINER Stelle (v3.248) ---------------------------
+//
+// WARUM SIE HIER STEHT UND NICHT DREIMAL
+// Bis v3.247 stand "mindestens 8 Zeichen" an drei Stellen als eigene Zeile:
+// js/03 (eigenes Passwort festlegen), js/69 zweimal (Passwort vergessen,
+// Firmenregistrierung). Drei Kopien derselben Regel laufen auseinander,
+// sobald eine davon erweitert wird - und genau das passiert hier.
+//
+// WARUM SIE MEHR PRUEFT ALS DIE LAENGE
+// Supabase kann neue Passwoerter gegen HaveIBeenPwned pruefen und damit die
+// Passwoerter abweisen, die in geleakten Listen stehen. Das ist ein
+// Pro-Plan-Merkmal und steht diesem Konto nicht zur Verfuegung (Ansage des
+// Anwenders, 02.10.2026). Die Luecke bleibt also, und "8 Zeichen" allein
+// laesst "12345678" durch - das ist seit Jahren das haeufigste Passwort
+// ueberhaupt.
+//
+// Diese Regel ist der freie Ersatz fuer den Teil, der wirklich zaehlt: die
+// kurze Liste derer, die geraten werden. Sie ist BEWUSST kurz und verlangt
+// KEINE Sonderzeichen, keine Ziffern, keine Grossbuchstaben. Erzwungene
+// Komplexitaet erzeugt "Sommer2026!" und Zettel am Bildschirm; Laenge und
+// "nicht das Offensichtliche" sind das, was traegt.
+const PW_MINDESTLAENGE=8;
+// Nur, was wirklich geraten wird - deutsch, englisch, und was in einem
+// Spenglerbetrieb naheliegt.
+const PW_ZU_EINFACH=[
+ "12345678","123456789","1234567890","87654321","passwort","password",
+ "qwertzuiop","asdfghjkl","qwertyuiop","password1","passwort1","willkommen",
+ "welcome1","sommer2026","winter2026","geheim12","internet","computer",
+ "spengler","spenglerei","dachdecker","blechner","firma123","admin123",
+ "administrator","start1234","hallo123","schweiz1","test1234"
+];
+// Umlaute falten und alles Nicht-Alphanumerische weg - "Spengler!" und
+// "spengler" sind dasselbe Passwort, nur anders getippt.
+function pwNormal(s){
+ return String(s||"").toLowerCase()
+  .replace(/ä/g,"ae").replace(/ö/g,"oe").replace(/ü/g,"ue").replace(/ß/g,"ss")
+  .replace(/[^a-z0-9]/g,"");
+}
+// Wie viel EIGENES bleibt uebrig, wenn man alles Erratbare wegnimmt?
+//
+// Blosses Vorkommen abzuweisen waere zu streng: "Mike-Winterdach-7" enthaelt
+// den Vornamen und ist trotzdem in Ordnung. Entfernt werden deshalb ALLE
+// bekannten Bausteine in EINEM Durchgang - Vorname, Nachname, Firma, der
+// Teil vor dem @ und die Liste der geratenen Woerter -, und danach muessen
+// mindestens sechs Zeichen stehen bleiben.
+//
+// Gemessen an echten Beispielen: "kuenzi1x" -> "1x" (abgewiesen),
+// "Kuenzi-Spengler" -> "" (abgewiesen, zwei Bausteine hintereinander),
+// "mike1234" -> "1234" (abgewiesen), "Mike-Winterdach-7" -> "winterdach7"
+// (angenommen), "Winterdach-Kupfer-7" -> unberuehrt (angenommen).
+const PW_EIGENES_MINDESTENS=6;
+function pwEigenerRest(pw,teile){
+ let p=pwNormal(pw);
+ // Auch WORTWEISE: "Peter Kuenzi AG" ist nicht nur als Ganzes erratbar,
+ // sondern in jedem seiner Woerter. Ohne das kaeme "peter-kuenzi-dach"
+ // durch, weil der ganze Firmenname so nie im Passwort steht.
+ const roh=[];
+ (teile||[]).forEach(t=>{
+  roh.push(t);
+  String(t||"").split(/[\s.,\/_-]+/).forEach(w=>roh.push(w));
+ });
+ const weg=roh.concat(PW_ZU_EINFACH)
+  .map(pwNormal).filter(t=>t.length>=3)
+  .sort((a,b)=>b.length-a.length);     // laengste zuerst, sonst bleiben Reste
+ weg.forEach(t=>{ if(t)p=p.split(t).join("") });
+ return p;
+}
+// Gibt den GRUND zurueck, nicht true/false - der Anwender soll lesen, was
+// nicht stimmt, nicht dass etwas nicht stimmt.
+// zu: {vorname,nachname,email,firma} - alles freiwillig.
+function passwortSchwach(pw,zu){
+ const p=String(pw||"");
+ const z=zu||{};
+ if(p.length<PW_MINDESTLAENGE)
+  return "Das Passwort braucht mindestens "+PW_MINDESTLAENGE+" Zeichen.";
+ const n=pwNormal(p);
+ if(n.length&&new Set(n).size===1)
+  return "Immer dasselbe Zeichen ist kein Passwort. Nimm etwas, das du dir merken kannst – ein paar Wörter hintereinander sind sicherer als ein kurzes mit Sonderzeichen.";
+ // Eine durchlaufende Zahlenreihe - auf- oder abwaerts. Bewusst so
+ // geschrieben, dass man sie lesen kann: jede Stelle genau eins mehr (oder
+ // eins weniger) als die vorige. Eine Ziffernfolge OHNE Reihe ("48271936")
+ // wird nicht abgewiesen - die ist nicht geraten, sondern gewaehlt.
+ if(/^[0-9]+$/.test(p)){
+  let auf=true, ab=true;
+  for(let i=1;i<p.length;i++){
+   if(Number(p[i])!==Number(p[i-1])+1)auf=false;
+   if(Number(p[i])!==Number(p[i-1])-1)ab=false;
+  }
+  if(auf||ab)
+   return "Eine durchlaufende Zahlenreihe wird als Erstes geraten. Nimm etwas, das du dir merken kannst – ein paar Wörter hintereinander sind sicherer als ein kurzes mit Sonderzeichen.";
+ }
+ if(PW_ZU_EINFACH.indexOf(n)>=0)
+  return "Dieses Passwort steht auf jeder Liste, die zum Durchprobieren benutzt wird. Nimm etwas anderes – ein paar Wörter hintereinander sind leicht zu merken und schwer zu raten.";
+ // Zum Schluss: was bleibt uebrig, wenn man Name, Firma und die geratenen
+ // Woerter wegnimmt? Bleibt kaum etwas, ist das Passwort aus Bausteinen
+ // gebaut, die jemand als Erstes probiert.
+ const teile=[z.vorname,z.nachname,z.firma,String(z.email||"").split("@")[0]];
+ if(teile.some(t=>pwNormal(t).length>=3)
+    &&pwEigenerRest(p,teile).length<PW_EIGENES_MINDESTENS)
+  return "Dein Name oder der Firmenname ist das Erste, was jemand probiert. "
+   +"Nimm etwas dazu, das nichts mit dir zu tun hat – oder gleich ein paar Wörter hintereinander.";
+ return "";
+}
+
 function xlsxLaden(){
  if(typeof XLSX!=="undefined")return Promise.resolve(true);
  if(xlsxZusage)return xlsxZusage;

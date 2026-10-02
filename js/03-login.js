@@ -251,7 +251,12 @@ $("pwAbmelden").onclick=async()=>{
 $("pwSpeichern").onclick=async()=>{
  const p1=$("pwNeu").value, p2=$("pwNeu2").value;
  $("pwFehler").textContent="";
- if(p1.length<8){$("pwFehler").textContent="Mindestens 8 Zeichen.";return}
+ // v3.248: EINE Regel, nicht eine eigene Zeile je Formular (js/01).
+ const pwGrund=passwortSchwach(p1,{
+  vorname:(currentProfile&&currentProfile.first_name)||"",
+  nachname:(currentProfile&&currentProfile.last_name)||"",
+  firma:(typeof settings==="object"&&settings&&settings.company_name)||""});
+ if(pwGrund){$("pwFehler").textContent=pwGrund;return}
  if(p1!==p2){$("pwFehler").textContent="Die beiden Eingaben stimmen nicht überein.";return}
  $("pwSpeichern").disabled=true;
  try{
