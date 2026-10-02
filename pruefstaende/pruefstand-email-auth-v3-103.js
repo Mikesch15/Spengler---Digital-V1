@@ -22,7 +22,11 @@
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const path=require("path");
+const fs=require("fs");
 const repo=process.cwd();
+// v3.248: Abschnitt 6 prueft auch, WO die Passwortregel steht - dafuer
+// werden drei Dateien im Wortlaut gelesen.
+const lies=f=>fs.readFileSync(path.join(repo,f),"utf8");
 let ok=0,fail=0;
 const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
 
@@ -497,6 +501,68 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  });
  p(z.da===0&&z.wiederDa===2,
    "ohne Administratorrecht faellt das Feld ganz weg - kein Element, das ohnehin nichts bewirken wuerde",z);
+
+ // ---- 6  Die Passwortregel (v3.248) -------------------------------------
+ //
+ // WARUM ES DIESE PROBE GIBT
+ // Supabase kann neue Passwoerter gegen HaveIBeenPwned pruefen - das ist ein
+ // Pro-Plan-Merkmal und steht diesem Konto nicht zur Verfuegung (Ansage des
+ // Anwenders, 02.10.2026). Die Luecke bleibt, und "mindestens 8 Zeichen"
+ // allein laesst "12345678" durch.
+ //
+ // Bis v3.247 stand die Laengenregel an DREI Stellen als eigene Zeile
+ // (js/03, js/69 zweimal). Jetzt steht sie an einer: passwortSchwach() in
+ // js/01. Diese Probe haelt beides fest - die Regel selbst und dass die drei
+ // Formulare sie wirklich benutzen.
+ console.log("\n6 · Die Passwortregel steht an EINER Stelle");
+ const PW_ZU={vorname:"Mike",nachname:"Künzi",firma:"Peter Künzi AG",
+   email:"mik.ledermann@gmail.com"};
+ // Die Tabelle ist der Vertrag. Links, was abgewiesen werden MUSS; rechts,
+ // was durchgehen muss. Beide Richtungen sind wichtig: eine Regel, die zu
+ // viel abweist, erzeugt Zettel am Bildschirm.
+ const PW_SCHLECHT=["kurz7","12345678","23456789","87654321","aaaaaaaa",
+   "passwort","Passwort!","password1","spengler","Spengler123",
+   "kuenzi1x","Kuenzi-Spengler","mike1234","peter-kuenzi-dach","ledermann1",
+   // Mit ECHTEM Umlaut und in Grossbuchstaben - der Name heisst Kuenzi, und
+   // wer ihn als Passwort nimmt, tippt ihn so, wie er sich schreibt. Ohne
+   // die Faltung in pwNormal() kaeme das durch.
+   "Künzi1x","KÜNZI1x","künzi-spengler"];
+ const PW_GUT=["Mike-Winterdach-7","Winterdach-Kupfer-7","korrekt pferd batterie",
+   "48271936","Regenrinne-Nordseite","Hornbach-Dienstag","Kupferrinne2026"];
+ const PW=await page.evaluate((o)=>({
+   schlecht:o.schlecht.map(pw=>({pw,grund:passwortSchwach(pw,o.zu)})),
+   gut:o.gut.map(pw=>({pw,grund:passwortSchwach(pw,o.zu)})),
+   // Ohne Angaben zur Person muss die Regel trotzdem greifen - beim
+   // Passwort-vergessen-Formular ist niemand angemeldet.
+   ohneAngaben:["12345678","passwort","kurz7"].map(pw=>({pw,grund:passwortSchwach(pw,{})})),
+   // Und ein gutes Passwort darf auch ohne Angaben durchgehen.
+   gutOhne:passwortSchwach("Regenrinne-Nordseite",{})
+ }),{schlecht:PW_SCHLECHT,gut:PW_GUT,zu:PW_ZU});
+ const durchgelassen=PW.schlecht.filter(x=>!x.grund).map(x=>x.pw);
+ p(durchgelassen.length===0,
+   "6a jedes der "+PW_SCHLECHT.length+" erratbaren Passwoerter wird abgewiesen - darunter 12345678, das seit Jahren haeufigste ueberhaupt",durchgelassen);
+ const abgewiesen=PW.gut.filter(x=>x.grund).map(x=>({pw:x.pw,grund:x.grund.slice(0,50)}));
+ p(abgewiesen.length===0,
+   "6b GEGENPROBE: jedes der "+PW_GUT.length+" brauchbaren geht durch - eine Regel, die zu viel abweist, erzeugt Zettel am Bildschirm",abgewiesen);
+ p(PW.ohneAngaben.every(x=>!!x.grund)&&!PW.gutOhne,
+   "6c ohne Angaben zur Person greift sie trotzdem - beim Passwort-vergessen-Formular ist niemand angemeldet",PW);
+ // Der Grund wird GENANNT, nicht bloss abgelehnt.
+ p(PW.schlecht.every(x=>x.grund.length>20),
+   "6d und jede Ablehnung sagt, WARUM - 'ungueltig' laesst ihn raten",
+   PW.schlecht.filter(x=>x.grund.length<=20));
+ p(/mindestens 8/.test(PW.schlecht.find(x=>x.pw==="kurz7").grund),
+   "6e die Laengenregel ist dieselbe wie vorher - 8 Zeichen, mit demselben Wortlaut",null);
+ // Und die drei Formulare benutzen WIRKLICH diese eine Regel.
+ const js01=lies("js/01-basis.js"), js03=lies("js/03-login.js"), js69=lies("js/69-email-auth.js");
+ p(/function passwortSchwach/.test(js01),
+   "6f die Regel steht in js/01 - dort, wo alle drei Formulare sie sehen",null);
+ p((js03.match(/passwortSchwach\(/g)||[]).length===1
+   &&(js69.match(/passwortSchwach\(/g)||[]).length===2,
+   "6g und alle drei Formulare rufen sie auf",
+   {js03:(js03.match(/passwortSchwach\(/g)||[]).length,js69:(js69.match(/passwortSchwach\(/g)||[]).length});
+ p(!/length\s*<\s*8/.test(js03)&&!/length\s*<\s*8/.test(js69),
+   "6h GEGENPROBE: die drei eigenen Laengenpruefungen sind WEG - drei Kopien derselben Regel laufen auseinander, sobald eine erweitert wird",
+   {js03:/length\s*<\s*8/.test(js03),js69:/length\s*<\s*8/.test(js69)});
 
  p(jsFehler.length===0,"keine JavaScript-Fehler im ganzen Lauf",jsFehler);
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");
