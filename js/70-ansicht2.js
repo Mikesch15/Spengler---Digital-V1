@@ -323,10 +323,10 @@ function a2Symbol(k){
   +'stroke-linejoin="round" aria-hidden="true">'+(A2_SYMBOL[k]||"")+'</svg>';
 }
 
-// Ob Werkstatt und Lagerverwaltung ueberhaupt erscheinen, entscheidet NICHT
+// Ob Werkstatt und Lager ueberhaupt erscheinen, entscheidet NICHT
 // diese Datei. Beide Knoepfe der klassischen Startseite werden von der App
 // selbst ein- und ausgeblendet (werkstattKnopfAktualisieren() in js/51,
-// checkLagerZugriff() in js/68). Hier wird nur abgelesen, was dort bereits
+// checkLagerZugriff() in js/82). Hier wird nur abgelesen, was dort bereits
 // entschieden wurde - eine zweite Rechtepruefung waere eine zweite Wahrheit.
 function a2KnopfSichtbar(id){
  const k=$(id);
@@ -868,13 +868,11 @@ function a2SeiteMehr(){
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
   {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
  ];
- // v3.229: Das Lieferanten-Lager. Eigener Punkt neben der Lagerverwaltung,
- // nicht in ihr - es ist ein eigenes Sortiment mit eigenen Tabellen
- // (js/82-lieferanten-lager.js). Sichtbar mit demselben Recht wie die
- // Lagerverwaltung: wer Lager darf, darf beides.
- if(a2KnopfSichtbar("navLagerverwaltung"))
-  eintraege.push({id:"lieferantenlager",gruppe:"arbeiten",zeichen:"📦",text:"Lieferanten-Lager",
-   unter:"Handelsware der Lieferanten – einscannen, ausscannen, Bestand"});
+ // v3.251: Das Lieferanten-Lager steht NICHT mehr zusaetzlich unter "Mehr".
+ // Bis v3.250 war es dort ein eigener Punkt NEBEN der Lagerverwaltung, weil
+ // der Lager-Tab zu dieser fuehrte. Die ist abgeschafft, der Tab fuehrt jetzt
+ // hierher - ein zweiter Weg zum selben Schirm waere nur noch eine zweite
+ // Stelle, an der derselbe Zustand gepflegt werden muesste.
  // v3.227: Konto wechseln nur fuer die Firmenadministration. Ansage des
  // Anwenders: "Die funktion konto wechseln soll es nur fuer mich als
  // firmenadmin geben". Gefragt wird kwZustaendig() aus js/76 - dieselbe
@@ -1041,9 +1039,14 @@ document.addEventListener("click",async e=>{
   if(eintrag&&eintrag.oeffnet){
    if(k==="werkstatt"&&$("navWerkstatt"))
     await a2BereichStarten("werkstattModal","Werkstatt","werkstatt",()=>$("navWerkstatt").click());
+   // v3.251: Der Lager-Tab fuehrt ins Lieferanten-Lager. Bis v3.250 fuehrte
+   // er in die Einstellungen zur alten Lagerverwaltung, die abgeschafft ist -
+   // der Ausschnitt "a2-nur-lager" hatte dort genau einen Abschnitt
+   // freigelegt. Das Lieferanten-Lager ist ein eigener Schirm und braucht
+   // keinen Ausschnitt.
    if(k==="lager"&&$("navLagerverwaltung"))
-    await a2BereichStarten("settingsModal","Lager","lager",
-     ()=>$("navLagerverwaltung").click(),"a2-nur-lager");
+    await a2BereichStarten("liefModal","Lager","lager",
+     ()=>$("navLagerverwaltung").click());
    return;
   }
   const warSchon=(a2Zustand.seite===k);
@@ -1192,7 +1195,6 @@ document.addEventListener("click",async e=>{
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
  if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
  if(was==="fingerabdruck"&&typeof faDialogOeffnen==="function"){faDialogOeffnen();return}
- if(was==="lieferantenlager"&&typeof lfOeffnen==="function"){lfOeffnen();return}
  if(was==="abwicklung"&&typeof abwOeffnen==="function"){
   a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
   return;

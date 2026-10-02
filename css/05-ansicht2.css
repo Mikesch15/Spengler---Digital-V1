@@ -675,42 +675,17 @@ html.a2-an #projectsModal.a2-nur-liste #recentProjectsCard,
 html.a2-an #projectsModal.a2-nur-liste #projectCreateBox{display:none!important}
 
 /* ---- Lager: ein eigener Bereich, keine Einstellungsseite ---------------- */
-/* Das Lager hat in der neuen Ansicht einen eigenen Eintrag in der Leiste.
-   Wer ihn tippt, soll das Lager sehen - nicht die Einstellungen mit dem
-   Lager darin. Die Registerleiste der Einstellungen bleibt deshalb hier
-   weg; welcher Abschnitt gezeigt wird, entscheidet unveraendert
-   openSettingsTo("lager", ...) in js/07. Verschoben wird nichts: derselbe
-   Abschnitt bleibt ueber die Einstellungen erreichbar, wo er immer war. */
-html.a2-an #settingsModal.a2-nur-lager .settings-tabs{display:none!important}
-/* v3.157: und wirklich nur die Lagerverwaltung. Im Lager-Register der
-   Einstellungen stehen drei Abschnitte nebeneinander: Materialbestand,
-   Lagerverwaltung, Reststuecke. Das sind drei verschiedene Dinge -
-   Materialbestand ist der Blechvorrat, aus dem der Zuschnitt rechnet,
-   Reststuecke sind, was davon uebrig bleibt. Beide gehoeren zu den
-   Einstellungen der Firma und werden selten angefasst; die Lagerverwaltung
-   ist der Arbeitsplatz, an dem taeglich gebucht wird. Nur sie steht im
-   Bereich. Erreichbar bleiben die anderen beiden unveraendert ueber
-   Mehr -> Einstellungen -> Lager. */
-html.a2-an #settingsModal.a2-nur-lager [data-section="lagerbestand"],
-html.a2-an #settingsModal.a2-nur-lager [data-section="reststuecke"]{display:none!important}
-
-/* v3.220: Im Bereich ist die Lagerverwaltung kein Einstellungs-Abschnitt
-   mehr, sondern die Seite selbst. Ein Abschnitt, der sich auf der Seite, die
-   er ausmacht, zuklappen laesst, ist eine Falle - danach stuende dort
-   nichts. Der Kopf bleibt als Ueberschrift stehen (mit seinen beiden
-   Info-Knoepfen, die weiterhin bedienbar sind), verliert aber den Pfeil und
-   das Zuklappen. Ausserhalb des Bereichs - also in den Einstellungen - ist
-   alles unveraendert. */
-html.a2-an #settingsModal.a2-nur-lager .lager-kopf{cursor:default;pointer-events:none}
-html.a2-an #settingsModal.a2-nur-lager .lager-kopf .hilfe-knopf{pointer-events:auto}
-html.a2-an #settingsModal.a2-nur-lager .lager-kopf .settings-section-chevron{display:none}
-html.a2-an #settingsModal.a2-nur-lager [data-section="lagerverwaltung"] .settings-section-body{display:block}
+/* v3.251: Der Lager-Tab fuehrt ins Lieferanten-Lager (liefModal, js/82) und
+   nicht mehr in die Einstellungen. Der ganze Ausschnitt, der dort die
+   Registerleiste und die beiden Nachbarabschnitte ausblendete, ist damit
+   gegenstandslos - ein eigener Schirm braucht keinen Ausschnitt. Die Marke
+   selbst bleibt in A2_MARKEN (js/70) stehen, damit eine alte, noch am
+   Schirm haengende Klasse weiterhin entfernt wird. */
 
 /* Die Karte des Schirms traegt in diesen Bereichen noch ihren eigenen Titel
    ("⚙️ Einstellungen", "📁 Projekte"). Die Kopfzeile darueber sagt bereits,
    wo man ist - zweimal derselbe Titel untereinander ist kein Hinweis,
    sondern Fuellung. */
-html.a2-an #settingsModal.a2-nur-lager .modalbox > .card > h2,
 html.a2-an #projectsModal.a2-nur-anlegen .card > h2,
 html.a2-an #projectsModal.a2-nur-liste .card > h2{display:none!important}
 
@@ -936,26 +911,6 @@ html.a2-an #amTypeChooserModal .start-nav-btn{
 html.a2-an #measTypeChooserModal .start-nav-icon,
 html.a2-an #amTypeChooserModal .start-nav-icon{font-size:21px;flex:none;width:26px;text-align:center}
 
-/* ==========================================================================
-   DIE LAGERVERWALTUNG GEHOERT NICHT IN DIE EINSTELLUNGEN  (v3.163)
-   --------------------------------------------------------------------------
-   Gemeldet: "Die lagerverwaltung ist in den einstellungen immernoch
-   vorhanden, das will ich nicht."
-
-   Seit v3.157 ist das Lager ein eigener Bereich in der Leiste. Der
-   Abschnitt im Einstellungs-Register "Lager" ist damit derselbe
-   Arbeitsplatz ein zweites Mal - und die Einstellungen sind der falsche
-   Ort dafuer: dort stehen Firmenvorgaben, keine taegliche Buchung.
-
-   Ausgeblendet wird er nur, wenn die Einstellungen als EINSTELLUNGEN
-   offen sind. Traegt der Schirm die Marke a2-nur-lager, ist er der
-   Lager-Bereich - dann ist dieser Abschnitt genau das, was gezeigt
-   werden soll. Deshalb :not(.a2-nur-lager) und nicht einfach display:none.
-
-   In der klassischen Ansicht bleibt der Abschnitt unberuehrt: dort gibt
-   es die Leiste und damit den eigenen Bereich nicht, und die
-   Einstellungen sind der einzige Weg dorthin. */
-html.a2-an #settingsModal:not(.a2-nur-lager) [data-section="lagerverwaltung"]{display:none!important}
 
 /* ==========================================================================
    "DATEIEN, FOTOS UND VERLAUF" ZEIGT GENAU DAS  (v3.163)

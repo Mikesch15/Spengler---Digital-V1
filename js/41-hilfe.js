@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.250.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.251.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2198,157 +2198,6 @@ Materialliste holen.</p>
 <p>Eine Materialzeile lässt die <b>Freigabe nicht verfallen</b> – sie ändert
 nichts an der fachlichen Grundlage, nach der gerüstet und montiert wird.</p>`},
 
-"meas-lager-ausbuchen":{titel:"Material ab Lager ausbuchen",text:`
-<p><b>Seit Version 3.123</b> wird die Buchung automatisch dem <b>Projekt der
-Massaufnahme</b> zugeordnet – im Projekt lässt sich daraus unter
-„📦 Material ab Lager“ eine Materialzusammenfassung drucken. Gefragt wird
-hier nichts: das Projekt steht bereits fest, es steht nur zur Kontrolle im
-Dialog.</p>
-<p>Bucht das hier erfasste Material als <b>Abgang</b> im Lager – für den Fall,
-dass es aus dem eigenen Lager mit auf die Baustelle genommen wird.</p>
-<p>Das passiert <b>nie von selbst</b>: weder beim Speichern der Massaufnahme
-noch beim Übernehmen in den Regierapport. Eine Lagerbuchung lässt sich
-nämlich nicht mehr ändern – eine versehentliche wäre nur durch eine
-Gegenbuchung zu heilen. Deshalb der eigene Knopf und der Dialog zum Prüfen.</p>
-<p>Im Dialog ist <b>jede Zeile einzeln an- und abwählbar</b>, und die
-<b>Menge ist frei änderbar</b> – gebucht wird genau das, was dort steht, nicht
-zwingend das, was in der Massaufnahme erfasst ist. Gehören zu einer
-Materialposition mehrere Produkte (z. B. verschiedene Rohrbogen), muss das
-richtige ausgewählt werden; die App rät nicht und wählt solche Zeilen auch
-nicht von sich aus vor.</p>
-<p>Angeboten wird zweierlei. Erstens das <b>von Hand erfasste Material</b>:
-dort steht die EDV-Nr. bereits fest, angeboten wird, was im
-<b>Material-Katalog</b> steht und im Lager ein Produkt hat. Zweitens
-– <b>seit Version 3.121</b> – die <b>Halbfabrikate</b> der Massaufnahme:
-bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Innen- und
-Aussenwinkel und Dehnungsstücke. <b>Blech und gerechnete Zuschnitte gehören
-weiterhin nicht ins Lager</b> – das Lager führt allgemeines Material.</p>
-<p>Ein Halbfabrikat trägt <b>keine EDV-Nr.</b>, nur eine Bezeichnung
-(„Rinnenboden links Ø 333"). Deshalb steht dort ein <b>Suchfeld</b> für die
-Materialposition. <b>Seit Version 3.125</b> erscheinen die Treffer
-<b>sofort beim Tippen</b> – darunter als Liste zum Antippen, ohne dass man
-erst ein Auswahlfeld aufklappen muss. Ist die Position gewählt, steht sie
-als Text da und lässt sich mit „Position ändern“ wieder öffnen. Die App schlägt eine Position vor – nach
-derselben Bewertung wie beim Übernehmen in den Regierapport –, wählt sie
-aber nur dann von selbst, wenn der Treffer eindeutig ist und die Position im
-Lager genau ein Produkt hat. Ohne gewählte Position wird eine Zeile
-<b>nicht</b> gebucht.</p>
-<p>Zeilen, die sich nicht buchen lassen, werden trotzdem mit dem Grund
-angezeigt, damit keine Position stillschweigend fehlt.</p>
-<p>Wurde für dieselbe Massaufnahme schon einmal ausgebucht, steht das als
-<b>Warnung</b> oben im Dialog – ein zweites Mal bucht zusätzlich aus. Erkannt
-wird das am Buchungsgrund, den die App selbst schreibt; dort steht später
-auch in der Lagerverwaltung, aus welcher Massaufnahme die Buchung stammt.</p>
-<p>Sichtbar ist der Knopf nur mit der <b>Lager-Freigabe</b>.</p>`},
-
-"lager-suche":{titel:"Material suchen und erfassen",text:`
-<p><b>Seit Version 3.126</b> gilt auch im Dialog „Neues Produkt“: die
-Treffer zur Materialposition erscheinen <b>sofort beim Tippen</b> als Liste
-zum Antippen. Bis dahin stand dort ein Auswahlfeld, das seine gefilterte
-Liste erst beim Aufklappen zeigte.</p>
-<p>Das Suchfeld über der Liste durchsucht <b>beide Ebenen</b>: die
-Materialposition (EDV-Nr., Bezeichnung, Dimension) und jedes einzelne
-<b>Produkt</b> darunter samt <b>Barcode</b>. Wer den Barcode abliest, findet
-das Produkt damit auch von Hand, wenn die Kamera streikt.</p>
-<p><b>Seit Version 3.131</b> gilt dasselbe auch für das Feld <b>Objekt /
-Projekt</b> im Buchen-Dialog (auch nach einem Ein- oder Ausscannen): die
-Treffer erscheinen sofort beim Tippen als Liste zum Antippen. Bis dahin stand
-dort ein Auswahlfeld, das seine gefilterte Liste erst beim Aufklappen zeigte –
-die Suche wirkte dadurch wie kaputt, obwohl sie filterte. „Werkstatt / Lager“
-steht dabei immer zuoberst und wird von der Suche nie weggefiltert.</p>
-<p>Solange gesucht wird, ist „Alle zuklappen“ ausgeblendet – die Trefferliste
-ist ja gerade das, was man sehen will.</p>
-<h3>Ein neues Produkt erfassen</h3>
-<p><b>Seit Version 3.128</b> bleibt das Suchfeld für die Materialposition
-<b>immer</b> stehen – auch dann, wenn schon eine Position gewählt oder
-vorbelegt ist. Bis dahin verschwand es genau in dem Moment, und wer den
-Dialog über „＋ Weiteres Produkt zu dieser Position“ öffnete, bekam es nie zu
-Gesicht. Tippen öffnet die Treffer, ein Klick wechselt die Position; danach
-ist die Suche wieder leer und die Liste zu. Dasselbe gilt im
-Ausbuchen-Dialog der Massaufnahme.</p>
-<p>Über der Liste steht <b>＋ Neues Produkt</b>. Das ist seit Version 3.127
-der erste, immer erreichbare Weg dorthin – vorher führten nur zwei
-Umwege hin: „＋ Weiteres Produkt“ <i>innerhalb</i> einer aufgeklappten
-Position, oder ein Scan, dessen Barcode noch keinem Produkt gehört. Der
-Hilfetext nannte diesen Knopf schon seit Version 3.124, es gab ihn nur
-nicht – das ist nachgeholt.</p>
-<h3>Produkte ausserhalb der Regiematerialliste</h3>
-<p>Nicht jedes Lagerprodukt steht im Regie-Katalog. Im Dialog
-„🏷️ Neues Produkt erfassen“ steht unten in der Positionsauswahl deshalb
-<b>➕ Neue Materialposition anlegen</b>. Damit entsteht eine richtige
-Katalogposition – kein zweites, getrenntes Lager-Verzeichnis. Sie steht
-danach überall zur Verfügung und lässt sich auch im Regierapport
-verrechnen.</p>
-<p>Die <b>EDV-Nr.</b> schlägt die App <b>seit Version 3.126</b> aus der
-<b>passenden Gruppe</b> des Katalogs vor. Der Katalog ist fachlich geordnet
-– 201 Dachrinnen, 202 Rinnenhalter, 203 übriges Rinnenzubehör, 251
-Ablaufrohre, 261 Lüftung, 826 Schrauben. Ein neuer „Rinnenboden“ bekommt
-deshalb die nächste freie Nummer in <b>203</b>, nicht irgendeine. Darunter
-steht, <b>warum</b>: mit der Katalogzeile, auf die sich die App stützt.</p>
-<p>Passen mehrere Gruppen ähnlich gut – „Rohrbogen“ steht in 252, 259 und
-261 –, behauptet die App nichts: sie nimmt den eigenen Lager-Bereich und
-legt die Kandidaten als Knöpfe daneben. Ein Klick übernimmt die Nummer der
-gewählten Gruppe. Sobald Sie die Nummer selbst antippen, hält sich der
-Vorschlag heraus und überschreibt nichts mehr.</p>
-<p>Findet sich keine passende Gruppe, bleibt es beim eigenen Nummernkreis:
-<b>999.01</b>, <b>999.02</b> und so weiter. Der Katalog benutzt durchgehend
-das Format NNN.NN mit den Gruppen 100 bis 990; 999 ist frei und hält
-dasselbe Format ein. Eine Nummer wie „1.000.00“ würde als Text <b>vor</b>
-„100.01“ einsortiert und fällt aus jeder Sortierung. Vorgeschlagen ist die
-Nummer aber nur – sie lässt sich frei ändern. Eine bereits vergebene Nummer
-lehnt die App ab und nennt die Position, die sie schon trägt.</p>
-<p>Anlegen kann das nur, wer auch den <b>Material-Katalog ändern</b> darf
-(Einstellungen → Mitarbeiter). Sonst erscheint die Möglichkeit gar nicht
-erst.</p>
-<h3>Produkt entfernen: löschen oder archivieren</h3>
-<p>Ein aufgeklapptes Produkt zeigt unten einen Knopf. <b>Welchen</b>, hängt
-davon ab, ob es schon Buchungen gibt:</p>
-<p><b>🗑 Löschen</b> – nur bei einem Produkt <b>ohne jede Buchung</b>.
-Dann ist nichts zu verlieren, es verschwindet ganz.</p>
-<p><b>📦 Archivieren</b> – sobald gebucht wurde. Das Produkt
-verschwindet aus der Liste und lässt sich nicht mehr bebuchen, seine
-Buchungen bleiben aber vollständig stehen. Das ist Absicht: eine Buchung
-ist Beleg, kein Entwurf – ein gelöschtes Produkt würde frühere Bestände,
-Projekt-Zusammenfassungen und Inventuren rückwirkend verfälschen. Liegt
-etwas im Archiv, erscheint oben <b>📦 Archiv anzeigen</b>; dort steht je
-Produkt <b>↺ Wieder aktivieren</b>.</p>
-<p>War das <b>gelöschte</b> Produkt das letzte seiner Materialposition,
-fragt die App zusätzlich, ob auch die <b>Katalogposition selbst</b> weg
-soll. Nach einem Archivieren kommt diese Frage nicht – das Produkt liegt
-ja noch da und braucht seine Position weiter. Vorsicht: die Position ist Teil des Material-Katalogs
-und kann in Regierapporten, Offerten und Massaufnahmen verrechnet sein –
-deshalb steht die Warnung ausdrücklich da und es passiert nichts ohne
-Bestätigung. Sie nennt auch, wie viele Einträge im <b>Blech-Materialbestand</b>
-auf die Position zeigen: die bleiben bestehen, verlieren aber ihre Zuordnung.
-Dasselbe gilt für <b>Reststücke</b>.</p>
-<p><b>Zur Sicherheit</b>: Bis Version 3.126 haben die beiden Schranken auf
-der Produkt-Tabelle (eigene Firma / Lager-Berechtigung) <i>oder</i>-verknüpft
-statt <i>und</i>-verknüpft gegriffen – die Firmengrenze band dadurch
-faktisch nicht. Mit Version 3.127 ist das auf dieselbe Bauart umgestellt,
-die die Buchungen schon immer hatten (beide Schranken müssen zutreffen).</p>`},
-
-"cockpit-lager":{titel:"Material ab Lager",text:`
-<p>Was für <b>dieses Projekt</b> ab Lager gebucht wurde – je Produkt
-zusammengefasst, darunter die einzelnen Buchungen mit Datum.</p>
-<p><b>Verbraucht</b> ist das, was ausgebucht wurde, abzüglich späterer
-Rückgaben (Zugang auf dasselbe Projekt) und Korrekturen. Die Zahlen kommen
-ausschliesslich aus den Lagerbuchungen selbst – es gibt keine zweite,
-mitgeführte Liste, genau wie beim Bestand.</p>
-<p>Gezählt wird nur, was diesem Projekt <b>zugeordnet</b> ist. Beim Buchen in
-der Lagerverwaltung wird dafür seit Version 3.123 das Objekt/Projekt
-verlangt; „Werkstatt / Lager“ ist dort eine ausdrückliche Wahl und erscheint
-hier bewusst nicht. Eine Ausbuchung direkt aus einer Massaufnahme
-(„📤 Ab Lager ausbuchen“) wird automatisch dem Projekt dieser Massaufnahme
-zugeordnet.</p>
-<p>Buchungen von <b>vor</b> Version 3.123 tragen das Projekt nicht als Feld.
-Stammen sie aus einer Massaufnahme dieses Projekts, findet die App sie
-trotzdem – über den Vermerk, den sie selbst in den Buchungsgrund geschrieben
-hat. Eine damals von Hand gebuchte Zeile ohne diesen Vermerk lässt sich
-nicht nachträglich zuordnen: eine Lagerbuchung ist unveränderlich.</p>
-<p>Der Knopf <b>Materialzusammenfassung drucken</b> gibt dieselbe Liste als
-Blatt aus, mit Projektkopf wie jeder andere Ausdruck.</p>
-<p>Sichtbar ist die Karte nur mit der <b>Lager-Freigabe</b>.</p>`},
-
 "rmat-uebernehmen":{titel:"Material aus den Massaufnahmen",text:`
 <p>Angeboten wird, was in den Massaufnahmen <b>dieses Projekts</b> unter
 „Material für den Regierapport" erfasst ist.</p>
@@ -2531,6 +2380,28 @@ Ausführung kennt, steht im Register <b>📦 Lager</b> unter Materialbestand.</p
 <p>Verbucht wird dabei nichts: der Plan zeigt, welche Stücke aus welchem Rest
 kämen. Ob ein Rest wirklich verbraucht ist, bleibt ein ausdrücklicher Klick.</p>`},
 
+"material-position-anlegen":{titel:"Neue Materialposition anlegen",text:`
+<p>Dieser Dialog legt eine <b>Position im Material-Katalog</b> an – dieselbe
+Liste, aus der der Regierapport verrechnet. Danach steht sie überall zur
+Verfügung: Regierapport, Regieofferte, Materialbestand.</p>
+<p><b>Die EDV-Nr. schlägt die App vor, und sie sagt warum.</b> Der Katalog ist
+nach Gruppen geordnet – 201 Dachrinnen, 202 Rinnenhalter, 203 Rinnenzubehör,
+251 Ablaufrohre, 811 Dichtstoffe, 826 Schrauben. Aus der <b>Bezeichnung</b>
+erkennt die App die passende Gruppe und nimmt deren nächste freie Nummer. Unter
+dem Feld steht, welche Gruppe es war und welche bestehende Position den
+Ausschlag gab.</p>
+<p>Passen <b>mehrere Gruppen ähnlich gut</b>, behauptet die App nichts: sie
+nimmt den eigenen Nummernkreis <b>999.xx</b> und legt die Kandidaten als Knöpfe
+daneben. Ein Antippen setzt die Nummer dieser Gruppe.</p>
+<p>Die Nummer ist <b>vorgeschlagen, nicht vorgeschrieben</b>. Wer sie selbst
+tippt, behält sie – die Bezeichnung überschreibt sie danach nicht mehr. Eine
+schon vergebene EDV-Nr. wird abgewiesen, <b>bevor</b> etwas geschrieben wird.</p>
+<div class="hin"><b>Ab Version 3.251</b> hiess dieser Dialog „Neues Produkt
+erfassen" und legte auf Wunsch zugleich ein Lager-Produkt mit Barcode an. Mit
+der Abschaffung der alten Lagerverwaltung ist dieser zweite Teil weggefallen;
+die Position – der Teil, den der Katalog braucht – ist geblieben, samt
+Nummernvorschlag.</div>
+`},
 "lagerbestand":{titel:"Materialbestand",text:`
 <p>Diese Liste legt fest, <b>welche</b> Bleche die Firma führt – Werkstoff,
 Stärke und Ausführung. Sonst nichts: seit Version 3.31 <b>keine Mengen, keine
@@ -2593,113 +2464,6 @@ Materialkatalog der Firma. Beides ist firmeneigen und wird hier nicht neu
 erfunden. Wird ein Artikel gewählt, schlägt das Formular Stärke und Werkstoff
 vor, soweit sie dort hinterlegt sind – beides bleibt frei änderbar. Der Name
 kommt aus dem Katalog und wird dort geändert.</p>`},
-
-"lagerverwaltung":{titel:"Lagerverwaltung",text:`
-<div class="hin"><b>Das Format steht am Produkt</b> (ab 3.177). Heissen mehrere
-Katalogpositionen gleich – bei euch dreimal „Kupferblech“ –, steht ihr Format
-jetzt überall dabei: „102.01 Kupferblech · 0,6 mm · Blank · Rolle“. Die Suche
-findet damit auch nach Stärke und Form.</div>
-<div class="hin"><b>Jede Position hat ein Produkt</b> (ab 3.224). Die
-Lagerverwaltung ist zweistufig: oben die <b>Materialposition</b> aus dem
-Katalog, darunter die <b>Produkte</b>, die tatsächlich im Regal liegen.
-Gebucht wird immer auf ein Produkt. Damit eine neu angelegte Position nicht
-ohne Produkt dasteht, legt die Datenbank es seit 3.224 selbst an – egal ob
-die Position über das Formular, den Excel-Import oder den Beispielkatalog
-entsteht. Löschst du das letzte Produkt einer Position und behältst die
-Position, bleibt sie absichtlich ohne; das meldet dann die Kontrolle
-„Position ohne Produkt im Lager“, damit es nicht unbemerkt bleibt.</div>
-<div class="hin"><b>Die Seite beginnt zugeklappt</b> (ab 3.223). Oben stehen
-die Kennzahlen, darunter gross <b>📥 Einscannen</b> und <b>📤 Ausscannen</b> –
-das sind die beiden Handlungen, für die man hierherkommt. Danach das
-Suchfeld, und erst ganz unten die selteneren Knöpfe (neues Material,
-Archiv). Die Liste selbst ist eingeklappt: bei über dreihundert Positionen
-ist sie keine Übersicht, sondern eine Wand. Wer sie ganz sehen will, drückt
-<b>„Alle anzeigen“</b>; wer eine bestimmte Position sucht, tippt sie ins
-Suchfeld – eine Suche zeigt die Treffer immer, auch bei eingeklappter
-Liste.</div>
-<div class="hin"><b>Aus der Kamera zurück</b> (ab 3.223). Der Scanner
-verhält sich jetzt wie jeder andere Schirm der App: die Zurück-Taste des
-Geräts schliesst ihn und bringt dich zurück, statt die App zu beenden.
-Oben links steht zusätzlich <b>‹ Zurück</b>. In beiden Fällen wird die
-Kamera dabei richtig abgeschaltet.</div>
-<div class="hin"><b>Wird der Code nicht scharf?</b> (ab 3.222) Ein Handy hat
-hinten mehrere Kameras. Die Ultraweitwinkel-Kamera hat einen <b>festen
-Fokus</b> und wird näher als etwa 10 cm grundsätzlich nicht scharf – und
-welche Kamera der Browser nimmt, entscheidet er selbst. Im Scanner steht
-deshalb unter dem Bild eine <b>Kamerawahl</b>: einfach die nächste
-durchprobieren, die Wahl wird gemerkt. Darunter ein <b>Zoom-Regler</b>, wo
-das Gerät Zoom kann – der verlässlichste Weg ist, nicht näher heranzugehen,
-sondern aus 20–30 cm zu zoomen. Ganz unten stehen unter „Technische Angaben
-zur Kamera“ die Werte des Geräts (welche Kameras es gibt, welche läuft, was
-sie kann); die lassen sich kopieren und weitergeben, damit bei einem Problem
-nicht geraten werden muss.</div>
-<div class="hin"><b>Die Seite auf einen Blick</b> (ab 3.220). Ganz oben steht
-der Stand des Lagers in einer Zeile: wie viele Positionen, wie viele Produkte
-und – rot, solange es welche gibt – wie viele <b>ohne Bestand</b> sind. Darunter
-das Suchfeld, dann die Knöpfe. In der Liste steht die EDV-Nr. als eigenes
-Nummernfeld vorn, die Bezeichnung daneben, Dimension und Format klein
-darunter, und der <b>Bestand rechts als Zahl mit Einheit</b> – bei 0 rot.
-Gerechnet und gebucht wird dabei genau wie vorher.</div>
-<p>Der aktuelle Bestand je Produkt aus dem Material-Katalog (Einstellungen
-→ Material) – Schrauben, Dichtband, Rinnenhalter usw. Mit dem
-Blech-Materialbestand weiter oben in den Einstellungen hat das nichts zu
-tun: der zeigt nur, welches Blech die Firma führt (Rolle/Tafel, Stärke),
-ohne Mengenführung.</p>
-<p>Eine Position aus dem Material-Katalog kann <b>mehrere einzeln buchbare
-Produkte</b> enthalten – z. B. mehrere Rohrbogen-Varianten unter derselben
-Regierapport-Position "Rohrbogen". Hat eine Position nur ein Produkt, sieht
-ihre Karte ganz normal aus (Name, Bestand, Buchen-Knopf). Ab dem zweiten
-Produkt wird der Kartenkopf zur Übersicht der Position (Anzahl Produkte,
-Bestand gesamt) und jedes Produkt bekommt darunter seine eigene Karte mit
-eigenem Bestand und eigenem Buchen-Knopf.</p>
-<p>Der Bestand ist <b>immer</b> die Summe aller Buchungen (Zugang, Abgang,
-Korrektur) – nie ein Feld zum Überschreiben. Eine Buchung bleibt für immer
-stehen; ein Fehler wird durch eine neue Korrektur-Buchung ausgeglichen,
-nie durch Ändern einer bestehenden Buchung. So lässt sich der Bestand
-jederzeit nachvollziehen, statt einer Zahl vertrauen zu müssen, die
-niemand mehr erklären kann.</p>
-<p>📥 <b>Einscannen</b> / 📤 <b>Ausscannen</b> öffnen die Kamera. <i>Seit
-3.220 wird im laufenden Bild gescannt:</i> Code in den Rahmen halten, er wird
-von selbst erkannt – man muss nicht mehr zuerst ein Foto aufnehmen und es
-dann auswerten lassen. <i>Seit 3.221</i> liest dabei auch der <b>eingebaute
-Barcode-Leser des Geräts</b> mit, wo es ihn gibt (Android/Chrome) – dieselbe
-Erkennung, die native Scanner-Apps benutzen; sie ist schneller und kommt mit
-unschärferen und schrägen Codes zurecht. Danach
-sucht die App den erkannten Barcode unter den Produkten und öffnet den
-Buchen-Dialog direkt mit der passenden Richtung – nur die Menge muss noch
-bestätigt werden. Will ein Code partout nicht erkannt werden, nimmt
-"📷 Stattdessen Foto aufnehmen" die Kamera-App des Geräts und wertet das
-Foto aus; und der Code lässt sich unten immer noch von Hand eintippen
-("Code funktioniert nicht? Hier eintippen") – das funktioniert unabhängig
-von der Kamera immer. Kennt die App
-den Barcode noch nicht, bietet <b>Einscannen</b> direkt an,
-daraus ein <b>🏷️ neues Produkt</b> anzulegen: Bezeichnung eingeben, eine
-Materialposition aus dem Katalog wählen (das Suchfeld darüber filtert bei
-einem grossen Katalog nach EDV-Nr. oder Bezeichnung), fertig –
-anschliessend geht es gleich weiter zum ersten Zugang. Dasselbe Formular
-öffnet sich auch über
-"＋ Weiteres Produkt" innerhalb einer bereits aufgeklappten Position, dort
-mit vorbelegter Position.</p>
-<p>Sichtbar ist dieser Bereich nur für Mitarbeitende mit eigens
-freigeschaltetem <b>Lager-Zugriff</b> (Einstellungen → Mitarbeiter) –
-unabhängig von den übrigen Rechten, wie beim Offerte-Zugriff. Auch ein
-Administrator braucht diese Freigabe eigens.</p>
-<p>Ein Produkt, dessen Materialposition noch nicht im Katalog steht, lässt
-sich im selben Formular samt neuer Position anlegen – die Position entsteht
-dann gleich mit.</p>
-<p><b>Ein Name oder zwei?</b> Voreingestellt gilt die Bezeichnung des
-Produkts auch für die neue Katalogposition: zweimal dasselbe zu tippen wäre
-unnötig. Sinnvoll ist das getrennt, sobald unter der Position später weitere
-Produkte stehen sollen – die Position heisst dann allgemein
-(„Stahlblech svz"), das Produkt genau („Stahlblech svz 0,6 × 670 Rolle").
-Dafür gibt es den Knopf <b>„✏️ Position anders benennen"</b>; er belegt das
-Feld mit der Bezeichnung des Produkts vor, sodass nur noch gekürzt werden
-muss. <b>„↩ Doch gleich wie das Produkt"</b> führt zurück. Die Position
-steht danach so im Regierapport, wie sie hier benannt wurde.</p>
-<p>Jede Zeile lässt sich antippen, um die letzten Buchungen ein-/
-auszublenden. Bei einer längeren Liste blendet <b>Alle
-zuklappen</b> alle Karten auf einen Schlag aus – "Alle anzeigen"
-holt sie zurück.</p>`},
 
 "meas-staerke":{titel:"Materialstärke",text:`
 <p>Welche Stärke das Blech dieser Massaufnahme hat. Die Auswahl kommt

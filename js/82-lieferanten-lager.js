@@ -8,7 +8,8 @@
 //
 // WARUM ES WIRKLICH SEPARAT IST, und nicht nur separat aussieht:
 //
-// Die bestehende Lagerverwaltung (js/68) sitzt auf materials - dem Katalog der
+// Die damalige Lagerverwaltung (js/68, in v3.251 abgeschafft) sass auf
+// materials - dem Katalog der
 // FIRMA, mit ihren eigenen EDV-Nummern. Derselbe Katalog fuellt die
 // Regiematerial-Liste, das Ausmass und den Zuschnitt. Ein Lieferantensortiment
 // mit 439 FREMDEN Artikelnummern dort hineinzukippen wuerde zwei Nummernkreise
@@ -16,8 +17,15 @@
 // sollen.
 //
 // Deshalb: eigene Tabellen (lieferanten_artikel, lieferanten_bewegungen),
-// eigene Datei, eigener Dialog. An js/68, js/59, am Regierapport und an
-// materials aendert diese Datei NICHTS - sie liest von dort auch nichts.
+// eigene Datei, eigener Dialog. An js/59, am Regierapport und an materials
+// aendert diese Datei NICHTS - sie liest von dort auch nichts.
+//
+// v3.251: Die alte Lagerverwaltung ist abgeschafft (Ansage des Anwenders:
+// "die altr lagerverwaltung wird abgeschafft"). Das aendert an der Trennung
+// oben nichts - sie war der Grund, weshalb diese Datei die Abschaffung
+// unbeschadet ueberlebt. Zugekommen sind zwei Dinge, die sonst mitgegangen
+// waeren: das Recht "Lager" (checkLagerZugriff, weiter unten) und der
+// Startweg vom Lager-Knopf der Ansicht.
 //
 // Was sie sich TEILT, weil zwei Fassungen davon zwei Wahrheiten waeren:
 //  - den Barcode-Scanner aus js/01 (barcodeScannen)
@@ -47,6 +55,39 @@ let lfEinkauf=[];          // offene Einkaufswuensche (v3.232)
 let lfSuche="";
 let lfOffeneGruppen=new Set();
 let lfGeladen=false;
+
+// ---- Das Recht "Lager" (v3.251 hierher umgezogen) ------------------------
+//
+// Diese Funktion stand bis v3.250 in js/68-lagerverwaltung.js. Mit deren
+// Abschaffung ist das Lieferanten-Lager der EINE Ort, den das Recht "Lager"
+// noch freischaltet - deshalb steht die Pruefung jetzt hier, bei dem Modul,
+// das sie betrifft. Gerufen wird sie unveraendert aus afterLogin()
+// (js/03-login.js) und nach einer Rechteaenderung (js/05a-rechte.js); die
+// Namen sind deshalb dieselben geblieben.
+//
+// navLagerverwaltung ist ein unsichtbarer Knopf in index.html, dessen
+// hidden-Zustand das Recht in die Ansicht 2 traegt (a2KnopfSichtbar() in
+// js/70). Eine zweite Rechtepruefung dort waere eine zweite Wahrheit -
+// deshalb bleibt es bei diesem einen Schalter, auch wenn sein Name noch an
+// die alte Lagerverwaltung erinnert.
+let lagerverwaltungZugriff=false;
+async function checkLagerZugriff(){
+ lagerverwaltungZugriff=false;
+ if(currentProfile){
+  try{
+   const {data,error}=await sb.from("feature_access").select("granted")
+    .eq("profile_id",currentProfile.id).eq("feature","lager").maybeSingle();
+   lagerverwaltungZugriff=!error&&!!data&&!!data.granted;
+  }catch(e){lagerverwaltungZugriff=false;}
+ }
+ if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=!lagerverwaltungZugriff;
+}
+// v3.251: Der Weg von der Startseite fuehrt jetzt ins Lieferanten-Lager -
+// bis v3.250 fuehrte derselbe Knopf in die Einstellungen zur alten
+// Lagerverwaltung (openSettingsTo("lager","lagerverwaltung")). Es gibt nur
+// noch ein Lager, also nur noch ein Ziel.
+if(typeof $==="function"&&$("navLagerverwaltung"))
+ $("navLagerverwaltung").onclick=()=>lfOeffnen();
 
 function lfZahl(v){ const n=Number(v); return Number.isFinite(n)?n:0 }
 function lfZahlText(v){
@@ -417,11 +458,10 @@ function lfGroessenBefundText(b){
 // der schweigt, ist auf dem Dach schlimmer als einer, der "kenne ich nicht"
 // sagt - man scannt dreimal und weiss immer noch nichts.
 //
-// Gesucht wird in beiden Lagern: zuerst im Lieferantensortiment, dann in
-// der bestehenden Lagerverwaltung (lager_varianten.barcode, ueber
-// lagerVarianteZuBarcode aus js/68). Ein Barcode zeigt auf eine Ware, nicht
-// auf ein Modul - welches Lager sie fuehrt, ist nicht die Frage des
-// Spenglers auf dem Dach.
+// v3.251: Gesucht wird nur noch HIER. Bis v3.250 fragte diese Funktion
+// danach auch die alte Lagerverwaltung (lager_varianten.barcode, ueber
+// lagerVarianteZuBarcode aus js/68) - die ist abgeschafft. Betroffen war
+// genau EIN Barcode; gemessen, nicht geschaetzt.
 function lfBarcodeZuRegie(code){
  const c=String(code||"").trim();
  if(!c)return {ok:false,grund:"leer",text:"Es wurde kein Code gelesen."};
@@ -449,19 +489,8 @@ function lfBarcodeZuRegie(code){
    text:a.bezeichnung+" → "+r.edv_nr+" · "+r.name};
  }
 
- // Die bestehende Lagerverwaltung. Nur LESEN, und nur, wenn es sie gibt.
- if(typeof lagerVarianteZuBarcode==="function"){
-  const v=lagerVarianteZuBarcode(c);
-  if(v){
-   const r=lfRegieZuId(v.material_id);
-   if(!r)return {ok:false,grund:"ohne-zuordnung",
-    text:"„"+(v.bezeichnung||"Das Produkt")+"“ aus der Lagerverwaltung lässt sich keiner Katalogposition zuordnen."};
-   return {ok:true,quelle:"lager",regie:r,
-    text:(v.bezeichnung||"Produkt")+" → "+r.edv_nr+" · "+r.name};
-  }
- }
  return {ok:false,grund:"unbekannt",
-  text:"Der Code "+c+" ist weder im Lieferanten-Lager noch in der Lagerverwaltung bekannt."};
+  text:"Der Code "+c+" ist im Lager nicht bekannt."};
 }
 
 // ---- Inventur: Bestand und Mindestbestand gruppenweise (v3.240) -----------
@@ -820,9 +849,12 @@ async function lfScanVerbrauch(code,opt){
  const t=lfBarcodeZuRegie(code);
  if(!t.ok)return t;
  if(!o.ausbuchen)return Object.assign({},t,{gebucht:false});
- if(t.quelle!=="lieferant")
-  return Object.assign({},t,{gebucht:false,
-   buchhinweis:"Nicht ausgebucht: dieser Artikel liegt in der Lagerverwaltung, nicht im Lieferanten-Lager."});
+ // v3.251: Hier stand ein Zweig fuer t.quelle!=="lieferant" - fuer einen
+ // Treffer in der alten Lagerverwaltung, in die dieses Modul bewusst nie
+ // gebucht hat. Die ist abgeschafft, lfBarcodeZuRegie() liefert nur noch
+ // Treffer aus dem Lieferanten-Lager. Ein Zweig, der nicht mehr erreicht
+ // werden kann, ist keine Vorsicht, sondern eine Aussage ueber einen
+ // Zustand, den es nicht gibt.
  if(typeof sb==="undefined")return Object.assign({},t,{gebucht:false});
  try{
   const r=await sb.from("lieferanten_bewegungen").insert({

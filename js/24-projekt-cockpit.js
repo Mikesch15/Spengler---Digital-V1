@@ -287,23 +287,13 @@ const COCKPIT_BEREICHE={
  rep  :{count:"cockpitRepCount"  ,body:"cockpitRepBody"  ,card:"cockpitRepCard"  ,mark:"cockpitRepMark"  ,stand:"cockpitRepStand"  ,leer:"Noch keine" ,load:id=>loadProjectReports(id)},
  files:{count:"cockpitFilesCount",body:"cockpitFilesBody",card:"cockpitFilesCard",mark:"cockpitFilesMark",stand:"cockpitFilesStand",leer:"Noch keine" ,load:id=>loadProjectFiles(id)}
 };
-// v3.123: Material ab Lager. BEWUSST nicht in COCKPIT_BEREICHE - dort haengt
-// an jedem Eintrag auch eine Zeile im Arbeitsstand oben, und eine Karte, die
-// ohne Lager-Freigabe gar nicht sichtbar ist, hat dort nichts verloren. Die
-// Karte laedt deshalb ueber ihre eigene, kleine Anbindung (dasselbe Muster
-// wie die Verlauf-Karte, die ebenfalls keinen Arbeitsstand-Eintrag hat).
-async function cockpitLagerAnzeigen(projectId){
- const karte=$("cockpitLagerCard");
- if(!karte)return;
- const sichtbar=(typeof lagerverwaltungZugriff!=="undefined")&&lagerverwaltungZugriff;
- karte.hidden=!sichtbar;
- if(!sichtbar||!projectId)return;
- try{ await cockpitLagerLaden(projectId); }
- catch(e){
-  const box=$("cockpitLagerBody");
-  if(box)box.innerHTML='<div class="small" style="color:var(--red)">Die Lagerbuchungen konnten nicht geladen werden.</div>';
- }
-}
+// v3.251: Hier stand die Karte "Material ab Lager" (v3.123). Sie zeigte, was
+// fuer DIESES Projekt aus der alten Lagerverwaltung ausgebucht wurde
+// (lagerbestand_bewegungen, js/68) - mit deren Abschaffung gibt es diese
+// Buchungen nicht mehr. Gemessen waren es 8 Buchungen im ganzen Betrieb.
+// Das Lieferanten-Lager bucht nicht auf Projekte, es fuehrt Handelsware;
+// eine Karte, die immer leer bliebe, waere kein Ersatz, sondern eine
+// Behauptung.
 
 // Eine Stelle schreibt die Anzahl - in die Abschnittsüberschrift UND in
 // den Arbeitsstand oben. Dieselbe Zahl, keine zweite Quelle.
@@ -435,10 +425,6 @@ async function loadProjectCockpitData(){
  // Massaufnahmen (projectMeasurementsCache) - keine zusaetzliche Abfrage.
  // Sind die Untermodule aus, bleiben beide Karten unsichtbar.
  if(typeof pmSichtbarkeitAuffrischen==="function")pmSichtbarkeitAuffrischen();
- // v3.123: Material ab Lager. Bewusst NACH dem Promise.all und ohne dessen
- // Ergebnis abzuwarten - die Karte ist optional (Lager-Freigabe) und darf
- // das Oeffnen des Cockpits nicht verzoegern oder zum Scheitern bringen.
- if(typeof cockpitLagerAnzeigen==="function")cockpitLagerAnzeigen(id);
  cockpitAlleKlappText();          // v3.11 Modul-Karten koennen dazugekommen sein
 }
 

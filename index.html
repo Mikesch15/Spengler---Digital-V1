@@ -186,7 +186,7 @@
      haengt; die neue Ansicht loest sie aus (js/70). Wer einen davon
      entfernt, muss den Handler mitnehmen - nicht nachbauen.
      Vier von ihnen sagen ausserdem, ob die Handlung ueberhaupt erlaubt ist:
-     werkAktiv() (js/51), lagerverwaltungZugriff (js/68), isAdmin (js/46) und
+     werkAktiv() (js/51), lagerverwaltungZugriff (js/82), isAdmin (js/46) und
      isSystemAdmin (js/22) setzen ihr hidden. a2KnopfSichtbar() in js/70
      liest genau das - eine Quelle, keine zweite Rechtepruefung. -->
 <div id="appAnker" hidden>
@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.250</div>
+<div id="appVersion">Version 3.251</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -638,15 +638,6 @@
 <div id="cockpitRepBody"></div>
 </div>
 </div>
-<!-- v3.123: Material, das für DIESES Projekt ab Lager gebucht wurde.
-     Nur mit Lager-Freigabe sichtbar (checkLagerZugriff, js/68). -->
-<div class="card klapp" id="cockpitLagerCard" hidden>
-<h2 class="klapp-kopf" data-klapp="lager" role="button" tabindex="0" aria-expanded="false">📦 Material ab Lager<span id="cockpitLagerCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-lager">i</button><span class="klapp-chevron">›</span></h2>
-<div class="klapp-body">
-<div id="cockpitLagerBody"></div>
-<div class="bar no-print"><button type="button" id="cockpitLagerDruck" class="gray">🖨 Materialzusammenfassung drucken</button></div>
-</div>
-</div>
 
 <div class="card klapp" id="cockpitFilesCard">
 <h2 class="klapp-kopf" data-klapp="files" role="button" tabindex="0" aria-expanded="false">📎 Dateien/Fotos<span id="cockpitFilesCount" class="cockpit-count">–</span> <button type="button" class="hilfe-knopf no-print" data-hilfe="cockpit-dateien">i</button><span class="klapp-chevron">›</span></h2>
@@ -973,84 +964,19 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 
-<!-- v3.98: Lagerverwaltung - Buchung erfassen (Zugang/Abgang/Korrektur).
-     Eine Buchung ist unveraenderlich; ein Fehler wird durch eine neue
-     Korrektur-Buchung ausgeglichen, siehe js/68-lagerverwaltung.js. -->
-<div id="lagerBuchenModal" class="modal" hidden>
-<div class="modalbox">
-<div class="card">
-<h2>Bewegung buchen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
-<div class="small" id="lagerBuchenArtikel" style="margin-bottom:8px"></div>
-<div class="grid">
-<div><label>Art</label>
-<select id="lagerBuchenArt">
-<option value="zugang">Zugang (z. B. Lieferung)</option>
-<option value="abgang">Abgang (z. B. Verbrauch)</option>
-<option value="korrektur">Korrektur (z. B. Inventur)</option>
-</select>
-</div>
-<div><label>Menge</label><input id="lagerBuchenMenge" type="number" step="any"></div>
-<!-- v3.123: wohin das Material geht. Pflichtfeld, aber „Werkstatt / Lager“
-     ist eine ausdrückliche Wahl - so fällt nichts stillschweigend weg. -->
-<div class="wide"><label>Objekt / Projekt<span class="pflicht-stern">*</span></label>
-<!-- v3.131: Trefferliste statt Auswahlfeld - ein <select> zeigt seine
-     gefilterte Liste erst beim Aufklappen. Derselbe Fehler wie im
-     Ausbuchen-Dialog (v3.125) und im Produkt-Dialog (v3.126/128); dies war
-     die dritte und letzte Stelle dieser Bauart, vom Anwender gemeldet. -->
-<input id="lagerBuchenZielSuche" type="search" placeholder="🔍 Projekt suchen (Adresse, Name, Auftrag, Auftraggeber) …">
-<div id="lagerBuchenZielTreffer" class="meas-lager-treffer-liste"></div>
-<div id="lagerBuchenZielGewaehlt" class="rmat-pos" hidden></div>
-</div>
-<div class="wide"><label>Grund / Bemerkung</label><input id="lagerBuchenGrund" type="text" placeholder="z. B. Lieferschein-Nr., Inventur vom …"></div>
-</div>
-<div class="small" id="lagerBuchenFehler" style="color:var(--red)" hidden></div>
-<div class="bar">
-<button id="lagerBuchenSpeichern" class="green">💾 Buchen</button>
-<button id="lagerBuchenAbbrechen" class="gray">Abbrechen</button>
-</div>
-</div>
-</div>
-</div>
 
-<!-- v3.106: Lagerverwaltung - neues Produkt erfassen und einer bestehenden
-     Materialposition zuordnen. Mehrere Produkte koennen zur selben Position
-     gehoeren (z. B. verschiedene Rohrboegen zum Regierapport-Material
-     "Rohrbogen") - jedes einzeln mit eigenem Bestand und Barcode, siehe
-     js/68-lagerverwaltung.js. -->
-<div id="lagerNeuesProduktModal" class="modal" hidden>
+
+<!-- v3.251: Neue Materialposition im Katalog anlegen (js/83-katalog-position.js).
+     Bis v3.250 war das die eine Haelfte eines Dialogs, der zugleich ein
+     Lager-Produkt mit Barcode anlegte (lagerNeuesProduktModal, js/68). Mit
+     der Abschaffung der alten Lagerverwaltung ist die andere Haelfte weg -
+     geblieben ist die, die der Material-Katalog braucht. Die Feld-Ids sind
+     unveraendert uebernommen: dieselben Felder, dieselben Pruefstaende. -->
+<div id="katalogPositionModal" class="modal" hidden>
 <div class="modalbox">
 <div class="card">
-<h2 id="lagerNeuesProduktTitel">🏷️ Neues Produkt erfassen <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button></h2>
-<div class="info">Ein Produkt gehört zu genau einer Materialposition aus dem Katalog, wird aber einzeln geführt und gebucht - z. B. mehrere Rohrbogen-Varianten unter derselben Regierapport-Position.</div>
-<!-- v3.138: EIN Dialog für beide Wege. Aus der Lagerverwaltung ist der
-     Schalter gesetzt (es geht dort um ein Produkt), aus dem Material-Katalog
-     nicht (dort genügt meist die Position). Beides ist jederzeit umstellbar,
-     damit man nicht in den falschen Dialog geraten kann. -->
-<label class="rechte-schalter" style="margin-bottom:6px"><input type="checkbox" id="lagerNeuesProduktMitProdukt" checked> Auch ein <b>Lager-Produkt</b> dazu anlegen (mit Barcode)</label>
-<div class="grid">
-<div class="wide" id="lagerNeuesProduktBezeichnungFeld"><label>Bezeichnung</label><input id="lagerNeuesProduktBezeichnung" data-pflicht="1" placeholder="z. B. Rohrbogen 87° 100mm"></div>
-<div class="wide" id="lagerNeuesProduktPositionFeld"><label>Materialposition<span class="pflicht-stern">*</span></label>
-<!-- v3.126: Suchfeld mit Trefferliste statt Auswahlfeld - ein <select> zeigt
-     seine gefilterte Liste erst beim Aufklappen (gemeldet). Dasselbe Muster
-     wie im Ausbuchen-Dialog der Massaufnahme (v3.125). -->
-<input id="lagerNeuesProduktMaterialSuche" type="search" placeholder="🔍 Position suchen …" style="margin-bottom:4px">
-<div id="lagerNeuesProduktTreffer" class="meas-lager-treffer-liste"></div>
-<div id="lagerNeuesProduktGewaehlt" class="rmat-pos" hidden></div></div>
-<!-- v3.124: Produkte, die in der Regiematerialliste nicht vorkommen. Statt
-     eines zweiten Datenmodells entsteht eine richtige Katalogposition -
-     dadurch lässt sie sich später auch im Regierapport verrechnen. Die
-     EDV-Nr. schlägt die App aus einem eigenen Lager-Nummernkreis vor. -->
-<div class="wide" id="lagerNeuePositionBlock" hidden>
+<h2 id="lagerNeuesProduktTitel">📦 Neue Materialposition anlegen <button type="button" class="hilfe-knopf no-print" data-hilfe="material-position-anlegen">i</button></h2>
 <div class="info">Diese Position wird neu im <b>Material-Katalog</b> angelegt (Einstellungen → Material) und steht danach überall zur Verfügung, auch im Regierapport.</div>
-<!-- v3.139: Wird gleichzeitig ein Produkt angelegt, gilt dessen Bezeichnung
-     auch für die Position - zweimal dasselbe zu tippen wäre unnötig. -->
-<div class="small" id="lagerNeuePositionNameHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Die <b>Bezeichnung des Produkts</b> gilt auch für diese Position. <button type="button" class="gray" id="lagerPositionNameEigen" style="padding:2px 8px;min-height:0;font-size:inherit">✏️ Position anders benennen</button></div>
-<!-- v3.148: Die Position darf einen EIGENEN Namen bekommen. Voreingestellt
-     bleibt es bei einer Bezeichnung für beide (v3.139) - zweimal dasselbe zu
-     tippen wäre unnötig. Wer die Position aber generisch halten will
-     („Stahlblech svz“), während das Produkt die genaue Ausführung nennt,
-     kann sie hier trennen. -->
-<div class="small" id="lagerNeuePositionNameEigenHinweis" style="color:var(--muted);margin-bottom:4px" hidden>Diese Position bekommt einen <b>eigenen Namen</b> – unabhängig vom Produkt darunter. <button type="button" class="gray" id="lagerPositionNameGleich" style="padding:2px 8px;min-height:0;font-size:inherit">↩ Doch gleich wie das Produkt</button></div>
 <div class="grid">
 <div><label>EDV-Nr.<span class="pflicht-stern">*</span></label><input id="lagerNeuePositionNr" placeholder="999.01"></div>
 <div><label>Einheit</label><input id="lagerNeuePositionEinheit" placeholder="Stk."></div>
@@ -1060,15 +986,9 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 <!-- v3.126: warum diese Nummer? Und die Alternativen zum Antippen. -->
 <div class="small" id="lagerNeuePositionHinweis" style="margin-top:4px"></div>
-</div>
-<div class="wide" id="lagerNeuesProduktBarcodeFeld"><label>Barcode</label><div class="bar" style="gap:6px">
-<input id="lagerNeuesProduktBarcode" placeholder="per Kamera oder manuell">
-<button type="button" class="gray" id="lagerNeuesProduktScan">📷</button>
-</div></div>
-</div>
 <div class="small" id="lagerNeuesProduktFehler" style="color:var(--red)" hidden></div>
 <div class="bar">
-<button type="button" id="lagerNeuesProduktSpeichern" class="green">✅ Anlegen</button>
+<button type="button" id="lagerNeuesProduktSpeichern" class="green">✅ Position anlegen</button>
 <button type="button" id="lagerNeuesProduktAbbrechen" class="gray">Abbrechen</button>
 </div>
 </div>
@@ -1963,12 +1883,7 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <div class="small">Material, das auf dieser Baustelle verbraucht wird und nicht aus der Berechnung entsteht. Im Regierapport dieses Projekts lässt es sich mit einem Knopf übernehmen.</div>
 <div id="measRapportMaterialBody"></div>
 <div class="bar no-print"><button type="button" id="measRapportMaterialAdd" class="gray">＋ Material</button>
-<!-- v3.120: bewusst ausgeloestes Ausbuchen ab Lager. Passiert NIE von
-     selbst - weder beim Speichern der Massaufnahme noch beim Uebernehmen
-     in den Regierapport: eine Lagerbuchung ist unveraenderlich (js/68),
-     eine versehentlich automatische waere nur durch eine Gegenbuchung zu
-     heilen. Sichtbar nur mit Lager-Freigabe (checkLagerZugriff, js/68). -->
-<button type="button" id="measLagerAusbuchen" class="gray" hidden>📤 Ab Lager ausbuchen</button></div>
+</div>
 </div>
 
 <div class="grid" style="margin-top:8px">
@@ -2489,7 +2404,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.250.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 122 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.251.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -2835,51 +2750,6 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 </div>
 </div>
 
-<!-- v3.98: Lagerverwaltung Phase 1 - Bewegungs-Ledger auf dem Material-
-     Katalog der Firma (Einstellungen -> Material, s. u. NICHT der
-     Blech-Materialbestand oben - der hat mit der Lagerverwaltung seit
-     v3.102 bewusst nichts zu tun, siehe js/68-lagerverwaltung.js). Nur
-     sichtbar mit feature_access ("lager", siehe js/05a-rechte.js) -
-     Sichtbarkeit wird von checkLagerZugriff() in js/68-lagerverwaltung.js
-     gesetzt, deshalb "hidden" hier als Vorgabe, bis die Prüfung
-     durchgelaufen ist. -->
-<div class="settings-section" data-section="lagerverwaltung" id="lagerverwaltungSection" hidden>
-<div class="settings-section-head lager-kopf" data-toggle-section="lagerverwaltung"><h2>🏭 Lagerverwaltung <button type="button" class="hilfe-knopf no-print" data-hilfe="lagerverwaltung">i</button> <button type="button" class="hilfe-knopf no-print" data-hilfe="lager-suche">🔍</button></h2><span class="settings-section-chevron">›</span></div>
-<div class="settings-section-body lager-flaeche">
-<!-- v3.220: Der Stand des Lagers in einer Zeile, direkt unter dem Titel.
-     Abgeleitet aus denselben Daten wie die Liste (js/68) - kein zweiter,
-     gespeicherter Zaehler. -->
-<div id="lagerKennzahlen" class="lager-kennzahlen" hidden></div>
-<!-- v3.223: Ein- und Ausscannen sind DIE zwei Handlungen auf dieser Seite -
-     Ansage des Anwenders: "die ein un ausscannen buttons sollen prominent
-     sein und die anderen im hintergrund". Sie stehen deshalb allein, gross
-     und zuoberst; alles andere tritt darunter zurueck.
-
-     Damit wird v3.140 bewusst zurueckgenommen: dort stand "＋ Neues Material
-     / Produkt" vorn und blau, weil er neu war und gefunden werden musste. Er
-     ist gefunden. Gescannt wird jeden Tag, neues Material angelegt selten -
-     die Gewichtung folgt jetzt der Haeufigkeit. Erreichbar bleibt er
-     unveraendert. -->
-<div class="bar lager-scan">
-<button type="button" id="lagerEinscannen" class="green">📥 Einscannen</button>
-<button type="button" id="lagerAusscannen" class="blue">📤 Ausscannen</button>
-</div>
-<!-- v3.124: Suche ueber Position UND Produkt. Bei ueber dreihundert
-     Materialpositionen ist Scrollen kein Bedienweg mehr; seit v3.223 ist
-     die Liste zudem zugeklappt, damit ist die Suche der zweite Weg hinein
-     (der erste ist Scannen, direkt darueber). -->
-<input id="lagerSuche" type="search" placeholder="🔍 Material suchen (EDV-Nr., Bezeichnung, Dim., Produkt, Barcode) …">
-<div class="small" id="lagerSucheStand" style="color:var(--muted);margin:4px 0" hidden></div>
-<!-- v3.223: die Nebenknoepfe - grau, klein, ganz unten. -->
-<div class="bar lager-werkzeuge">
-<button type="button" id="lagerNeuesProduktStart" class="gray">＋ Neues Material / Produkt</button>
-<button type="button" id="lagerAlleZuklappen" class="gray">⯈ Alle anzeigen</button>
-<button type="button" id="lagerArchivZeigen" class="gray" hidden>📦 Archiv anzeigen</button>
-</div>
-<div id="lagerverwaltungListe"></div>
-<div class="small" id="lagerverwaltungHinweis" style="margin-top:4px" hidden></div>
-</div>
-</div>
 
 <div class="settings-section" data-section="reststuecke">
 <div class="settings-section-head" data-toggle-section="reststuecke"><h2>Reststücke <button type="button" class="hilfe-knopf no-print" data-hilfe="reststuecke">i</button></h2><span class="settings-section-chevron">›</span></div>
@@ -3081,26 +2951,6 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
 </div>
 </div>
 
-<!-- v3.120: Material dieser Massaufnahme ab Lager ausbuchen (js/68).
-     Angeboten werden NUR die von Hand erfassten Materialzeilen - Blech und
-     gerechnete Zuschnitte gehoeren nicht ins Lager (siehe Kopfkommentar
-     js/68-lagerverwaltung.js). Jede Zeile bleibt einzeln an-/abwaehlbar,
-     Produkt und Menge sind aenderbar, gebucht wird erst auf Knopfdruck. -->
-<div id="measLagerModal" class="modal" hidden>
-<div class="card">
-<h2>📤 Material ab Lager ausbuchen <button type="button" class="hilfe-knopf no-print" data-hilfe="meas-lager-ausbuchen">i</button></h2>
-<div class="small">Bucht Material dieser Massaufnahme als <b>Abgang</b> im Lager: das von Hand erfasste Material und die <b>Halbfabrikate</b> (bei einer Dachrinne also Rinnenböden, Stutzen, Rinnenhalter, Winkel, Dehnungsstücke). Das Blech selbst und die gerechneten Zuschnitte bleiben aussen vor – die gehören nicht ins Lager.</div>
-<div class="small">Ein Halbfabrikat trägt keine EDV-Nr.: dort wählen Sie die Materialposition selbst (mit Suchfeld). Die App schlägt eine vor, wählt sie aber nur bei einem eindeutigen Treffer. Gehören zu einer Position mehrere Produkte, wählen Sie das richtige aus. Die Menge ist frei änderbar – gebucht wird genau das, was hier steht.</div>
-<div id="measLagerZiel" class="small" style="color:var(--muted);margin-top:6px"></div>
-<div id="measLagerWarnung" class="small" style="color:var(--red);margin-top:6px" hidden></div>
-<div id="measLagerListe"></div>
-<div id="measLagerFehler" class="small" style="color:var(--red)" hidden></div>
-<div class="bar">
-<button type="button" id="measLagerBuchenBtn" class="green">📤 Ausgewählte ausbuchen (0)</button>
-<button type="button" id="measLagerSchliessen" class="gray">Abbrechen</button>
-</div>
-</div>
-</div>
 
 <div id="sheetModal" class="modal" hidden>
 <div class="modalbox"><div class="card">
@@ -3236,7 +3086,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.250.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.251.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3669,7 +3519,6 @@ nicht neu installieren.</div>
 <script src="js/65-leistungen.js"></script>
 <script src="js/66-dachfenster-aufnahme.js"></script>
 <script src="js/67-was-ist-neu.js"></script>
-<script src="js/68-lagerverwaltung.js"></script>
 <script src="js/69-email-auth.js"></script>
 <!-- v3.168 Das Zaehlwerk. Reine Lese-/Rechenfunktionen; es genuegt, dass
      sie vor dem ersten Aufruf da sind (Anmeldung bzw. Materialsuche). -->
@@ -3693,6 +3542,7 @@ nicht neu installieren.</div>
 <script src="js/80-ruestblatt.js"></script>
 <script src="js/81-fingerabdruck.js"></script>
 <script src="js/82-lieferanten-lager.js"></script>
+<script src="js/83-katalog-position.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

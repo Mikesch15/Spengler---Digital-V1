@@ -56,7 +56,7 @@ function offerteZugriffVon(profilId){
  return !!(zeile&&zeile.granted);
 }
 // v3.98: dieselbe Freischaltung fuer die Lagerverwaltung - siehe
-// js/68-lagerverwaltung.js.
+// js/82-lieferanten-lager.js.
 function lagerZugriffVon(profilId){
  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="lager");
  return !!(zeile&&zeile.granted);

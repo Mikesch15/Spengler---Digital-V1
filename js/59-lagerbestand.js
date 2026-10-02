@@ -52,7 +52,8 @@ function lagArtikelListe(){
 }
 // ---- Eine neue Katalogposition anlegen (v3.179) ---------------------------
 // EINE Stelle, an der eine Position entsteht. Bis v3.178 stand das nur in der
-// Lagerverwaltung (js/68) und war an deren Formularfelder gebunden; der
+// Lagerverwaltung (js/68, v3.251 abgeschafft) und war an deren
+// Formularfelder gebunden; der
 // Materialbestand konnte deshalb keine anlegen - ein neues Blech musste
 // zweimal erfasst werden: erst die Position im Katalog, dann hier das Format.
 //
@@ -117,7 +118,8 @@ function lagArtikel(id){
 // Etikett eines Artikels in der ganzen App - Lagerverwaltung, Buchen-Dialog,
 // Ausbuchen aus der Massaufnahme, Produktsuche, Katalogmeldungen. Damit
 // stimmt es ueberall gleichzeitig, und die Suchfelder, die auf diesem Text
-// filtern (js/68), finden ab jetzt auch nach Staerke und Form.
+// filtern (js/68, v3.251 abgeschafft), finden ab jetzt auch nach Staerke
+// und Form.
 //
 // dim ist der unstrukturierte Vorlaeufer der Staerke ("0.60"). Wo ein echtes
 // Format steht, tritt es an dessen Stelle statt daneben - sonst stuende die
@@ -148,7 +150,8 @@ function lagMaterialName(id){
 // Genau zwei Werte, dieselben wie in der Datenbank-Constraint. NULL heisst
 // "nicht angegeben" - dann verhaelt sich der Zuschnitt wie bis v3.32 (Rolle).
 // v3.179: Der Wert, mit dem die Artikel-Auswahl sagt "es gibt ihn noch nicht".
-// Derselbe Gedanke wie LAGER_NEUE_POSITION in js/68 - dort heisst er "__neu".
+// Derselbe Gedanke wie in js/83-katalog-position.js, das denselben Dialog
+// traegt.
 const LAG_NEUE_POSITION="__neu";
 const LAG_FORMEN=Object.freeze([
  {wert:"rolle",text:"Rolle"},
@@ -539,7 +542,8 @@ function lagFormularOeffnen(l){
   bezZeigen();
   if(sel.value===LAG_NEUE_POSITION){
    // Die EDV-Nr. schlaegt dieselbe Stelle vor wie in der Lagerverwaltung
-   // (js/68, v3.126) - es wird keine zweite Nummernlogik gebaut.
+   // (js/83-katalog-position.js, v3.126) - es wird keine zweite
+   // Nummernlogik gebaut.
    const nr=$("lag_neuNr"), nm=$("lag_neuName");
    if(nr&&!nr.value&&nm&&nm.value&&typeof lagerNummernVorschlag==="function"){
     const v=lagerNummernVorschlag(nm.value);

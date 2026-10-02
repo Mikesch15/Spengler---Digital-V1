@@ -128,40 +128,14 @@ const KON_PRUEFUNGEN=[
   finden:()=>konKatalog().filter(p=>!(konZahl(p.price)>0))
               .map(p=>({id:p.edv_nr,text:p.name+" · "+p.edv_nr})) },
 
- // v3.224: ECHTER FEHLER, vom Anwender gemeldet - in der Lagerverwaltung
- // standen Positionen mit "Noch kein Produkt erfasst", ohne dass er je
- // etwas daran gemacht hatte. Ursache war eine Luecke beim Anlegen: die
- // Migration von v3.106 gab jeder DAMALS vorhandenen Position ein
- // Standard-Produkt, aber daraus wurde nie eine dauerhafte Regel. Behoben
- // ist das seit v3.224 in der Datenbank (Trigger lager_standard_variante_trg
- // auf materials), und die bestehenden Faelle sind nachgezogen.
- //
- // Diese Kontrolle ist NICHT die Behebung, sondern die Gegenprobe. Es gibt
- // einen zweiten Weg in denselben Zustand: wer das letzte Produkt einer
- // Position loescht, bekommt die Frage, ob die Position auch aus dem
- // Katalog soll - sagt er nein, steht sie absichtlich ohne Produkt da.
- // Dieser Fall darf NICHT automatisch repariert werden (ein geloeschtes
- // Produkt, das von selbst zurueckkommt, waere schlimmer), aber er soll
- // nie wieder stillschweigend dastehen. Deshalb ein Hinweis, kein Fehler,
- // und abweisbar - wer es so will, hakt es ab.
- {schluessel:"position-ohne-produkt", gruppe:"Material-Katalog",
-  schwere:"hinweis", abweisbar:true, tab:"protected", abschnitt:"materials",
-  titel:"Position ohne Produkt im Lager",
-  warum:"Zu dieser Katalogposition liegt kein Produkt im Regal – sie lässt sich deshalb nicht buchen und zeigt in der Lagerverwaltung keinen Bestand. Beim Anlegen kann das seit Version 3.224 nicht mehr passieren; es bleibt, wenn das letzte Produkt gelöscht und die Position behalten wurde. Gewollt? Dann hier abhaken.",
-  finden:()=>{
-   // Ohne geladene Lagerverwaltung ist die Frage nicht beantwortbar - dann
-   // lieber nichts melden als raten. Die LEERE Liste ist dabei genau so ein
-   // Fall und nicht etwa "kein einziges Produkt": sie haengt an der
-   // Lager-Freigabe und wird erst gefuellt, wenn die Lagerverwaltung
-   // geladen wurde. Ohne diese Bedingung meldete die Kontrolle bei jedem
-   // ohne Lager-Zugriff den gesamten Katalog als fehlerhaft - beim ersten
-   // Lauf im Pruefstand genau so passiert.
-   if(typeof lagerVarianten==="undefined"||!Array.isArray(lagerVarianten))return [];
-   if(!lagerVarianten.length)return [];
-   const mitProdukt=new Set(lagerVarianten.map(v=>String(v.material_id)));
-   return konKatalog().filter(p=>p.id!=null&&!mitProdukt.has(String(p.id)))
-                      .map(p=>({id:p.edv_nr,text:p.name+" · "+p.edv_nr}));
-  } },
+ // v3.251: Hier stand "position-ohne-produkt" (v3.224). Die Pruefung
+ // verglich den Material-Katalog mit lager_varianten - den Produkten der
+ // alten Lagerverwaltung. Die ist abgeschafft, es gibt keine Produkte mehr,
+ // zu denen eine Position fehlen koennte. Stehen gelassen waere sie die
+ // teuerste Art von Kontrolle: eine, die immer gruen meldet, weil ihre
+ // Grundlage fehlt - genau der Irrtum, vor dem der Kommentar in Abschnitt
+ // "Lieferanten-Lager" weiter unten warnt. Die Gegenprobe dazu steht in
+ // pruefstand-kontrollen-v3-186.js, Abschnitt L.
 
  // ---- Gruppe C: Mehrdeutiges --------------------------------------------
  {schluessel:"blech-mehrdeutig", gruppe:"Mehrdeutiges",
@@ -228,8 +202,8 @@ const KON_PRUEFUNGEN=[
  //
  // Beide Pruefungen haengen an lfGeladen. Ohne geladenes Lager melden sie
  // NICHTS und sagen, warum - die leere Liste waere sonst die Auskunft "alles
- // in Ordnung", und das ist der teure Irrtum (derselbe Fall wie bei
- // position-ohne-produkt oben).
+ // in Ordnung", und das ist der teure Irrtum - genau der Grund, aus dem
+ // "position-ohne-produkt" weiter oben nicht stehen geblieben ist.
  {schluessel:"lieferant-groesse-widerspruch", gruppe:"Lieferanten-Lager",
   schwere:"fehler", abweisbar:true,
   oeffnen:()=>{ if(typeof lfOeffnen==="function")lfOeffnen() },
@@ -276,7 +250,7 @@ const KON_PRUEFUNGEN=[
  {schluessel:"position-nie-benutzt", gruppe:"Verwaistes im Lager",
   schwere:"hinweis", abweisbar:true, tab:"protected", abschnitt:"materials",
   titel:"Katalogposition, die nie vorkam",
-  warum:"Sie steht seit jeher im Katalog, wurde aber in keinem Rapport und keiner Massaufnahme verwendet, es gibt kein Lagerprodukt und kein Reststück dazu. Oft eine Zeile aus einer Lieferantenliste, die der Betrieb gar nicht führt.",
+  warum:"Sie steht seit jeher im Katalog, wurde aber in keinem Rapport und keiner Massaufnahme verwendet, und es gibt kein Reststück dazu. Oft eine Zeile aus einer Lieferantenliste, die der Betrieb gar nicht führt.",
   // Ohne Zaehlwerk laesst sich das nicht beantworten - dann wird NICHT
   // geraten, sondern die Pruefung fällt aus (siehe konBefunde).
   nurMit:()=>typeof zwAn==="function"&&zwAn(),
@@ -362,20 +336,27 @@ async function konAbweisungenLaden(){
  konAbweisungenGeladen=true;
  return true;
 }
+// v3.251: GEMESSENER FEHLER, bei der Abschaffung der alten Lagerverwaltung
+// aufgefallen - und er bestand schon vorher.
+//
+// Hier wurden bis v3.250 lager_varianten und lagerbestand gelesen: ein
+// Produkt oder ein Lagereintrag zu einer Position galt als "sie kommt vor".
+// Nur: seit v3.224 legt ein Trigger auf materials JE POSITION automatisch
+// eine Variante an. An der Produktivdatenbank gemessen (02.10.2026): 760
+// Positionen, 760 mit Variante, KEINE ohne. Damit stand jede Position in
+// konLagerArtikel, und "position-nie-benutzt" meldete nie etwas - nicht
+// weil alles in Ordnung war, sondern weil ihre Grundlage nichts aussagte.
+// Eine Kontrolle, die immer gruen meldet, ist schlimmer als keine: sie wird
+// geglaubt.
+//
+// Geblieben ist, was wirklich eine Verwendung BELEGT: ein Reststueck aus
+// diesem Material. Dazu kommt unveraendert das Zaehlwerk
+// (zwMaterialAnzahl, in der Pruefung selbst) - das zaehlt die echten
+// Verwendungen in Rapporten und Massaufnahmen.
 async function konDatenLaden(){
  if(typeof sb==="undefined")return;
- const [,var_,lag]=await Promise.all([
-  konAbweisungenLaden(),
-  sb.from("lager_varianten").select("material_id"),
-  sb.from("lagerbestand").select("artikel_id")
- ]);
- // Ein Fehler beim Lesen darf nicht als "kein Lagerprodukt" durchgehen -
- // dann bliebe konLagerArtikel null und die Pruefung "nie benutzt" meldet
- // nichts, statt alles.
- if((var_&&var_.error)||(lag&&lag.error)){ konLagerArtikel=null; return }
+ await konAbweisungenLaden();
  const set=new Set();
- konListe(var_&&var_.data).forEach(v=>{ if(v.material_id!=null)set.add(String(v.material_id)) });
- konListe(lag&&lag.data).forEach(l=>{ if(l.artikel_id!=null)set.add(String(l.artikel_id)) });
  konListe(typeof reststuecke!=="undefined"?reststuecke:[])
   .forEach(r=>{ if(r&&r.artikel_id!=null)set.add(String(r.artikel_id)) });
  konLagerArtikel=set;

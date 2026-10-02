@@ -1162,7 +1162,7 @@ async function edgeFunctionErrorMessage(error,fallback){
 // Barcode-Scan ueber die Geraetekamera (v3.102)
 //
 // Eine einzige Stelle statt mehrfacher Kamera-Logik - genutzt von der
-// Lagerverwaltung (js/68, Artikel per Scan buchen) und vom Material-Katalog
+// Lieferanten-Lager (js/82, Artikel per Scan buchen) und vom Material-Katalog
 // in den Einstellungen (js/08, Barcode an einem Artikel hinterlegen).
 //
 // Die Bibliothek (ZXing) wird erst beim ERSTEN Scan nachgeladen, nicht bei
