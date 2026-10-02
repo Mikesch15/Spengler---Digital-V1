@@ -2548,6 +2548,113 @@ const KATALOG=`()=>{
    .filter(i=>!document.getElementById(i)));
  p(z.length===0,"AA13 die Bedienteile stehen im Dokument",z);
 
+ // ---- AB  Auf dem Handy bedienbar (v3.250) ------------------------------
+ //
+ // WARUM ES DIESEN ABSCHNITT GIBT (echter Fehler, am 02.10.2026 gemessen)
+ // Die uebrigen Abschnitte pruefen, ob Bedienteile DA sind - nicht, ob sie
+ // passen. Bei 390 px Fensterbreite stand im Lager-Dialog eine Tabelle von
+ // 1000 px in einem 342 px Behaelter: die Aufbau-Tabelle der Excel-Importe
+ // ("Wie muss die Datei aufgebaut sein?"). Ursache war die globale
+ // Grundregel table{min-width:1000px} aus css/01 - richtig fuer die breiten
+ // Stuecklisten, falsch fuer eine schmale Nachschlagetabelle. Weil weder
+ // Tabelle noch Behaelter scrollen, war die dritte Spalte unerreichbar -
+ // genau die mit den erlaubten Spaltenueberschriften, also das Einzige,
+ // weswegen man diesen Abschnitt oeffnet.
+ //
+ // Ein Spengler bedient das auf dem Dach mit einem Handy. Gemessen werden
+ // deshalb BEIDE Breiten, die in diesem Projekt als Vorgabe gelten (siehe
+ // Abschnitt F im Rapport-Pruefstand): 320 und 390 px.
+ console.log("\nAB · Auf dem Handy bedienbar");
+ const AB_DATEN=`()=>{
+  lfArtikel=[];
+  for(let i=1;i<=8;i++)lfArtikel.push({id:i,lieferant:"B-Team",
+   artikelnr:"4093"+(70+i),
+   bezeichnung:"Dachrinnen "+(i%2?400:333)+"x0.7 mm CuTi-Zink vorbew. Quartz",
+   gruppe:"Dachrinnen",material:"CuTi-Zink vorbew.",zuschnitt_mm:(i%2?400:333),
+   vpe:5,mindestbestand:i<3?2:0,ean:"400"+i,
+   material_id:(i%3===0)?7002:null,keine_regie_position:(i===4)});
+  lfBewegungen=[{id:1,artikel_id:1,art:"zugang",menge:3}];
+  lfEinkauf=[]; lfGeladen=true; lfLieferant=""; lfVorschlagCache={};
+  lfZuordnenGruppe=""; lfZuordnenSuche=""; lfZuordnenNurOffene=false; lfZuordnungen={};
+  lfInvGruppe=""; lfInvSuche=""; lfInvGezaehlt={}; lfInvMindest={};
+ }`;
+ for(const breite of [320,390]){
+  await page.setViewportSize({width:breite,height:900});
+  z=await page.evaluate((o)=>{
+   eval("("+o.k+")()"); eval("("+o.d+")()");
+   const raus=[];
+   const pruef=(name,id,zeichnen)=>{
+    const m=document.getElementById(id);
+    if(!m){ raus.push({name,fehlt:true}); return }
+    m.hidden=false;
+    try{ zeichnen() }catch(e){ raus.push({name,zeichenfehler:String(e).slice(0,60)}) }
+    const ueber=[];
+    m.querySelectorAll("*").forEach(el=>{
+     const r=el.getBoundingClientRect();
+     if(r.width>0&&r.right>window.innerWidth+1)
+      ueber.push((el.id||el.tagName.toLowerCase())+" bis "+Math.round(r.right));
+    });
+    raus.push({name,ueberlauf:ueber.length,beispiele:ueber.slice(0,3)});
+    m.hidden=true;
+   };
+   pruef("Lager","liefModal",()=>lfZeichnen());
+   pruef("Zuordnen","liefZuordnenModal",()=>lfZuordnenZeichnen());
+   pruef("Einkaufsliste","liefEinkaufModal",()=>lfEinkaufZeichnen());
+   pruef("Inventur","liefInvModal",()=>lfInvZeichnen());
+   pruef("Bewegungen","liefBewModal",()=>lfBewegungenZeichnen());
+   return raus;
+  },{k:KATALOG,d:AB_DATEN});
+  const schlimm=z.filter(x=>x.fehlt||x.zeichenfehler||x.ueberlauf>0);
+  p(schlimm.length===0,
+    "AB"+(breite===320?1:2)+" bei "+breite+" px laeuft in keinem der fuenf Lager-Dialoge etwas aus dem Bild",schlimm);
+ }
+ // Die Aufbau-Tabelle im Besonderen: sie war der Fall, und die Ursache darf
+ // nicht zurueckkommen.
+ z=await page.evaluate(()=>{
+  $("liefModal").hidden=false;
+  const t=document.querySelector("#liefExcelAufbau table");
+  const cs=t?getComputedStyle(t):null;
+  const r=t?t.getBoundingClientRect():null;
+  const b=t?t.parentElement.getBoundingClientRect():null;
+  $("liefModal").hidden=true;
+  return t?{minWidth:cs.minWidth,layout:cs.tableLayout,
+            breite:Math.round(r.width),behaelter:Math.round(b.width)}:{keine:true};
+ });
+ p(z.minWidth==="0px"&&z.layout==="auto",
+   "AB3 die Aufbau-Tabelle setzt die globale Regel table{min-width:1000px} zurueck - sie ist eine Nachschlagetabelle, keine Stueckliste",z);
+ p(z.breite<=z.behaelter+1,
+   "AB4 und sie passt damit in ihren Behaelter - vorher 1000 px in 342 px, und die Spalte mit den erlaubten Ueberschriften war unerreichbar",z);
+ // Die Trefferflaeche der Schalter: das Kaestchen ist klein, das LABEL ist
+ // der Treffer - und das muss hoch genug sein.
+ z=await page.evaluate((o)=>{
+  eval("("+o.k+")()"); eval("("+o.d+")()");
+  $("liefZuordnenModal").hidden=false;
+  lfZuordnenZeichnen();
+  const box=document.querySelector("[data-lf-keine]");
+  const lab=box&&box.closest("label");
+  // ERST ins Bild scrollen. Bei acht Artikeln liegt die erste Zeile
+  // unterhalb des Fensters, und elementFromPoint gibt dann null - das war
+  // beim ersten Anlauf der Fehlschlag, und er lag an der Messung, nicht an
+  // der App.
+  if(lab&&lab.scrollIntoView)lab.scrollIntoView({block:"center"});
+  const rl=lab?lab.getBoundingClientRect():null;
+  const treffer=rl?document.elementFromPoint(rl.left+rl.width-20,rl.top+rl.height/2):null;
+  $("liefZuordnenModal").hidden=true;
+  // Geprueft wird, ob der Tipp INNERHALB des Labels landet - nicht, ob er
+  // genau das Label-Element trifft. Bei einem schon entschiedenen Artikel
+  // steht im Text ein <b>, und elementFromPoint gibt dann dieses zurueck;
+  // ein Klick darauf schaltet trotzdem, weil er zum Label hochlaeuft. Die
+  // strengere Erwartung war meine, nicht die der App.
+  return {imLabel:!!lab,hoehe:rl?Math.round(rl.height):0,breite:rl?Math.round(rl.width):0,
+          trefferIstLabel:!!(lab&&treffer&&(treffer===lab||lab.contains(treffer))),
+          trefferTag:treffer?treffer.tagName.toLowerCase():null};
+ },{k:KATALOG,d:AB_DATEN});
+ p(z.imLabel&&z.trefferIstLabel,
+   "AB5 der Schalter steckt im Label - ein Tipp irgendwo in der Zeile schaltet, nicht nur das 13-px-Kaestchen",z);
+ p(z.hoehe>=28&&z.breite>200,
+   "AB6 und die Zeile ist hoch genug: auf dem Dach, mit kalten Haenden, war sie mit 19 px fummelig",z);
+ await page.setViewportSize({width:900,height:900});
+
  p(fehler.length===0,"G1 keine JavaScript-Fehler",fehler.slice(0,3));
  console.log("\n=== "+ok+" ok, "+fail+" fehlgeschlagen ===");
  await b.close();
