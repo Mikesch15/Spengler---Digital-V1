@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.250";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.251";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.250<br>
+  Version 3.251<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -216,8 +216,8 @@ Dringlichkeit – siehe Abschnitt 3.1a.</td></tr>
 Projektseite – siehe unten.</td></tr>
 <tr><td>Werkstatt</td><td>Öffnet die Werkstatt (Abschnitt 11). Nur da, wenn die
 Firma das Werkstattmodul eingeschaltet hat.</td></tr>
-<tr><td>Lager</td><td>Öffnet die Lagerverwaltung. Nur da, wenn du dafür
-freigeschaltet bist.</td></tr>
+<tr><td>Lager</td><td>Öffnet das Lieferanten-Lager (Abschnitt 19). Nur da, wenn
+du dafür freigeschaltet bist.</td></tr>
 <tr><td>Mehr</td><td>Suche, Einstellungen, Anleitung, Feedback, Abmelden und
 alles Übrige, in drei Gruppen:
 <strong>Arbeiten</strong>, <strong>Firma</strong> und <strong>Verwaltung</strong>.
@@ -835,9 +835,9 @@ Blech gepflegt werden.</p>
 die Spalte „Dim“, ein freies Textfeld: bei den Kupferblechen zufällig die
 Stärke, beim Cava-Band aber „250mm“ – und das ist die <strong>Breite</strong>.
 Wer sich darauf verliess, las dieses Blech als 250 mm dick.</div>
-<p>Jetzt steht das Format überall dabei, wo ein Artikel erscheint – in der
-Lagerverwaltung, beim Buchen, beim Ausbuchen aus einer Massaufnahme und in der
-Suche: <em>102.01 Kupferblech · 0,6 mm · Blank · Rolle</em>. Die Suchfelder
+<p>Jetzt steht das Format überall dabei, wo ein Artikel erscheint – im
+Materialbestand, in den Auswahllisten und in der Suche:
+<em>102.01 Kupferblech · 0,6 mm · Blank · Rolle</em>. Die Suchfelder
 finden damit auch nach Stärke und Form.</p>
 <p><strong>Der Materialbestand bearbeitet den Katalogartikel.</strong> Ein
 Eintrag braucht deshalb einen Artikel – ohne ihn hätte das Format keinen Ort.
@@ -896,10 +896,11 @@ Artikel nur sein Format, sodass der Zuschnitt nicht mehr mit ihm rechnet. Der
 Katalogartikel bleibt vollständig erhalten – mit EDV-Nr., Preis, Barcode und
 allen Buchungen.</div>
 <div class="hin"><strong>Umgekehrt gilt das nicht</strong>: Wird die
-<em>Katalogposition</em> selbst gelöscht – in der Lagerverwaltung, wenn ihr
-letztes Produkt entfernt wurde –, verschwindet das Format mit ihr. Es gehört ja
-zu dieser Zeile. Die Rückfrage dort sagt das ausdrücklich und nennt das Format,
-das dabei verloren geht.</div>
+<em>Katalogposition</em> selbst gelöscht – Einstellungen → Material →
+<span class="tasten">Löschen</span> –, verschwindet das Format mit ihr. Es gehört
+ja zu dieser Zeile. Die Rückfrage sagt das ausdrücklich und nennt das Format, das
+dabei verloren geht; ab 3.251 steht sie auf diesem Weg und nicht mehr nur auf dem
+Weg über die abgeschaffte Lagerverwaltung, den fast niemand ging.</div>
 <p><strong>Mehrdeutig bleibt mehrdeutig.</strong> Führt der Betrieb zwei Bleche
 desselben Werkstoffs mit derselben Stärke, aber unterschiedlicher Ausführung –
 bei uns Kupferblech blank 0,6 mm und Cava-Band Kupfer 0,6 mm –, wählt die App
@@ -1796,20 +1797,12 @@ eingeschalteten Modulen zusätzlich, ob eine Massaufnahme Material und einen
 Zuschnittplan hat, welche Fassung freigegeben ist und wie weit die Reservierung des
 Projekts ist. Eine zweite Filterzeile filtert danach.</p>
 
-<h3>Material ab Lager buchen</h3>
-<p>Ist die Lagerverwaltung für dich freigeschaltet (Abschnitt 19), steht in der
-Massaufnahme <span class="tasten">📤 Material ab Lager ausbuchen</span>. Der Dialog
-listet, was diese Aufnahme braucht – das erfasste Material und die Halbfabrikate –,
-und du buchst es mit einem Tippen vom Lagerbestand ab.</p>
-<div class="hin">Das Blech selbst und die gerechneten Zuschnitte gehören <strong>nicht</strong>
-ins Lager. Ausgebucht wird das Zubehör: bei einer Dachrinne also Rinnenböden, Stutzen,
-Rinnenhalter, Winkel, Dehnungsstücke.</div>
-<p>Jede Buchung trägt das Projekt mit. Im Projekt-Cockpit fasst die Karte
-<span class="tasten">📦 Material ab Lager</span> zusammen, was für dieses Objekt
-verbraucht wurde, und lässt sich ausdrucken. <strong>Verbraucht</strong> heisst dabei:
-ausgebucht abzüglich Rückgaben und Korrekturen. Gezählt wird ausschliesslich, was
-diesem Projekt zugeordnet ist – Material, das ohne Projekt gebucht wurde, steht dort
-nicht.</p>
+<div class="hin"><strong>Weggefallen in 3.251:</strong> das Ausbuchen von Material
+aus einer Massaufnahme („📤 Material ab Lager ausbuchen“) und die Karte
+„📦 Material ab Lager“ im Projekt. Beides gehörte zur alten Lagerverwaltung,
+die abgeschafft ist (Abschnitt 19). Gemessen am 2. Oktober 2026 waren es
+<strong>8 Buchungen</strong> im ganzen Betrieb. Das Lieferanten-Lager ersetzt das
+nicht und soll es nicht: es führt Handelsware, kein Blech.</div>
 
 <h2 class="seite">12 · Fotos und Skizzen</h2>
 <figure><img src="bilder/13-fotos-skizzen.png"><figcaption>Der Foto-Bereich – sichtbar im letzten Register.</figcaption></figure>
@@ -1979,8 +1972,7 @@ schlägt beim Tippen die nächste noch freie Nummer vor.</div>
 <p><span class="tasten">📷 Material scannen</span> öffnet die Kamera. Der Barcode am
 Artikel führt direkt zur richtigen <strong>EDV-Nr.</strong> aus eurem Katalog – mit
 eurer Bezeichnung und eurem Preis. Gesucht wird im <strong>Lieferanten-Lager</strong>
-und in der <strong>Lagerverwaltung</strong>: ein Barcode zeigt auf eine Ware, nicht
-auf ein Modul.</p>
+– ab 3.251 dem einen Lager, das die App führt.</p>
 <div class="hin"><strong>Dreimal scannen heisst drei Stück.</strong> Derselbe Artikel
 am selben Tag wird hochgezählt statt ein zweites Mal angelegt. Ein anderer Tag bleibt
 eine eigene Zeile – sie sagt aus, wann das Material verbraucht wurde.</div>
@@ -2010,9 +2002,9 @@ Zeile steht. Änderst du die Menge hinterher von Hand, ändert sich die Buchung 
 „Fehler“, sondern „hier fehlt ein Zugang im Lager“ – den Rapport daran scheitern zu
 lassen wäre schlimmer.</li>
 <li>Ein Artikel <strong>ohne Regie-Position</strong> wird auch nicht ausgebucht –
-sonst wäre Ware weg, die nie verrechnet wurde. Und ein Treffer aus der alten
-<strong>Lagerverwaltung</strong> füllt die Zeile, wird aber nicht gebucht; auch das
-steht dann da.</li>
+sonst wäre Ware weg, die nie verrechnet wurde. Und ein Code, den das Lager nicht
+kennt, legt <strong>nichts</strong> an und sagt das; eine Zeile aufs Geratewohl wäre
+schlimmer als keine.</li>
 </ul>
 <p><strong>Was passiert, wenn die Zeile von der Buchung wegläuft?</strong> Nichts
 Verstecktes – es steht da. Die Meldung sagt alle drei Dinge: <strong>verrechnet</strong>
@@ -2256,7 +2248,7 @@ Artikel aus dem Materialkatalog der Firma, Materialart, <strong>Stärke</strong>
 <strong>Ausführung</strong> (blank, vorbewittert, verzinkt …) und die <strong>Form</strong>: <strong>Rolle</strong> oder <strong>Tafel</strong>. Bei einer
 Tafel kommen <strong>Tafellänge</strong> und <strong>Tafelbreite</strong> dazu; bei
 Rollenmaterial sind diese beiden Felder ausgeblendet, weil es sie dort nicht gibt.
-Das ist <strong>keine Lagerverwaltung</strong>: es wird nichts abgebucht und nichts
+Das ist <strong>kein Lager</strong>: es wird nichts abgebucht und nichts
 bestellt. Die Liste legt fest, <strong>welche</strong> Materialien der Betrieb führt – deshalb <strong>ohne Menge, Länge und Breite</strong>. Sie hatte nie
 eine Wirkung, und eine Zahl, die niemand pflegt, ist schlechter als keine. Der Bestand
 hat dafür drei klare Aufgaben: er sagt der App, welche <strong>Stärken</strong> in der
@@ -2382,119 +2374,34 @@ nicht importiert – wie viele das sind, steht über der Vorschau.</p>
 <div class="warn">Der Import <strong>ergänzt</strong> die Liste. Es wird nichts gelöscht
 und nichts überschrieben – eine bereits vorhandene Nummer käme ein zweites Mal hinein.</div>
 
-<h3>Lagerverwaltung</h3>
-<p>Der Bereich <span class="tasten">🏭 Lagerverwaltung</span> führt den
-Lagerbestand. Er ist eine <strong>eigene Freigabe</strong>: wer sie nicht hat, sieht
-ihn gar nicht.</p>
-<p>Die Seite beginnt <strong>zugeklappt</strong>: oben
-die Kennzahlen, darunter gross <span class="tasten">📥 Einscannen</span> und
-<span class="tasten">📤 Ausscannen</span> – die beiden Handlungen, für die man
-hierherkommt –, dann das Suchfeld, und erst ganz unten die selteneren Knöpfe.
-Die Liste selbst ist eingeklappt; bei über dreihundert Positionen ist sie keine
-Übersicht, sondern eine Wand. <span class="tasten">Alle anzeigen</span> zeigt
-sie ganz, und eine Suche zeigt ihre Treffer wie immer, auch bei eingeklappter
-Liste.</p>
-<p>Er ist als Arbeitsplatz aufgebaut, nicht als Einstellungsseite. Ganz oben steht der <strong>Stand des Lagers</strong> in
-einer Zeile: wie viele Positionen, wie viele Produkte und – rot, solange es
-welche gibt – wie viele <strong>ohne Bestand</strong> sind. Darunter das Suchfeld,
-dann die Knöpfe. In der Liste steht die <strong>EDV-Nr.</strong> als eigenes
-Nummernfeld vorn, die Bezeichnung daneben, Dimension und Format klein darunter,
-und der <strong>Bestand rechts als Zahl mit Einheit</strong> – bei 0 rot. Gerechnet
-und gebucht wird unverändert wie vorher.</p>
-<p>Aufgebaut ist er zweistufig. Oben die <strong>Materialposition</strong> aus dem
-Katalog – das ist die Nummer, unter der abgerechnet wird. Darunter die
-<strong>Lager-Produkte</strong>: die tatsächlich im Regal liegenden Artikel zu dieser
-Position. Für dieselbe Position kann es mehrere geben, etwa von verschiedenen
-Lieferanten; jeder wird einzeln gebucht und trägt seinen eigenen Barcode.</p>
-<table>
-<tr><th>Knopf</th><th>Wofür</th></tr>
-<tr><td><span class="tasten">📥 Einscannen</span></td><td>Wareneingang: Bestand erhöhen.</td></tr>
-<tr><td><span class="tasten">📤 Ausscannen</span></td><td>Entnahme: Bestand verringern.</td></tr>
-<tr><td><span class="tasten">📷 Barcode scannen</span></td><td>Öffnet die Kamera und
-sucht das Produkt über seinen Barcode.</td></tr>
-</table>
-<div class="hin"><strong>Zurück aus der Kamera</strong>.
-Der Scanner verhält sich wie jeder andere Schirm der App: die Zurück-Taste des
-Geräts schliesst ihn und bringt dich zurück, statt die App zu beenden. Oben
-links steht zusätzlich <span class="tasten">‹ Zurück</span>. In beiden Fällen
-wird die Kamera richtig abgeschaltet.</div>
-<p><strong>Gescannt wird im laufenden Bild</strong>: Code in
-den Rahmen halten, er wird von selbst erkannt. Man muss also nicht mehr zuerst
-ein Foto aufnehmen und es dann auswerten lassen.</p>
-<p>Dabei liest auch der <strong>eingebaute
-Barcode-Leser des Geräts</strong> mit, wo es ihn gibt (Android/Chrome) – dieselbe
-Erkennung, die native Scanner-Apps benutzen. Sie läuft ausserhalb der App, ist
-schneller und kommt mit unschärferen und schrägen Codes zurecht. Wer zuerst
-einen Code sieht, gewinnt; gemeldet wird er genau einmal. Auf Geräten ohne
-diesen Leser (z.&nbsp;B. iPhone) bleibt alles wie vorher.</p>
-<p>Ein Tippen auf das Bild stösst zusätzlich einmal scharf und gibt sofort
-wieder an den Dauerautofokus ab – <strong>ohne das Bild zu unterbrechen</strong>.
-</p>
-<h4>Wird der Code nicht scharf?</h4>
-<p>Ein Handy hat hinten <strong>mehrere Kameras</strong>.
-Die Ultraweitwinkel-Kamera hat einen <strong>festen Fokus</strong> und wird näher
-als etwa 10&nbsp;cm grundsätzlich nicht scharf – und welche Kamera der Browser
-nimmt, entscheidet er selbst. Genau das ist der Unterschied zu einer nativen
-Scanner-App, die ihre Kamera gezielt wählt.</p>
-<p>Im Scanner steht deshalb unter dem Bild eine <strong>Kamerawahl</strong> mit
-den Kameras des Geräts. Einfach die nächste durchprobieren; die Wahl wird
-gemerkt und gilt ab dann für jeden Scan. Darunter ein <strong>Zoom-Regler</strong>,
-wo das Gerät Zoom kann – der verlässlichste Weg ist, <strong>nicht näher
-heranzugehen, sondern aus 20–30&nbsp;cm zu zoomen</strong>. Dort wird jede Kamera
-scharf. Auch der Zoom wird gemerkt.</p>
-<div class="hin"><strong>Technische Angaben zur Kamera.</strong> Ganz unten im
-Scanner lässt sich aufklappen, was das Gerät wirklich liefert: welche Kameras es
-gibt, welche läuft, mit welcher Auflösung, was sie beim Fokus und beim Zoom kann,
-ob der eingebaute Barcode-Leser da ist und wie viele Leseversuche laufen. Die
-Angaben lassen sich mit einem Knopf kopieren und weitergeben – damit bei einem
-Kameraproblem nicht geraten werden muss.</div>
-<div class="hin">Klappt das Scannen auf einem Gerät nicht – schlechtes Licht, unruhige
-Hand, Kamera ohne Nahbereich –, gibt es zwei Rückwege, die beide bleiben:
-<span class="tasten">📷 Stattdessen Foto aufnehmen</span> nimmt die Kamera-App des
-Geräts und wertet das Foto aus, und der Code lässt sich unten immer auch
-<strong>von Hand eintippen</strong>. Der Weg ist nie versperrt.</div>
-<p>Ein neues Produkt legt <span class="tasten">＋ Neues Material / Produkt</span> an.
-Der Dialog macht beides in einem Zug: die <strong>Materialposition</strong> im Katalog
-und auf Wunsch gleich das <strong>Lager-Produkt</strong> dazu. Die Bezeichnung wird nur
-einmal eingetippt.</p>
-<h4>Ein Name oder zwei?</h4>
-<p>Voreingestellt gilt die Bezeichnung des Produkts auch für die neue Katalogposition –
-zweimal dasselbe zu tippen wäre unnötig. Die beiden haben aber verschiedene Aufgaben:
-die <strong>Position</strong> steht im Regierapport und in den Offerten und bleibt
-besser allgemein („Stahlblech svz“), das <strong>Produkt</strong> ist das konkrete Ding
-im Regal und darf genau sein („Stahlblech svz 0,6 × 670 Rolle“). Sobald unter der
-Position später weitere Produkte stehen sollen, ist das der Unterschied, auf den es
-ankommt.</p>
-<p>Dafür steht neben dem Hinweis der Knopf <span class="tasten">✏️ Position anders
-benennen</span>. Das Feld der Position erscheint dann, <strong>vorbelegt mit der
-Bezeichnung des Produkts</strong> – es muss also nur gekürzt werden, nicht neu
-getippt. <span class="tasten">↩ Doch gleich wie das Produkt</span> führt zurück.</p>
-<h4>Die EDV-Nummer schlägt die App vor</h4>
-<p>Zur getippten Bezeichnung sucht die App die passende Katalogruppe und schlägt daraus
-die nächste freie Nummer vor – mit der Begründung daneben, damit nachvollziehbar
-bleibt, warum gerade diese Gruppe. „Rinnenstutzen 120mm“ landet so bei den Rinnen,
-„Spenglerschrauben 5x50“ bei den Schrauben. Passt nichts, gibt es eine Nummer aus dem
-eigenen Kreis <code>999</code>. Der Vorschlag rechnet sich bei jedem getippten Zeichen
-neu – bis du die Nummer selbst anfasst, dann lässt die App sie in Ruhe.</p>
-<div class="hin">Die Nummern sind <strong>je Firma</strong> eindeutig, nicht
-firmenübergreifend. Was eine andere Firma unter einer Nummer führt, spielt für deinen
-Katalog keine Rolle.</div>
-<h4>Löschen oder archivieren</h4>
-<p>Ein Produkt <strong>ohne</strong> Buchungen lässt sich wirklich löschen. Sobald
-darauf gebucht wurde, geht das nicht mehr – sonst verschwände die Bestandsgeschichte.
-Dann wird <strong>archiviert</strong>: das Produkt ist überall weg, wo gebucht oder
-gewählt wird, die Buchungen bleiben stehen, und es lässt sich jederzeit wieder
-aktivieren.</p>
+<div class="hin"><strong>Die alte Lagerverwaltung ist abgeschafft</strong> (ab 3.251).
+Hier stand ein Abschnitt über den Bereich „🏭 Lagerverwaltung“: Produkte je
+Regie-Position, Barcode, Ein- und Ausscannen, Bewegungen, Archiv. Benutzt wurde
+sie nicht – gemessen am 2. Oktober 2026: <strong>1 Barcode</strong> und
+<strong>8 Buchungen</strong> im ganzen Betrieb. Es gibt jetzt <strong>ein</strong>
+Lager, das Lieferanten-Lager im nächsten Abschnitt, und der Knopf
+<span class="tasten">Lager</span> in der Leiste führt direkt dorthin.</div>
+<p>Was aus der Lagerverwaltung <strong>geblieben</strong> ist, weil es nie zum Lager
+gehörte, sondern zum Material-Katalog: der Dialog
+<span class="tasten">📦 Neue Materialposition anlegen</span> samt dem
+begründeten Vorschlag für die EDV-Nr. (Abschnitt „Material“). Er geht jetzt über
+<span class="tasten">＋ Neue Materialposition</span> in den Einstellungen auf.</p>
+<p>Was <strong>weggefallen</strong> ist: das Ausbuchen von Material aus einer
+Massaufnahme („📤 Ab Lager ausbuchen“) und die Karte „Material ab Lager“ im
+Projekt. Das Lieferanten-Lager ersetzt das nicht und soll es nicht: es führt
+Handelsware, kein Blech.</p>
 
 <h3>Lieferanten-Lager – das Lager der Händler</h3>
-<p>Neben der Lagerverwaltung steht ein <strong>zweites, eigenes Lager</strong> für die
-Handelsware der Lieferanten – Rinnen, Stutzen, Haken, Böden. Zu finden unter
-<strong>Mehr → Lieferanten-Lager</strong>, sichtbar für alle mit Lager-Zugriff.</p>
+<p>Das <strong>Lieferanten-Lager</strong> führt die Handelsware der Lieferanten –
+Rinnen, Stutzen, Haken, Böden. Zu finden über <span class="tasten">Lager</span> in
+der Leiste, sichtbar für alle mit Lager-Zugriff. Seit 3.251 ist es das einzige
+Lager der App.</p>
 <div class="hin"><strong>Warum getrennt?</strong> Der Materialkatalog der Firma trägt
 <em>eure</em> EDV-Nummern und füllt Regierapport, Ausmass und Zuschnitt. Das
 Sortiment des Lieferanten hat <em>seine</em> Artikelnummern. Beides in eine Liste zu
-werfen, würde zwei Nummernkreise vermischen. Die bestehende Lagerverwaltung und
-die Regiematerial-Liste bleiben davon unberührt.</div>
+werfen, würde zwei Nummernkreise vermischen. Die Regiematerial-Liste bleibt davon
+unberührt. Genau diese Trennung ist der Grund, weshalb dieses Lager die Abschaffung
+der alten Lagerverwaltung unbeschadet überlebt hat.</div>
 <p><strong>Neue Positionen kommen als Excel- oder CSV-Datei herein</strong> –
 <span class="tasten">📄 Neue Positionen hochladen</span>. Das ist derselbe
 Import wie beim Materialkatalog: die Spalten lassen sich frei zuordnen, vor dem
@@ -2517,8 +2424,8 @@ selbst eine Datei zu suchen.</p>
 <span class="tasten">📤 Ausscannen</span> öffnen die Kamera. Der erkannte
 Barcode führt direkt zum Buchen; vorgeschlagen ist die Verpackungseinheit, zu
 bestätigen nur noch die Menge. Ein Code, der hier nicht bekannt ist, legt
-<strong>nichts</strong> an – die App sagt stattdessen, dass er in die normale
-Lagerverwaltung gehört, wenn es eigenes Material ist.</p>
+<strong>nichts</strong> an – die App sagt stattdessen, dass sie den Code nicht
+kennt, und nennt ihn.</p>
 <div class="hin">Der <strong>Bestand ist kein Feld</strong>, sondern immer die Summe
 der Buchungen. Eine Buchung lässt sich nicht ändern und nicht löschen – ein Fehler
 wird mit einer <strong>Korrektur</strong> ausgeglichen. So bleibt nachvollziehbar,
@@ -2744,10 +2651,11 @@ diese Position im Betrieb, und unter welchem Namen? Die App nennt die ähnlichst
 vorhandene zur Orientierung.</p>
 <div class="hin"><strong>EDV-Nr. und Preis schlägt die App bewusst nicht vor.</strong>
 Eine geratene Nummer landet im Nummernsystem des Betriebs, ein geratener Preis auf einer
-Rechnung. Angelegt wird in der <strong>Lagerverwaltung</strong> unter „neues Material
-anlegen“ – die App legt in der Regieliste von selbst nichts an. Solange die Position
-fehlt, bleiben diese Artikel ohne Regie-Position und lassen sich im Regierapport nicht
-scannen; auch das ist eine Antwort.</div>
+Rechnung. Angelegt wird im <strong>Material-Katalog</strong> unter
+<span class="tasten">＋ Neue Materialposition</span> – die App legt in der Regieliste
+von selbst nichts an. Solange die Position fehlt, bleiben diese Artikel ohne
+Regie-Position und lassen sich im Regierapport nicht scannen; auch das ist eine
+Antwort.</div>
 <p><strong>„Dafür gibt es bei uns keine Regie-Position“</strong> (ab 3.249). Nicht jeder
 Artikel des Händlers hat im Betrieb eine Abrechnungsposition, und manche bekommen auch
 keine. Das lässt sich festhalten – je Zeile mit einem Schalter, oder für alle angezeigten
@@ -3143,7 +3051,7 @@ dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
 <h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.250</strong>, Stand 2. Oktober 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.251</strong>, Stand 2. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder
@@ -3169,8 +3077,8 @@ wird, kommt aus dem Materialbestand und lässt sich je Massaufnahme
 übersteuern (Abschnitt 5). Ist <em>Tafel</em> gewählt, aber kein Format hinterlegt,
 rechnet die App mit der Rolle weiter und sagt warum – sie erfindet <strong>keine
 Tafelgrösse</strong>.</li>
-<li>Der <strong>Materialbestand</strong> ist ein Nachschlagewerk, <strong>keine
-Lagerverwaltung</strong>: es wird nichts abgebucht, nichts bestellt und keine Menge
+<li>Der <strong>Materialbestand</strong> ist ein Nachschlagewerk, <strong>kein
+Lager</strong>: es wird nichts abgebucht, nichts bestellt und keine Menge
 automatisch fortgeschrieben.</li>
 <li>Ein Reststück wird immer <strong>ganz</strong> genommen oder gar nicht. Ein Rest
 teilweise zu verbrauchen und den Rest davon wieder einzulagern, kann die App heute

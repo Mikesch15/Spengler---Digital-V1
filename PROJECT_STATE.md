@@ -3,36 +3,86 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.250`
+- Aktueller Entwicklungsstand: `v3.251`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
-### Entscheidung: die alte Lagerverwaltung wird abgeschafft (02.10.2026)
+### v3.251 — die alte Lagerverwaltung ist abgeschafft (Schritte 2–6)
 
-Ansage des Anwenders: „die alte Lagerverwaltung wird abgeschafft" — dazu
-„erst einen Plan, dann entscheiden" und für die Altdaten „weg, sauber
-löschen". Damit ist die Sperre aus früheren Sitzungen („`lager_varianten`
-nicht ohne neues Ja anfassen") **aufgehoben**, aber die Reihenfolge steht:
-erst Plan, dann löschen. **Noch ist nichts gelöscht.**
+Ansage des Anwenders: „die altr lagerverwaltung wird abgeschafft", dazu „erst
+einen Plan, dann entscheiden", für die Altdaten „weg, sauber löschen" und zum
+Ausbuchen aus einer Massaufnahme: „Nein, brauche ich nicht, mach weiter."
 
-Der durchgerechnete Plan steht in **`PLAN_Lagerverwaltung_abschaffen.md`** —
-Inventar, Reihenfolge, was unwiederbringlich ist. Die drei Kernbefunde:
+Der durchgerechnete Plan steht in **`PLAN_Lagerverwaltung_abschaffen.md`**.
+Umgesetzt sind die Schritte **2 bis 6**. **Schritt 7 (die Datenbank) ist
+bewusst nicht Teil dieser Version** — die Tabellen, Trigger und Policies
+stehen unverändert da. Das ist die Reihenfolge, die der Plan vorgibt: solange
+noch etwas auffallen kann, soll nichts unwiederbringlich sein.
 
-1. **Zwei Dinge heissen fast gleich.** „Lagerverwaltung" ist `js/68`
-   (`lager_varianten`, `lagerbestand_bewegungen`) — das soll weg.
-   „Materialbestand" ist `js/59` mit den Blechformaten — das bleibt. Ich habe
-   das selbst zuerst verwechselt.
-2. **Der Zuschnitt hängt nicht daran.** Die Blechformate sind Spalten auf
-   `materials`; `artikelFormat()` liest `materialFormate`, nicht
-   `lagerbestand`. Ebenso ist der Einrichtungs-Pflichtpunkt „Blech-Formate"
-   sicher (`einrBlecheEcht()` → `lagFormate()` → `materials`).
-3. **`lagerbestand` ist bereits totes Gewicht:** 6 Zeilen, alle `menge 0`,
-   zur Laufzeit liest sie niemand.
+**Was weg ist**
 
-**Blockierend offen:** `📤 Ab Lager ausbuchen` aus einer Massaufnahme ist die
-**eine** Fähigkeit, die mit js/68 verschwindet. Das Lieferanten-Lager kann sie
-nicht übernehmen (439 Handelsartikel, kein Blech, bewusst getrennt von der
-Werkstoff-Kette). Ohne seine Entscheidung dazu wird nichts gelöscht.
+- `js/68-lagerverwaltung.js` (2063 Zeilen), sein Script-Tag, sein Eintrag in
+  der App-Shell (`sw.js`), der Einstellungen-Abschnitt, die zwei Dialoge
+- `📤 Material ab Lager ausbuchen` aus der Massaufnahme (`measLagerModal`)
+- die Projekt-Karte `📦 Material ab Lager` (`cockpitLagerCard`, js/24) — **im
+  Plan nicht aufgeführt, beim Umsetzen gefunden**
+- Kontrolle `position-ohne-produkt` (js/75) — ihre Grundlage ist weg
+- der Barcode-Rückfall in js/82 (betraf **1** Barcode) samt dem Zweig
+  `quelle!=="lieferant"` in `lfScanVerbrauch`
+- 4 Hilfe-Themen, der Anleitungs-Abschnitt, der doppelte „Mehr"-Eintrag
+- die `a2-nur-lager`-Regeln in `css/05-ansicht2.css`
+
+**Was umgezogen ist statt mitzugehen**
+
+| Fähigkeit | von | nach |
+|---|---|---|
+| EDV-Nr., Nummerngruppen-Erkennung, Positionsvorschlag | js/68 | **`js/83-katalog-position.js`** (neu) |
+| Dialog „Neue Materialposition anlegen" | js/68 | js/83 + `katalogPositionModal` |
+| Warntext beim Löschen einer Katalogposition | js/68 | js/83, gerufen von js/08 |
+| Recht „Lager" (`checkLagerZugriff`) | js/68 | js/82 |
+| Startweg des Lager-Knopfs | js/68 (Einstellungen) | js/82 (`lfOeffnen`) |
+
+Die Funktionsnamen beginnen weiterhin mit `lager…`. Sie werden von js/08,
+js/59 und vier Prüfständen unter diesen Namen gerufen; sie beim Umzug
+umzubenennen wäre eine zweite, rein kosmetische Änderung im selben Schritt.
+Ein Umbenennen bleibt als eigener, kleiner Schritt offen.
+
+**Zwei echte Fehler, beim Umsetzen gefunden und behoben**
+
+1. **Das Löschen im Material-Katalog warnte zu wenig.** Es fragte nur „Dieses
+   Material wirklich löschen?". Die ausführliche Warnung — bei einem Blech geht
+   das *Format* mit, der Zuschnitt rechnet danach nicht mehr mit diesem Blech,
+   Reststücke verlieren ihre Zuordnung — gab es nur auf dem Weg über die
+   Lagerverwaltung, den fast niemand ging. Sie hängt jetzt an der Löschung
+   selbst (`pruefstand-blechformat-v3-177`, E2b–E2d).
+2. **Die Kontrolle „Katalogposition, die nie vorkam" war blind.** Sie galt eine
+   Position als benutzt, sobald es ein `lager_varianten`-Produkt dazu gab — und
+   der Trigger `lager_standard_variante_trg` legt zu *jeder* Position eines an.
+   **An der Produktivdatenbank gemessen: 760 Positionen, 760 mit Variante, 0
+   ohne.** Sie hat also nie etwas gemeldet, und zwar nicht, weil alles in
+   Ordnung war. Jetzt zählt nur, was eine Verwendung belegt: das Zählwerk und
+   ein Reststück (`pruefstand-kontrollen-v3-186`, Abschnitt L2).
+
+Nebenbei: der Blitzschutz-Katalog fragte wortgleich „Dieses Material wirklich
+löschen?" wie der Material-Katalog. Jetzt nennt er sein eigenes Material —
+zwei identische Fragen in zwei Listen waren genau der Befund von v3.140.
+
+**Prüfstände**
+
+- **weg mit dem Modul:** `lagerverwaltung-v3-98` (284 Prüfungen),
+  `lager-ansicht-v3-220`
+- **ersetzt durch `pruefstand-katalog-position-v3-251` (40 Prüfungen):**
+  `gemeinsamer-dialog-v3-138` (68) und `position-vorschlag-v3-136`. Der
+  Nachfolger sagt in seinem Kopf Abschnitt für Abschnitt, welche Zusage von
+  wo übernommen ist und welche mit dem Produkt-Formular weggefallen ist.
+- **umgestellt, nicht gelöscht:** `kontrollen-v3-186` (L gedreht: die Kontrolle
+  *muss* weg sein), `lieferanten-lager-v3-231` (A3b: js/68 ist wirklich weg;
+  F5/F6 am Lager-Tab; Q4, R10/R11), `blechformat-v3-177` (E am Warntext),
+  `anlegen-sichtbar-v3-140` (C auf das Lieferanten-Lager), `neue-position-nr-v3-137`
+
+**Offen, seine Entscheidung (nicht blockierend):** der Abschnitt heisst
+weiterhin „Materialbestand". Nachdem „🏭 Lagerverwaltung" daneben weg ist,
+wäre „Material & Blech" klarer.
 
 ### created_by erzwingen, 02.10.2026 (ohne neue Version — am Code ändert sich nichts)
 
