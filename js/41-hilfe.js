@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.248.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.249.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1760,6 +1760,29 @@ einer Rechnung. Angelegt wird in der <b>Lagerverwaltung</b> unter \u201eneues
 Material anlegen\u201c; die App legt in der Regieliste von selbst nichts an.
 Solange die Position fehlt, bleiben diese Artikel ohne und lassen sich im
 Regierapport nicht scannen \u2013 auch das ist eine Antwort.</div>
+<p><b>„Dafür gibt es bei uns keine Regie-Position"</b> (ab 3.249). Nicht jeder
+Artikel des Händlers hat bei euch eine Abrechnungsposition, und manche werden
+auch keine bekommen. Das lässt sich jetzt <b>festhalten</b> – je Zeile mit dem
+Schalter, oder für alle angezeigten mit <b>🚫 Alle angezeigten: keine
+Regie-Position</b>. Zurücknehmen geht genauso.</p>
+<div class="hin"><b>Entschieden ist nicht erledigt, und erst recht nicht
+archiviert.</b> Der Artikel bleibt im Lager <i>voll nutzbar</i>: Bestand,
+Mindestbestand, Einkaufsliste und Inventur brauchen keine Regie-Position – nur
+das <b>Verrechnen im Regierapport</b> braucht sie. Deshalb wird er nicht
+archiviert, er zählt nur nicht mehr als „offen" und steht nicht mehr in
+<b>📋 Was fehlt</b>.<br>
+<b>Warum das wichtig ist:</b> ein Knopf, der dauerhaft „158 offen" meldet,
+zeigt Arbeit an, die keine ist – und verdeckt die echte, sobald eine neue
+Lieferantenliste dazukommt. Wie viele entschieden sind, steht oben weiterhin
+da; verschwiegen wird nichts.</div>
+<div class="hin"><b>Beim Scannen sagt die App dann etwas anderes.</b> Solange
+ein Artikel nur <i>noch nicht</i> zugeordnet ist, rät sie zum Nachtragen. Ist
+entschieden, dass es keine Position gibt, rät sie das <b>nicht</b> mehr – ein
+Rat ins Leere ist schlimmer als keiner. Sie sagt dann, dass sich der Artikel
+nicht übernehmen lässt und das Material von Hand erfasst wird.<br>
+Ein Artikel <b>mit</b> Zuordnung kann die Entscheidung nicht tragen: erst die
+Zuordnung entfernen. Diese Regel steht in der Datenbank, nicht im Formular –
+zwei Wahrheiten über dieselbe Frage gibt es nicht.</div>
 <div class="hin">Auch eine <b>bereits gespeicherte</b> Zuordnung wird gefragt,
 wenn die Gr\u00f6ssen nicht zusammenpassen: \u201ezugeordnet auf Gr\u00f6sse 250 \u2013
 stimmt das?\u201c. Ge\u00e4ndert wird nichts von selbst. Eine Dimension, die

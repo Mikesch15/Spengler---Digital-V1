@@ -3,9 +3,57 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.248`
+- Aktueller Entwicklungsstand: `v3.249`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.249: „Dafür gibt es bei uns keine Regie-Position"
+
+**Entscheidung des Anwenders (02.10.2026):** „Punkt 1 wird so bleiben, wir
+haben keine Positionen für die fehlenden Artikel." Die 158 unzugeordneten
+Artikel bleiben unzugeordnet.
+
+**Was das von der App verlangt.** Ohne einen Platz für diese Entscheidung
+hätte der Knopf **dauerhaft „158 offen"** gemeldet. Das ist nicht bloss
+unschön: ein Zähler, der Arbeit anzeigt, die keine ist, **verdeckt die echte**
+— kommt eine neue Lieferantenliste, deren Artikel sich wirklich zuordnen
+lassen, fällt sie zwischen 158 Dauerposten nicht mehr auf.
+
+Die App kann das **nicht selbst erkennen**: ob es für eine 400er Rinne eine
+Abrechnungsposition geben soll, ist eine betriebliche Entscheidung.
+
+- Migration `lieferanten_artikel_keine_regie_position`: Spalte
+  `keine_regie_position boolean not null default false`, mit `comment on`.
+- **Bewusst nicht über `archiviert`:** ein Artikel ohne Regie-Position ist im
+  Lager **voll brauchbar** — Bestand, Mindestbestand, Einkaufsliste und
+  Inventur brauchen sie nicht; nur das Verrechnen im Regierapport braucht sie
+  (AA5). Archivieren würde etwas anderes behaupten.
+- `lfOffeneZuordnung(a)` ist jetzt die **eine** Antwort auf „ist hier noch was
+  zu tun" — benutzt vom Knopf-Zähler, der Gruppenzählung, `lfZuordnenNurOffene`,
+  `lfZuordnenBefundStand`, `lfFehlendeRegie` und `lfOhneMuster`.
+- Gesetzt wird **sofort**, nicht mit „Speichern": die Entscheidung hängt an
+  keiner Regie-Position, es gibt nichts durchzusehen — und eine Entscheidung,
+  die man noch speichern muss, geht beim Schliessen verloren.
+- Gruppenweise bedienbar (`🚫 Alle angezeigten`), wie beim Zuordnen selbst.
+  158 Artikel einzeln anzutippen wäre ein Nachmittag.
+- **Der Scanner rät nicht mehr ins Leere** (AA6/AA7/AA8): „noch nicht
+  zugeordnet" → nachtragen; „keine Position" → es gibt nichts nachzutragen,
+  Material von Hand erfassen.
+- Entschiedene werden **genannt**, nicht verschwiegen (AA4).
+
+**Die Probe hat vor dem Eingriff einen Widerspruch gefunden:** ein Artikel
+konnte *beides* tragen — eine Zuordnung **und** die Marke. Zwei Wahrheiten
+über dieselbe Frage. Deshalb ein CHECK in der **Datenbank**
+(`lieferanten_artikel_keine_regie_nur_ohne_zuordnung`), nicht im Formular;
+in einer zurückgerollten Transaktion in **beide** Richtungen belegt.
+
+**Und der Prüfstand hat einen echten Fehler von mir gefunden** (AA10): ich
+hatte `lfZuordnenSichereUebernehmen` abgesichert, **`lfZuordnenAlleSetzen`
+aber nicht** — der hätte die Entschiedenen in einem Zug doch zugeordnet, also
+genau das Gegenteil der Entscheidung. AA11/AA12 waren dagegen mein
+Testaufbau: `lfKeinePositionSetzen()` lädt am Ende neu (wie die App nach jedem
+Schreiben), und die Attrappe trug andere Artikel als der Aufbau — jetzt im
+Prüfstand vermerkt.
 
 ### v3.248: Eine Passwortregel, an einer Stelle
 
