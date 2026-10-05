@@ -733,6 +733,30 @@ html.a2-an #projectsModal.a2-nur-liste .card > h2{display:none!important}
 /* Eine Aufgabe: die Zeile fuehrt zur Massaufnahme, der Knopf rechts macht
    den Schritt. Auf schmalen Geraeten rutscht er unter die Zeile - er darf
    ihr nicht die Breite nehmen, sonst bricht die Adresse um. */
+/* ---- Tagesaufgaben je Projekt (v3.257) -----------------------------------
+   Ansage des Anwenders: "Fasse die tagesaufgaben auf der startseite pro
+   projekt zusammen und mach die projekte zuklappbar."
+
+   Der Gruppenkopf ist dieselbe .a2-zeile wie alles andere - er bekommt hier
+   nur das, was ihn als KOPF kenntlich macht: eine kraeftigere Linie, und die
+   Aufgaben darunter ruecken ein. Ein eigener Bauteil waere ein zweiter
+   Zeilentyp, den jede kuenftige Aenderung an .a2-zeile mitpflegen muesste.
+
+   Eingerueckt wird mit einer Linie links statt mit Abstand: auf 320 px ist
+   Abstand teuer, eine Linie kostet 2 px und sagt dasselbe. */
+.a2-aufg-gruppe{margin:0 0 10px}
+.a2-aufg-kopf{background:var(--a2-grau-hell);border-color:var(--line)}
+.a2-aufg-kopf .a2-zeile-text b{font-size:14.5px}
+.a2-aufg-kopf .a2-zeile-nr{background:var(--card-bg)}
+/* Die Aufgaben der Gruppe - eingerueckt unter ihrem Kopf. */
+.a2-aufg-gruppe > .a2-zeile-reihe{margin-left:10px;padding-left:8px;
+ border-left:2px solid var(--card-line)}
+.a2-aufg-gruppe > .a2-zeile-reihe:last-child{margin-bottom:0}
+@media (max-width:360px){
+ /* Auf dem schmalsten Geraet zaehlt jeder Millimeter Textbreite. */
+ .a2-aufg-gruppe > .a2-zeile-reihe{margin-left:5px;padding-left:5px}
+}
+
 .a2-zeile-reihe{display:flex;align-items:stretch;gap:6px;margin:0 0 6px;flex-wrap:wrap}
 .a2-zeile-reihe > .a2-zeile{flex:1 1 220px;margin:0}
 .a2-zeile-tat{flex:0 0 auto;align-self:stretch}

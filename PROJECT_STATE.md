@@ -3,9 +3,42 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.256`
+- Aktueller Entwicklungsstand: `v3.257`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.257 — die Tagesaufgaben je Projekt, zuklappbar
+
+Ansage des Anwenders: „Fasse die tagesaufgaben auf der startseite pro projekt
+zusammen und mach die projekte zuklappbar."
+
+- `a2AufgabenNachProjekt()` (js/70) legt die Aufgaben **in der Reihenfolge von
+  js/45** in Eimer. Ein Projekt steht damit dort, wo seine dringendste Aufgabe
+  stünde — keine eigene Rangfolge, keine zweite Meinung darüber, was zuerst
+  drankommt. Das war die Zusage, die beim Gruppieren am leichtesten kaputtgeht;
+  `pruefstand-aufgaben-je-projekt-v3-257` Abschnitt B hält sie fest.
+- Der Gruppenkopf nennt Projekt, Anzahl und ob etwas dringend ist — genug, um
+  ohne Aufklappen zu entscheiden.
+- Zuklappen je Projekt, gemerkt in `localStorage` (`sd_a2AufgabenZu`).
+  Gemerkt wird das **Zugeklappte**: eine neu dazukommende Baustelle ist dadurch
+  von selbst offen.
+- `Alle zuklappen` / `Alle aufklappen` im Abschnittskopf, nur ab zwei Gruppen.
+
+**Voreingestellt ist aufgeklappt — gemessen, nicht geraten.** Am 5.10.2026
+standen in der Produktionsdatenbank **7 offene Aufgaben auf 4 Projekten**, im
+Schnitt 1,8 je Projekt. Alles zuzuklappen hätte kaum etwas verborgen und jeden
+Handgriff einen Tipp teurer gemacht.
+
+**An den Aufgaben selbst ändert sich nichts** — dieselben Zeilen, dieselben
+`data`-Marken, derselbe Weg nach js/45. Abschnitt F prüft das, samt der
+Gegenprobe, dass ein Tipp auf den Gruppenkopf **keine** Aufgabe ausführt
+(beide liegen in derselben Liste und tragen data-Marken).
+
+**Dabei eine Prüfung geschärft statt umgangen:** `ansicht2-v3-150` F1 hält
+fest, dass js/70 nichts in die Datenbank schreibt — suchte das aber per
+Textsuche nach `.delete(` und schlug deshalb bei `Set.delete()` an. Sie prüft
+jetzt den Supabase-Weg (`sb.from(`), mit Gegenprobe F1a, dass ein echter
+Schreibweg weiterhin gefunden würde.
 
 ### v3.256 — Korrektur an v3.254: die Statusnummer gehört nicht ganz weg
 

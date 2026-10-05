@@ -355,8 +355,29 @@ const anmelden=page=>page.evaluate(()=>{
 
  // ===== F  Gegenproben am Quelltext =========================================
  const jsQ=fs.readFileSync("js/70-ansicht2.js","utf8");
- const schreib=jsQ.match(/\.(insert|update|delete|upsert|rpc)\(/g)||[];
- p(schreib.length===0,"F1 js/70 enthaelt keinen einzigen Schreibweg",schreib);
+ // Die Zusage: js/70 ZEICHNET nur, es schreibt nichts in die Datenbank.
+ //
+ // v3.257 GENAUER GEFASST, nicht abgeschwaecht. Bis dahin suchte diese
+ // Pruefung stur nach ".insert(" / ".update(" / ".delete(" / ".upsert(" /
+ // ".rpc(" im ganzen Text. Das trifft auch Set.delete() und Map.delete() -
+ // reine Zustandsarbeit im Browser, die mit der Datenbank nichts zu tun hat.
+ // Aufgefallen ist es, als das Zuklappen der Aufgaben-Gruppen (v3.257) eine
+ // Menge zugeklappter Projekte fuehrte.
+ //
+ // Geprueft wird deshalb der SUPABASE-Weg: ein Schreibvorgang geht in dieser
+ // App ausnahmslos ueber sb.from("tabelle"). Steht das nirgends in js/70,
+ // kann die Datei auch nichts schreiben - unabhaengig davon, wie viele
+ // Mengen und Karten sie sonst pflegt. F1b haelt fest, dass die Pruefung
+ // einen echten Schreibweg weiterhin FINDEN wuerde; ohne diese Gegenprobe
+ // waere die genauere Fassung nur eine bequemere.
+ const sbWeg=jsQ.match(/\bsb\s*\.\s*from\s*\(/g)||[];
+ const direkt=jsQ.match(/\.(from\s*\([^)]*\)\s*\.\s*(insert|update|delete|upsert)|rpc)\s*\(/g)||[];
+ p(sbWeg.length===0&&direkt.length===0,
+   "F1 js/70 enthaelt keinen einzigen Schreibweg - es spricht die Datenbank gar nicht erst an",
+   {sbWeg,direkt});
+ const probe='sb.from("projects").update({a:1});';
+ p((probe.match(/\bsb\s*\.\s*from\s*\(/g)||[]).length===1,
+   "F1a GEGENPROBE: ein echter Schreibweg wuerde von dieser Pruefung gefunden",probe);
  // v3.211 zusaetzlich, nicht ersatzweise: die Ansicht spricht ueberhaupt
  // nicht mit der Datenbank - auch nicht lesend. Das ist die eigentliche
  // Aussage hinter F1 und laesst sich nicht mit einem Set verwechseln.

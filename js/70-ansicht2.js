@@ -667,15 +667,22 @@ function a2SeiteHeute(){
    für diese Firma ausgeschaltet. Es gibt deshalb keine Aufgabenliste –
    gearbeitet wird direkt über die Projekte.</div></div>`;
  }else{
+  // v3.257: Die Aufgaben stehen je Projekt zusammen. Der Kopf nennt
+  // weiterhin die GESAMTZAHL - sie ist die Antwort auf "wie viel habe ich
+  // heute", und die aendert sich durch das Gruppieren nicht.
+  const gruppen=a2AufgabenNachProjekt(auf);
+  const alleZu=gruppen.length>0&&gruppen.every(g=>a2AufgabenZu.has(String(g.id)));
   html+=`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
-    ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}</div>`;
+    ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}
+    ${gruppen.length>1?`<button type="button" data-a2-tu="aufgabenalle">${
+      alleZu?"Alle aufklappen":"Alle zuklappen"}</button>`:""}</div>`;
   // v3.185: Die Zeile "N terminiert" kommt aus js/45 - dieselbe Quelle wie in
   // der klassischen Ansicht. Sie steht UEBER der Liste, damit "nichts offen"
   // nicht danebensteht, waehrend etwas wartet.
   html+=a2TerminZeile();
   html+=auf.length
-   ? auf.map(a2AufgabeHtml).join("")
+   ? gruppen.map(a2AufgabenGruppeHtml).join("")
    : (a2TerminZeile()
       ? '<div class="a2-leer">Jetzt nichts offen – was wartet, steht oben.</div>'
       : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>');
@@ -782,6 +789,93 @@ function a2SeiteHeute(){
 // Aufgabe einen eigenen Schritt hat (ruesten, montieren, zuweisen), steht er
 // als kleiner Knopf rechts daneben. Ohne ihn waere aus jedem Einzeltipp des
 // Ruesters ein Weg ueber drei Schirme geworden.
+// ---- Die Tagesaufgaben je Projekt (v3.257) -------------------------------
+// Ansage des Anwenders: "Fasse die tagesaufgaben auf der startseite pro
+// projekt zusammen und mach die projekte zuklappbar."
+//
+// Bis v3.256 stand jede Aufgabe einzeln untereinander. Wer morgens drei
+// Baustellen hat, las sieben Zeilen und musste sich selbst zusammenreimen,
+// was davon zum selben Objekt gehoert.
+//
+// DIE REIHENFOLGE WIRD NICHT NEU ERFUNDEN. js/45 sortiert die Aufgaben
+// bereits: rot zuerst, danach nach Datum. Hier werden sie IN DIESER
+// REIHENFOLGE in Eimer gelegt; ein Projekt steht also dort, wo seine
+// dringendste Aufgabe stuende. Eine eigene Rangfolge waere eine zweite
+// Meinung darueber, was zuerst drankommt.
+function a2AufgabenNachProjekt(auf){
+ const gruppen=[]; const nach=new Map();
+ (auf||[]).forEach(a=>{
+  const pid=String((a.m&&a.m.project_id)||"");
+  let g=nach.get(pid);
+  if(!g){
+   const pr=a2Projekt(pid);
+   // Ohne geladenes Projekt (die Liste kommt getrennt) traegt die Gruppe
+   // die Adresse aus der Aufgabe selbst - lieber die Adresse als "Projekt".
+   const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(a.m):{adresse:""};
+   g={id:pid,projekt:pr,
+      titel:(pr&&(pr.name||pr.object))||b.adresse||"Ohne Projekt",
+      unter:(pr&&pr.name&&pr.object&&pr.object!==pr.name)?pr.object:"",
+      aufgaben:[],dringend:false};
+   nach.set(pid,g); gruppen.push(g);
+  }
+  g.aufgaben.push(a);
+  const art=(typeof aufgabenArt==="function")?aufgabenArt(a.art):null;
+  if(art&&art.farbe==="rot")g.dringend=true;
+ });
+ return gruppen;
+}
+
+// Welche Projekte sind ZUGEKLAPPT? Gemerkt wird das Zugeklappte, nicht das
+// Aufgeklappte - neu dazukommende Projekte sind damit von selbst offen, und
+// genau das ist richtig: eine neue Baustelle soll man sehen, nicht suchen.
+//
+// Voreingestellt ist AUFGEKLAPPT. Das ist gemessen, nicht geraten: am
+// 5.10.2026 standen im Betrieb 7 offene Aufgaben auf 4 Projekten, im Schnitt
+// 1,8 je Projekt. Alles zuzuklappen haette also kaum etwas verborgen und
+// jeden Handgriff einen Tipp teurer gemacht. Wer die reine Uebersicht will,
+// bekommt sie mit einem Tipp auf "Alle zuklappen".
+const A2_AUFG_ZU="sd_a2AufgabenZu";
+let a2AufgabenZu=(()=>{
+ try{ const r=JSON.parse(localStorage.getItem(A2_AUFG_ZU)||"[]");
+      return new Set(Array.isArray(r)?r.map(String):[]) }
+ catch(e){ return new Set() }
+})();
+function a2AufgabenZuMerken(){
+ try{ localStorage.setItem(A2_AUFG_ZU,JSON.stringify([...a2AufgabenZu])) }catch(e){}
+}
+function a2AufgabenGruppeUmschalten(pid){
+ const k=String(pid);
+ if(a2AufgabenZu.has(k))a2AufgabenZu.delete(k); else a2AufgabenZu.add(k);
+ a2AufgabenZuMerken();
+ a2Zeichnen();
+}
+// Alles auf einmal - der Knopf im Abschnittskopf. Er sagt, was er tut, und
+// macht das Gegenteil, wenn schon alles zu ist.
+function a2AufgabenAlleUmschalten(){
+ const gruppen=a2AufgabenNachProjekt(a2Aufgaben());
+ const alleZu=gruppen.length&&gruppen.every(g=>a2AufgabenZu.has(String(g.id)));
+ if(alleZu)gruppen.forEach(g=>a2AufgabenZu.delete(String(g.id)));
+ else gruppen.forEach(g=>a2AufgabenZu.add(String(g.id)));
+ a2AufgabenZuMerken();
+ a2Zeichnen();
+}
+// Eine Gruppe: der Kopf sagt alles, was man zum Entscheiden braucht -
+// Projekt, wie viele Aufgaben, und ob etwas dringend ist. Zugeklappt bleibt
+// genau diese eine Zeile stehen.
+function a2AufgabenGruppeHtml(g){
+ const zu=a2AufgabenZu.has(String(g.id));
+ const n=g.aufgaben.length;
+ return `<div class="a2-aufg-gruppe">
+  <button type="button" class="a2-zeile a2-aufg-kopf" data-a2-aufg-gruppe="${esc(g.id)}"
+   aria-expanded="${zu?"false":"true"}">
+   <span class="a2-zeile-nr${g.dringend?" ist-rot":""}">${g.dringend?"\u26a0":"\u{1F4CD}"}</span>
+   <span class="a2-zeile-text"><b>${esc(g.titel)}</b>
+    <span>${n} ${n===1?"Aufgabe":"Aufgaben"}${g.dringend?" \u00b7 dringend":""}${g.unter?" \u00b7 "+esc(g.unter):""}</span></span>
+   <span class="a2-zeile-pfeil">${zu?"\u203a":"\u2304"}</span></button>
+  ${zu?"":g.aufgaben.map(a2AufgabeHtml).join("")}
+ </div>`;
+}
+
 function a2AufgabeHtml(a){
  if(!a||typeof aufgabenArt!=="function")return "";
  const art=aufgabenArt(a.art);
@@ -1154,6 +1248,15 @@ document.addEventListener("click",async e=>{
   return;
  }
 
+ // v3.257: Ein Projekt auf- oder zuklappen. Steht VOR den Aufgaben-Knoepfen:
+ // der Gruppenkopf liegt in derselben Liste, und ein Tipp darauf soll
+ // klappen, nicht eine Aufgabe oeffnen.
+ const aufgGruppe=e.target.closest("[data-a2-aufg-gruppe]");
+ if(aufgGruppe&&$("a2Screen")&&$("a2Screen").contains(aufgGruppe)){
+  a2AufgabenGruppeUmschalten(aufgGruppe.getAttribute("data-a2-aufg-gruppe"));
+  return;
+ }
+
  const aufgabe=e.target.closest("[data-a2-aufgabe]");
  if(aufgabe){
   const art=aufgabe.getAttribute("data-a2-aufgabe");
@@ -1168,6 +1271,7 @@ document.addEventListener("click",async e=>{
  if(tu&&$("a2Screen")&&$("a2Screen").contains(tu)){
   const was=tu.getAttribute("data-a2-tu");
   if(was==="hinweisweg"){a2HinweisWeg();return}
+  if(was==="aufgabenalle"){a2AufgabenAlleUmschalten();return}
   // v3.218: "klassisch" gibt es nicht mehr - der Weg zurueck ist weg, weil
   // die Ansicht weg ist.
   // Alle folgenden oeffnen einen BEREICH: den vorhandenen Schirm der App,

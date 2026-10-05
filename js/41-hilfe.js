@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.256.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.257.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -65,6 +65,16 @@ und nicht oben.</p>`},
 <p>Hier steht, was <b>du persönlich</b> noch erledigen musst. Die Liste ist
 keine eigene Aufgabenverwaltung – sie entsteht direkt aus den Massaufnahmen
 und ihren Zuweisungen.</p>
+<p><b>Nach Projekt zusammengefasst</b> (ab 3.257): Was zum selben Objekt
+gehört, steht beieinander. Der Kopf nennt das Projekt, wie viele Aufgaben
+dort offen sind und ob etwas <b>dringend</b> ist. Ein Tipp darauf klappt das
+Projekt zu – dann bleibt nur diese eine Zeile stehen. <b>„Alle zuklappen"</b>
+im Kopf macht daraus die reine Übersicht; der Zustand bleibt auf diesem Gerät
+gemerkt, auch nach dem Neuladen.</p>
+<div class="hin">Die <b>Reihenfolge ändert sich dadurch nicht</b>: Dringendes
+steht weiterhin zuoberst. Ein Projekt steht dort, wo seine dringendste
+Aufgabe stünde – nicht alphabetisch. Gemerkt wird das <em>Zugeklappte</em>,
+deshalb ist eine neu dazukommende Baustelle immer offen.</div>
 <ul><li><b>Massaufnahme freigeben</b> – deine eigene Aufnahme ist noch nicht
 freigegeben.</li>
 <li><b>Erneut freigeben</b> – sie wurde nach der Freigabe geändert, die
