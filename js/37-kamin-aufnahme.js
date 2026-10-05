@@ -877,8 +877,8 @@ ${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 function kamaMasseHtml(){
  const a=kamA;
  const seitenWahl=a.getrennt?`<div class="bar" style="margin-top:8px">
-<button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-kam-skizze="l">Linke Seite</button>
-<button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-kam-skizze="r">Rechte Seite</button>
+<button type="button" class="${a.skizzeSeite!=="r"?"blue":"gray"}" data-kam-skizze="l">Linke Seite</button>
+<button type="button" class="${a.skizzeSeite==="r"?"blue":"gray"}" data-kam-skizze="r">Rechte Seite</button>
 </div>`:"";
  return kamaUebersichtHtml()+`<div class="info">Alle Masse in mm, längs des Dachs gemessen. Die
 beiden Winkel sind die, die am Bau abgegriffen werden: der Winkel <b>zwischen Dachfläche und

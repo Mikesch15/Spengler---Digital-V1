@@ -1001,15 +1001,15 @@ ${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
 function dfaMasseHtml(){
  const a=dfaA;
  const seitenWahl=a.getrennt?`<div class="bar" style="margin-top:8px">
-<button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-dfa-skizze="l">Linke Seite</button>
-<button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-dfa-skizze="r">Rechte Seite</button>
+<button type="button" class="${a.skizzeSeite!=="r"?"blue":"gray"}" data-dfa-skizze="l">Linke Seite</button>
+<button type="button" class="${a.skizzeSeite==="r"?"blue":"gray"}" data-dfa-skizze="r">Rechte Seite</button>
 </div>`:"";
  const knick=dfaMitKnick();
  // Bauart des Seitenteils. Die Wahl steht VOR den Massen, weil sie bestimmt,
  // welche Masse es ueberhaupt gibt (dfaMassGilt).
  const artWahl=`<div class="bar" style="margin-bottom:8px">
-<button type="button" class="gray${!knick?" blue":""}" data-dfa-seitenteil="separat">Separate Seitenteile</button>
-<button type="button" class="gray${knick?" blue":""}" data-dfa-seitenteil="knick">Mit Knick, durchgehend</button>
+<button type="button" class="${!knick?"blue":"gray"}" data-dfa-seitenteil="separat">Separate Seitenteile</button>
+<button type="button" class="${knick?"blue":"gray"}" data-dfa-seitenteil="knick">Mit Knick, durchgehend</button>
 </div>`;
  const laengeSatz=knick
   ?`Das Seitenteil läuft in <b>einem Stück</b> durch und bekommt einen Knick –
