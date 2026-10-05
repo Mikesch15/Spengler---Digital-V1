@@ -3,9 +3,54 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.253`
+- Aktueller Entwicklungsstand: `v3.254`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.254 — zwei gemeldete Fehler: der Ausdruck und die Fehlermeldung
+
+**1. Der Regierapport-Ausdruck trug die Projektseite oben drauf.** Gemeldet
+mit Bildschirmfoto: über dem Rapport standen auf Seite 1 die Register
+(Übersicht, Offerte, Massaufnahme …) und die Rapportliste.
+
+- **Ursache, gemessen:** `css/05-ansicht2.css` blendete im Druck nur `#a2Kopf`
+  und `#a2Leiste` aus — der Inhalt dazwischen (`#a2Inhalt`) blieb stehen,
+  **108 px hoch bei 1100 px Fensterbreite**. Seit v3.162 hält
+  `a2LeisteHalten()` (js/70) `#startScreen` absichtlich sichtbar, solange ein
+  Formular offen ist; am Bildschirm deckt der Rapport sie mit `position:fixed`
+  und z-index 30 zu, im Druck gibt es nichts zuzudecken, und `#startScreen`
+  steht im Quelltext **vor** `#reportScreen`.
+- **Nicht aus v3.251–253:** derselbe Zustand ist an `e3a1500` (v3.250)
+  nachgemessen worden, bevor etwas geändert wurde.
+- **Behoben:** im Druck geht der ganze `#a2Screen` aus, nicht nur seine zwei
+  Ränder. In ihm steht ausschliesslich Navigation.
+- **Warum es kein Prüfstand fand:** `pruefstand-edv-im-druck-v3-133` misst im
+  Druck, setzt dafür aber `startScreen.hidden=true` von Hand — einen Zustand,
+  den die App seit v3.162 nicht mehr herstellt. Der neue
+  `pruefstand-rapport-druck-v3-254` (16 Prüfungen) geht den echten Weg.
+
+**2. Die Fehlermeldung beim PDF-Import war rohes JSON.** Gemeldet:
+„Fehler bei der Erkennung: Server antwortete mit Status 502: Server antwortete
+mit Status 503: {"error":{"code":503,…}}" — dreimal derselbe Satzbau
+ineinander, zuunterst Englisch.
+
+- **Zwei Ursachen, beide behoben.** Die Edge Function reichte den Rohtext des
+  Anbieters durch; `recognizePhoto()` (js/17) stellte zusätzlich den eigenen
+  Vorsatz „Server antwortete mit Status N:" davor — daher die zweite
+  Schachtel.
+- **Jetzt:** ein deutscher Satz (überlastet, **nicht** am Dokument, wie oft
+  versucht, was zu tun). Der Rohtext steht in `detail`, für die Diagnose.
+  Dieselbe Regel wie seit v3.137 beim rohen Postgres-Text.
+- **Wiederholung länger:** 4 Versuche über ~17 s statt 3 über 2 s — der
+  gemeldete Engpass hat die zwei Sekunden überdauert. Das Budget trägt es
+  (belegter Erfolgswert 29,5 s, eigener Abbruch bei 90 s). Wiederholt wird
+  weiterhin **nur** bei 503/429.
+- **Edge Function `extract-offer-positions` ist als Version 24 deployt** und
+  gegen die Repo-Datei zeichengleich gegengelesen.
+- **Historie ausgelagert:** `index.ts` war 618 Zeilen, davon ~500 Changelog.
+  Sie steht jetzt in `HISTORIE.md` daneben. Grund: die Datei muss bei jeder
+  Änderung wortgetreu neu veröffentlicht werden — je kürzer, desto kleiner die
+  Gefahr beim Übertragen. In v19 ist genau so ein Unfall schon passiert.
 
 ### v3.253 — „Materialbestand" heisst „Material & Blech"
 

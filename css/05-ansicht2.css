@@ -330,8 +330,34 @@ html.dark .a2-h-info{border-color:#27475c}
 
 /* ---- Drucken ------------------------------------------------------------ */
 /* Der neue Rahmen gehoert auf kein Papier - gedruckt wird aus den
-   bestehenden Schirmen heraus, die ihre eigenen Druckregeln mitbringen. */
-@media print{#a2Kopf,#a2Leiste{display:none!important}}
+   bestehenden Schirmen heraus, die ihre eigenen Druckregeln mitbringen.
+ *
+ * v3.254 - GEMELDETER FEHLER: "Regierapport ausdruck stimmt nicht mehr".
+ * Auf Seite 1 standen ueber dem Rapport die Projekt-Register (Uebersicht,
+ * Offerte, Massaufnahme, ...) und die Rapportliste.
+ *
+ * Bis v3.254 nannte diese Regel nur #a2Kopf und #a2Leiste - den Kopf und die
+ * untere Leiste. Der INHALT dazwischen (#a2Inhalt) blieb stehen. Solange die
+ * App #startScreen beim Oeffnen des Rapports versteckte, fiel das nicht auf:
+ * dann war der ganze Rahmen ohnehin weg. Seit v3.162 haelt a2LeisteHalten()
+ * (js/70) #startScreen aber ABSICHTLICH sichtbar, solange ein Formular offen
+ * ist - sonst verschwaende die untere Leiste unter dem Rapport. Auf dem
+ * Bildschirm deckt der Rapport die Seite zu (position:fixed, z-index 30, in
+ * @media screen). Im Druck gibt es kein z-index-Zudecken: #a2Inhalt floss in
+ * die Seite, und zwar VOR dem Rapport, weil #startScreen im Quelltext vor
+ * #reportScreen steht.
+ *
+ * Geprueft bei 1100 px: #a2Inhalt war im Druck 108 px hoch statt 0.
+ *
+ * Gehoert wird deshalb der ganze Schirm ausgeblendet, nicht nur seine zwei
+ * Raender. In #a2Screen steht ausschliesslich die Navigation der App; nichts
+ * Druckbares liegt darin. Was wirklich gedruckt wird, steht in #reportScreen
+ * oder in einem eigenen Druckbereich (#abwDruck) - beide liegen daneben.
+ * Die Zeile gilt bewusst IMMER und nicht nur bei offenem Rapport: eine
+ * Navigation, die auf Papier nur dann nichts zu suchen hat, wenn gerade ein
+ * Dokument offen ist, waere eine Regel mit einer Ausnahme, die niemand
+ * kennt. */
+@media print{#a2Screen{display:none!important}}
 
 /* ==========================================================================
    EINSTELLUNGEN IM NEUEN AUSSEHEN  (v3.151)

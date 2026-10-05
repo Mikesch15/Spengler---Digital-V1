@@ -333,8 +333,23 @@ async function recognizePhoto(src){
  const text=await res.text();
  let data=null;
  try{data=JSON.parse(text)}catch{}
- if(!res.ok)throw new Error(`Server antwortete mit Status ${res.status}: ${(data&&data.error)||text.slice(0,300)||"unbekannter Fehler"}`);
- if(!data?.ok)throw new Error((data&&data.error)||"Erkennung fehlgeschlagen.");
+ // v3.254: Hat die Edge Function selbst einen lesbaren Satz geschickt, wird
+ // GENAU DER weitergereicht - ohne eigenen Vorsatz davor.
+ //
+ // GEMELDET, mit Bildschirmfoto: im Dialog stand "Fehler bei der Erkennung:
+ // Server antwortete mit Status 502: Server antwortete mit Status 503:
+ // {"error":{"code":503,...}}". Dreimal derselbe Satzbau ineinander
+ // geschachtelt, und zuunterst rohes JSON von Google. Zwei der drei Schichten
+ // entstanden HIER: diese Zeile stellte ihren eigenen Status-Vorsatz vor die
+ // Meldung, die der Server schon mitgeschickt hatte.
+ //
+ // Der technische Vorsatz bleibt fuer den Fall, dass gar keine lesbare
+ // Meldung kommt (eine HTML-Fehlerseite des Gateways, ein leerer Koerper) -
+ // dann ist die Statusnummer das Einzige, was man hat, und sie zu
+ // verschweigen waere schlechter als sie zu zeigen.
+ const satz=(data&&typeof data.error==="string"&&data.error.trim())?data.error.trim():"";
+ if(!res.ok)throw new Error(satz||`Server antwortete mit Status ${res.status}: ${text.slice(0,300)||"unbekannter Fehler"}`);
+ if(!data?.ok)throw new Error(satz||"Erkennung fehlgeschlagen.");
  return (data.positions||[]).map(p=>({
   pos:p.pos||"",
   description:p.description||"",

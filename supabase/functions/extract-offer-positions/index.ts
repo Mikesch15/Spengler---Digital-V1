@@ -1,379 +1,72 @@
 // Supabase Edge Function: extract-offer-positions
-// Accepts a data: URL or a public HTTP(S) image URL and sends the image to Gemini.
-// Gemini API key stays server-side in Supabase Secrets.
 //
-// v11: prompt text generalized to also cover PDF documents (possibly
-// multi-page) - the client can now send a "data:application/pdf;base64,..."
-// URL for a quote's PDF file (v3.39, js/63-angebote.js), not just a photo.
-// resolveImage() itself needed NO change: it already passes any data:-URL
-// through unmodified (only https?:// URLs are restricted to image/*), and
-// Gemini's inline_data accepts application/pdf the same way it accepts
-// image/*. The request/response contract is unchanged.
+// Nimmt eine data:-URL (Bild oder PDF) entgegen und laesst die Positionen
+// einer Offerte/Rechnung davon erkennen. Der API-Key bleibt serverseitig.
 //
-// v12: fixes a real production bug reported against a genuine, dense
-// Swiss NPK-format Offerte PDF (~90+ line-item positions across 13 pages).
-// Root cause, confirmed via edge logs (a real 502 at 2026-09-10T05:16:46Z)
-// plus direct inspection of the attached PDF: maxOutputTokens:3000 was far
-// too low for a document this size. At roughly 30-35 output tokens per
-// JSON position object, ~90 positions land almost exactly on that 3000
-// ceiling - Gemini's response gets cut off mid-array, JSON.parse() fails,
-// and the (unhelpful, misleading) generic "Antwort der KI konnte nicht als
-// Liste gelesen werden" error was shown, with no indication that the real
-// cause was simply "too many positions for the token budget".
-// Fix, in order of the project's usual layered-defense style (raise the
-// realistic ceiling first, then be honest if it's STILL not enough - never
-// silently guess/fabricate positions, see CLAUDE.md §78.5):
-//   1. maxOutputTokens raised from 3000 to 8192 (comfortably covers this
-//      real document's ~90 positions many times over: ~8192/33 ≈ 248
-//      positions of headroom).
-//   2. Gemini's finishReason is now read from the candidate. If parsing
-//      still fails AND finishReason==="MAX_TOKENS", the client gets an
-//      honest, specific, actionable message instead of the generic one -
-//      naming the real cause (too many positions, response cut off) and
-//      suggesting the document be split into smaller sections, rather than
-//      inventing or silently truncating a partial position list.
-// The success path (ok:true) and the request/response contract for a
-// normal-sized document are otherwise completely unchanged.
+// WARUM DIESE DATEI SO AUSSIEHT: die vollstaendige Begruendung jeder Fassung
+// von v11 bis v23 - gemeldeter Fehler, Befund, Entscheidung - steht in
+// HISTORIE.md im selben Ordner. Sie stand bis v3.253 hier als Kommentar und
+// machte rund 500 der 618 Zeilen aus. Diese Datei muss bei jeder Aenderung
+// wortgetreu neu veroeffentlicht werden (siehe unten); je kuerzer sie ist,
+// desto kleiner die Gefahr, dass dabei etwas verrutscht - in v19 ist genau
+// so ein Unfall schon einmal passiert.
 //
-// v13: the user asked "koennen wir das verbessern?" after confirming the
-// v12 fallback message works - i.e. can LARGE documents actually succeed
-// instead of merely failing cleanly. Researched (web search against
-// Google's own Gemini API docs/forum, since this sandbox cannot make a
-// live call to confirm empirically) rather than guessed:
-//   1. MODEL is a Gemini 3.x-generation flash model. Google's own forum
-//      explicitly documents: "Gemini 3 Flash and Flash-Lite also do not
-//      support full thinking-off" - i.e. on THIS model generation, some
-//      amount of invisible "thinking" token spend can eat into the very
-//      same maxOutputTokens budget that JSON.parse() needs, even though
-//      this extraction task is a mechanical table-read that needs no
-//      extended reasoning at all. That was an unaccounted-for token sink
-//      in v12: part of the "8192 tokens of headroom" may never have been
-//      available to the actual JSON array. Fix (AT THE TIME, later found
-//      wrong - see v14 below): thinkingConfig with thinkingBudget:0 was
-//      set explicitly, to minimize this as far as the model allows (even
-//      though the model may not honour a full 0).
-//   2. maxOutputTokens raised again, from 8192 to 65536 - not an arbitrary
-//      re-guess, but the documented ceiling for this Gemini generation
-//      (Google's docs: Gemini 2.5 Pro supports up to 65535/65536 output
-//      tokens; flash-tier models of the same generation share that
-//      ceiling). At ~33 tokens/position this gives roughly 1985 positions
-//      of headroom even before accounting for thinkingBudget:0 freeing up
-//      further room - i.e. comfortably beyond any realistic real-world
-//      Swiss Offerte, not just the one that was reported. This part of
-//      v13 was correct and stays unchanged in v14.
-// The MAX_TOKENS honest-fallback message from v12 stays in place
-// UNCHANGED as the safety net for the genuinely pathological case (see
-// CLAUDE.md §78.5: never silently truncate or fabricate positions) - it
-// should now just be extremely unlikely to ever trigger in practice.
-// Deliberately NOT built: PDF page-splitting/chunking across multiple
-// Gemini calls. That would be a materially larger, riskier piece of
-// infrastructure (a PDF-splitting library inside the Deno edge runtime,
-// multiple sequential calls, merge/dedupe logic, partial-failure
-// handling) for a problem that the single-call ceiling above already
-// covers with very wide margin for the actual domain (Swiss NPK Offerten
-// rarely exceed a few hundred positions) - see CLAUDE.md's own house
-// rule against building for a need that isn't concretely demonstrated.
+// WER DIESE DATEI AENDERT, MUSS SIE ERNEUT PER
+// mcp__Supabase__deploy_edge_function VEROEFFENTLICHEN - eine lokale
+// Aenderung allein hat keine Wirkung.
 //
-// v14: within minutes of the v13 deploy, real production use (a live
-// mobile session against the deployed app) surfaced a NEW, different
-// error: "Request contains an invalid argument" (a 502, from the
-// !res.ok branch below, i.e. Gemini's OWN API rejected the request
-// outright - this is not the MAX_TOKENS case, and this sandbox still
-// cannot make a live Gemini call to reproduce it directly). Researched
-// before touching the code again (never guess twice in a row):
-// Google's own developer forum and multiple independent, on-topic
-// GitHub issues (cline, kilocode, big-AGI) confirm, for the Gemini 3.x
-// model family that MODEL belongs to: (1) thinkingBudget:0 is REJECTED
-// outright by Gemini 3.x models with an explicit, matching error -
-// "Budget 0 is invalid. This model only works in thinking mode" -
-// because Gemini 3.x models cannot fully disable thinking; (2) Gemini
-// 3.x models generally expect the newer thinkingLevel field instead of
-// the older (Gemini-2.5-era) thinkingBudget field for controlling
-// reasoning effort - sending thinkingBudget to a Gemini 3 model is
-// itself the wrong field, independent of the value chosen. In short:
-// v13's thinkingConfig fix was itself the cause of the new error - the
-// v13 code comment above even flagged this exact uncertainty ("the
-// model may not honour a full 0") without yet knowing it would be
-// rejected outright rather than merely ignored.
-// Fix: thinkingConfig is removed entirely rather than replaced with an
-// unverified thinkingLevel value - CLAUDE.md's own house rule is to fix
-// only what is concretely broken and not introduce a second unverified
-// field on top of the first. maxOutputTokens:65536 (confirmed correct
-// above, and unaffected by this defect) is kept unchanged; Gemini 3.x's
-// default thinking behaviour now applies, drawing from the same 65536
-// budget as before v13 attempted to shrink it - the very large margin
-// already established in v12/v13 (headroom of well over a thousand
-// positions even before accounting for any thinking-token spend) more
-// than covers a real-world Swiss Offerte either way.
+// Die kurze Fassung dessen, was aus HISTORIE.md im Code steht:
+//   - maxOutputTokens 65536 (v13), thinkingLevel "LOW" (v15) - nicht
+//     thinkingBudget, das lehnen die Gemini-3.x-Modelle ab (v14).
+//   - Eigener Abbruch nach 90s (v18): ein belegter echter Erfolg brauchte
+//     29,5s, die Plattformgrenze liegt bei 150s auf diesem Plan.
+//   - MAX_TOKENS-Notfall (v12): lieber ehrlich sagen, dass das Dokument zu
+//     viele Positionen hat, als Positionen erfinden oder still abschneiden.
+//   - Der Prompt liest mehrzeilige Positionen zusammen (v16) und gibt
+//     Zwischentitel als eigenes Feld "abschnitt" zurueck (v20).
 //
-// v15: real production use of v14 (the same real, dense 13-page/90+-
-// position Offerte PDF, on the actual live mobile device) surfaced a
-// THIRD, again different failure: the raw browser error "Failed to
-// fetch" - a client/network-layer TypeError thrown by fetch() itself,
-// BEFORE any HTTP response is received (unlike v11/v12's 502s, which
-// did complete a round-trip and got logged server-side). Diagnosed via
-// Supabase's own function_edge_logs/edge_logs (not guessed): for both
-// production attempts under v14, a CORS OPTIONS preflight to this
-// function succeeded (200), but NO corresponding POST ever appears in
-// function_edge_logs at any status - the actual POST request never
-// reached this function at all. The immediately preceding step (the
-// client fetching the PDF's bytes from a Supabase Storage signed URL)
-// is independently confirmed to have succeeded first, so the failure is
-// specifically in the client's fetch() call to THIS function, not in
-// loading the PDF.
-// Researched rather than guessed (the direct, hard-learned lesson from
-// getting v13's thinkingConfig wrong twice in a row): "Failed to fetch"
-// is a well-documented symptom of the network connection failing or
-// being dropped before a response arrives - and mobile cellular
-// connections are documented to be materially less tolerant of a POST
-// left open for a long time than desktop connections. v14's default
-// (MEDIUM) thinking behaviour on this dense document is very likely
-// running considerably LONGER than the 14-33s execution times that were
-// actually logged under v11/v12 (which used thinkingBudget:0, however
-// ineffectively) - and that extra duration is the most plausible
-// explanation for why THIS specific real mobile session's connection
-// died with zero server-side trace, exactly matching every piece of log
-// evidence gathered.
-// Also researched (not assumed) rather than reusing v13's mistake:
-// Google's OWN current docs for gemini-3.6-flash confirm the model DOES
-// support the newer thinkingLevel field (LOW/MEDIUM/HIGH; MEDIUM is the
-// default), and explicitly recommend LOW for exactly this kind of task
-// - "fast transcript-focused searches or basic metadata extraction" -
-// which is precisely what reading a table of positions/quantities/units
-// out of a PDF is: a mechanical table-read, not multi-step reasoning.
-// (The docs also confirm thinkingLevel and thinkingBudget must never be
-// combined in one Gemini-3 request - not a concern here, since
-// thinkingBudget is not sent at all.)
-// Fix: thinkingLevel:"LOW" is added to generationConfig, to reduce
-// Gemini's actual processing time for this task (and so reduce how long
-// the client's fetch() has to stay open on an unreliable mobile
-// connection) - a verified, model-documented setting for this exact use
-// case, not a repeat of v13's unverified thinkingBudget:0 guess.
-// maxOutputTokens:65536 is unchanged; the MAX_TOKENS honest-fallback
-// message from v12 is unchanged.
+// v24: gemeldet am 05.10.2026 beim PDF-Import einer Offerte, mit
+// Bildschirmfoto. Im Dialog stand woertlich:
+//   "Fehler bei der Erkennung: Server antwortete mit Status 502: Server
+//    antwortete mit Status 503: {"error":{"code":503,"message":"This model
+//    is currently experiencing high demand. ...","status":"UNAVAILABLE"}}"
+// Also derselbe 503 wie in v22 - aber diesmal hat er ALLE drei Versuche aus
+// v22 ueberdauert (500ms + 1500ms = zusammen 2 Sekunden Wartezeit). Der
+// Engpass bei Google war laenger als zwei Sekunden; die Wiederholung war
+// richtig gedacht, aber zu kurz bemessen.
 //
-// v16: Folgeverbesserung, die der Betrieb schon waehrend der v11-v15-
-// Fehlerbehebung gemeldet hatte und die bewusst zurueckgestellt wurde,
-// bis die Erkennung ueberhaupt zuverlaessig durchlief (CLAUDE.md §147.9/
-// §148.9): die tatsaechlich ERKANNTEN Positionen waren fachlich
-// unvollstaendig, auch wenn kein technischer Fehler mehr auftrat. Zwei
-// konkrete, vom Betrieb genannte Symptome an echten NPK-Offerten:
-//   1. Je Position wurde nur die eine Zeile mit der Positionsnummer
-//      gelesen, nicht der ganze dazugehoerige Absatz. Eine reale
-//      Offerte-Position besteht oft aus mehreren Zeilen (Kurztitel,
-//      danach Fliesstext mit Material/Ausfuehrung/Massen), bevor
-//      Menge/Einheit/Preis stehen - die Folgezeilen wurden bisher
-//      stillschweigend nicht mit in "description" aufgenommen.
-//   2. Fett gedruckte Zwischentitel/Abschnittsueberschriften im PDF
-//      (z.B. "Bedachung", "Spenglerarbeiten Dach Nord") wurden von der
-//      bestehenden Anweisung "Ueberschriften ... NICHT als Position
-//      aufnehmen" ueberhaupt erfasst - das war beabsichtigt, sie sollen
-//      nicht als eigene Zeile erscheinen -, aber ihr fachlicher Kontext
-//      ging dabei vollstaendig verloren, statt an den darunterstehenden
-//      Positionen erhalten zu bleiben.
-// Architektonische Randbedingung (direkt am Code geprueft, nicht
-// angenommen): js/17-ausmass.js's recognizePhoto() - die EINE, von
-// js/63-angebote.js unveraendert wiederverwendete Konsumentenfunktion -
-// liest per .map() aus jeder Gemini-Antwort strikt genau die vier
-// Felder pos/description/quantity/unit heraus; jedes zusaetzliche
-// JSON-Feld wuerde dort stillschweigend verworfen. Eine Loesung durfte
-// deshalb kein neues Feld einfuehren und musste ohne jede Aenderung an
-// js/17-ausmass.js oder js/63-angebote.js auskommen (beide bleiben
-// unveraendert - CLAUDE.md's Grundsatz, geschuetzte Dateien nicht
-// anzufassen, wenn es nicht zwingend noetig ist).
-// Fix, ausschliesslich im Gemini-Prompt-Text: zwei neue, explizite
-// Anweisungen fuer das Feld "description", beide falten die fehlende
-// Information in dieses EINE bestehende Feld:
-//   1. Es wird jetzt ausdruecklich verlangt, alle zu einer Position
-//      gehoerenden Fliesstext-Zeilen bis zur naechsten Positionsnummer
-//      bzw. bis Menge/Einheit/Preis zu einem zusammenhaengenden Text zu
-//      verbinden, statt nur die erste Zeile zu lesen.
-//   2. Ein erkannter fett gedruckter Zwischentitel wird weiterhin NICHT
-//      als eigene Position ausgegeben (unveraendertes Verhalten), aber
-//      sein Text wird jetzt jeder darunterstehenden Position in
-//      "description" vorangestellt (getrennt durch " – "), bis ein
-//      neuer Zwischentitel folgt - der fachliche Zusammenhang bleibt
-//      dadurch erhalten, ohne ein neues Feld zu brauchen.
-// generationConfig (maxOutputTokens:65536, thinkingConfig:
-// {thinkingLevel:"LOW"}) ist unveraendert aus v15 uebernommen - dieser
-// Fix aendert ausschliesslich den Prompt-Text, nicht das Anfrageformat,
-// das Antwortformat, die Fehlerbehandlung oder den MAX_TOKENS-Notfall
-// aus v12.
+// ZWEI Aenderungen, beide am gemeldeten Bild gemessen:
 //
-// Diesen Quelltext gibt es seit v12 auch im Repo (dieselbe Uebung wie bei
-// extract-profile-shape) - vorher war er nur ueber
-// mcp__Supabase__get_edge_function abrufbar (CLAUDE.md §31.6/§144.3
-// dokumentiert das ausdruecklich als bekannte Luecke). Wer diese Datei
-// aendert, MUSS sie erneut per mcp__Supabase__deploy_edge_function
-// veroeffentlichen - eine lokale Aenderung allein hat keine Wirkung.
-
-// v17: ein produktiver 400er ("Kein gueltiges Bild/PDF uebergeben.") wurde
-// gemeldet, obwohl der zugrundeliegende Client-Fehler laengst behoben war -
-// js/17-ausmass.js's recognizePhoto() sendet seit einer lokalen, bisher
-// unveroeffentlichten Korrektur bereits body:{image:src}. Direkter
-// Abgleich per mcp__Supabase__get_edge_function ergab: die HIER im Repo
-// eingecheckte Datei war seit v12 strukturell veraltet und wich an mehreren
-// Stellen vom tatsaechlich live deployten Code ab - insbesondere las der
-// Server-Handler weiterhin body.image_base64 statt body.image. Nur der
-// Kommentar oben (dieser Changelog) war zutreffend und deckungsgleich mit
-// dem Live-Stand; der Code darunter war es nicht. Root Cause des vom
-// Nutzer gemeldeten Fehlers war deshalb ein reiner Feldnamen-Mismatch
-// zwischen dem (noch nicht committeten) Client-Fix und DIESER veralteten
-// Repo-Kopie - nicht dem tatsaechlich live laufenden Server, der bereits
-// body.image erwartete.
+// 1. WIEDERHOLUNG LAENGER: vier Versuche mit 2s, 5s und 10s Pause, zusammen
+//    rund 17 Sekunden. Das Zeitbudget traegt es: der eine belegte, echte
+//    Erfolgswert liegt bei 29,5s (v18), der eigene Abbruch bei 90s - 17s
+//    Warten plus 30s Erkennung sind 47s und damit weiterhin deutlich
+//    darunter. Noch laenger zu warten waere der falsche Tausch: wer vor dem
+//    Handy steht, soll nicht eine Minute auf eine Absage warten.
+//    Unveraendert bleibt, WANN wiederholt wird: nur bei 503 (UNAVAILABLE)
+//    und 429 (Rate-Limit). Ein echter, dauerhafter Fehler wird weiterhin
+//    sofort gemeldet.
 //
-// Ehrlich dokumentiert, weil es in dieser Sitzung selbst passiert ist:
-// der ERSTE Versuch, diese Datei mit dem Live-Stand in Deckung zu bringen,
-// war selbst unvollstaendig und hat die Datei kurzzeitig in einen
-// nicht lauffaehigen Zustand gebracht (ein bearbeiteter Kopfteil traf auf
-// unveraendert stehen gebliebenen alten Code darunter, der auf inzwischen
-// entfernte Bezeichner wie GEMINI_API_KEY/mimeType/base64Data verwies, dazu
-// eine offene geschweifte Klammer ohne zugehoeriges try). Das wurde beim
-// erneuten, vollstaendigen Gegenlesen dieser Datei noch in derselben
-// Sitzung gefunden, bevor irgendetwas deployt oder committet wurde - siehe
-// CLAUDE.md's Grundsatz, jede Aenderung tatsaechlich zu verifizieren statt
-// nur den eigenen vorherigen Schritt anzunehmen. Der folgende Code ist das
-// Ergebnis eines zweiten, vollstaendigen Abgleichs per
-// mcp__Supabase__get_edge_function gegen den bestaetigten Live-Stand v16 -
-// Zeile fuer Zeile, nicht nur der Kopfteil:
-//   - json() als benannte Funktion statt Arrow-Function (rein stilistisch,
-//     funktional identisch).
-//   - corsHeaders um "Access-Control-Allow-Methods": "POST, OPTIONS"
-//     ergaenzt.
-//   - resolveImage() gibt bei jedem Fehlschlag still null zurueck statt zu
-//     werfen (kein try/catch-Unterschied mehr zwischen Bild-Ladefehlern und
-//     echten Serverfehlern); Rueckgabeform {mimeType,data}|null statt
-//     {mimeType,base64Data}.
-//   - Deno.serve prueft die Methode jetzt explizit (405 "Nur POST
-//     erlaubt." fuer alles ausser POST/OPTIONS).
-//   - Das kritische Feld: body.image statt body.image_base64.
-//   - Fehlermeldung bei fehlendem Bild: "Kein gueltiges Bild/PDF
-//     uebergeben." statt "Kein Bild übermittelt." (entspricht exakt dem
-//     gemeldeten Fehlertext).
-//   - Der Gemini-Aufruf ist jetzt in einen AbortController mit 25s-Timeout
-//     gefasst; ein Abbruch liefert 504 "Zeitüberschreitung bei der
-//     Erkennung (25s)." statt eines haengenden Requests.
-//   - Der !res.ok-Zweig liest die Antwort jetzt als Rohtext (res.text(),
-//     auf 300 Zeichen gekuerzt) statt sie zwingend als JSON zu parsen -
-//     eine Nicht-JSON-Fehlerantwort von Gemini fuehrte vorher zu einem
-//     zusaetzlichen, verschleiernden Parse-Fehler.
-//   - Der Markdown-Codeblock-Trim vor JSON.parse(raw) ist entfallen (im
-//     Live-Code nie vorhanden - responseMimeType:"application/json"
-//     erzwingt bereits reines JSON ohne Codeblock-Huelle).
-//   - Der catch-Block unterscheidet jetzt AbortError (504) von jedem
-//     anderen Fehler (weiterhin 500).
-// generationConfig und der komplette Prompt-Text (inkl. der v16-Absatz-/
-// Zwischentitel-Logik) waren bereits identisch zum Live-Stand und bleiben
-// unveraendert.
+// 2. DER SATZ STATT DES ROHTEXTS: Bisher wurde die Antwort von Google
+//    woertlich durchgereicht - englisches JSON mit "code", "status" und
+//    "UNAVAILABLE". Daraus laesst sich nicht ablesen, was zu tun ist, und es
+//    sieht aus, als sei etwas am eigenen Dokument kaputt. Jetzt steht in
+//    "error" ein deutscher Satz: dass die Erkennung ueberlastet ist, dass es
+//    NICHT am Dokument liegt, wie oft es versucht wurde und was zu tun ist.
+//    Der Rohtext geht nicht verloren - er steht in "detail", fuer die
+//    Diagnose, nicht fuer den Dialog. Dieselbe Regel gilt in dieser App seit
+//    v3.137 fuer den rohen Postgres-Text beim doppelten Schluessel.
+//    Der Statuscode der Antwort ist fuer diesen Fall 503 statt 502: der
+//    Engpass liegt beim Anbieter, nicht an einem fehlerhaften Request.
 //
-// v18: gemeldet unmittelbar nach dem v17-Deploy: "jetzt gab es eine
-// zeitbegrenzung (25 sekunden) und wurde dan abgebrochen" - der in v17 neu
-// eingefuehrte 25s-AbortController (siehe oben) brach jetzt echte,
-// erfolgreiche, nur etwas laengere Erkennungen vorzeitig ab, statt nur
-// echte Haenger abzufangen.
-// Nicht geraten, sondern an zwei Belegen festgemacht:
-//   1. mcp__Supabase__query_logs gegen function_edge_logs dieser Funktion
-//      (Projekt nfgryuzkpwjfmdlmevuy) zeigt einen ECHTEN, erfolgreichen,
-//      nicht abgebrochenen Aufruf (deployment_id endet auf _15, POST|200,
-//      2026-09-10T10:40:35.803Z) mit exec_ms:"29485" - also 29,485
-//      Sekunden fuer eine tatsaechlich gelungene Erkennung. Unter dem
-//      damals live laufenden Stand _17 wurden dagegen zwei echte
-//      Produktivauftraege exakt vom neuen 25s-Timeout abgebrochen
-//      (POST|504, exec_ms:"25097" bzw. "25104") - beide liegen weit unter
-//      den bewiesenen 29,485s, die ein echter Erfolg braucht. 25s war
-//      damit nachweislich zu knapp bemessen, nicht nur vermutet.
-//   2. mcp__Supabase__search_docs gegen Supabases eigene Dokumentation
-//      ("Edge Function 'wall clock time limit reached'") bestaetigt die
-//      Plattform-Obergrenze selbst: 150 Sekunden Wall-Clock-Zeit auf dem
-//      Free-Plan, 400 Sekunden auf bezahlten Plans (eine getrennte,
-//      2-Sekunden-CPU-Aktivzeit-Grenze bindet eine I/O-lastige Funktion
-//      wie diese - sie wartet auf fetch(), nicht auf eigene Berechnung -
-//      nicht). mcp__Supabase__get_organization bestaetigt: dieses Projekt
-//      laeuft auf dem Free-Plan, also gilt hier die 150s-Obergrenze.
-// Fix: der eigene AbortController-Timeout wird von 25000ms auf 90000ms
-// (90 Sekunden) angehoben - keine erneute freihaendige Schaetzung, sondern
-// mit deutlichem, aber nicht ueberzogenem Sicherheitsabstand in beide
-// Richtungen gewaehlt: rund das Dreifache des einen belegten, echten
-// Erfolgswerts (29,485s) als Puffer nach oben, UND weiterhin 60 Sekunden
-// Abstand nach unten zur Plattform-Obergrenze von 150s auf diesem
-// Free-Plan-Projekt - damit der eigene, informative 504-Fehler zuverlaessig
-// VOR einem harten, unkontrollierten Plattform-Abbruch greift, statt mit
-// ihm zu wetteifern. Der passende Fehlertext im catch-Block ("(25s)") ist
-// entsprechend auf "(90s)" nachgezogen. Der MAX_TOKENS-Notfall aus v12, der
-// generische Fehlerpfad und der Erfolgspfad sind unveraendert.
+// DIE ZWEITE HAELFTE DES FEHLERS LAG IM CLIENT, nicht hier: recognizePhoto()
+// (js/17-ausmass.js) stellte vor JEDE Servermeldung noch den eigenen Vorsatz
+// "Server antwortete mit Status N:". Daher die zweite Schachtel im
+// Bildschirmfoto. Das ist in derselben Fassung (v3.254) behoben; festgehalten
+// in pruefstaende/pruefstand-erkennung-ueberlastet-v3-254.js.
 //
-// v19: kein fachlicher Fix, sondern ein offen dokumentierter eigener
-// Deploy-Fehler waehrend der Auslieferung von v18. Beim Beheben eines
-// ZodErrors von mcp__Supabase__deploy_edge_function (files[0] brauchte ein
-// "name"-Feld, es war nur "path" mitgegeben) wurde ein erster Testaufruf mit
-// files:[{"name":"index.ts","content":"PLACEHOLDER"}] abgesetzt - gedacht nur
-// als Formpruefung, ob der Parameter jetzt akzeptiert wird. Das Werkzeug hat
-// aber KEINEN Testmodus: der Aufruf hat den woertlichen Text "PLACEHOLDER"
-// sofort als echten, produktiven Funktionscode ausgeliefert (Supabase
-// meldete status:"ACTIVE", version:18). Innerhalb derselben Aktion bemerkt,
-// sofort durch einen zweiten Deploy mit dem echten, oben stehenden v18-Inhalt
-// korrigiert (version:19). Anhand der beiden updated_at-Zeitstempel
-// (1789071023140 bzw. 1789071103255) war die Funktion rund 80 Sekunden lang
-// mit reinem Platzhaltertext live - ohne dass in dieser Zeit eine eigene
-// Log-Abfrage lief, die eine tatsaechliche Auswirkung auf echte Anfragen
-// belegt oder ausschliesst. Fachlich aendert sich an v18 nichts; die Lehre:
-// deploy_edge_function niemals fuer eine reine Formpruefung mit
-// Platzhalterinhalt aufrufen, da es sofort produktiv wirkt.
-//
-// v20: Auftrag "die ganze liste der eingelesenen positionen sollte
-// einklappbar sein, die einzelnen abschnitte in der liste ebenfalls
-// (fettgeschriebene titel), preise und total duerfen hier auch stehen".
-// Damit js/63-angebote.js Abschnitte wirklich als eigene, klappbare Bloecke
-// darstellen kann, reicht das bisherige Verhalten aus v16 nicht mehr: dort
-// wurde ein fett gedruckter Zwischentitel nur in "description" hineingefaltet
-// (".. – .."), der fachliche Zusammenhang blieb also nur als Text erhalten,
-// nicht als eigenes, auswertbares Feld. Zwei neue, rein additive Felder:
-//   - "abschnitt": derselbe Zwischentitel wie bisher, jetzt aber als EIGENES
-//     Feld statt in "description" hineingefaltet - weiterhin KEINE eigene
-//     Zeile fuer den Titel selbst (unveraendert gegenueber v16).
-//   - "price": der Einzelpreis der Position, falls im Dokument lesbar
-//     (Swiss NPK-Offerten fuehren haeufig eine Preis-Spalte); wie bei
-//     "quantity" 0, wenn nicht lesbar oder nicht vorhanden - keine erfundene
-//     Zahl.
-// js/17-ausmass.js's recognizePhoto() (die eine, von js/63-angebote.js
-// unveraendert wiederverwendete Konsumentenfunktion, siehe v16-Kommentar
-// oben) wird IM SELBEN Arbeitsschritt um genau diese zwei Felder erweitert -
-// rein additiv, die bestehenden vier Felder (pos/description/quantity/unit)
-// und ihr Verhalten fuer die Ausmass-eigene Fotoerkennung sind unveraendert.
-// Alte, bereits gespeicherte Offerten ohne diese Felder zeigen client-seitig
-// einfach 0.00 bzw. keine Abschnittsueberschrift - kein Fehler, keine
-// Migration noetig (JSONB-Spalte "positions", kein Schema).
-// generationConfig, Timeout, Fehlerbehandlung und der MAX_TOKENS-Notfall aus
-// v12 sind unveraendert; nur der Prompt-Text und das JSON-Schema darin
-// aendern sich.
-//
-// v22: gemeldet "manchmal gehts und manchmal nicht" mit einem Screenshot
-// des tatsaechlichen Fehlers: "Server antwortete mit Status 502: Server
-// antwortete mit Status 503: {"error":{"code":503,"message":"This model is
-// currently experiencing high demand. Spikes in demand are usually
-// temporary. Please try again later.","status":"UNAVAILABLE"}}". Das ist
-// KEIN Fehler dieser Funktion oder des Requests, sondern Gemini meldet
-// selbst einen voruebergehenden Kapazitaetsengpass (von Google selbst als
-// "usually temporary" dokumentiert) - der bisherige Code hat diesen 503
-// beim ERSTEN Versuch ungeprueft als 502 an den Client durchgereicht, statt
-// es (wie von Google fuer genau diesen Fall empfohlen) einfach nochmals zu
-// versuchen.
-// Fix: bis zu 3 Versuche mit kurzer Pause dazwischen (500ms, dann 1500ms),
-// aber NUR bei Status 503 (UNAVAILABLE/ueberlastet) oder 429
-// (RESOURCE_EXHAUSTED/Rate-Limit) - beides von Google selbst als
-// transiente, wiederholungswuerdige Fehler dokumentiert. Ein echter,
-// dauerhafter Fehler (z.B. 400 bei einer fehlerhaften Anfrage, 401 bei
-// falschem Key) wird weiterhin sofort und unveraendert gemeldet - ein
-// erneuter Versuch wuerde daran nichts aendern und nur unnoetig Zeit
-// kosten. Alle Versuche teilen sich denselben AbortController/90s-Timeout
-// von oben (v18) - es entsteht kein zusaetzliches Zeitbudget, nur die
-// bereits vorhandene, grosszuegig bemessene Zeit wird besser genutzt statt
-// beim ersten Ueberlast-Fehler sofort aufzugeben. Ein echter 503 antwortet
-// erfahrungsgemaess sehr schnell (kein Haengen wie bei einer tatsaechlichen
-// Erkennung), das Zeitbudget fuer einen letzten, erfolgreichen Versuch
-// bleibt also praktisch vollstaendig erhalten.
-// Alles andere (Prompt, generationConfig, JSON-Parsing, MAX_TOKENS-Notfall,
-// Fehlermeldungen) ist unveraendert.
+// Prompt, generationConfig, Timeout, JSON-Parsing und der MAX_TOKENS-Notfall
+// aus v12 sind unveraendert.
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -478,7 +171,17 @@ Wichtig für "abschnitt":
 
     let res: Response | undefined;
     let errText = "";
-    const maxVersuche = 3;
+    // v24: vier Versuche mit 2s, 5s und 10s Pause - zusammen rund 17
+    // Sekunden Wartezeit statt der 2 Sekunden aus v22 (500ms + 1500ms).
+    // Begruendung, nicht geraten: der gemeldete Fall hat ALLE drei Versuche
+    // aus v22 ueberdauert, der Engpass bei Google war also laenger als zwei
+    // Sekunden. Das Zeitbudget traegt es: der eine belegte, echte Erfolgswert
+    // liegt bei 29,5s (siehe v18), der eigene Abbruch bei 90s - 17s Warten
+    // plus 30s Erkennung sind zusammen 47s und damit weiterhin deutlich
+    // darunter. Laenger zu warten waere der falsche Tausch: wer vor dem
+    // Handy steht, soll nicht eine Minute auf eine Absage warten.
+    const PAUSEN = [2000, 5000, 10000];
+    const maxVersuche = PAUSEN.length + 1;
     for (let versuch = 1; versuch <= maxVersuche; versuch++) {
       res = await fetch(geminiUrl, {
         method: "POST",
@@ -490,11 +193,39 @@ Wichtig für "abschnitt":
       errText = await res.text().catch(() => "");
       const ueberlastet = res.status === 503 || res.status === 429;
       if (!ueberlastet || versuch === maxVersuche) break;
-      await new Promise((resolve) => setTimeout(resolve, versuch === 1 ? 500 : 1500));
+      await new Promise((resolve) => setTimeout(resolve, PAUSEN[versuch - 1]));
     }
     clearTimeout(timeout);
 
     if (!res!.ok) {
+      // v24: Ein Ueberlastungsfehler wird in einem Satz gesagt, den der
+      // Spengler auf dem Dach lesen kann - nicht als rohes JSON von Google.
+      //
+      // GEMELDET, mit Bildschirmfoto: im Dialog stand woertlich
+      // 'Fehler bei der Erkennung: Server antwortete mit Status 502: Server
+      // antwortete mit Status 503: {"error":{"code":503,"message":"This
+      // model is currently experiencing high demand. ...","status":
+      // "UNAVAILABLE"}}'. Daraus laesst sich nicht ablesen, was zu tun ist,
+      // und es sieht aus, als sei etwas am eigenen Dokument kaputt - dabei
+      // ist es ein voruebergehender Engpass bei Google.
+      //
+      // Dieselbe Regel gilt in dieser App seit v3.137 fuer den rohen
+      // Postgres-Text beim doppelten Schluessel: ein Anwender bekommt die
+      // Fehlersprache eines fremden Systems nicht vorgesetzt. Der Rohtext
+      // geht nicht verloren, er steht in "detail" - fuer die Diagnose, nicht
+      // fuer den Dialog.
+      const ueberlastet = res!.status === 503 || res!.status === 429;
+      if (ueberlastet) {
+        const wartesumme = Math.round(PAUSEN.reduce((a, b) => a + b, 0) / 1000);
+        return json({
+          ok: false,
+          error: res!.status === 429
+            ? `Das Kontingent der Texterkennung ist im Moment ausgeschoepft. Die App hat es ${maxVersuche}-mal über rund ${wartesumme} Sekunden versucht. Bitte später nochmals auf „Erkennen“ tippen - am Dokument liegt es nicht.`
+            : `Die Texterkennung ist gerade überlastet. Das ist ein vorübergehender Engpass beim Anbieter und kein Fehler an deinem Dokument - die App hat es ${maxVersuche}-mal über rund ${wartesumme} Sekunden versucht. Bitte in ein paar Minuten nochmals auf „Erkennen“ tippen. Das PDF bleibt so lange hochgeladen, es muss nicht neu gewählt werden.`,
+          detail: `Status ${res!.status}: ${errText.slice(0, 300)}`,
+          versuche: maxVersuche,
+        }, 503);
+      }
       return json({ ok: false, error: `Server antwortete mit Status ${res!.status}: ${errText.slice(0, 300)}` }, 502);
     }
 
