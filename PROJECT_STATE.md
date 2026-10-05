@@ -3,9 +3,60 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.259`
+- Aktueller Entwicklungsstand: `v3.260`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.260 — der Schnitt der Dachfenstereinfassung
+
+Meldung des Anwenders zum Rüstblatt: „man sieht nicht sofort welches mass für
+welche länge steht. Die masslinien/masse überschneiden sich teilweise und
+stehen in der zeichnung drin."
+
+**1. Warum die Masse aufeinanderlagen.** Die Höhenbahnen der Bemassung standen
+in **Millimetern** (34, 72, 56, 28) und wurden deshalb mitskaliert. Bei einem
+langen Dachfenster schrumpften sie auf wenige Bildpunkte zusammen. Gemessen am
+Fall des Anwenders: `F = 100` und `D = 42` überlappten sich um 80 px². Jetzt
+stehen die Bahnen in **Bildpunkten**, und welches Mass in welche Bahn kommt,
+wird **gerechnet** statt eingetragen: jedes bekommt die unterste Bahn, in der
+es — samt Textbreite — keinem schon gesetzten Mass in die Quere kommt. Damit
+ist die Zeichnung bei *jeder* Masskombination überschneidungsfrei, nicht nur
+bei der, die ich beim Bauen vor Augen hatte.
+
+**2. Warum das niemand gemerkt hat.** `pruefstand-vermassung-v3-32` misst
+genau das — Beschriftung gegen Beschriftung, in echtem Chromium, über „alle
+zwölf Arten". Nur: in `faelle-druck.js` fehlte die **Dachfenstereinfassung**.
+Der Kopf der Datei behauptete „alle zwölf Arten", die Liste hatte elf. Der
+Prüfstand war grün, weil der Fall nie gezeichnet wurde. Beide Bauarten stehen
+jetzt drin; mit dem alten Code schlägt der Prüfstand fehl (gegengeprüft).
+
+**3. Was der Prüfstand nicht prüfte.** „Keine Masse direkt im Schnitt" war
+durch nichts abgedeckt. Neu: `pruefstand-dachfenster-schnitt-v3-260` misst den
+Hüllkasten der Blechlinien und hält jede Beschriftung dagegen — mit Gegenprobe
+(ein Text mitten im Rumpf *muss* gefunden werden, sonst misst die Probe nur
+nichts). Mit dem alten Code: `H = 130` steht mit 190 px² im Schnitt,
+`O / P = 10 / 12` mit 289 px².
+
+**4. Neue Bauart: durchgehendes Seitenteil mit Knick.** Auf Nachfrage
+entschieden: `B` ist dann die **ganze Länge**, `H` (Überlappung) und `I`
+entfallen. Aus acht Zuschnitten werden sechs. Die Bauart steht an **einer**
+Stelle (`dfaMassGilt`), auf die sich Formular, Kontrolle, Übersicht und
+Zeichnung gleichermassen beziehen. Vorgabe bleibt „separat", und eine Aufnahme
+ohne das Feld ist eine mit separaten Seitenteilen — jede gespeicherte Aufnahme
+verhält sich unverändert (eigene Probe).
+
+**5. Die verdeckte Oberkante begann zu weit vorne.** Sie war ab dem *Fuss* der
+Trapezschräge gestrichelt. Der Fuss liegt auf dem Dach (Höhe 0), die Oberkante
+auf Höhe `aufVorne` — dazwischen läuft die Schräge noch darunter durch und
+verdeckt nichts. Gestrichelt gehört sie erst ab der **Kreuzung**. Im geprüften
+Fall 620 mm statt 885 mm, also 265 mm zu früh.
+
+**6. Nebenbefund auf dem Rüstblatt.** Dort stand „Überlappung waagr. / senkr.
+0 / 0 mm" — `ueberlappungT` und `ueberlappungH` gibt es im Datenmodell der
+Dachfenstereinfassung gar nicht, sie kamen aus einer anderen Art. Die Zeile
+nennt jetzt die Bauart mit der tatsächlichen Überlappung. Ausserdem wurde
+`seitenteilArt` beim Speichern vergessen — ohne das Feld wäre jede mit Knick
+erfasste Aufnahme beim Öffnen still auf „separat" zurückgefallen.
 
 ### v3.259 — fünf rote Prüfstände, und sparsamer arbeiten
 
@@ -87,66 +138,6 @@ Dabei zweimal dieselbe Falle: ein Schnappschuss aus `querySelectorAll` wird
 durch das Neuzeichnen nach dem ersten Klick ungültig — die übrigen Elemente
 hängen nicht mehr im Dokument, ein Klick darauf tut nichts. Beide Stellen
 suchen jeden Kopf jetzt einzeln neu. Steht als Kommentar dort.
-
-### v3.257 — die Tagesaufgaben je Projekt, zuklappbar
-
-Ansage des Anwenders: „Fasse die tagesaufgaben auf der startseite pro projekt
-zusammen und mach die projekte zuklappbar."
-
-- `a2AufgabenNachProjekt()` (js/70) legt die Aufgaben **in der Reihenfolge von
-  js/45** in Eimer. Ein Projekt steht damit dort, wo seine dringendste Aufgabe
-  stünde — keine eigene Rangfolge, keine zweite Meinung darüber, was zuerst
-  drankommt. Das war die Zusage, die beim Gruppieren am leichtesten kaputtgeht;
-  `pruefstand-aufgaben-je-projekt-v3-257` Abschnitt B hält sie fest.
-- Der Gruppenkopf nennt Projekt, Anzahl und ob etwas dringend ist — genug, um
-  ohne Aufklappen zu entscheiden.
-- Zuklappen je Projekt, gemerkt in `localStorage` (`sd_a2AufgabenZu`).
-  Gemerkt wird das **Zugeklappte**: eine neu dazukommende Baustelle ist dadurch
-  von selbst offen.
-- `Alle zuklappen` / `Alle aufklappen` im Abschnittskopf, nur ab zwei Gruppen.
-
-**Voreingestellt ist aufgeklappt — gemessen, nicht geraten.** Am 5.10.2026
-standen in der Produktionsdatenbank **7 offene Aufgaben auf 4 Projekten**, im
-Schnitt 1,8 je Projekt. Alles zuzuklappen hätte kaum etwas verborgen und jeden
-Handgriff einen Tipp teurer gemacht.
-
-**An den Aufgaben selbst ändert sich nichts** — dieselben Zeilen, dieselben
-`data`-Marken, derselbe Weg nach js/45. Abschnitt F prüft das, samt der
-Gegenprobe, dass ein Tipp auf den Gruppenkopf **keine** Aufgabe ausführt
-(beide liegen in derselben Liste und tragen data-Marken).
-
-**Dabei eine Prüfung geschärft statt umgangen:** `ansicht2-v3-150` F1 hält
-fest, dass js/70 nichts in die Datenbank schreibt — suchte das aber per
-Textsuche nach `.delete(` und schlug deshalb bei `Set.delete()` an. Sie prüft
-jetzt den Supabase-Weg (`sb.from(`), mit Gegenprobe F1a, dass ein echter
-Schreibweg weiterhin gefunden würde.
-
-### v3.256 — Korrektur an v3.254: die Statusnummer gehört nicht ganz weg
-
-Die volle Regression hat gefunden, was ich in v3.254 zu weit korrigiert habe.
-`pruefstand-angebote-v3-34` hält seit v3.34 fest: ein HTTP-Fehler der Edge
-Function **nennt seinen Status** und scheitert nicht still. v3.254 liess die
-Nummer ganz weg, sobald eine lesbare Meldung da war.
-
-**Gemeldet war die Schachtelung, nicht die Zahl** („Server antwortete mit
-Status 502: Server antwortete mit Status 503: {rohes JSON}"). Beides ist jetzt
-erfüllt: der lesbare Satz zuerst, die Nummer als Anhang —
-`… nochmals auf „Erkennen" tippen. (Status 503)`.
-
-Beide Prüfstände sind **umgestellt, nicht abgeschwächt**:
-- `angebote-v3-34`: prüft jetzt, dass die Zahl da ist **und** nach dem Satz
-  steht, plus die Gegenprobe, dass kein zweiter Status-Vorsatz im ersten
-  steckt — genau das war gemeldet.
-- `erkennung-ueberlastet-v3-254`: A4b/A4c halten die neue Stellung fest.
-
-**Offen angemerkt:** `js/17-ausmass.js` steht in `angebote-v3-34` auf einer
-„nicht anzufassen"-Liste aus v3.34. Die Änderung dort war nötig —
-`recognizePhoto()` ist die eine Stelle, die alle vier Erkennungswege benutzen;
-sie in js/63 zu überschreiben wäre eine zweite Wahrheit. Zu wissen ist dabei:
-diese Prüfung liest `git diff HEAD`, sieht also **nur den offenen Arbeitsbaum**
-und ist nach jedem Commit wieder grün. Sie ist ein Schutz während einer
-Änderung, keine dauerhafte Zusicherung über die Historie. Was wirklich schützt,
-steht daneben und bleibt grün: `recognizePhoto` ist im ganzen Repo ein Unikat.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

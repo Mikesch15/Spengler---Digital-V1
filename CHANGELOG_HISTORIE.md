@@ -33078,3 +33078,63 @@ die die eine Ansicht zugunsten der anderen ausblendeten.
   haben sich geändert" (acht Aufrufe in js/45, einer in js/07; js/70 hängt sich
   daran).
 
+
+### v3.257 — die Tagesaufgaben je Projekt, zuklappbar
+
+Ansage des Anwenders: „Fasse die tagesaufgaben auf der startseite pro projekt
+zusammen und mach die projekte zuklappbar."
+
+- `a2AufgabenNachProjekt()` (js/70) legt die Aufgaben **in der Reihenfolge von
+  js/45** in Eimer. Ein Projekt steht damit dort, wo seine dringendste Aufgabe
+  stünde — keine eigene Rangfolge, keine zweite Meinung darüber, was zuerst
+  drankommt. Das war die Zusage, die beim Gruppieren am leichtesten kaputtgeht;
+  `pruefstand-aufgaben-je-projekt-v3-257` Abschnitt B hält sie fest.
+- Der Gruppenkopf nennt Projekt, Anzahl und ob etwas dringend ist — genug, um
+  ohne Aufklappen zu entscheiden.
+- Zuklappen je Projekt, gemerkt in `localStorage` (`sd_a2AufgabenZu`).
+  Gemerkt wird das **Zugeklappte**: eine neu dazukommende Baustelle ist dadurch
+  von selbst offen.
+- `Alle zuklappen` / `Alle aufklappen` im Abschnittskopf, nur ab zwei Gruppen.
+
+**Voreingestellt ist aufgeklappt — gemessen, nicht geraten.** Am 5.10.2026
+standen in der Produktionsdatenbank **7 offene Aufgaben auf 4 Projekten**, im
+Schnitt 1,8 je Projekt. Alles zuzuklappen hätte kaum etwas verborgen und jeden
+Handgriff einen Tipp teurer gemacht.
+
+**An den Aufgaben selbst ändert sich nichts** — dieselben Zeilen, dieselben
+`data`-Marken, derselbe Weg nach js/45. Abschnitt F prüft das, samt der
+Gegenprobe, dass ein Tipp auf den Gruppenkopf **keine** Aufgabe ausführt
+(beide liegen in derselben Liste und tragen data-Marken).
+
+**Dabei eine Prüfung geschärft statt umgangen:** `ansicht2-v3-150` F1 hält
+fest, dass js/70 nichts in die Datenbank schreibt — suchte das aber per
+Textsuche nach `.delete(` und schlug deshalb bei `Set.delete()` an. Sie prüft
+jetzt den Supabase-Weg (`sb.from(`), mit Gegenprobe F1a, dass ein echter
+Schreibweg weiterhin gefunden würde.
+
+### v3.256 — Korrektur an v3.254: die Statusnummer gehört nicht ganz weg
+
+Die volle Regression hat gefunden, was ich in v3.254 zu weit korrigiert habe.
+`pruefstand-angebote-v3-34` hält seit v3.34 fest: ein HTTP-Fehler der Edge
+Function **nennt seinen Status** und scheitert nicht still. v3.254 liess die
+Nummer ganz weg, sobald eine lesbare Meldung da war.
+
+**Gemeldet war die Schachtelung, nicht die Zahl** („Server antwortete mit
+Status 502: Server antwortete mit Status 503: {rohes JSON}"). Beides ist jetzt
+erfüllt: der lesbare Satz zuerst, die Nummer als Anhang —
+`… nochmals auf „Erkennen" tippen. (Status 503)`.
+
+Beide Prüfstände sind **umgestellt, nicht abgeschwächt**:
+- `angebote-v3-34`: prüft jetzt, dass die Zahl da ist **und** nach dem Satz
+  steht, plus die Gegenprobe, dass kein zweiter Status-Vorsatz im ersten
+  steckt — genau das war gemeldet.
+- `erkennung-ueberlastet-v3-254`: A4b/A4c halten die neue Stellung fest.
+
+**Offen angemerkt:** `js/17-ausmass.js` steht in `angebote-v3-34` auf einer
+„nicht anzufassen"-Liste aus v3.34. Die Änderung dort war nötig —
+`recognizePhoto()` ist die eine Stelle, die alle vier Erkennungswege benutzen;
+sie in js/63 zu überschreiben wäre eine zweite Wahrheit. Zu wissen ist dabei:
+diese Prüfung liest `git diff HEAD`, sieht also **nur den offenen Arbeitsbaum**
+und ist nach jedem Commit wieder grün. Sie ist ein Schutz während einer
+Änderung, keine dauerhafte Zusicherung über die Historie. Was wirklich schützt,
+steht daneben und bleibt grün: `recognizePhoto` ist im ganzen Repo ein Unikat.
