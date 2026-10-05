@@ -499,7 +499,16 @@ function anbSaum(pVor, pEnde, laenge, X, Y) {
 // rechts ausgewichen lag "M = 120" genau auf der Fuehrungslinie der
 // Abdeckkappe. Ohne "mitte" bleibt es bei rechts - so zeichnen die uebrigen
 // Arten unveraendert weiter.
-const ANB_TEXT_LUFT = 10;      // Mindestabstand der Zahl zu den Hilfslinien
+// Wieviel Luft die Zahl zwischen den Hilfslinien braucht, um dort zu bleiben.
+// 4 Bildpunkte, nicht mehr: die Zahl traegt ohnehin einen weissen Rand von
+// stroke-width 3.5 (gut 1,7 Punkte je Seite), der sie von einer Linie
+// abhebt, die sie beruehrt. Grosszuegiger gerechnet wandern auch Masse nach
+// aussen, die gut hineinpassen - mit 10 rutschte "Q = 100" (59 Punkte Zahl in
+// 66 Punkten Platz) hinaus und stiess dort mit der Fahne am Aufbug zusammen.
+// Ob die Zahl am Ende wirklich frei steht, misst Probe A3 in
+// pruefstand-dachfenster-schnitt-v3-260: Textkiste gegen jede gezeichnete
+// Strecke.
+const ANB_TEXT_LUFT = 4;
 function anbMassTextLage(px1, px2, text, groesse, mitte) {
   const g = groesse || 15, br = String(text).length * g * 0.56;
   const l = Math.min(px1, px2), r = Math.max(px1, px2);

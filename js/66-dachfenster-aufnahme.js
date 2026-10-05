@@ -532,8 +532,12 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  // Kurze Masse zuerst: sie sind oertlich und gehoeren nah an die Zeichnung,
  // die langen wandern nach aussen. Sonst legt sich ein langes Mass ins erste
  // Band und draengt jedes kurze eine Stufe hoeher.
- const baenderSetzen=liste=>{
+ // Kurze Masse zuerst: sie sind oertlich und gehoeren nah an die Zeichnung,
+ // die langen wandern nach aussen. Sonst legt sich ein langes Mass ins erste
+ // Band und draengt jedes kurze eine Stufe hoeher.
+ const baenderSetzen=(liste,vorbelegt)=>{
   const belegt=[];
+  (vorbelegt||[]).forEach(v=>{(belegt[v.band]=belegt[v.band]||[]).push({l:v.l,r:v.r})});
   liste.slice().sort((p1,p2)=>(p1.r-p1.l)-(p2.r-p2.l)).forEach(e=>{
    let i=0;
    while(belegt[i]&&belegt[i].some(z=>e.l<z.r&&e.r>z.l))i++;
@@ -542,6 +546,22 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
   });
   return liste;
  };
+ // Die senkrechten Masse werden ZUERST festgelegt, aber erst spaeter
+ // gezeichnet. Grund: passt die Zahl eines senkrechten Masses nicht zwischen
+ // ihre Pfeile, steht sie DARUEBER - und damit im selben Luftraum, den sich
+ // die Baender teilen. Wer dort einteilt, muss davon wissen, sonst stellt er
+ // eine Fahne genau dorthin. Gemessen: "S = 35 · 90° / T = 15" lag mit 48 px2
+ // auf "Q = 100", gefunden von pruefstand-vermassung-v3-32.
+ const xLinks=Math.min(0,F1[0],Fu1[0]), xRechts=Math.max(L+D,E0[0]);
+ const saumDa=saum>0&&saum<av;
+ const senkrechte=[];
+ if(saumDa)senkrechte.push({y1:0,y2:av-saum,x:xLinks-32/sk,
+  text:dfaBuchstabe("saumVorne")+" = "+zahl(saum)});
+ senkrechte.push({y1:0,y2:av,x:xLinks-(saumDa?82:32)/sk,
+  text:dfaBuchstabe("aufVorne")+" = "+zahl(av)});
+ senkrechte.push({y1:0,y2:ah,x:xRechts+32/sk,
+  text:dfaBuchstabe("aufHinten")+" = "+zahl(ah)});
+
  // Oben beginnt ueber der hoechsten Aufbordung, unten unter dem Anreiff -
  // der taucht unter das Dach, darunter darf kein Mass liegen.
  const yOben=Math.max(av,ah), yUnten=Math.min(0,anreiff>0?Fu1[1]:0);
@@ -557,11 +577,10 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  if(!mitKnick&&C>0)oben.push(massEintrag(knickVorne,L,dfaBuchstabe("c")+" = "+zahl(C)));
  if(strichDa)oben.push(fahneEintrag(Rs[0],ah,54,
   dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" = "+zahl(randAbstand)+" / "+zahl(randStrich)));
- // Die Fahne am Aufbug zeigt SENKRECHT nach oben (dx = 0), nicht nach links.
- // Gemessen: nach links landete ihr Text im selben waagerechten Bereich wie
- // der der Abdeckkappe, beide wurden dadurch je ein Band hoeher geschoben
- // (Textlagen -43 und -9 statt -9 und +25). Senkrecht stehen sie nebeneinander
- // und die Zeichnung kommt mit einem Band weniger aus.
+ // Die Fahne am Aufbug zeigt SENKRECHT nach oben. Nach links griff ihr Text
+ // weit nach vorne (153 Bildpunkte breit) und lag dann unter der
+ // Fuehrungslinie der Abdeckkappe; senkrecht steht er ueber seinem eigenen
+ // Punkt und kommt niemandem in die Quere.
  if(E>0)oben.push(fahneEintrag(E1[0],E1[1],0,
   dfaBuchstabe("e")+" = "+zahl(E)+" · 90°"+(eUmschlag>0?" / "+dfaBuchstabe("eUmschlag")+" = "+zahl(eUmschlag):"")));
  if(A>0)unten.push(massEintrag(-A,0,dfaBuchstabe("a")+" = "+zahl(A)));
@@ -580,7 +599,19 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
   g+=anbFahne(e.x,e.y,e.dx,dy,e.text,X,Y);
   merkFahne(e.x,e.y,e.dx,dy,e.text);
  };
- baenderSetzen(oben).forEach(e=>zeichneBand(e,obenY(e.band),false));
+ // Welche Baender eine herausgerueckte senkrechte Zahl verdeckt: jedes, dessen
+ // Hoehe in ihren Textkasten faellt. Q reicht ueber zwei Baender, nicht nur
+ // ueber das erste - deshalb wird gerechnet statt "das unterste" angenommen.
+ const sperren=[];
+ senkrechte.forEach(m=>{
+  const lage=anbMassTextLageSenk(Y(m.y1),Y(m.y2),m.text,15);
+  if(lage.o>=Math.min(Y(m.y1),Y(m.y2)))return;      // Zahl steht zwischen den Pfeilen
+  for(let i=0;i<12;i++){
+   const by=Y(obenY(i));
+   if(by<=lage.u+8&&by>=lage.o-8)sperren.push({band:i,l:X(m.x)-16,r:X(m.x)+16});
+  }
+ });
+ baenderSetzen(oben,sperren).forEach(e=>zeichneBand(e,obenY(e.band),false));
  baenderSetzen(unten).forEach(e=>zeichneBand(e,untenY(e.band),true));
 
  // Senkrechte Masse: links die beiden vorderen Hoehen, rechts die hintere.
@@ -590,14 +621,9 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  // liegen zwischen den beiden linken Massen 50 Punkte: bei 42 blieben zwischen
  // dem Ende der einen Hilfslinie und dem Anfang der naechsten Zahl nur 8
  // Punkte - gemessen, nicht geschaetzt.
- const xLinks=Math.min(0,F1[0],Fu1[0]), xRechts=Math.max(L+D,E0[0]);
- const senkMass=(y1,y2,x,text)=>{
-  g+=anbMassSenk(y1,y2,x,text,X,Y); merkMassSenk(y1,y2,x,text);
- };
- const saumDa=saum>0&&saum<av;
- if(saumDa)senkMass(0,av-saum,xLinks-32/sk,dfaBuchstabe("saumVorne")+" = "+zahl(saum));
- senkMass(0,av,xLinks-(saumDa?82:32)/sk,dfaBuchstabe("aufVorne")+" = "+zahl(av));
- senkMass(0,ah,xRechts+32/sk,dfaBuchstabe("aufHinten")+" = "+zahl(ah));
+ senkrechte.forEach(m=>{
+  g+=anbMassSenk(m.y1,m.y2,m.x,m.text,X,Y); merkMassSenk(m.y1,m.y2,m.x,m.text);
+ });
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
  // Die Bauart gehoert in die Fusszeile: an der Zeichnung allein ist sie nur
