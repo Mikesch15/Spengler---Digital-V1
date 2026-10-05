@@ -3,9 +3,53 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.260`
+- Aktueller Entwicklungsstand: `v3.261`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.261 — die Wahl war unsichtbar, kurze Masse app-weit
+
+Zwei Meldungen des Anwenders zu v3.260: „wo kann jetzt mit oder ohne knick
+ausgewählt werden? Ich sehe es nirgends." und, zugesagt, die kurzen Masse
+app-weit.
+
+**1. Die Wahl war da, aber nicht zu sehen.** Die beiden Knöpfe standen seit
+v3.260 oben im Register *Fenstermasse*. Nur: `class="gray blue"` ergibt
+**grau**. In `css/01-basis.css` steht `.blue` auf Zeile 27, `.gray` auf Zeile
+29, gleiche Spezifität — die spätere gewinnt. Beide Knöpfe sahen identisch
+aus, und zwei gleiche graue Knöpfe liest niemand als Wahl. Es wird jetzt nur
+noch **eine** Klasse gesetzt. Dieselbe Stelle steckte in *Linke Seite / Rechte
+Seite* bei Dachfenster **und** Kamin — drei Schalterpaare, seit jeher ohne
+ablesbaren Zustand. Eine Probe über alle `js/`-Dateien hält fest, dass kein
+Knopf beide Klassen zugleich trägt.
+
+**2. Kurze Masse, app-weit.** Ist ein Mass kürzer als seine eigene Zahl —
+`D = 42` über 17 Bildpunkten, die Zahl braucht 50 — stand sie trotzdem mittig
+und ragte beidseitig über die Masshilfslinien hinaus, die sie dann
+durchstrichen. Die Regel steht jetzt in `anbMassTextLage` /
+`anbMassTextLageSenk` in `js/20` und gilt damit für **alle zwölf Arten**:
+passt die Zahl, bleibt sie mittig; passt sie nicht, rückt sie daneben.
+
+**Auf welche Seite**, entscheidet die Mitte der Zeichnung: nach innen. Der
+erste Anlauf wich immer nach rechts aus — damit lag `M = 120` genau auf der
+Führungslinie der Abdeckkappe. Aussen sitzen Kanten, Aufbüge und Fahnen; nach
+aussen auszuweichen legt die Zahl in den vollsten Teil des Bildes.
+
+**Dieselbe Funktion liefert auch den belegten Platz**, und die Bandzuteilung in
+`js/66` rechnet damit statt mit einer eigenen Annahme. Rechnete sie weiter
+„immer mittig", teilte sie nach einer Lage ein, die die Zeichnung gar nicht
+mehr benutzt.
+
+**3. Gemessen.** Vorher wurden in der Dachfenster-Zeichnung **sechs** Zahlen
+von Linien durchschnitten (M, H, C, D, F, Q), jetzt keine. Die neue Probe A3
+im Prüfstand schneidet jede Textkiste gegen jede gezeichnete Strecke
+(Liang-Barsky) und hat eine Gegenprobe; A prüft Zahl gegen Schnitt, A2 Linie
+gegen Linie — A3 schliesst die Lücke dazwischen, in die `M = 120` gefallen war.
+
+**Nebenbei korrigiert:** die Gegenprobe in A setzte den Probetext in die Mitte
+des Bildausschnitts. Die lag anfangs bequem im Rumpf und rutschte heraus,
+sobald die Bänder aussen herum wuchsen — ab da hätte die Gegenprobe nur noch
+sich selbst geprüft. Sie hängt jetzt am Mittelpunkt einer echten Blechlinie.
 
 ### v3.260 — der Schnitt der Dachfenstereinfassung
 
@@ -95,49 +139,6 @@ festgehalten, mit den gemessenen Zahlen:
 `CLAUDE.md` wuchs dabei netto um 1 556 Zeichen — die neue Regel kam dazu,
 zwei doppelte Regeln fielen weg. Das sind ~400 Token je Sitzung, gegen
 ~13 000 gesparte je PROJECT_STATE-Lektüre.
-
-### v3.258 — die Aufgabenliste startet zugeklappt
-
-Ansage des Anwenders: „Drehe es um, so dad zugeklappt standart ist."
-
-In v3.257 war die Vorgabe **aufgeklappt**, begründet mit einer Messung (7
-offene Aufgaben auf 4 Projekte, im Schnitt 1,8 — da verbirgt Zuklappen wenig).
-Die Messung stimmt weiterhin; sie beantwortet aber nur, wie **viel** auf dem
-Schirm steht, nicht, wie der Betrieb morgens arbeiten will. Das entscheidet
-der Anwender, und er hat entschieden. Die Zahl steht weiter im Code — als
-Nachvollziehbarkeit, nicht als Gegenargument.
-
-**Mit der Vorgabe dreht sich das Gemerkte.** Bei „zugeklappt ist Standard"
-muss gemerkt werden, was jemand **geöffnet** hat; das Zugeklappte zu merken
-wäre wirkungslos, es ist ja ohnehin alles zu. Aus `a2AufgabenZu` wird
-`a2AufgabenAuf`.
-
-**Der localStorage-Schlüssel ist ein neuer** (`sd_a2AufgabenAuf`), und der
-alte (`sd_a2AufgabenZu`) wird beim Laden einmal weggeräumt. Das ist der Punkt,
-an dem es sonst still schiefgegangen wäre: die alte Liste steht in jedem
-Browser, der v3.257 geladen hat, und bedeutet das **Gegenteil** — unter dem
-neuen Namen weitergelesen hätte sie genau die Projekte aufgeklappt, die der
-Anwender zugeklappt hatte. `pruefstand-aufgaben-je-projekt-v3-257` C9 hält das
-fest.
-
-Der Prüfstand ist durchgehend **umgestellt, nicht abgeschwächt** (30 statt 27
-Prüfungen): C1/C1a/C1b auf die neue Vorgabe, C8 auf die umgekehrte
-Merk-Richtung, E auf die umgekehrte Knopfbeschriftung. Abschnitt B klappt für
-die Reihenfolgemessung ausdrücklich auf und setzt danach auf die Vorgabe
-zurück — sonst hätte er C den Zustand vorweggenommen.
-
-**Zwei weitere Prüfstände mussten mit**, beide aus demselben Grund (sie messen
-Aufgaben*zeilen*, und die sind jetzt zugeklappt). Beide **erweitert, nicht
-angepasst**:
-- `ansicht2-v3-150` B5: klappt über den echten Weg auf und prüft die alte
-  Zusage dort; neu B5a (zugeklappt steht keine Zeile da) und B5c (dafür nennt
-  jeder Kopf seine Anzahl) als Gegenproben zur neuen Vorgabe.
-- `bereiche-v3-156` H: klappt vor der Breitenmessung auf.
-
-Dabei zweimal dieselbe Falle: ein Schnappschuss aus `querySelectorAll` wird
-durch das Neuzeichnen nach dem ersten Klick ungültig — die übrigen Elemente
-hängen nicht mehr im Dokument, ein Klick darauf tut nichts. Beide Stellen
-suchen jeden Kopf jetzt einzeln neu. Steht als Kommentar dort.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

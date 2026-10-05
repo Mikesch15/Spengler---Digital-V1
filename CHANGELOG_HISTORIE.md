@@ -33138,3 +33138,46 @@ diese Prüfung liest `git diff HEAD`, sieht also **nur den offenen Arbeitsbaum**
 und ist nach jedem Commit wieder grün. Sie ist ein Schutz während einer
 Änderung, keine dauerhafte Zusicherung über die Historie. Was wirklich schützt,
 steht daneben und bleibt grün: `recognizePhoto` ist im ganzen Repo ein Unikat.
+
+### v3.258 — die Aufgabenliste startet zugeklappt
+
+Ansage des Anwenders: „Drehe es um, so dad zugeklappt standart ist."
+
+In v3.257 war die Vorgabe **aufgeklappt**, begründet mit einer Messung (7
+offene Aufgaben auf 4 Projekte, im Schnitt 1,8 — da verbirgt Zuklappen wenig).
+Die Messung stimmt weiterhin; sie beantwortet aber nur, wie **viel** auf dem
+Schirm steht, nicht, wie der Betrieb morgens arbeiten will. Das entscheidet
+der Anwender, und er hat entschieden. Die Zahl steht weiter im Code — als
+Nachvollziehbarkeit, nicht als Gegenargument.
+
+**Mit der Vorgabe dreht sich das Gemerkte.** Bei „zugeklappt ist Standard"
+muss gemerkt werden, was jemand **geöffnet** hat; das Zugeklappte zu merken
+wäre wirkungslos, es ist ja ohnehin alles zu. Aus `a2AufgabenZu` wird
+`a2AufgabenAuf`.
+
+**Der localStorage-Schlüssel ist ein neuer** (`sd_a2AufgabenAuf`), und der
+alte (`sd_a2AufgabenZu`) wird beim Laden einmal weggeräumt. Das ist der Punkt,
+an dem es sonst still schiefgegangen wäre: die alte Liste steht in jedem
+Browser, der v3.257 geladen hat, und bedeutet das **Gegenteil** — unter dem
+neuen Namen weitergelesen hätte sie genau die Projekte aufgeklappt, die der
+Anwender zugeklappt hatte. `pruefstand-aufgaben-je-projekt-v3-257` C9 hält das
+fest.
+
+Der Prüfstand ist durchgehend **umgestellt, nicht abgeschwächt** (30 statt 27
+Prüfungen): C1/C1a/C1b auf die neue Vorgabe, C8 auf die umgekehrte
+Merk-Richtung, E auf die umgekehrte Knopfbeschriftung. Abschnitt B klappt für
+die Reihenfolgemessung ausdrücklich auf und setzt danach auf die Vorgabe
+zurück — sonst hätte er C den Zustand vorweggenommen.
+
+**Zwei weitere Prüfstände mussten mit**, beide aus demselben Grund (sie messen
+Aufgaben*zeilen*, und die sind jetzt zugeklappt). Beide **erweitert, nicht
+angepasst**:
+- `ansicht2-v3-150` B5: klappt über den echten Weg auf und prüft die alte
+  Zusage dort; neu B5a (zugeklappt steht keine Zeile da) und B5c (dafür nennt
+  jeder Kopf seine Anzahl) als Gegenproben zur neuen Vorgabe.
+- `bereiche-v3-156` H: klappt vor der Breitenmessung auf.
+
+Dabei zweimal dieselbe Falle: ein Schnappschuss aus `querySelectorAll` wird
+durch das Neuzeichnen nach dem ersten Klick ungültig — die übrigen Elemente
+hängen nicht mehr im Dokument, ein Klick darauf tut nichts. Beide Stellen
+suchen jeden Kopf jetzt einzeln neu. Steht als Kommentar dort.
