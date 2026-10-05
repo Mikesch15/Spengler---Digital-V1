@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.254.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.255.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -555,6 +555,18 @@ und Dateien – nicht nur über Änderungen am Projektnamen.</p>
 <p>Ein Projekt braucht <b>Projektname, Auftrags-Nr. und Adresse</b>. Der
 Auftraggeber ist freiwillig. Auftrags-Nr. und Auftraggeber werden in den
 Regierapport übernommen.</p>
+<p><b>Zugeteilt an</b> (ab 3.255): Wer auf die Baustelle geht, lässt sich
+<b>schon beim Anlegen</b> ankreuzen – mehrere Personen sind möglich. Es ist
+dieselbe Liste wie später in den Stammdaten des Projekts; was hier gesetzt
+wird, steht dort und lässt sich jederzeit ändern.</p>
+<div class="hin">Die Zuteilung entscheidet, bei wem das Projekt auf der
+Startseite unter <b>„Offene Projekte"</b> erscheint – <b>nicht</b>, wer es
+sehen darf. Über „Projekte" und die Suche bleibt jedes Projekt der Firma für
+alle erreichbar. Kreuzt niemand jemanden an, erscheint es bei der Person, die
+es angelegt hat; der Satz unter der Liste sagt das jeweils.</div>
+<p>Steht im Feld <b>Auftraggeber</b> ein Kunde, bei dem schon Projekte
+laufen, schlägt die App vor, wer dort sonst zugeteilt ist – zum Antippen.
+Angekreuzt wird nichts von selbst.</p>
 <p><b>Die Auftrags-Nr. gibt es je Firma nur einmal</b> (ab 3.164). Wird eine
 Nummer eingegeben, die schon vergeben ist, meldet die App, zu welchem Projekt
 sie gehört, und speichert nicht. So entstehen nicht zwei Projekte zur selben

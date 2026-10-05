@@ -3,9 +3,47 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.254`
+- Aktueller Entwicklungsstand: `v3.255`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.255 — ein Projekt lässt sich schon beim Anlegen zuteilen
+
+Ansage des Anwenders: „Beim projekt erstellen, soll auch schon ein zugeteilter
+mitarbeiter ausgewählt werden können." Bis v3.254 ging das erst danach, im
+Stammdaten-Formular (js/24): anlegen, öffnen, Stammdaten aufklappen,
+ankreuzen, speichern.
+
+**Es ist dieselbe Zuteilung, nicht eine zweite.** Geschrieben wird in dieselbe
+Spalte `projects.zugeteilt_an`. Damit es die Liste nicht zweimal gibt, ist sie
+nach `js/01-basis.js` gezogen — neben `projektZugeteilt()`, wo sie hingehört:
+
+| | |
+|---|---|
+| `zuteilungListeHtml(gewaehlt)` | die Ankreuzliste (Quelle + Sortierung) |
+| `zuteilungHinweisText(anzahl, werStattdessen)` | der Satz darunter |
+| `zuteilungGewaehltAus(box)` | die angekreuzten Ids eines Kastens |
+
+js/24 ruft sie jetzt auf, statt sie selbst zu haben — `zuteilung-v3-161`
+(22 Prüfungen) bestätigt, dass sich am Cockpit nichts geändert hat.
+
+**Was an jedem Ort eigen bleibt:** welches Projekt gemeint ist, und wer bei
+leerer Auswahl an die Stelle der Zuteilung tritt — im Cockpit die Person, die
+es angelegt *hat*, beim Anlegen man selbst.
+
+**Mitgenommen:** der Zählwerk-Vorschlag aus v3.170 (wer bei diesem
+Auftraggeber sonst zugeteilt ist) — hier gerechnet mit dem, was im Feld
+Auftraggeber *steht*, denn ein Projekt gibt es noch nicht. Dieselbe Funktion
+`zwZuteilungVorschlag()`, kein zweites Verfahren.
+
+**Offline:** die Zuteilung geht mit in die Warteschlange und steht am
+wartenden Projekt in der Liste — sonst wäre sie bis zur Übertragung unsichtbar.
+
+**Eine Falle, vorher entschärft:** beide Kästen tragen dieselben
+`data-zuteilung`-Attribute. Der Vorschlag-Beobachter in js/24 griff fest auf
+den Kasten des Cockpits zu; er sucht jetzt im eigenen `.zuteilung-block`.
+Ohne das hätte ein Vorschlag beim Anlegen den Haken an einem *anderen*
+Projekt gesetzt. `pruefstand-zuteilung-anlegen-v3-255`, Abschnitt G.
 
 ### v3.254 — zwei gemeldete Fehler: der Ausdruck und die Fehlermeldung
 

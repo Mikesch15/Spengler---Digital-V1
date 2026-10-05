@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.254</div>
+<div id="appVersion">Version 3.255</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -439,6 +439,19 @@
 <div><label>Auftrags-Nr. <span class="small">(je Firma nur einmal)</span></label><input id="newProjectOrderNo" data-pflicht="1" placeholder="z. B. 176712"></div>
 <div><label>Adresse</label><input id="newProjectObject" data-pflicht="1" placeholder="z. B. Musterstrasse 1, 3000 Bern"></div>
 <div><label>Auftraggeber</label><input id="newProjectCustomer" placeholder="optional"></div>
+<!-- v3.255: Wem das Projekt gehoert, schon beim Anlegen. Ansage des
+     Anwenders: "Beim projekt erstellen, soll auch schon ein zugeteilter
+     mitarbeiter ausgewaehlt werden koennen." Bis v3.254 ging das erst
+     danach, im Stammdaten-Formular des Projekts - also ein zweiter Weg
+     fuer etwas, das man beim Anlegen schon weiss.
+     Es ist DIESELBE Liste wie dort: gefuellt von zuteilungListeHtml()
+     (js/01), gelesen von zuteilungGewaehltAus(). Optional - wer niemanden
+     ankreuzt, bekommt das Projekt wie bisher selbst auf die Startseite,
+     und der Satz darunter sagt das auch. -->
+<div class="wide zuteilung-block"><label>Zugeteilt an <span class="small">(optional)</span></label>
+<div id="newProjectZuteilung" class="zuteilung-liste"></div>
+<div id="newProjectZuteilungVorschlag" class="zuteilung-vorschlag" hidden></div>
+<div class="small" id="newProjectZuteilungHinweis"></div></div>
 </div>
 <div class="bar"><button id="addProject" class="blue">＋ Projekt anlegen</button></div>
 </div>
@@ -549,7 +562,7 @@
      Baustelle in der Regel mehr als eine Person arbeitet; genau eine Person
      ist damit weiterhin moeglich, umgekehrt nicht. Die Liste wird von
      renderCockpitZuteilung() (js/24) aus allProfiles gefuellt. -->
-<div class="wide"><label>Zugeteilt an</label>
+<div class="wide zuteilung-block"><label>Zugeteilt an</label>
 <div id="cockpitZuteilung" class="zuteilung-liste"></div>
 <!-- v3.170 Zaehlwerk: wer bei diesem Auftraggeber sonst zugeteilt ist.
      Ein Vorschlag zum Antippen - angekreuzt wird nichts von selbst. -->
@@ -2404,7 +2417,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.254.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.255.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3086,7 +3099,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.254.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.255.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

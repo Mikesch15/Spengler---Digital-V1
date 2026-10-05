@@ -115,24 +115,17 @@ function renderCockpitStammdaten(){
 }
 
 // v3.161: Wem ist das Projekt zugeteilt? Eine Ankreuzliste aller
-// Mitarbeiter, nach Namen sortiert - dieselbe Quelle und dieselbe
-// Sortierung wie die Auswahl von Ruester und Monteur (js/44).
+// Mitarbeiter.
 //
-// Angekreuzt wird ausschliesslich das, was in zugeteilt_an steht. Der
-// Ersteller wird NICHT vorangekreuzt, obwohl er ohne Zuteilung gilt: ein
-// Haken, den niemand gesetzt hat, waere eine Behauptung. Der Satz
-// darunter sagt stattdessen, was bei leerer Liste passiert.
+// v3.255: Die Liste selbst steht in js/01 (zuteilungListeHtml) - seit das
+// Projekt auch beim ANLEGEN zugeteilt werden kann (js/09), gibt es sie an
+// zwei Orten. Hier bleibt, was DIESEN Ort ausmacht: welches Projekt
+// gemeint ist, der Vorschlag und der Satz darunter.
 function renderCockpitZuteilung(p){
  const box=$("cockpitZuteilung");
  if(!box)return;
  const gewaehlt=new Set((typeof projektZugeteilt==="function")?projektZugeteilt(p):[]);
- const liste=(Array.isArray(allProfiles)?allProfiles:[]).slice()
-  .sort((a,b)=>String(profileName(a.id)).localeCompare(String(profileName(b.id)),"de"));
- box.innerHTML=liste.length
-  ? liste.map(m=>`<label class="zuteilung-person">
-      <input type="checkbox" data-zuteilung="${esc(m.id)}"${gewaehlt.has(String(m.id))?" checked":""}>
-      <span>${esc(profileName(m.id)||"Unbekannter Benutzer")}</span></label>`).join("")
-  : '<div class="small">Es sind keine weiteren Mitarbeiterkonten angelegt.</div>';
+ box.innerHTML=zuteilungListeHtml(gewaehlt);
  cockpitZuteilungVorschlagSetzen(p,gewaehlt);
  cockpitZuteilungHinweisSetzen(gewaehlt.size,p);
 }
@@ -162,21 +155,19 @@ function cockpitZuteilungVorschlagSetzen(p,gewaehlt){
 function cockpitZuteilungHinweisSetzen(anzahl,p){
  const el=$("cockpitZuteilungHinweis");
  if(!el)return;
- if(anzahl>0){
-  el.textContent="Auf der Startseite erscheint das Projekt unter „Offene Projekte“ bei "
-   +(anzahl===1?"dieser Person":"diesen "+anzahl+" Personen")+".";
-  return;
- }
+ // v3.255: Der Satz selbst steht in js/01 (zuteilungHinweisText). Hier
+ // bleibt nur, wer bei leerer Liste an die Stelle der Zuteilung tritt -
+ // im Cockpit ist das die Person, die das Projekt angelegt HAT.
  const ersteller=profileName(p&&p.created_by);
- el.textContent="Niemand zugeteilt – das Projekt erscheint auf der Startseite bei "
-  +(ersteller?ersteller+" (hat es angelegt)":"der Person, die es angelegt hat")
-  +". Über „Projekte“ und die Suche bleibt es für alle erreichbar.";
+ el.textContent=zuteilungHinweisText(anzahl,ersteller?ersteller+" (hat es angelegt)":"");
 }
 // Der Satz zieht sofort nach, damit man beim Ankreuzen sieht, was es
 // bewirkt - nicht erst nach dem Speichern.
 document.addEventListener("change",e=>{
  const t=e.target;
  if(!t||!t.dataset||!t.dataset.zuteilung)return;
+ // v3.255: Nur der Kasten DIESES Cockpits - der beim Anlegen (js/09) hat
+ // seinen eigenen Beobachter und seinen eigenen Satz.
  if(!$("cockpitZuteilung")||!$("cockpitZuteilung").contains(t))return;
  const anzahl=cockpitZuteilungGewaehlt().length;
  cockpitZuteilungHinweisSetzen(anzahl,cockpitProject());
@@ -187,8 +178,13 @@ document.addEventListener("change",e=>{
 document.addEventListener("click",e=>{
  const b=e.target&&e.target.closest?e.target.closest("[data-zuteilung-vorschlag]"):null;
  if(!b)return;
- const kasten=$("cockpitZuteilung")
-  &&$("cockpitZuteilung").querySelector(`[data-zuteilung="${b.dataset.zuteilungVorschlag}"]`);
+ // v3.255: Den Kasten im EIGENEN Block suchen, nicht fest den des Cockpits.
+ // Seit das Projekt auch beim Anlegen zugeteilt werden kann (js/09), gibt es
+ // zwei solche Bloecke; ein Vorschlag dort haette sonst den Haken im Cockpit
+ // gesetzt - an einem Projekt, das gar nicht gemeint ist.
+ const block=b.closest(".zuteilung-block");
+ if(!block)return;
+ const kasten=block.querySelector(`[data-zuteilung="${b.dataset.zuteilungVorschlag}"]`);
  if(!kasten)return;
  kasten.checked=true;
  // Denselben Weg nehmen wie ein Klick auf den Kasten selbst: der bestehende
@@ -196,14 +192,16 @@ document.addEventListener("click",e=>{
  kasten.dispatchEvent(new Event("change",{bubbles:true}));
  // Der eben uebernommene Vorschlag verschwindet aus der Zeile - er wuerde
  // sonst als Knopf stehenbleiben, der nichts mehr tut.
- cockpitZuteilungVorschlagSetzen(cockpitProject(),new Set(cockpitZuteilungGewaehlt()));
+ if(block.contains($("cockpitZuteilung")))
+  cockpitZuteilungVorschlagSetzen(cockpitProject(),new Set(cockpitZuteilungGewaehlt()));
+ else if(typeof neuesProjektZuteilungZeichnen==="function")
+  neuesProjektZuteilungZeichnen({behalten:true});
 });
-// Die angekreuzten Ids, in der Reihenfolge der Liste.
+// Die angekreuzten Ids dieses Kastens, in der Reihenfolge der Liste.
+// v3.255: das Ablesen steht in js/01 (zuteilungGewaehltAus) - es ist an
+// beiden Orten dasselbe.
 function cockpitZuteilungGewaehlt(){
- const box=$("cockpitZuteilung");
- if(!box)return [];
- return [...box.querySelectorAll("[data-zuteilung]")]
-  .filter(x=>x.checked).map(x=>x.dataset.zuteilung);
+ return zuteilungGewaehltAus($("cockpitZuteilung"));
 }
 
 // ---- Geschäftsstatus (v2.46) ------------------------------------

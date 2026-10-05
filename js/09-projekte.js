@@ -255,6 +255,13 @@ function renderProjectList(){
  // gehoert nie ins Archiv.
  const anlegen=$("projectCreateBox");
  if(anlegen)anlegen.hidden=showArchivedProjects;
+ // v3.255: Die Zuteilungsliste braucht allProfiles - das ist beim ersten
+ // Zeichnen der Seite noch nicht zwingend geladen. Sie wird deshalb hier
+ // gezeichnet, zusammen mit der Liste, und nicht einmalig beim Start.
+ // Die bereits gesetzten Haken bleiben stehen: renderProjectList() laeuft
+ // auch beim Tippen in der Suche, und eine Auswahl, die dabei verschwindet,
+ // waere ein Fehler.
+ if(!showArchivedProjects)neuesProjektZuteilungZeichnen({behalten:true});
  const gefunden=sichtbar.filter(p=>projektPasstZuSuche(p,projectSucheText));
  renderProjectStatusFilter(gefunden);
  const nachStatus=projectStatusFilter==="alle"?gefunden:gefunden.filter(p=>projektStatusInfo(p).wert===projectStatusFilter);
@@ -701,6 +708,68 @@ $("amTypeChooserModal").addEventListener("click",e=>{
  newAusmassWithType(b.dataset.chooseAmType);
 });
 $("closeProjects").onclick=()=>{$("projectsModal").hidden=true};
+// ---- Zuteilung schon beim Anlegen (v3.255) ------------------------------
+// Ansage des Anwenders: "Beim projekt erstellen, soll auch schon ein
+// zugeteilter mitarbeiter ausgewaehlt werden koennen."
+//
+// Bis v3.254 ging das erst NACH dem Anlegen, im Stammdaten-Formular des
+// Projekts (js/24). Wer schon beim Anlegen wusste, wer hingeht, musste das
+// Projekt zuerst anlegen, dann oeffnen, dann die Stammdaten aufklappen.
+//
+// Es ist DIESELBE Liste wie dort - gezeichnet von zuteilungListeHtml()
+// (js/01), gelesen von zuteilungGewaehltAus(). Keine zweite Auswahl, keine
+// zweite Sortierung, kein zweites Datenfeld: geschrieben wird in dieselbe
+// Spalte projects.zugeteilt_an.
+//
+// behalten:true laesst die bereits gesetzten Haken stehen (nach einem
+// uebernommenen Vorschlag); ohne das Kennzeichen faengt die Liste leer an.
+function neuesProjektZuteilungZeichnen(opt){
+ const box=$("newProjectZuteilung");
+ if(!box)return;
+ const gewaehlt=new Set((opt&&opt.behalten)?zuteilungGewaehltAus(box):[]);
+ box.innerHTML=zuteilungListeHtml(gewaehlt);
+ neuesProjektZuteilungVorschlagSetzen(gewaehlt);
+ neuesProjektZuteilungHinweisSetzen(gewaehlt.size);
+}
+// Der Satz darunter. Bei leerer Auswahl tritt hier NICHT "die Person, die
+// es angelegt hat" an die Stelle der Zuteilung, sondern man selbst - man
+// legt es ja gerade an.
+function neuesProjektZuteilungHinweisSetzen(anzahl){
+ const el=$("newProjectZuteilungHinweis");
+ if(el)el.textContent=zuteilungHinweisText(anzahl,"dir (du legst es an)");
+}
+// v3.170 Zaehlwerk, hier zum ersten Mal schon beim Anlegen: wer bei diesem
+// Auftraggeber sonst zugeteilt ist. Gerechnet wird mit dem, was im Feld
+// Auftraggeber STEHT - ein Projekt gibt es ja noch nicht. Dieselbe Funktion
+// wie im Cockpit (zwZuteilungVorschlag, js/71), kein zweites Verfahren.
+function neuesProjektZuteilungVorschlagSetzen(gewaehlt){
+ const el=$("newProjectZuteilungVorschlag");
+ if(!el)return;
+ const kunde=($("newProjectCustomer")&&$("newProjectCustomer").value.trim())||"";
+ const roh=(typeof zwZuteilungVorschlag==="function")?zwZuteilungVorschlag({customer:kunde}):[];
+ const offen=roh.filter(v=>!gewaehlt.has(String(v.id))&&profileName(v.id));
+ if(!offen.length){el.hidden=true;el.innerHTML="";return}
+ el.hidden=false;
+ el.innerHTML='<span class="small">Bei diesem Auftraggeber sonst zugeteilt:</span> '
+  +offen.map(v=>`<button type="button" class="gray zw-vorschlag" data-zuteilung-vorschlag="${esc(v.id)}">`
+    +`${esc(profileName(v.id))} <span class="zw-zahl">${v.anzahl}\u00d7</span></button>`).join(" ");
+}
+// Der Satz zieht sofort nach, damit man beim Ankreuzen sieht, was es
+// bewirkt - dasselbe Muster wie im Cockpit (js/24).
+document.addEventListener("change",e=>{
+ const t=e.target;
+ if(!t||!t.dataset||!t.dataset.zuteilung)return;
+ const box=$("newProjectZuteilung");
+ if(!box||!box.contains(t))return;
+ neuesProjektZuteilungHinweisSetzen(zuteilungGewaehltAus(box).length);
+});
+// Der Vorschlag haengt am Auftraggeber - also wird er nachgezogen, sobald
+// dort etwas anderes steht. Angekreuzt wird weiterhin nichts von selbst.
+if($("newProjectCustomer"))$("newProjectCustomer").addEventListener("input",()=>{
+ const box=$("newProjectZuteilung");
+ if(box)neuesProjektZuteilungVorschlagSetzen(new Set(zuteilungGewaehltAus(box)));
+});
+
 $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
  const orderNo=$("newProjectOrderNo").value.trim();
@@ -716,6 +785,12 @@ $("addProject").onclick=async()=>{
  // wartet:true schon in allProjects stehen.
  const schon=projektMitAuftragsNr(orderNo);
  if(schon){alert(auftragsNrBelegtText(orderNo,schon));return}
+ // v3.255: Die Zuteilung wird EINMAL abgelesen und von beiden Wegen
+ // (online wie offline) unveraendert mitgeschrieben - in dieselbe Spalte,
+ // die auch das Stammdaten-Formular schreibt. Leere Liste heisst
+ // "niemandem zugeteilt": ein leeres Array, nicht null (die Spalte ist
+ // NOT NULL mit Default []).
+ const zugeteilt=zuteilungGewaehltAus($("newProjectZuteilung"));
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04). Das
  // Projekt bekommt eine temporaere ID, damit eine gleich danach erfasste
  // Massaufnahme schon darauf zeigen kann - beim Senden wird sie durch die
@@ -723,7 +798,8 @@ $("addProject").onclick=async()=>{
  if(wsIstOffline()){
   const r=await wsEinreihen({
    tabelle:"projects", titel:`${address} · ${name}`,
-   payload:{name,order_no:orderNo,customer:$("newProjectCustomer").value.trim(),object:address}
+   payload:{name,order_no:orderNo,customer:$("newProjectCustomer").value.trim(),object:address,
+    zugeteilt_an:zugeteilt}
   });
   if(!r.ok){
    alert("Keine Verbindung – und dieses Projekt lässt sich auf diesem Gerät auch nicht "
@@ -734,9 +810,11 @@ $("addProject").onclick=async()=>{
   // der Liste - erkennbar als "wartet auf die Übertragung".
   allProjects=allProjects.concat([{id:r.tmpId,name,order_no:orderNo,
     customer:$("newProjectCustomer").value.trim(),object:address,
+    zugeteilt_an:zugeteilt,
     archived:false,status:"offen",wartet:true}]);
   $("newProjectName").value="";$("newProjectOrderNo").value="";
   $("newProjectCustomer").value="";$("newProjectObject").value="";
+  neuesProjektZuteilungZeichnen();
   renderProjectList();renderProjectSelect();
   alert("Keine Verbindung.\n\nDas Projekt wartet auf diesem Gerät und wird übertragen, "
    +"sobald wieder eine Verbindung besteht. Massaufnahmen dazu lassen sich schon jetzt "
@@ -747,13 +825,17 @@ $("addProject").onclick=async()=>{
   name,
   order_no:orderNo,
   customer:$("newProjectCustomer").value.trim(),
-  object:address
+  object:address,
+  zugeteilt_an:zugeteilt
  });
  // v3.164: Die Datenbank hat das letzte Wort. Sie faengt den Fall, den
  // die Vorpruefung oben nicht sehen konnte - eine veraltete Projektliste
  // auf diesem Geraet oder zwei Leute, die gleichzeitig speichern.
  if(error){alert(auftragsNrKonfliktText(error)||("Fehler: "+error.message));return}
  $("newProjectName").value="";$("newProjectOrderNo").value="";$("newProjectCustomer").value="";$("newProjectObject").value="";
+ // Die Haken gehen mit den Feldern weg - sonst truege das naechste Projekt
+ // stillschweigend die Zuteilung des vorigen.
+ neuesProjektZuteilungZeichnen();
  const {data}=await sb.from("projects").select("*").order("name");
  allProjects=data||[];
  renderProjectList();renderProjectSelect();

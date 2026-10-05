@@ -769,6 +769,56 @@ function projektZugeteilt(p){
  return p.zugeteilt_an.map(x=>String(x||"")).filter(Boolean);
 }
 
+// ---- Die Ankreuzliste selbst (v3.255) ----------------------------
+// Sie stand bis v3.254 nur im Stammdaten-Formular des Cockpits (js/24).
+// Seit das Projekt auch beim ANLEGEN zugeteilt werden kann (js/09), gibt
+// es sie an zwei Orten - und damit gehoert sie hierher, an EINE Stelle.
+// Zwei Fassungen waeren zwei Meinungen darueber, wer zur Auswahl steht
+// und in welcher Reihenfolge.
+//
+// Quelle und Sortierung sind unveraendert aus js/24 uebernommen: alle
+// Profile, nach Namen sortiert - dieselbe Quelle und dieselbe Sortierung
+// wie die Auswahl von Ruester und Monteur (js/44).
+//
+// Angekreuzt wird ausschliesslich, was uebergeben wird. Niemand wird
+// vorangekreuzt, auch der Ersteller nicht: ein Haken, den niemand gesetzt
+// hat, waere eine Behauptung. Der Satz darunter sagt stattdessen, was bei
+// leerer Liste passiert (zuteilungHinweisText).
+function zuteilungListeHtml(gewaehlt){
+ const gw=(gewaehlt instanceof Set)?gewaehlt:new Set((gewaehlt||[]).map(String));
+ const liste=(Array.isArray(allProfiles)?allProfiles:[]).slice()
+  .sort((a,b)=>String(profileName(a.id)).localeCompare(String(profileName(b.id)),"de"));
+ return liste.length
+  ? liste.map(m=>`<label class="zuteilung-person">
+      <input type="checkbox" data-zuteilung="${esc(m.id)}"${gw.has(String(m.id))?" checked":""}>
+      <span>${esc(profileName(m.id)||"Unbekannter Benutzer")}</span></label>`).join("")
+  : '<div class="small">Es sind keine weiteren Mitarbeiterkonten angelegt.</div>';
+}
+
+// Der Satz unter der Liste. Er sagt bei leerer Auswahl, wer das Projekt
+// dann auf seiner Startseite sieht - sonst waere "niemand zugeteilt" eine
+// Aussage, aus der niemand die Folge ableiten kann.
+//
+// "wer stattdessen" unterscheidet die beiden Orte und ist deshalb ein
+// Argument: im Cockpit ist es die Person, die das Projekt angelegt HAT,
+// beim Anlegen ist man es selbst. Derselbe Satz, zwei Enden.
+function zuteilungHinweisText(anzahl,werStattdessen){
+ if(anzahl>0){
+  return "Auf der Startseite erscheint das Projekt unter \u201eOffene Projekte\u201c bei "
+   +(anzahl===1?"dieser Person":"diesen "+anzahl+" Personen")+".";
+ }
+ return "Niemand zugeteilt \u2013 das Projekt erscheint auf der Startseite bei "
+  +(werStattdessen||"der Person, die es angelegt hat")
+  +". \u00dcber \u201eProjekte\u201c und die Suche bleibt es f\u00fcr alle erreichbar.";
+}
+
+// Die angekreuzten Ids EINES Kastens, in der Reihenfolge der Liste.
+function zuteilungGewaehltAus(box){
+ if(!box)return [];
+ return [...box.querySelectorAll("[data-zuteilung]")]
+  .filter(x=>x.checked).map(x=>x.dataset.zuteilung);
+}
+
 // Ist dieses Projekt MEINES? Die eine Stelle, die das beantwortet -
 // benutzt von der Startseite (js/70) und von der Projektseite. Zwei
 // Ableitungen waeren zwei Meinungen darueber, wer zustaendig ist.
