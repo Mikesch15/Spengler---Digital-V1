@@ -671,12 +671,12 @@ function a2SeiteHeute(){
   // weiterhin die GESAMTZAHL - sie ist die Antwort auf "wie viel habe ich
   // heute", und die aendert sich durch das Gruppieren nicht.
   const gruppen=a2AufgabenNachProjekt(auf);
-  const alleZu=gruppen.length>0&&gruppen.every(g=>a2AufgabenZu.has(String(g.id)));
+  const alleAuf=gruppen.length>0&&gruppen.every(g=>a2AufgabenAuf.has(String(g.id)));
   html+=`<div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
     ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}
     ${gruppen.length>1?`<button type="button" data-a2-tu="aufgabenalle">${
-      alleZu?"Alle aufklappen":"Alle zuklappen"}</button>`:""}</div>`;
+      alleAuf?"Alle zuklappen":"Alle aufklappen"}</button>`:""}</div>`;
   // v3.185: Die Zeile "N terminiert" kommt aus js/45 - dieselbe Quelle wie in
   // der klassischen Ansicht. Sie steht UEBER der Liste, damit "nichts offen"
   // nicht danebensteht, waehrend etwas wartet.
@@ -825,45 +825,63 @@ function a2AufgabenNachProjekt(auf){
  return gruppen;
 }
 
-// Welche Projekte sind ZUGEKLAPPT? Gemerkt wird das Zugeklappte, nicht das
-// Aufgeklappte - neu dazukommende Projekte sind damit von selbst offen, und
-// genau das ist richtig: eine neue Baustelle soll man sehen, nicht suchen.
+// Welche Projekte sind AUFGEKLAPPT? Gemerkt wird das Aufgeklappte, nicht das
+// Zugeklappte - ein neu dazukommendes Projekt ist damit zu, so wie alle
+// anderen auch.
 //
-// Voreingestellt ist AUFGEKLAPPT. Das ist gemessen, nicht geraten: am
-// 5.10.2026 standen im Betrieb 7 offene Aufgaben auf 4 Projekten, im Schnitt
-// 1,8 je Projekt. Alles zuzuklappen haette also kaum etwas verborgen und
-// jeden Handgriff einen Tipp teurer gemacht. Wer die reine Uebersicht will,
-// bekommt sie mit einem Tipp auf "Alle zuklappen".
-const A2_AUFG_ZU="sd_a2AufgabenZu";
-let a2AufgabenZu=(()=>{
- try{ const r=JSON.parse(localStorage.getItem(A2_AUFG_ZU)||"[]");
+// v3.258: VOREINGESTELLT IST ZUGEKLAPPT. Ansage des Anwenders: "Drehe es um,
+// so dad zugeklappt standart ist."
+//
+// In v3.257 war es umgekehrt, und zwar begruendet: gemessen standen am
+// 5.10.2026 im Betrieb 7 offene Aufgaben auf 4 Projekten, im Schnitt 1,8 je
+// Projekt - da verbirgt Zuklappen wenig und kostet einen Tipp. Die Messung
+// stimmt weiterhin; sie beantwortet aber nur, wie VIEL auf dem Schirm steht,
+// nicht, wie der Betrieb morgens arbeiten will. Das weiss der Anwender, und
+// er hat entschieden. Die Zahl steht hier, damit die Entscheidung
+// nachvollziehbar bleibt - nicht als Gegenargument.
+//
+// DESHALB DIE UMKEHRUNG DES GEMERKTEN, und nicht bloss ein anderer Startwert:
+// bei "zugeklappt ist Standard" muss gemerkt werden, was jemand GEOEFFNET
+// hat. Stuende dort weiterhin das Zugeklappte, waere es wirkungslos - alles
+// ist ja ohnehin zu.
+//
+// Der Schluessel ist dabei ein NEUER. Die alte Liste (sd_a2AufgabenZu) steht
+// in den Browsern, die v3.257 geladen haben, und sie bedeutet das Gegenteil:
+// sie unter dem alten Namen weiterzulesen hiesse, genau die Projekte
+// aufzuklappen, die der Anwender zugeklappt hatte. Sie wird deshalb einmal
+// weggeraeumt.
+const A2_AUFG_AUF="sd_a2AufgabenAuf";
+const A2_AUFG_ZU_ALT="sd_a2AufgabenZu";
+let a2AufgabenAuf=(()=>{
+ try{ localStorage.removeItem(A2_AUFG_ZU_ALT) }catch(e){}
+ try{ const r=JSON.parse(localStorage.getItem(A2_AUFG_AUF)||"[]");
       return new Set(Array.isArray(r)?r.map(String):[]) }
  catch(e){ return new Set() }
 })();
-function a2AufgabenZuMerken(){
- try{ localStorage.setItem(A2_AUFG_ZU,JSON.stringify([...a2AufgabenZu])) }catch(e){}
+function a2AufgabenAufMerken(){
+ try{ localStorage.setItem(A2_AUFG_AUF,JSON.stringify([...a2AufgabenAuf])) }catch(e){}
 }
 function a2AufgabenGruppeUmschalten(pid){
  const k=String(pid);
- if(a2AufgabenZu.has(k))a2AufgabenZu.delete(k); else a2AufgabenZu.add(k);
- a2AufgabenZuMerken();
+ if(a2AufgabenAuf.has(k))a2AufgabenAuf.delete(k); else a2AufgabenAuf.add(k);
+ a2AufgabenAufMerken();
  a2Zeichnen();
 }
 // Alles auf einmal - der Knopf im Abschnittskopf. Er sagt, was er tut, und
-// macht das Gegenteil, wenn schon alles zu ist.
+// macht das Gegenteil, wenn schon alles offen ist.
 function a2AufgabenAlleUmschalten(){
  const gruppen=a2AufgabenNachProjekt(a2Aufgaben());
- const alleZu=gruppen.length&&gruppen.every(g=>a2AufgabenZu.has(String(g.id)));
- if(alleZu)gruppen.forEach(g=>a2AufgabenZu.delete(String(g.id)));
- else gruppen.forEach(g=>a2AufgabenZu.add(String(g.id)));
- a2AufgabenZuMerken();
+ const alleAuf=gruppen.length&&gruppen.every(g=>a2AufgabenAuf.has(String(g.id)));
+ if(alleAuf)gruppen.forEach(g=>a2AufgabenAuf.delete(String(g.id)));
+ else gruppen.forEach(g=>a2AufgabenAuf.add(String(g.id)));
+ a2AufgabenAufMerken();
  a2Zeichnen();
 }
 // Eine Gruppe: der Kopf sagt alles, was man zum Entscheiden braucht -
 // Projekt, wie viele Aufgaben, und ob etwas dringend ist. Zugeklappt bleibt
 // genau diese eine Zeile stehen.
 function a2AufgabenGruppeHtml(g){
- const zu=a2AufgabenZu.has(String(g.id));
+ const zu=!a2AufgabenAuf.has(String(g.id));
  const n=g.aufgaben.length;
  return `<div class="a2-aufg-gruppe">
   <button type="button" class="a2-zeile a2-aufg-kopf" data-a2-aufg-gruppe="${esc(g.id)}"

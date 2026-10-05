@@ -378,6 +378,24 @@ const tab=(page,k)=>page.evaluate(k=>{
  // Zeile (.a2-zeile-reihe) mit dem Schritt-Knopf daneben. Gemessen wird
  // dasselbe wie vorher - dass der Knopf nicht die ganze Breite frisst -,
  // nur an der Stelle, an der die Aufgabe heute steht.
+ // v3.258: Die Aufgabenliste startet ZUGEKLAPPT (Ansage des Anwenders). Zum
+ // Messen der Zeile selbst muss sie aufgeklappt sein - die Zusage dieses
+ // Abschnitts ("der Knopf frisst der Zeile nicht die Breite") gilt
+ // unveraendert, sie ist nur einen Tipp entfernt.
+ //
+ // Aufgeklappt wird EINZELN und jedes Mal neu gesucht: jeder Klick zeichnet
+ // die Seite neu, Elemente aus einem alten Schnappschuss haengen danach
+ // nicht mehr im Dokument.
+ await page.evaluate(async()=>{
+  const ids=[...document.querySelectorAll("[data-a2-aufg-gruppe]")]
+    .map(k=>k.getAttribute("data-a2-aufg-gruppe"));
+  for(const id of ids){
+   const k=document.querySelector(`[data-a2-aufg-gruppe="${id}"]`);
+   if(k)k.click();
+   await new Promise(r=>setTimeout(r,120));
+  }
+ });
+ await page.waitForTimeout(200);
  const h=await page.evaluate(()=>{
   const reihe=[...document.querySelectorAll("#a2Inhalt .a2-zeile-reihe")]
    .find(r=>r.querySelector(".a2-zeile-tat"));

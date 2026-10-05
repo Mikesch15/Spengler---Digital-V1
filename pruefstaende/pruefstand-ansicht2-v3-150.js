@@ -156,7 +156,35 @@ const anmelden=page=>page.evaluate(()=>{
  // nur an seinem neuen Platz.
  p(bb.offenMarke==="2 offen",
    "B4 die Zahl der offenen Aufgaben steht neben der Ueberschrift",bb.offenMarke);
- p(bb.zeilen===2,"B5 beide Aufgaben stehen als Zeile da",bb);
+ // v3.258: Die Liste startet ZUGEKLAPPT (Ansage des Anwenders). Die Zusage
+ // "beide Aufgaben stehen als Zeile da" gilt unveraendert - sie ist nur
+ // einen Tipp entfernt. Gemessen wird deshalb beides: die neue Vorgabe
+ // (B5a: keine Zeile, dafuer die Koepfe mit der Zusammenfassung) UND die
+ // alte Zusage nach dem Aufklappen (B5). Weggefallen ist keine davon.
+ p(bb.zeilen===0,
+   "B5a voreingestellt ist zugeklappt - es steht keine Aufgabenzeile da",bb.zeilen);
+ const koepfe=await page.evaluate(()=>[...document.querySelectorAll("[data-a2-aufg-gruppe]")]
+   .map(k=>(k.querySelector(".a2-zeile-text span")||{}).textContent||""));
+ p(koepfe.length>0&&koepfe.every(t=>/\d+ Aufgabe/.test(t)),
+   "B5c dafuer sagt jeder Projektkopf, wie viele Aufgaben darunter liegen",koepfe);
+ const nachAuf=await page.evaluate(async()=>{
+  // Ueber den echten Weg aufklappen, nicht ueber den Zustand - sonst
+  // pruefte der Lauf etwas, das kein Anwender ausloesen kann.
+  //
+  // EINZELN und jedes Mal NEU gesucht: jeder Klick zeichnet die Seite neu,
+  // und die Elemente aus einem vorher genommenen Schnappschuss haengen
+  // danach nicht mehr im Dokument. Ein Klick darauf tut nichts. (Beim
+  // ersten Anlauf genau so passiert: nur die erste Gruppe ging auf.)
+  const ids=[...document.querySelectorAll("[data-a2-aufg-gruppe]")]
+    .map(k=>k.getAttribute("data-a2-aufg-gruppe"));
+  for(const id of ids){
+   const k=document.querySelector(`[data-a2-aufg-gruppe="${id}"]`);
+   if(k)k.click();
+   await new Promise(r=>setTimeout(r,120));
+  }
+  return document.querySelectorAll("#a2Inhalt .a2-zeile-reihe").length;
+ });
+ p(nachAuf===2,"B5 aufgeklappt stehen beide Aufgaben als Zeile da",nachAuf);
  // Gegenprobe: die Seite hat die Gliederung des Prototyps. Ohne sie waeren
  // B4 und B5 auch gruen, wenn ausser den Aufgaben nichts mehr da waere.
  // Gemessen werden die RUBRIKEN, nicht die Werkstattzahlen: die kommen
