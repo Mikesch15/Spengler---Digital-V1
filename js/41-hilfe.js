@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.259.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.260.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1078,11 +1078,25 @@ Länge nicht decken.</p>`},
 hinten (${dfaBuchstabe("breiteHinten")}) durchnummeriert - die aufklappbare
 Übersicht am Anfang dieses Registers zeigt eine Beispielskizze mit allen
 Buchstaben.</p>
-<p>Die Masse längs des Dachs, von vorne nach hinten – genau gleich vermasst
-wie bei der Kamineinfassung. <b>${dfaBuchstabe("b")}</b> und
-<b>${dfaBuchstabe("c")}</b> überlappen sich im Knick – die Länge des
-Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")} minus der
-Überlappung (${dfaBuchstabe("ueberlappung")}).</p>
+<p><b>Zuerst die Bauart des Seitenteils wählen</b> – sie bestimmt, welche
+Masse es überhaupt gibt:</p>
+<ul>
+<li><b>Separate Seitenteile:</b> zwei Teile, die sich im Knick überlappen.
+<b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b> überlappen sich
+dort – die Länge des Seitenteils ist deshalb ${dfaBuchstabe("b")} +
+${dfaBuchstabe("c")} minus der Überlappung
+(${dfaBuchstabe("ueberlappung")}).</li>
+<li><b>Durchgehend mit Knick:</b> ein Stück, das geknickt wird. Dann gibt es
+nichts zu überlappen: <b>${dfaBuchstabe("b")}</b> ist die ganze Länge des
+Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")}
+entfallen – die Felder verschwinden, und die Kontrolle verlangt sie nicht
+mehr. Aus acht Zuschnitten werden sechs.</li>
+</ul>
+<p>Umschalten ist gefahrlos: die schon eingegebenen Masse bleiben stehen und
+sind beim Zurückschalten unverändert wieder da. Eine vor dieser Version
+gespeicherte Aufnahme ist immer eine mit separaten Seitenteilen.</p>
+<p>Die Masse längs des Dachs laufen von vorne nach hinten – genau gleich
+vermasst wie bei der Kamineinfassung.</p>
 <p>Vorne ist die Aufbordung <b>niedriger</b> (${dfaMassLabel("saumVorne")}) und
 hat oben einen Saum (Rückschlag); hinten ist sie <b>höher</b>
 (${dfaMassLabel("aufHinten")}) und bewusst <b>trapezförmig</b> – Breite oben
