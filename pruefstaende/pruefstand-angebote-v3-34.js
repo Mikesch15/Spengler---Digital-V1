@@ -367,8 +367,26 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.evaluate(async()=>{await $("angRecognizeAll").onclick()});
  const kiFehler2=await page.evaluate(()=>({anzahl:angPositions.length,status:$("angRecognizeStatus").textContent}));
  p(kiFehler2.anzahl===0,"ein HTTP-500 der Edge Function fuegt ebenfalls keine Positionen hinzu",kiFehler2);
- p((page.__dialoge||[]).some(t=>/^Fehler bei Foto 1: Server antwortete mit Status 500/.test(t)),
+ // v3.255: Die Zusage ist unveraendert - ein HTTP-Fehler nennt seinen Status
+ // und scheitert nicht still. Geaendert hat sich nur, WO die Zahl steht.
+ //
+ // Seit v3.254 kommt der lesbare Satz des Servers zuerst und die Nummer als
+ // Anhang. Grund war ein gemeldeter Fehler: bei einer Ueberlastung stand im
+ // Dialog "Server antwortete mit Status 502: Server antwortete mit Status
+ // 503: {rohes JSON}" - dreimal derselbe Satzbau ineinander. v3.254 hat die
+ // Nummer dabei GANZ weggelassen, und genau das hat DIESE Pruefung gefunden:
+ // zu viel des Guten, denn ohne Zahl fehlt die Diagnose. In v3.255 steht sie
+ // wieder da, hinten.
+ //
+ // Geprueft wird deshalb beides - die Zahl IST da, und die Schachtelung ist
+ // es NICHT.
+ const http500=(page.__dialoge||[])[0]||"";
+ p(/^Fehler bei Foto 1: /.test(http500)&&/\(Status 500\)/.test(http500),
   "und meldet den HTTP-Status per alert(), statt still zu scheitern",page.__dialoge);
+ p(/interner Fehler/.test(http500),
+  "und zwar NACH dem Satz des Servers, nicht an seiner Stelle",page.__dialoge);
+ p(!/Status \d+: .*Status \d+/.test(http500),
+  "GEGENPROBE: kein zweiter Status-Vorsatz im ersten - genau das war gemeldet",page.__dialoge);
  kiModus="ok"; // fuer die folgenden Abschnitte zuruecksetzen
  // Die beiden Fehlerfaelle haben angPositions bewusst auf 0 gelassen
  // (das war ja gerade der Punkt). Fuer den Speichertest in Abschnitt 6

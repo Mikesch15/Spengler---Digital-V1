@@ -3,9 +3,36 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.255`
+- Aktueller Entwicklungsstand: `v3.256`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.256 — Korrektur an v3.254: die Statusnummer gehört nicht ganz weg
+
+Die volle Regression hat gefunden, was ich in v3.254 zu weit korrigiert habe.
+`pruefstand-angebote-v3-34` hält seit v3.34 fest: ein HTTP-Fehler der Edge
+Function **nennt seinen Status** und scheitert nicht still. v3.254 liess die
+Nummer ganz weg, sobald eine lesbare Meldung da war.
+
+**Gemeldet war die Schachtelung, nicht die Zahl** („Server antwortete mit
+Status 502: Server antwortete mit Status 503: {rohes JSON}"). Beides ist jetzt
+erfüllt: der lesbare Satz zuerst, die Nummer als Anhang —
+`… nochmals auf „Erkennen" tippen. (Status 503)`.
+
+Beide Prüfstände sind **umgestellt, nicht abgeschwächt**:
+- `angebote-v3-34`: prüft jetzt, dass die Zahl da ist **und** nach dem Satz
+  steht, plus die Gegenprobe, dass kein zweiter Status-Vorsatz im ersten
+  steckt — genau das war gemeldet.
+- `erkennung-ueberlastet-v3-254`: A4b/A4c halten die neue Stellung fest.
+
+**Offen angemerkt:** `js/17-ausmass.js` steht in `angebote-v3-34` auf einer
+„nicht anzufassen"-Liste aus v3.34. Die Änderung dort war nötig —
+`recognizePhoto()` ist die eine Stelle, die alle vier Erkennungswege benutzen;
+sie in js/63 zu überschreiben wäre eine zweite Wahrheit. Zu wissen ist dabei:
+diese Prüfung liest `git diff HEAD`, sieht also **nur den offenen Arbeitsbaum**
+und ist nach jedem Commit wieder grün. Sie ist ein Schutz während einer
+Änderung, keine dauerhafte Zusicherung über die Historie. Was wirklich schützt,
+steht daneben und bleibt grün: `recognizePhoto` ist im ganzen Repo ein Unikat.
 
 ### v3.255 — ein Projekt lässt sich schon beim Anlegen zuteilen
 

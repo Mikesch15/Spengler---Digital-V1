@@ -347,8 +347,21 @@ async function recognizePhoto(src){
  // Meldung kommt (eine HTML-Fehlerseite des Gateways, ein leerer Koerper) -
  // dann ist die Statusnummer das Einzige, was man hat, und sie zu
  // verschweigen waere schlechter als sie zu zeigen.
+ //
+ // v3.255 KORREKTUR AN v3.254: Die Statusnummer wurde dort GANZ weggelassen,
+ // sobald ein lesbarer Satz da war. Das war zu viel des Guten - gemeldet war
+ // die SCHACHTELUNG ("Status 502: ... Status 503: ...{roh}"), nicht die Zahl.
+ // Gefunden hat es die volle Regression: pruefstand-angebote-v3-34 haelt seit
+ // v3.34 fest, dass ein HTTP-Fehler seinen Status nennt und nicht still
+ // scheitert - eine Zusage, die richtig ist und die ich gebrochen hatte.
+ // Sie steht jetzt HINTEN statt vorne: der lesbare Satz zuerst, die Zahl als
+ // Anhang fuer die Diagnose. Beides erfuellt, nichts abgeschwaecht.
  const satz=(data&&typeof data.error==="string"&&data.error.trim())?data.error.trim():"";
- if(!res.ok)throw new Error(satz||`Server antwortete mit Status ${res.status}: ${text.slice(0,300)||"unbekannter Fehler"}`);
+ if(!res.ok){
+  throw new Error(satz
+    ? `${satz} (Status ${res.status})`
+    : `Server antwortete mit Status ${res.status}: ${text.slice(0,300)||"unbekannter Fehler"}`);
+ }
  if(!data?.ok)throw new Error(satz||"Erkennung fehlgeschlagen.");
  return (data.positions||[]).map(p=>({
   pos:p.pos||"",

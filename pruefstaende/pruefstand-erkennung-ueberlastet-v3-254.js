@@ -87,6 +87,15 @@ const ROH='{"error":{"code":503,"message":"This model is currently experiencing 
  // DIE drei Gegenproben zum Bildschirmfoto.
  p(a.text.indexOf("Server antwortete mit Status")<0,
    "A4 GEGENPROBE: der technische Vorsatz steht NICHT mehr davor",a.text);
+ // v3.255: Die Statusnummer selbst gehoert aber NICHT weg - v3.254 hatte sie
+ // ganz gestrichen, sobald ein lesbarer Satz da war. Gefunden hat das die
+ // volle Regression (pruefstand-angebote-v3-34 haelt seit v3.34 fest, dass
+ // ein HTTP-Fehler seinen Status nennt). Sie steht jetzt hinten: der Satz
+ // zuerst, die Zahl als Anhang fuer die Diagnose.
+ p(/\(Status 503\)\s*$/.test(a.text),
+   "A4b die Statusnummer steht am ENDE - lesbar zuerst, diagnostizierbar bleibt es trotzdem",a.text);
+ p(a.text.indexOf("\u00fcberlastet")<a.text.indexOf("(Status"),
+   "A4c GEGENPROBE: und wirklich dahinter, nicht davor",a.text.slice(0,60));
  p(a.text.indexOf("UNAVAILABLE")<0&&a.text.indexOf('"code"')<0,
    "A5 GEGENPROBE: und kein rohes JSON des Anbieters",a.text);
  p(a.text.indexOf("high demand")<0,
