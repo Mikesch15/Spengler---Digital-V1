@@ -195,14 +195,22 @@ Weitere Regeln:
   Tausch. Wird die Regression hinterher rot: sofort beheben und
   nachschieben, oder – wenn das nicht in wenigen Minuten geht – `main`
   auf den letzten grünen Stand zurücksetzen und es sagen.
-  Ausnahme: Änderungen am **gemeinsamen Kern** – `js/01`, `js/05`,
-  `js/16`, `js/29`, `js/45` (Aufgaben), `js/70` (die Ansicht), `index.html`,
-  `css/05`, App-Shell in `sw.js`. Dort läuft die **volle Regression VOR**
-  dem Veröffentlichen, nicht danach. Begründung aus zwei echten Fällen am
-  5.10.2026: v3.252 und v3.258 änderten je `js/70` und rissen je **fünf**
-  Prüfstände mit – beide Male hiessen die übersehenen Prüfstände anders als
-  die Änderung. Eine nach Namen zusammengesuchte Schnellprüfung ist Raten;
-  bei einer Kerndatei kostet Raten mehr als die 13 Minuten.
+  **Das gilt ausnahmslos, auch am gemeinsamen Kern.** Ansage des Anwenders
+  am 5.10.2026: „Du sollst immer auf main veröffentlichen." Ich hatte hier
+  zuvor eine Ausnahme eingebaut (volle Regression VOR dem Veröffentlichen
+  bei Kerndateien) – die ist gestrichen. Warten ist nicht die Antwort auf
+  ein Risiko; die Antwort ist: **nach** dem Push sofort die volle Regression
+  und bei Rot sofort beheben oder zurücksetzen.
+  Was bleibt: bei einer Änderung am **gemeinsamen Kern** – `js/01`, `js/05`,
+  `js/16`, `js/20` (die Massbausteine aller Zeichnungen), `js/29`, `js/45`,
+  `js/70`, `index.html`, `css/05`, App-Shell in `sw.js` – wird die
+  Schnellprüfung **breiter** gewählt, nicht nach Namen zusammengesucht.
+  Begründung aus echten Fällen: v3.252 und v3.258 änderten je `js/70` und
+  rissen je fünf Prüfstände mit, v3.261 änderte `js/20` und riss die
+  Vermassung aller zwölf Arten. Beide Male hiessen die übersehenen
+  Prüfstände anders als die Änderung – ein Name ist keine Abhängigkeit.
+  Bei `js/20`/`js/62` gehört `vermassung` dazu, bei `js/45`/`js/70` die
+  Aufgaben- und Startseiten-Prüfstände.
 - **Jede Antwort endet mit einem Statusblock**, immer gleich aufgebaut,
   immer zuunterst – Ansage des Anwenders: "Ich weiss manchmal nicht wann
   du fertig bist und wann nicht."
