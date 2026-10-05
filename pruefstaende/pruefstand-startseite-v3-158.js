@@ -30,6 +30,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-startseite-v3-158.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {aufgabenAufklappen,aufklappenEinbauen}=require(__dirname+"/aufgaben-aufklappen.js");
 const path=require("path"),fs=require("fs");
 const APP="file://"+path.join(process.cwd(),"index.html");
 const STUB=fs.readFileSync(path.join(process.cwd(),"anleitung/stub.js"),"utf8");
@@ -66,6 +67,10 @@ const koepfe=page=>page.evaluate(()=>
  await page.waitForTimeout(400);
  await page.evaluate(()=>{if(typeof aufgabenNeuLaden==="function")return aufgabenNeuLaden()});
  await page.waitForTimeout(1800);
+ // v3.258: Die Aufgabenliste startet zugeklappt (Ansage des Anwenders).
+ // Was hier gemessen wird, sind AUFGABENZEILEN - also vorher aufklappen.
+ // Der Ablauf steht in pruefstaende/aufgaben-aufklappen.js, an EINER Stelle.
+ await aufgabenAufklappen(page);
 
  // ---- A  Die Gliederung ---------------------------------------------------
  let k=await koepfe(page);

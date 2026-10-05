@@ -16,6 +16,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-aufgaben-termin-v3-185.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {aufklappenEinbauen}=require(__dirname+"/aufgaben-aufklappen.js");
 const path=require("path"),fs=require("fs");
 const APP="file://"+path.join(process.cwd(),"index.html");
 const STUB=fs.readFileSync(path.join(process.cwd(),"anleitung/stub.js"),"utf8");
@@ -32,6 +33,12 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
+ // v3.258: Die Aufgabenliste startet zugeklappt (Ansage des Anwenders).
+ // Dieser Pruefstand baut auf und misst in EINEM page.evaluate(); der Helfer
+ // wird deshalb IN die Seite eingebaut und dort gerufen
+ // (window.__aufgabenAufklappen). Ihn dazwischenzuschieben hiesse, den
+ // Ablauf zu zerlegen - und ein zerlegter Ablauf misst leicht etwas anderes.
+ await aufklappenEinbauen(page);
  await page.waitForTimeout(600);
 
  await page.evaluate(()=>{
@@ -115,9 +122,10 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  // nur noch eine; geprueft wird deshalb, dass sie wirklich die gefilterte
  // Liste aus js/45 nimmt und keine eigene zusammenstellt.
  console.log("\nD · Die Ansicht nimmt die Liste aus js/45");
- const D=await page.evaluate(()=>{
+ const D=await page.evaluate(async()=>{
   window.__setze([{id:41,schritt:"ruesten",am:window.__tag(30)}]);
   a2Zustand.seite="heute"; a2Zeichnen();
+  await window.__aufgabenAufklappen();
   const kopf=[...document.querySelectorAll("#a2Inhalt .a2-abschnitt-kopf")]
     .find(k=>/meine aufgaben/i.test(k.innerText||""));
   const marke=kopf?kopf.querySelector(".a2-marke"):null;
@@ -248,6 +256,7 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
   aufgabenTerminWahl="";
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
+  await window.__aufgabenAufklappen();
   await new Promise(r=>setTimeout(r,200));
   const felder=[...document.querySelectorAll('[data-termin-datum]')];
   const gewaehlt=window.__tag(7);
@@ -285,6 +294,7 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
   aufgabenTerminWahl="";
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
+  await window.__aufgabenAufklappen();
   await new Promise(r=>setTimeout(r,200));
   const echtesFeld=document.querySelector("[data-termin-datum]");
   if(!echtesFeld)return {fehlt:true};

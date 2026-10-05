@@ -12,6 +12,7 @@
 // Aufruf:  SP=<Ordner mit node_modules> node pruefstaende/pruefstand-naechster-schritt-v3-10.js
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {aufgabenAufklappen,aufklappenEinbauen}=require(__dirname+"/aufgaben-aufklappen.js");
 const path=require("path");
 const APP="file://"+path.join(process.cwd(),"index.html");
 let ok=0,fail=0;
@@ -267,6 +268,10 @@ const karte=(page)=>page.evaluate(()=>{
   // klassischen Startbildschirms gibt es nicht mehr. Titel, Knopftext und
   // Art kommen unveraendert aus js/45.
   await page.evaluate(()=>{a2Zustand.seite="heute";a2Zeichnen()});
+  // v3.258: Die Aufgabenliste startet zugeklappt (Ansage des Anwenders).
+  // Was hier gemessen wird, sind AUFGABENZEILEN - also vorher aufklappen.
+  // Der Ablauf steht in pruefstaende/aufgaben-aufklappen.js, an EINER Stelle.
+  await aufgabenAufklappen(page);
   await page.waitForTimeout(150);
   return page.evaluate(()=>[...document.querySelectorAll("#a2Inhalt .a2-zeile-reihe")]
    .filter(x=>x.querySelector("[data-a2-aufgabe]"))
