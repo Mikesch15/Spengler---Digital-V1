@@ -1,6 +1,12 @@
 // Gemeinsame Testdatensaetze fuer den Ausdruck: [Name, Typ, data].
 // Aus pruefstand-laenge-mal-breite-druck-v2-81.js uebernommen, um die
 // Erwartungsspalte gekuerzt. Sie decken alle zwoelf Arten ab.
+//
+// v3.260: die Dachfenstereinfassung FEHLTE hier, obwohl der Kopf "alle zwoelf
+// Arten" behauptet. Genau deshalb war pruefstand-vermassung-v3-32 gruen,
+// waehrend sich auf dem Ruestblatt der Dachfenstereinfassung die Masse
+// ueberschnitten und mitten im Schnitt standen - der Fall wurde nie
+// gezeichnet. Beide Bauarten des Seitenteils stehen jetzt drin.
 const FAELLE=
 [
   ["Einlaufblech gerade","einlaufblech_gerade",{abwicklung:250,gesamtlaenge:5000,material:"2",montage:"links",
@@ -51,6 +57,28 @@ const FAELLE=
       {name:"Seitenteil vorne rechts",laenge:500,anzahl:2},
       {name:"Seitenteil hinten rechts",laenge:400,anzahl:2}]},
     flaeche_m2:2.657}],
+  // Dachfenstereinfassung, beide Bauarten des Seitenteils. Die Masse sind die
+  // aus der Rueckmeldung des Anwenders zu v3.259. Beim durchgehenden
+  // Seitenteil ist B die ganze Laenge (380 + 755 - 130 = 1005), damit beide
+  // Faelle dasselbe Fenster beschreiben.
+  ["Dachfenstereinfassung (zwei Seitenteile)","dachfenstereinfassung",{
+    material:"2",deckung:"biber_einfach",lattenabstand:330,getrennt:false,
+    seitenteilArt:"separat",
+    ueberlappung:130,saumVorne:42,aufVorne:100,aufHinten:100,
+    breiteOben:120,breiteUnten:385,randAbstand:10,randStrich:12,
+    e:35,eUmschlag:15,anreiff:15,anreiffUmschlag:12,
+    umschlagVorne:20,umschlagSeite:20,breiteVorne:900,breiteHinten:900,
+    a:{l:110,r:110},b:{l:380,r:380},c:{l:755,r:755},
+    d:{l:430,r:430},f:{l:10,r:10},g:{l:20,r:20}}],
+  ["Dachfenstereinfassung (durchgehend mit Knick)","dachfenstereinfassung",{
+    material:"2",deckung:"biber_einfach",lattenabstand:330,getrennt:false,
+    seitenteilArt:"knick",
+    ueberlappung:"",saumVorne:42,aufVorne:100,aufHinten:100,
+    breiteOben:120,breiteUnten:385,randAbstand:10,randStrich:12,
+    e:35,eUmschlag:15,anreiff:15,anreiffUmschlag:12,
+    umschlagVorne:20,umschlagSeite:20,breiteVorne:900,breiteHinten:900,
+    a:{l:110,r:110},b:{l:1005,r:1005},c:{l:"",r:""},
+    d:{l:430,r:430},f:{l:10,r:10},g:{l:20,r:20}}],
   // --- die uebrigen Arten, seit v2.84 ebenfalls mit Laenge x Breite ---
   ["Ort- und Seitenbleche","anschlussblech",{
     deckung:"pfanne",art:"rinne",ausfuehrung:"wand",material:"2",

@@ -172,7 +172,7 @@ function dfaLeer(){
  const s=dfaSettings||DFA_STANDARD;
  return {
   material:"", deckung:s.deckung, lattenabstand:"",
-  getrennt:false, skizzeSeite:"l",
+  getrennt:false, skizzeSeite:"l", seitenteilArt:"separat",
   a:{l:"",r:""}, d:{l:"",r:""}, ueberlappung:"",
   saumVorne:"", breiteOben:"", breiteUnten:"",
   randAbstand:"", randStrich:"",
@@ -188,6 +188,16 @@ let dfaA=dfaLeer();
 
 // ---- Masse ------------------------------------------------------------------
 const DFA_SEITEN=[{k:"l",name:"links"},{k:"r",name:"rechts"}];
+// Bauart des Seitenteils (v3.260, Ansage des Anwenders). Zwei Arten:
+//   "separat" - zwei Seitenteile, die sich im Knick ueberlappen. Laenge
+//               ist B + I minus der Ueberlappung H. Das war bisher die
+//               einzige Art und bleibt die Vorgabe, damit jede frueher
+//               gespeicherte Aufnahme (ohne dieses Feld) unveraendert
+//               aufgeht.
+//   "knick"   - EIN durchgehendes Seitenteil mit einem Knick. Dann gibt es
+//               keine Ueberlappung und kein zweites Laengenmass: B ist die
+//               ganze Laenge, H und I entfallen.
+function dfaMitKnick(quelle){ return (quelle||dfaA).seitenteilArt==="knick" }
 function dfaSeite(feld,seite,quelle){
  const q=quelle||dfaA;
  const w=q[feld];
@@ -208,10 +218,13 @@ function dfaSeiteRoh(feld,seite,quelle){
 // Zuschnitt waere unbrauchbar, ein zu langer laesst sich kuerzen.
 function dfaADurchgehend(){ return Math.max(dfaSeite("a","l"),dfaSeite("a","r")) }
 function dfaDDurchgehend(){ return Math.max(dfaSeite("d","l"),dfaSeite("d","r")) }
-// Laenge laengs Dach - B und C ueberlappen sich um die Knickbreite, exakt wie
-// kamaKaminLaenge() in js/37.
+// Laenge laengs Dach. Bei zwei separaten Seitenteilen ueberlappen sich B und
+// C um die Knickbreite, exakt wie kamaKaminLaenge() in js/37. Beim
+// durchgehenden Seitenteil mit Knick gibt es nichts zu ueberlappen - B IST
+// die Laenge (siehe dfaMitKnick).
 function dfaLaenge(seite,quelle){
  const q=quelle||dfaA;
+ if(dfaMitKnick(q))return dfaSeite("b",seite,q);
  return dfaSeite("b",seite,q)+dfaSeite("c",seite,q)-dfaZahl(q.ueberlappung);
 }
 
@@ -269,6 +282,15 @@ function dfaZuschnitte(){
    {name:"Mass "+dfaBuchstabe("g")+" · unter Deckmaterial",wert:dfaSeite("g",s.k)},
    {name:"Mass "+dfaBuchstabe("f")+" · bis Deckmaterial",wert:dfaSeite("f",s.k)},
    {name:"Aufbordungshöhe (grösseres Mass)",wert:h}];
+  // Mit durchgehendem Seitenteil (Knick) gibt es die Teilung am Knick nicht:
+  // EIN Stueck ueber die ganze Laenge, hinten wie gehabt die letzten 10 mm
+  // als schraeger Trapezstrich. Aus acht Zuschnitten werden dann sechs.
+  const L=dfaLaenge(s.k);
+  if(dfaMitKnick()){
+   dazu("Seitenteil","seite",s.name,Math.max(0,L-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
+   dazu("Seitenteil hinten","seite",s.name,L>0?DFA_HINTERKANTE_RUECKLAUF:0,teile.map(x=>Object.assign({},x)));
+   return;
+  }
   dazu("Seitenteil vorne","seite",s.name,dfaSeite("b",s.k),teile.map(x=>Object.assign({},x)));
   dazu("Seitenteil Mitte","seite",s.name,Math.max(0,dfaSeite("c",s.k)-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
   dazu("Seitenteil hinten","seite",s.name,dfaSeite("c",s.k)>0?DFA_HINTERKANTE_RUECKLAUF:0,teile.map(x=>Object.assign({},x)));
@@ -310,6 +332,7 @@ const DFA_E_UMSCHLAG_WINKEL=45*Math.PI/180;
 const DFA_ANREIFF_SPALT=3; // rein zeichnerischer Abstand des Umschlags unter dem Anreiff
 function dfaSkizze(quelle){
  const q=quelle||dfaA;
+ const mitKnick=dfaMitKnick(q);
  const seite=q.getrennt?(q.skizzeSeite==="r"?"r":"l"):"l";
  const A=dfaSeite("a",seite,q), D=dfaSeite("d",seite,q), Ue=dfaZahl(q.ueberlappung);
  const av=dfaZahl(q.aufVorne), ah=dfaZahl(q.aufHinten);
@@ -337,7 +360,14 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  // der Schraege - sie liegt von dort an HINTER der sichtbaren Schraege
  // (deshalb gestrichelt, verdeckte Kante, gleiches Prinzip wie der Knick) und
  // laeuft erst 10 mm vor der Hinterkante (Q2/Q3) auf das Dach zurueck.
- const Qf=P(L-bu,av);                      // Fuss der Schraege, auf Hoehe vorne
+ // Die durchgehende Oberkante liegt NICHT schon ab dem Fuss der Schraege
+ // hinter ihr: der Fuss liegt auf dem Dach (Hoehe 0), die Oberkante auf Hoehe
+ // av. Dazwischen laeuft die Schraege noch UNTER der Oberkante durch und
+ // verdeckt nichts. Verdeckt - und damit gestrichelt - ist sie erst ab der
+ // Stelle, wo die Schraege sie kreuzt. Kreuzung auf Q0 -> Q1 bei y = av;
+ // liegt av ueber dem Trapez (av >= ah), ist das die obere Ecke Q1.
+ const tKreuz=ah>0?Math.min(1,Math.max(0,av/ah)):1;
+ const Qk=P((L-bu)+tKreuz*(bu-bo),av);     // Kreuzung Schraege / Oberkante
  const M2=P(L-DFA_HINTERKANTE_RUECKLAUF,av); // 10 mm vor der Hinterkante
  const N=P(L-DFA_HINTERKANTE_RUECKLAUF,0);   // faellt hier auf das Dach zurueck
  // 90-Grad-Aufbug hinten (E, hinter D) - senkrecht wie bei der
@@ -359,6 +389,13 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  let xMin=dachVon,xMax=dachBis,yMin=0,yMax=Math.max(av,ah);
  xMin-=70; xMax+=40; yMin-=40; yMax+=70;
 
+ // Bleibt bei 680. Gemessen am 5.10.2026, weil "darf ruhig groesser sein"
+ // nahelegt, genau diese Zahl zu erhoehen - das ist ein Irrtum: das SVG wird
+ // mit width="100%" auf die Kastenbreite skaliert. Ein groesserer
+ // Zeichenbereich macht die 15-Punkt-Schrift also KLEINER, nicht groesser.
+ // Auf einem 390-Punkt-Handy: 680 ergibt eine 8,1 Punkt grosse Zahl und ein
+ // 180 Punkt hohes Bild, 1100 nur noch 5,5 Punkte und 140. Groesser wird die
+ // Zeichnung durch die Baender ausserhalb, nicht durch diese Zahl.
  const breitePx=680, rand=12;
  let sk=(breitePx-2*rand)/(xMax-xMin);
  if(sk>1.6)sk=1.6;
@@ -414,9 +451,9 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  // Schraege (der Knick liegt auf diesem Abschnitt) - SICHTBAR, weil noch vor
  // der Schraege. Ab dort liegt sie HINTER der Schraege - GESTRICHELT, bis sie
  // 10 mm vor der Hinterkante auf das Dach zurueckfaellt.
- g+=linie(P1,Qf,ANB_FARBE.bau,2);
- if(M2[0]>Qf[0]){
-  g+=linie(Qf,M2,ANB_FARBE.bau,1.6,"7 5");
+ g+=linie(P1,Qk,ANB_FARBE.bau,2);
+ if(M2[0]>Qk[0]){
+  g+=linie(Qk,M2,ANB_FARBE.bau,1.6,"7 5");
   g+=linie(M2,N,ANB_FARBE.bau,1.6,"7 5");
  }
  // Trapezform hinten.
@@ -434,7 +471,9 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  }
  // Knick: Vorderkant voll, Hinterkant gestrichelt (verdeckte Kante) - exakt
  // dasselbe Prinzip wie bei der Kamineinfassung.
- const knickDa=Ue>0&&knickVorne>0&&knickHinten<=L;
+ // Beim durchgehenden Seitenteil gibt es keine Stossstelle - also auch keine
+ // Vorder-/Hinterkant-Linien des Knicks.
+ const knickDa=!mitKnick&&Ue>0&&knickVorne>0&&knickHinten<=L;
  if(knickDa){
   g+=linie(P(knickVorne,0),P(knickVorne,av),ANB_FARBE.bau,1.6);
   g+=linie(P(knickHinten,0),P(knickHinten,av),ANB_FARBE.bau,1.6,"7 5");
@@ -449,55 +488,119 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  if(anreiff>0)g+=linie(F0,F1,ANB_FARBE.deckLinie,3.4);
  if(anreiff>0&&anreiffUmschlag>0)g+=linie(Fu0,Fu1,ANB_FARBE.deckLinie,2.4);
 
- // Masse. Jede Bemassung bekommt eine EIGENE Hoehenbahn, von unten (Dach)
- // nach oben aufsteigend geordnet, damit sich nichts gegenseitig verdeckt:
- //   Dach/A/D (0)  <  Breite unten (-34, unter dem Dach)
- //   Knick (av*0.5)  <  B (av+34)  <  Breite oben (ah+34)  <  C (ganz oben)
- // A und D zeigen nach INNEN, wie beim Kamin.
- if(A>0){g+=anbMassWaag(-A,0,0,dfaBuchstabe("a")+" = "+zahl(A),X,Y,true); merkMassWaag(-A,0,0,dfaBuchstabe("a")+" = "+zahl(A),true)}
- if(D>0){g+=anbMassWaag(L,L+D,0,dfaBuchstabe("d")+" = "+zahl(D),X,Y,true); merkMassWaag(L,L+D,0,dfaBuchstabe("d")+" = "+zahl(D),true)}
- g+=anbMassWaag(Q0[0],Q3[0],-34,dfaBuchstabe("breiteUnten")+" = "+zahl(bu),X,Y,true);
- merkMassWaag(Q0[0],Q3[0],-34,dfaBuchstabe("breiteUnten")+" = "+zahl(bu),true);
- if(knickDa){
-  g+=anbMassWaag(knickVorne,knickHinten,av*0.5,dfaBuchstabe("ueberlappung")+" = "+zahl(Ue),X,Y,false);
-  merkMassWaag(knickVorne,knickHinten,av*0.5,dfaBuchstabe("ueberlappung")+" = "+zahl(Ue),false);
- }
- if(B>0){g+=anbMassWaag(0,knickHinten,av+34,dfaBuchstabe("b")+" = "+zahl(B),X,Y,false); merkMassWaag(0,knickHinten,av+34,dfaBuchstabe("b")+" = "+zahl(B),false)}
- if(strichDa){
-  const fahneR=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneR(Rs[0],ah-randStrich/2,-46,14,dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" = "+zahl(randAbstand)+" / "+zahl(randStrich));
- }
- g+=anbMassWaag(Q1[0],Q2[0],ah+34,dfaBuchstabe("breiteOben")+" = "+zahl(bo),X,Y,false);
- merkMassWaag(Q1[0],Q2[0],ah+34,dfaBuchstabe("breiteOben")+" = "+zahl(bo),false);
- if(C>0){g+=anbMassWaag(knickVorne,L,Math.max(av,ah)+72,dfaBuchstabe("c")+" = "+zahl(C),X,Y,false); merkMassWaag(knickVorne,L,Math.max(av,ah)+72,dfaBuchstabe("c")+" = "+zahl(C),false)}
- g+=anbMassSenk(0,av,dachVon-56,dfaBuchstabe("aufVorne")+" = "+zahl(av),X,Y);
- merkMassSenk(0,av,dachVon-56,dfaBuchstabe("aufVorne")+" = "+zahl(av));
- g+=anbMassSenk(0,ah,dachBis+22,dfaBuchstabe("aufHinten")+" = "+zahl(ah),X,Y);
- merkMassSenk(0,ah,dachBis+22,dfaBuchstabe("aufHinten")+" = "+zahl(ah));
- // D (der Saum, oberster Teil von F) wird als eigene, VOM WANDFUSS NACH OBEN
- // laufende Masskette gezeichnet (0 bis Falzbeginn av-saum) - genau wie F/Q -
- // statt als blosse Fahne. So liest sich D wie am Bau gemessen: vom Fuss der
- // Wand hoch bis dorthin, wo der Falz beginnt, nicht als Laenge des Falzes
- // selbst von der Spitze her.
- if(saum>0&&saum<av){
-  g+=anbMassSenk(0,av-saum,dachVon-28,dfaBuchstabe("saumVorne")+" = "+zahl(saum),X,Y);
-  merkMassSenk(0,av-saum,dachVon-28,dfaBuchstabe("saumVorne")+" = "+zahl(saum));
- }
- // Hoch ueber der Zeichnung (wie C, nur noch hoeher) und zur Mitte hin
- // ausgerichtet - der Platz rechts von E bzw. links von Anreiff ist durch
- // die neue Bemassung "Aufbordung hinten/vorne" belegt (die es bei der
- // Kamineinfassung nicht gibt), der Platz zur Mitte hin ist frei.
- if(E>0){
-  const fahneE=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneE(E1[0],E1[1],-8,-95,dfaBuchstabe("e")+" = "+zahl(E)+" · 90°"+(eUmschlag>0?" / "+dfaBuchstabe("eUmschlag")+" = "+zahl(eUmschlag):""));
- }
- if(anreiff>0){
-  const fahneF=(x,y,dx,dy,text)=>{g+=anbFahne(x,y,dx,dy,text,X,Y); merkFahne(x,y,dx,dy,text)};
-  fahneF(F1[0],F1[1],8,-95,dfaBuchstabe("anreiff")+" = "+zahl(anreiff)+(anreiffUmschlag>0?" / "+dfaBuchstabe("anreiffUmschlag")+" = "+zahl(anreiffUmschlag):""));
- }
+ // ---- Masse ---------------------------------------------------------------
+ // Ansage des Anwenders (v3.260): "Es darf keine Überschneidungen geben und
+ // keine Masse direkt in dem Schnitt." Beides war verletzt, und zwar aus EINEM
+ // Grund: die Hoehenbahnen standen in MILLIMETERN (34, 72, ...) und wurden
+ // deshalb mitskaliert. Bei einem langen Fenster schrumpften sie auf wenige
+ // Bildpunkte zusammen und die Zahlen klebten aufeinander; die Ueberlappung
+ // stand ohnehin mitten im Schnitt.
+ // Jetzt gilt:
+ //   1. KEIN Mass liegt im Schnitt - alles steht darueber oder darunter.
+ //   2. Die Baender haben einen festen Abstand in BILDPUNKTEN, nicht in mm.
+ //   3. Welches Mass in welches Band kommt, wird GERECHNET statt geraten:
+ //      jedes bekommt das unterste Band, in dem es - samt seiner Textbreite -
+ //      keinem schon gesetzten Mass in die Quere kommt. Damit ist die
+ //      Zeichnung bei JEDER Masskombination ueberschneidungsfrei, nicht nur
+ //      bei der, die ich beim Bauen vor Augen hatte.
+ const BAND_ERSTES=26, BAND_ABSTAND=34;        // Bildpunkte
+ const textBreite=(t,gr)=>String(t).length*(gr||15)*0.56;
+ // Waagerechtes Mass: Masslinie von x1 bis x2, Text mittig darueber. Bei
+ // kurzen Massen ist der TEXT breiter als die Linie - gerechnet wird mit dem
+ // groesseren von beidem, sonst stossen zwei kurze Masse mit ihren Zahlen
+ // zusammen, obwohl ihre Linien weit auseinanderliegen.
+ const massEintrag=(x1,x2,text)=>{
+  const a1=X(x1), a2=X(x2), mitte=(a1+a2)/2, halb=textBreite(text)/2;
+  return {art:"mass",x1,x2,text,
+   l:Math.min(a1,a2,mitte-halb)-8, r:Math.max(a1,a2,mitte+halb)+8};
+ };
+ // Fahne: Linie vom Punkt zum Text. Der Text steht links (dx<0), rechts
+ // (dx>0) oder mittig ueber dem Punkt (dx=0) - genau die drei Faelle, die
+ // anbFahne zeichnet. Stimmte das hier nicht mit dort ueberein, bekaeme die
+ // Bandzuteilung die falsche Textlage und liesse zwei Fahnen aufeinander.
+ const fahneEintrag=(x,y,dx,text)=>{
+  const a1=X(x), br=textBreite(text,13);
+  const ende=a1+dx+(dx<0?-4:(dx>0?4:0));
+  const tl=dx<0?ende-br:(dx>0?ende:ende-br/2);
+  return {art:"fahne",x,y,dx,text,
+   l:Math.min(a1,tl)-8, r:Math.max(a1,tl+br)+8};
+ };
+ // Kurze Masse zuerst: sie sind oertlich und gehoeren nah an die Zeichnung,
+ // die langen wandern nach aussen. Sonst legt sich ein langes Mass ins erste
+ // Band und draengt jedes kurze eine Stufe hoeher.
+ const baenderSetzen=liste=>{
+  const belegt=[];
+  liste.slice().sort((p1,p2)=>(p1.r-p1.l)-(p2.r-p2.l)).forEach(e=>{
+   let i=0;
+   while(belegt[i]&&belegt[i].some(z=>e.l<z.r&&e.r>z.l))i++;
+   (belegt[i]=belegt[i]||[]).push({l:e.l,r:e.r});
+   e.band=i;
+  });
+  return liste;
+ };
+ // Oben beginnt ueber der hoechsten Aufbordung, unten unter dem Anreiff -
+ // der taucht unter das Dach, darunter darf kein Mass liegen.
+ const yOben=Math.max(av,ah), yUnten=Math.min(0,anreiff>0?Fu1[1]:0);
+ const obenY=b=>yOben+(BAND_ERSTES+b*BAND_ABSTAND)/sk;
+ const untenY=b=>yUnten-(BAND_ERSTES+b*BAND_ABSTAND)/sk;
+
+ const oben=[], unten=[];
+ oben.push(massEintrag(Q1[0],Q2[0],dfaBuchstabe("breiteOben")+" = "+zahl(bo)));
+ if(knickDa)oben.push(massEintrag(knickVorne,knickHinten,dfaBuchstabe("ueberlappung")+" = "+zahl(Ue)));
+ // Beim durchgehenden Seitenteil misst B die ganze Laenge (= L), bei zwei
+ // Seitenteilen bis zur Hinterkant Knick.
+ if(B>0)oben.push(massEintrag(0,mitKnick?L:knickHinten,dfaBuchstabe("b")+" = "+zahl(B)));
+ if(!mitKnick&&C>0)oben.push(massEintrag(knickVorne,L,dfaBuchstabe("c")+" = "+zahl(C)));
+ if(strichDa)oben.push(fahneEintrag(Rs[0],ah,54,
+  dfaBuchstabe("randAbstand")+" / "+dfaBuchstabe("randStrich")+" = "+zahl(randAbstand)+" / "+zahl(randStrich)));
+ // Die Fahne am Aufbug zeigt SENKRECHT nach oben (dx = 0), nicht nach links.
+ // Gemessen: nach links landete ihr Text im selben waagerechten Bereich wie
+ // der der Abdeckkappe, beide wurden dadurch je ein Band hoeher geschoben
+ // (Textlagen -43 und -9 statt -9 und +25). Senkrecht stehen sie nebeneinander
+ // und die Zeichnung kommt mit einem Band weniger aus.
+ if(E>0)oben.push(fahneEintrag(E1[0],E1[1],0,
+  dfaBuchstabe("e")+" = "+zahl(E)+" · 90°"+(eUmschlag>0?" / "+dfaBuchstabe("eUmschlag")+" = "+zahl(eUmschlag):"")));
+ if(A>0)unten.push(massEintrag(-A,0,dfaBuchstabe("a")+" = "+zahl(A)));
+ if(D>0)unten.push(massEintrag(L,L+D,dfaBuchstabe("d")+" = "+zahl(D)));
+ unten.push(massEintrag(Q0[0],Q3[0],dfaBuchstabe("breiteUnten")+" = "+zahl(bu)));
+ if(anreiff>0)unten.push(fahneEintrag(F1[0],F1[1],-10,
+  dfaBuchstabe("anreiff")+" = "+zahl(anreiff)+(anreiffUmschlag>0?" / "+dfaBuchstabe("anreiffUmschlag")+" = "+zahl(anreiffUmschlag):"")));
+
+ const zeichneBand=(e,y,unterhalb)=>{
+  if(e.art==="mass"){
+   g+=anbMassWaag(e.x1,e.x2,y,e.text,X,Y,unterhalb);
+   merkMassWaag(e.x1,e.x2,y,e.text,unterhalb);
+   return;
+  }
+  const dy=Y(y)-Y(e.y);
+  g+=anbFahne(e.x,e.y,e.dx,dy,e.text,X,Y);
+  merkFahne(e.x,e.y,e.dx,dy,e.text);
+ };
+ baenderSetzen(oben).forEach(e=>zeichneBand(e,obenY(e.band),false));
+ baenderSetzen(unten).forEach(e=>zeichneBand(e,untenY(e.band),true));
+
+ // Senkrechte Masse: links die beiden vorderen Hoehen, rechts die hintere.
+ // Auch diese Abstaende sind Bildpunkte - in Millimetern gerechnet klebten
+ // der Saum und die Aufbordungshoehe bei langen Fenstern aufeinander.
+ // anbMassSenk zieht seine Hilfslinien 26 Bildpunkte nach RECHTS, deshalb
+ // liegen zwischen den beiden linken Massen 50 Punkte: bei 42 blieben zwischen
+ // dem Ende der einen Hilfslinie und dem Anfang der naechsten Zahl nur 8
+ // Punkte - gemessen, nicht geschaetzt.
+ const xLinks=Math.min(0,F1[0],Fu1[0]), xRechts=Math.max(L+D,E0[0]);
+ const senkMass=(y1,y2,x,text)=>{
+  g+=anbMassSenk(y1,y2,x,text,X,Y); merkMassSenk(y1,y2,x,text);
+ };
+ const saumDa=saum>0&&saum<av;
+ if(saumDa)senkMass(0,av-saum,xLinks-32/sk,dfaBuchstabe("saumVorne")+" = "+zahl(saum));
+ senkMass(0,av,xLinks-(saumDa?82:32)/sk,dfaBuchstabe("aufVorne")+" = "+zahl(av));
+ senkMass(0,ah,xRechts+32/sk,dfaBuchstabe("aufHinten")+" = "+zahl(ah));
 
  const seiteTxt=q.getrennt?(seite==="r"?" · rechte Seite":" · linke Seite"):"";
- const fuss="Dachfenstereinfassung · Seitenteil im Schnitt längs des Dachs"+seiteTxt+" · Dach waagerecht dargestellt";
+ // Die Bauart gehoert in die Fusszeile: an der Zeichnung allein ist sie nur
+ // am fehlenden Knick zu erkennen, und auf dem ausgedruckten Ruestblatt ist
+ // genau das die Frage, die in der Werkstatt gestellt wird.
+ const artTxt=mitKnick?" · durchgehend mit Knick":" · zwei separate Seitenteile";
+ const fuss="Dachfenstereinfassung · Seitenteil im Schnitt längs des Dachs"+seiteTxt+artTxt+" · Dach waagerecht dargestellt";
  merk(bx1-String(fuss).length*11*0.5,by1+16);
  const vx=Math.round(bx0-8), vy=Math.round(by0-8);
  const vw=Math.max(60,Math.round(bx1-bx0+16)), vh=Math.max(40,Math.round(by1-by0+16));
@@ -623,7 +726,7 @@ function dfaPruefungen(){
  fehlt(a.breiteHinten,dfaBuchstabe("breiteHinten")+" · Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
  fehlt(a.breiteOben,dfaMassLabel("breiteOben")+" fehlt.");
  fehlt(a.breiteUnten,dfaMassLabel("breiteUnten")+" fehlt.");
- fehltLeer(a.ueberlappung,dfaMassLabel("ueberlappung")+" fehlt.");
+ if(dfaMassGilt("ueberlappung"))fehltLeer(a.ueberlappung,dfaMassLabel("ueberlappung")+" fehlt.");
  fehltLeer(a.saumVorne,dfaMassLabel("saumVorne")+" fehlt.");
  fehlt(a.aufVorne,dfaMassLabel("aufVorne")+" fehlt.");
  fehlt(a.aufHinten,dfaMassLabel("aufHinten")+" fehlt.");
@@ -642,7 +745,7 @@ function dfaPruefungen(){
   const zusatz=a.getrennt?" ("+s.name+")":"";
   fehlt(dfaSeite("a",s.k),"Mass "+dfaBuchstabe("a")+", "+dfaBezeichnung("a")+zusatz+", fehlt.");
   fehlt(dfaSeite("b",s.k),"Mass "+dfaBuchstabe("b")+", "+dfaBezeichnung("b")+zusatz+", fehlt.");
-  fehlt(dfaSeite("c",s.k),"Mass "+dfaBuchstabe("c")+", "+dfaBezeichnung("c")+zusatz+", fehlt.");
+  if(dfaMassGilt("c"))fehlt(dfaSeite("c",s.k),"Mass "+dfaBuchstabe("c")+", "+dfaBezeichnung("c")+zusatz+", fehlt.");
   fehlt(dfaSeite("d",s.k),"Mass "+dfaBuchstabe("d")+", "+dfaBezeichnung("d")+zusatz+", fehlt.");
   fehltLeer(dfaSeiteRoh("f",s.k),"Mass "+dfaBuchstabe("f")+", "+dfaBezeichnung("f")+zusatz+", fehlt.");
   fehltLeer(dfaSeiteRoh("g",s.k),"Mass "+dfaBuchstabe("g")+", "+dfaBezeichnung("g")+zusatz+", fehlt.");
@@ -652,11 +755,13 @@ function dfaPruefungen(){
   "randAbstand","randStrich","e","eUmschlag","anreiff","anreiffUmschlag",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagSeite"
   ].forEach(k=>{
+  if(!dfaMassGilt(k))return;
   if(dfaZahl(a[k])<0)m.push({art:"fehler",text:dfaMassLabel(k)+" kann nicht negativ sein."});
  });
  if(dfaZahl(a.lattenabstand)<0)m.push({art:"fehler",text:"Lattenabstand kann nicht negativ sein."});
  DFA_SEITEN.forEach(s=>{
   ["a","b","c","d","f","g"].forEach(k=>{
+   if(!dfaMassGilt(k))return;
    if(dfaSeite(k,s.k)<0)m.push({art:"fehler",text:"Ein seitliches Mass ist negativ ("+s.name+")."});
   });
  });
@@ -666,19 +771,28 @@ function dfaPruefungen(){
  DFA_SEITEN.forEach(s=>{
   const L=dfaLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
-  if(dfaSeite("b",s.k)>0&&dfaSeite("c",s.k)>0&&!(L>0))
-   m.push({art:"fehler",text:dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" ist nicht grösser als die Überlappung"+zusatz
-     +" – daraus ergibt sich keine Länge."});
-  if(dfaZahl(a.ueberlappung)>0&&dfaSeite("b",s.k)>0&&dfaSeite("b",s.k)<=dfaZahl(a.ueberlappung))
-   m.push({art:"warnung",text:"Mass "+dfaBuchstabe("b")+zusatz+" ist nicht grösser als die Überlappung – "
-     +"der Knick läge dann vor der Vorderkant Dachfenster."});
+  if(!dfaMitKnick()){
+   if(dfaSeite("b",s.k)>0&&dfaSeite("c",s.k)>0&&!(L>0))
+    m.push({art:"fehler",text:dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" ist nicht grösser als die Überlappung"+zusatz
+      +" – daraus ergibt sich keine Länge."});
+   if(dfaZahl(a.ueberlappung)>0&&dfaSeite("b",s.k)>0&&dfaSeite("b",s.k)<=dfaZahl(a.ueberlappung))
+    m.push({art:"warnung",text:"Mass "+dfaBuchstabe("b")+zusatz+" ist nicht grösser als die Überlappung – "
+      +"der Knick läge dann vor der Vorderkant Dachfenster."});
+  }else if(dfaSeite("b",s.k)>0&&dfaZahl(a.breiteUnten)>0&&dfaSeite("b",s.k)<=dfaZahl(a.breiteUnten)){
+   // Beim durchgehenden Seitenteil ist B die ganze Laenge - sie muss laenger
+   // sein als der Fuss der hinteren Aufbordung, sonst laege das Trapez vor
+   // der Vorderkant Dachfenster.
+   m.push({art:"fehler",text:"Mass "+dfaBuchstabe("b")+zusatz+" ist nicht grösser als "
+     +dfaBuchstabe("breiteUnten")+" (Breite unten) – daraus ergibt sich kein Seitenteil."});
+  }
   if(!a.getrennt)return;
  });
  if(!(dfaZahl(a.lattenabstand)>0))
   m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
  if(!a.deckung)m.push({art:"warnung",text:"Es ist noch kein Deckmaterial gewählt."});
  if(a.getrennt){
-  const gleich=["a","b","c","d","f","g"].every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
+  const gleich=["a","b","c","d","f","g"].filter(k=>dfaMassGilt(k))
+    .every(k=>dfaSeite(k,"l")===dfaSeite(k,"r"));
   if(gleich)m.push({art:"warnung",text:"Links und rechts werden getrennt erfasst, "
     +"sind aber überall gleich – der Schalter kann ausgeschaltet werden."});
  }
@@ -734,30 +848,57 @@ function dfaBuchstabe(k){
 // bewusst anders formulierter, kuerzerer oder zusammengesetzter Text (z.B.
 // in der dichten Kontrolle-Tabelle oder mit einem angehaengten Zusatz) bleibt
 // eigener Text, siehe Kommentare an den jeweiligen Stellen.
-function dfaBezeichnung(k){
+// Beim durchgehenden Seitenteil misst B nicht mehr bis zum Knick, sondern die
+// ganze Laenge. Dieser EINE Unterschied steht nur hier - Buchstabe und
+// Grundname kommen unveraendert aus DFA_MASSLISTE, es gibt keine zweite
+// Massliste.
+const DFA_KNICK_NAMEN={b:"Vorderkant bis Hinterkant Dachfenster"};
+function dfaBezeichnung(k,quelle){
+ if(dfaMitKnick(quelle)&&DFA_KNICK_NAMEN[k])return DFA_KNICK_NAMEN[k];
  const e=DFA_MASSLISTE.find(x=>x[0]===k);
  return e?e[1]:"";
 }
-function dfaMassLabel(k){
- return dfaBuchstabe(k)+" · "+dfaBezeichnung(k);
+function dfaMassLabel(k,quelle){
+ return dfaBuchstabe(k)+" · "+dfaBezeichnung(k,quelle);
+}
+// Welche Masse es in der gewaehlten Bauart ueberhaupt gibt. Eine Stelle, auf
+// die sich Formular, Pruefungen, Uebersicht und Skizze gleichermassen
+// beziehen - sonst haette jede davon ihre eigene Meinung dazu.
+function dfaMassGilt(k,quelle){
+ if(!dfaMitKnick(quelle))return true;
+ return k!=="ueberlappung"&&k!=="c";
 }
 // Feste, nur zur Anschauung dienende Beispielwerte fuer die Uebersichts-
 // Skizze - unabhaengig vom laufenden Zustand, damit sie auch bei einer
 // leeren oder halb ausgefuellten Aufnahme immer vollstaendig und lesbar
 // bleibt. Kein Bezug zu einer echten Aufnahme.
 function dfaUebersichtQuelle(){
+ const knick=dfaMitKnick();
  return Object.assign(dfaLeer(),{
   getrennt:false, skizzeSeite:"l",
+  seitenteilArt:knick?"knick":"separat",
   a:180, d:200, ueberlappung:120, saumVorne:50,
   breiteOben:90, breiteUnten:125, randAbstand:15, randStrich:12,
   e:35, eUmschlag:15, anreiff:15, anreiffUmschlag:10,
   aufVorne:80, aufHinten:120,
-  b:{l:300,r:300}, c:{l:400,r:400}, f:{l:10,r:10}, g:{l:20,r:20}
+  // Beide Bauarten zeigen DASSELBE Fenster: beim durchgehenden Seitenteil ist
+  // B die ganze Laenge, also genau das, was bei zwei Seitenteilen aus
+  // B + C - Ueberlappung herauskommt (300 + 400 - 120 = 580). Sonst waere die
+  // Beispielskizze beim Umschalten ploetzlich ein anderes Fenster - und mit
+  // B = 300 kuerzer als die Breite unten, was die Aufnahme zu Recht
+  // beanstanden wuerde.
+  b:{l:knick?580:300,r:knick?580:300}, c:{l:400,r:400}, f:{l:10,r:10}, g:{l:20,r:20}
  });
 }
 function dfaUebersichtHtml(){
- const zeilen=DFA_MASSLISTE.map(([k,name])=>
-  `<tr><td><b>${esc(dfaBuchstabe(k))}</b></td><td>${esc(name)}</td></tr>`).join("");
+ // Die Tabelle zeigt dieselbe Bauart wie das Formular: Masse, die es in
+ // dieser Bauart nicht gibt, stehen durchgestrichen da statt zu verschwinden -
+ // so bleibt die Buchstabenfolge A, B, C, ... lueckenlos nachvollziehbar.
+ const zeilen=DFA_MASSLISTE.map(([k])=>{
+  const gilt=dfaMassGilt(k);
+  return `<tr${gilt?"":' style="color:var(--muted)"'}><td><b>${esc(dfaBuchstabe(k))}</b></td>
+<td>${gilt?esc(dfaBezeichnung(k)):"<s>"+esc(dfaBezeichnung(k))+"</s> – entfällt beim durchgehenden Seitenteil"}</td></tr>`;
+ }).join("");
  return `<details class="dfa-uebersicht" style="margin-bottom:12px">
 <summary>Übersicht: alle Masse mit Buchstabe (A, B, C, …) anzeigen</summary>
 <div class="info" style="margin-top:8px">Beispielskizze mit Beispielwerten -
@@ -863,16 +1004,28 @@ function dfaMasseHtml(){
 <button type="button" class="gray${a.skizzeSeite!=="r"?" blue":""}" data-dfa-skizze="l">Linke Seite</button>
 <button type="button" class="gray${a.skizzeSeite==="r"?" blue":""}" data-dfa-skizze="r">Rechte Seite</button>
 </div>`:"";
- return dfaUebersichtHtml()+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
-gleich vermasst wie bei der Kamineinfassung. <b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b>
+ const knick=dfaMitKnick();
+ // Bauart des Seitenteils. Die Wahl steht VOR den Massen, weil sie bestimmt,
+ // welche Masse es ueberhaupt gibt (dfaMassGilt).
+ const artWahl=`<div class="bar" style="margin-bottom:8px">
+<button type="button" class="gray${!knick?" blue":""}" data-dfa-seitenteil="separat">Separate Seitenteile</button>
+<button type="button" class="gray${knick?" blue":""}" data-dfa-seitenteil="knick">Mit Knick, durchgehend</button>
+</div>`;
+ const laengeSatz=knick
+  ?`Das Seitenteil läuft in <b>einem Stück</b> durch und bekommt einen Knick –
+es gibt keine Überlappung. <b>${dfaBuchstabe("b")}</b> ist deshalb die ganze Länge
+des Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")} entfallen.`
+  :`<b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b>
 überlappen sich im Knick – die Länge des Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")}
-− ${dfaBuchstabe("ueberlappung")}. Vorne ist die Aufbordung niedriger und hat oben einen Saum; hinten
+− ${dfaBuchstabe("ueberlappung")}.`;
+ return dfaUebersichtHtml()+artWahl+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
+gleich vermasst wie bei der Kamineinfassung. ${laengeSatz} Vorne ist die Aufbordung niedriger und hat oben einen Saum; hinten
 ist sie höher und bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
 ${dfaSeitenFeld(dfaMassLabel("a"),"dfa_a",true,dfaSettings.mass_vorne)}
 ${dfaSeitenFeld(dfaMassLabel("b"),"dfa_b",true)}
-${dfaSeitenFeld(dfaMassLabel("c"),"dfa_c",true)}
-${dfaZahlFeld(dfaMassLabel("ueberlappung"),"dfa_ueberlappung",a.ueberlappung,"1",true,dfaSettings.ueberlappung)}
+${knick?"":dfaSeitenFeld(dfaMassLabel("c"),"dfa_c",true)}
+${knick?"":dfaZahlFeld(dfaMassLabel("ueberlappung"),"dfa_ueberlappung",a.ueberlappung,"1",true,dfaSettings.ueberlappung)}
 ${dfaSeitenFeld(dfaMassLabel("d"),"dfa_d",true,dfaSettings.mass_hinten)}
 ${dfaZahlFeld(dfaMassLabel("aufVorne"),"dfa_aufVorne",a.aufVorne,"1",true,dfaSettings.auf_vorne)}
 ${dfaZahlFeld(dfaMassLabel("aufHinten"),"dfa_aufHinten",a.aufHinten,"1",true,dfaSettings.auf_hinten)}
@@ -886,8 +1039,7 @@ ${dfaZahlFeld(dfaMassLabel("eUmschlag"),"dfa_eUmschlag",a.eUmschlag,"1",true,dfa
 ${dfaZahlFeld(dfaMassLabel("anreiff")+", vor "+dfaBuchstabe("a"),"dfa_anreiff",a.anreiff,"1",true,dfaSettings.anreiff)}
 ${dfaZahlFeld(dfaMassLabel("anreiffUmschlag"),"dfa_anreiffUmschlag",a.anreiffUmschlag,"1",true,dfaSettings.anreiff_umschlag)}
 </div>
-<div class="small" style="color:var(--muted);margin-top:4px">${dfaBuchstabe("b")} und ${dfaBuchstabe("c")}
-überlappen sich im Knick – die Länge ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")} − ${dfaBuchstabe("ueberlappung")}.</div>
+<div class="small" style="color:var(--muted);margin-top:4px">${laengeSatz}</div>
 <h2 style="margin-top:14px">Seitliche Masse</h2>
 <div class="grid">
 ${dfaSeitenFeld(dfaMassLabel("f"),"dfa_f",true)}
@@ -1145,6 +1297,14 @@ function dfaVerdrahten(){
   if(reg){dfaSetzeSchritt(reg.dataset.dfaSchritt);return}
   const sk=t.closest("[data-dfa-skizze]");
   if(sk){dfaA.skizzeSeite=sk.dataset.dfaSkizze==="r"?"r":"l"; renderDfaAufnahme(); return}
+  const art=t.closest("[data-dfa-seitenteil]");
+  if(art){
+   // Die bisher eingegebenen Masse bleiben stehen - wer versehentlich
+   // umschaltet, hat sie beim Zurueckschalten unveraendert wieder. Sie
+   // zaehlen nur in der Bauart, in der es sie gibt (dfaMassGilt).
+   dfaA.seitenteilArt=art.dataset.dfaSeitenteil==="knick"?"knick":"separat";
+   renderDfaAufnahme(); return;
+  }
   if(t.id==="dfa_zurueck"){dfaSetzeSchritt(dfaSchritt-1);return}
   if(t.id==="dfa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
@@ -1278,6 +1438,10 @@ function dfaDaten(){
  return {
   material:a.material, deckung:a.deckung, lattenabstand:dfaZahl(a.lattenabstand),
   getrennt:!!a.getrennt,
+  // Die Bauart MUSS mitgespeichert werden: Ruestblatt, Ausdruck und das
+  // spaetere Oeffnen lesen nur den Datensatz. Fehlte sie, faelle jede mit
+  // Knick erfasste Aufnahme beim Oeffnen still auf zwei Seitenteile zurueck.
+  seitenteilArt:dfaMitKnick()?"knick":"separat",
   a:paar("a"), d:paar("d"), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
   randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
