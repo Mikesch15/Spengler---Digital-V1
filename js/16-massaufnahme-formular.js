@@ -1572,7 +1572,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Deckungsmaterial",esc(deckName))}${cell("Material",matName)}</tr>
 <tr>${cell("Länge Seitenteil"+seitenTxt,paar("laenge")+" mm")}${cell("Saum vorne",mm(d.saumVorne)+" mm")}</tr>
 <tr>${cell("Aufbordungshöhe vorne"+seitenTxt,paar("aufVorne")+" mm")}${cell("Aufbordungshöhe hinten"+seitenTxt,paar("aufHinten")+" mm")}</tr>
-<tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Überlappung waagr. / senkr.",mm(d.ueberlappungT)+" / "+mm(d.ueberlappungH)+" mm")}</tr>
+<tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Seitenteil",d.seitenteilArt==="knick"?"durchgehend mit Knick":"zwei separate Teile, Überlappung "+mm(d.ueberlappung)+" mm")}</tr>
 <tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
 <tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}<td></td></tr>
 </table>
