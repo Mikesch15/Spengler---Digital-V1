@@ -85,9 +85,16 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
    });
    // Gegenprobe: ein Text MITTEN im Rumpf muss von derselben Messung
    // gefunden werden - sonst misst sie nur nichts.
+   //
+   // Der Probetext haengt am Mittelpunkt einer echten Blechlinie, nicht an der
+   // Mitte des Bildausschnitts. Die Bildmitte lag beim ersten Anlauf bequem im
+   // Rumpf und rutschte heraus, sobald die Baender aussen herum wuchsen - die
+   // Gegenprobe haette dann ab da nur noch sich selbst geprueft.
+   const dick=[...svg.querySelectorAll("line")]
+     .filter(l=>parseFloat(l.getAttribute("stroke-width")||"0")>=1.5)[0];
    const probe=document.createElementNS("http://www.w3.org/2000/svg","text");
-   probe.setAttribute("x",svg.viewBox.baseVal.x+svg.viewBox.baseVal.width/2);
-   probe.setAttribute("y",svg.viewBox.baseVal.y+svg.viewBox.baseVal.height/2);
+   probe.setAttribute("x",(+dick.getAttribute("x1")+ +dick.getAttribute("x2"))/2);
+   probe.setAttribute("y",(+dick.getAttribute("y1")+ +dick.getAttribute("y2"))/2);
    probe.setAttribute("font-size","15");
    probe.textContent="PROBE";
    svg.appendChild(probe);
@@ -154,6 +161,62 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
     z.name+": genau die Fahnen sind erfasst, keine Hilfslinie ("+z.fahnen+" zu "+z.kreise+" Punkten)",z);
   p(z.paare.length===0,z.name+": keine zwei Fuehrungslinien kreuzen sich",z.paare);
   p(z.probe===true,z.name+": Gegenprobe - ein echtes Kreuz WIRD erkannt");
+ });
+
+ // ---- A3 · Keine Zahl liegt auf einer Linie -------------------------------
+ // A prueft Zahl gegen Schnitt, A2 Linie gegen Linie. Dazwischen blieb eine
+ // Luecke: eine Zahl auf einer FUEHRUNGS- oder MASSLINIE. Genau da landete
+ // "M = 120", als kurze Masse anfingen, seitlich auszuweichen - es wich nach
+ // aussen aus, mitten in die Fuehrungslinie der Abdeckkappe.
+ console.log("\nA3 · Keine Zahl liegt auf einer Linie");
+ const aufLinie=await page.evaluate(([sep,kni])=>{
+  const box=document.createElement("div");
+  box.style.cssText="width:340px;position:fixed;left:0;top:0;background:#fff;z-index:99999";
+  document.body.appendChild(box);
+  // Schneidet die Strecke den Kasten? (Clipping nach Liang-Barsky, kurz)
+  const trifft=(p1,p2,k)=>{
+   let t0=0,t1=1; const dx=p2[0]-p1[0], dy=p2[1]-p1[1];
+   const pr=[-dx,dx,-dy,dy], qr=[p1[0]-k.l,k.r-p1[0],p1[1]-k.o,k.u-p1[1]];
+   for(let i=0;i<4;i++){
+    if(pr[i]===0){ if(qr[i]<0)return false; continue }
+    const t=qr[i]/pr[i];
+    if(pr[i]<0){ if(t>t1)return false; if(t>t0)t0=t } else { if(t<t0)return false; if(t<t1)t1=t }
+   }
+   return t0<t1;
+  };
+  const aus=[];
+  for(const [name,d] of [["separat",sep],["knick",kni]]){
+   box.innerHTML=dfaSkizze(Object.assign({},d,{skizzeSeite:"l"}));
+   const svg=box.querySelector("svg");
+   const sr=svg.getBoundingClientRect();
+   const vb=svg.viewBox.baseVal, f=sr.width/vb.width;
+   const nach=(x,y)=>[(x-vb.x)*f+sr.left,(y-vb.y)*f+sr.top];
+   const linien=[...svg.querySelectorAll("line")].map(l=>[
+     nach(+l.getAttribute("x1"),+l.getAttribute("y1")),
+     nach(+l.getAttribute("x2"),+l.getAttribute("y2"))]);
+   const schnitt=[];
+   svg.querySelectorAll("text").forEach(t=>{
+    const txt=(t.textContent||"").trim();
+    if(/^Dachfenstereinfassung/.test(txt))return;
+    const r=t.getBoundingClientRect();
+    // 1,5 Punkt Toleranz: die eigene Masslinie endet an der Zahl, ein
+    // Pixel Beruehrung ist kein Durchstrich.
+    const k={l:r.left+1.5,r:r.right-1.5,o:r.top+1.5,u:r.bottom-1.5};
+    if(k.r<=k.l||k.u<=k.o)return;
+    if(linien.some(([a,b])=>trifft(a,b,k)))schnitt.push(txt);
+   });
+   // Gegenprobe: eine Strecke quer durch den ersten Text MUSS auffallen.
+   const ers=[...svg.querySelectorAll("text")][0].getBoundingClientRect();
+   const probe=trifft([ers.left-20,(ers.top+ers.bottom)/2],[ers.right+20,(ers.top+ers.bottom)/2],
+     {l:ers.left+1.5,r:ers.right-1.5,o:ers.top+1.5,u:ers.bottom-1.5});
+   aus.push({name,linien:linien.length,schnitt,probe});
+  }
+  box.remove();
+  return aus;
+ },[SEP,KNI]);
+ aufLinie.forEach(z=>{
+  p(z.schnitt.length===0,z.name+": keine Zahl wird von einer Linie durchschnitten",z.schnitt);
+  p(z.probe===true,z.name+": Gegenprobe - eine Linie quer durch eine Zahl WIRD erkannt");
  });
 
  // ---- B · Bauart des Seitenteils -------------------------------------------
@@ -295,6 +358,45 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
  },SEP);
  p(alt.knick===false,"ohne Feld seitenteilArt gilt: zwei separate Seitenteile",alt);
  p(alt.L===1005&&alt.zuschnitte===8,"ohne Feld rechnet sie wie bisher (1005 mm, acht Zuschnitte)",alt);
+
+ // ---- I · Die Wahl der Bauart ist zu sehen und zu bedienen ----------------
+ // Meldung des Anwenders: "wo kann jetzt mit oder ohne knick ausgewaehlt
+ // werden? Ich sehe es nirgends." Die Knoepfe standen da - nur sah man dem
+ // aktiven nichts an: class="gray blue" ergibt GRAU, weil .gray in
+ // css/01-basis.css nach .blue steht und beide gleich stark sind. Zwei
+ // gleich aussehende graue Knoepfe liest niemand als Wahl.
+ console.log("\nI · Die Bauart ist als Wahl zu erkennen");
+ const wahl=await page.evaluate(()=>{
+  measurementMaterials=[{id:2,name:"Titanzink"}];
+  dfaA=dfaLeer();
+  const box=document.createElement("div");
+  box.style.cssText="width:400px;position:fixed;left:0;top:0;background:#fff;z-index:99999";
+  document.body.appendChild(box);
+  const lies=()=>{
+   box.innerHTML=dfaMasseHtml();
+   return [...box.querySelectorAll("[data-dfa-seitenteil]")].map(k=>({
+    wert:k.dataset.dfaSeitenteil, text:k.textContent.trim(),
+    farbe:getComputedStyle(k).backgroundColor, klassen:k.className}));
+  };
+  const vorher=lies();
+  dfaA.seitenteilArt="knick";
+  const nachher=lies();
+  box.remove();
+  return {vorher,nachher};
+ });
+ const unterschiedlich=z=>z.length===2&&z[0].farbe!==z[1].farbe;
+ p(wahl.vorher.length===2,"es gibt zwei Knoepfe fuer die Bauart",wahl.vorher.map(z=>z.text));
+ p(unterschiedlich(wahl.vorher),"separat gewaehlt: die beiden Knoepfe sehen VERSCHIEDEN aus",wahl.vorher);
+ p(unterschiedlich(wahl.nachher),"knick gewaehlt: die beiden Knoepfe sehen VERSCHIEDEN aus",wahl.nachher);
+ p(wahl.vorher[0].farbe===wahl.nachher[1].farbe&&wahl.vorher[0].farbe!==wahl.nachher[0].farbe,
+   "die Hervorhebung wandert beim Umschalten auf den anderen Knopf",wahl);
+ // Dieselbe Falle steckt ueberall, wo ein Knopf beide Klassen traegt -
+ // deshalb hier eine Probe ueber ALLE Dateien, nicht nur ueber diese eine.
+ const beides=fs.readdirSync("js").filter(f=>/\.js$/.test(f))
+  .map(f=>({f,t:fs.readFileSync("js/"+f,"utf8")}))
+  .filter(x=>/class="[^"]*\bgray\b[^"]*\bblue\b|class="[^"]*\bblue\b[^"]*\bgray\b/.test(x.t))
+  .map(x=>x.f);
+ p(beides.length===0,"kein Knopf traegt gray und blue zugleich - .gray wuerde gewinnen",beides);
 
  console.log("\nH · Keine JavaScript-Fehler");
  p(fehler.length===0,"keine Fehler auf der Seite",fehler);

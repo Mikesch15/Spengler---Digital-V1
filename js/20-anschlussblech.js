@@ -476,17 +476,69 @@ function anbSaum(pVor, pEnde, laenge, X, Y) {
     stroke-linecap="round"/>`;
 }
 
+// Wo die Zahl eines Masses steht, wenn das Mass KURZ ist.
+//
+// Bis v3.260 stand sie immer mittig auf der Masslinie. Ist das Mass kuerzer
+// als seine eigene Zahl - "D = 42" ueber 38 Bildpunkten, die Zahl braucht 50 -
+// ragte sie auf beiden Seiten ueber die Masshilfslinien hinaus und wurde von
+// ihnen durchstrichen. Gemeldet hat es der Anwender an der
+// Dachfenstereinfassung; betroffen waren alle zwoelf Arten, denn beide
+// Massfunktionen hier zeichnen fuer alle.
+//
+// Passt die Zahl zwischen die Hilfslinien, steht sie weiter mittig. Passt sie
+// nicht, steht sie DANEBEN statt darueber hinaus.
+//
+// Dieselbe Funktion liefert auch den belegten Bereich (l/r bzw. o/u). Wer
+// Platz einteilt, muss mit derselben Lage rechnen, die hier gezeichnet wird -
+// sonst teilt er nach der alten, mittigen Annahme ein und schiebt die Zahlen
+// erst recht uebereinander.
+// Auf WELCHE Seite die Zahl ausweicht, entscheidet "mitte": sie rueckt zur
+// Mitte der Zeichnung hin, also nach innen. Aussen sitzen die Kanten,
+// Aufbuege und Fahnen - dorthin auszuweichen legt die Zahl ausgerechnet in
+// den vollsten Teil des Bildes. Gemessen an der Dachfenstereinfassung: nach
+// rechts ausgewichen lag "M = 120" genau auf der Fuehrungslinie der
+// Abdeckkappe. Ohne "mitte" bleibt es bei rechts - so zeichnen die uebrigen
+// Arten unveraendert weiter.
+const ANB_TEXT_LUFT = 10;      // Mindestabstand der Zahl zu den Hilfslinien
+function anbMassTextLage(px1, px2, text, groesse, mitte) {
+  const g = groesse || 15, br = String(text).length * g * 0.56;
+  const l = Math.min(px1, px2), r = Math.max(px1, px2);
+  if (br + ANB_TEXT_LUFT <= r - l) {
+    const m = (l + r) / 2;
+    return { x: m, anker: "middle", l: Math.min(l, m - br / 2), r: Math.max(r, m + br / 2) };
+  }
+  if (typeof mitte === "number" && (l + r) / 2 > mitte)
+    return { x: l - 6, anker: "end", l: l - 6 - br, r: r };
+  return { x: r + 6, anker: "start", l: l, r: r + 6 + br };
+}
+// Dasselbe fuer das senkrechte Mass: die Zahl steht hochkant auf der
+// Masslinie, ihre Laenge misst also in der Hoehe. Passt sie nicht zwischen
+// die beiden Hilfslinien, rueckt sie ueber die obere.
+function anbMassTextLageSenk(py1, py2, text, groesse) {
+  const g = groesse || 15, br = String(text).length * g * 0.56;
+  const o = Math.min(py1, py2), u = Math.max(py1, py2);
+  if (br + ANB_TEXT_LUFT <= u - o) {
+    const m = (o + u) / 2;
+    return { y: m, o: Math.min(o, m - br / 2), u: Math.max(u, m + br / 2) };
+  }
+  const y = o - 6 - br / 2;
+  return { y: y, o: y - br / 2, u: u };
+}
+
 // Waagerechtes Mass mit Hilfslinien und Pfeilen, wie in der Vorlage.
-function anbMassWaag(x1, x2, y, text, X, Y, unten) {
+function anbMassWaag(x1, x2, y, text, X, Y, unten, mitte) {
   if (Math.abs(x2 - x1) < 0.5) return "";
   const yl = Y(y), r = unten ? 1 : -1, hilf = 13;
+  // EINMAL rechnen und durchreichen: wer den Platz einteilt, muss dieselbe
+  // Lage bekommen, die hier gezeichnet wird - auch dieselbe Seite.
+  const lage = anbMassTextLage(X(x1), X(x2), text, 15, mitte);
   return `<g stroke="${ANB_FARBE.mass}" stroke-width="1" fill="none">
     <line x1="${X(x1)}" y1="${yl + r * hilf}" x2="${X(x1)}" y2="${yl - r * hilf * 0.5}"/>
     <line x1="${X(x2)}" y1="${yl + r * hilf}" x2="${X(x2)}" y2="${yl - r * hilf * 0.5}"/>
     <line x1="${X(x1)}" y1="${yl}" x2="${X(x2)}" y2="${yl}"/></g>
     <path d="M${X(x1)} ${yl} l7 -3 l0 6 Z" fill="${ANB_FARBE.mass}"/>
     <path d="M${X(x2)} ${yl} l-7 -3 l0 6 Z" fill="${ANB_FARBE.mass}"/>
-    <text x="${(X(x1) + X(x2)) / 2}" y="${yl + (unten ? 17 : -7)}" text-anchor="middle"
+    <text x="${lage.x}" y="${yl + (unten ? 17 : -7)}" text-anchor="${lage.anker}"
       font-size="15" font-weight="700" fill="${ANB_FARBE.mass}"
       paint-order="stroke" stroke="#fff" stroke-width="3">${text}</text>`;
 }
@@ -496,7 +548,7 @@ function anbMassWaag(x1, x2, y, text, X, Y, unten) {
 // keinen Platz und liefe aus dem Bild.
 function anbMassSenk(y1, y2, x, text, X, Y) {
   if (Math.abs(y2 - y1) < 0.5) return "";
-  const px = X(x), pm = (Y(y1) + Y(y2)) / 2;
+  const px = X(x), pm = anbMassTextLageSenk(Y(y1), Y(y2), text, 15).y;
   return `<g stroke="${ANB_FARBE.mass}" stroke-width="1" fill="none">
     <line x1="${px - 7}" y1="${Y(y1)}" x2="${px + 26}" y2="${Y(y1)}"/>
     <line x1="${px - 7}" y1="${Y(y2)}" x2="${px + 26}" y2="${Y(y2)}"/>

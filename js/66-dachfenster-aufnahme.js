@@ -505,14 +505,18 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
  //      bei der, die ich beim Bauen vor Augen hatte.
  const BAND_ERSTES=26, BAND_ABSTAND=34;        // Bildpunkte
  const textBreite=(t,gr)=>String(t).length*(gr||15)*0.56;
- // Waagerechtes Mass: Masslinie von x1 bis x2, Text mittig darueber. Bei
- // kurzen Massen ist der TEXT breiter als die Linie - gerechnet wird mit dem
- // groesseren von beidem, sonst stossen zwei kurze Masse mit ihren Zahlen
- // zusammen, obwohl ihre Linien weit auseinanderliegen.
+ // Waagerechtes Mass. Wo die Zahl liegt, entscheidet anbMassTextLage in
+ // js/20 - DIESELBE Funktion, die das Mass nachher zeichnet. Eine eigene
+ // Annahme hier (etwa "immer mittig") waere eine zweite Wahrheit: bei kurzen
+ // Massen steht die Zahl daneben statt darueber, und die Bandzuteilung
+ // rechnete dann mit einem Platz, den die Zeichnung gar nicht benutzt.
+ // Die Mitte der Zeichnung (vom Anreiff vorne bis zum Aufbug hinten) sagt
+ // anbMassTextLage, nach welcher Seite eine zu lange Zahl ausweichen soll:
+ // nach innen, weg von Kanten und Fahnen.
+ const mitteX=(X(F1[0])+X(E0[0]))/2;
  const massEintrag=(x1,x2,text)=>{
-  const a1=X(x1), a2=X(x2), mitte=(a1+a2)/2, halb=textBreite(text)/2;
-  return {art:"mass",x1,x2,text,
-   l:Math.min(a1,a2,mitte-halb)-8, r:Math.max(a1,a2,mitte+halb)+8};
+  const lage=anbMassTextLage(X(x1),X(x2),text,15,mitteX);
+  return {art:"mass",x1,x2,text,l:lage.l-8,r:lage.r+8};
  };
  // Fahne: Linie vom Punkt zum Text. Der Text steht links (dx<0), rechts
  // (dx>0) oder mittig ueber dem Punkt (dx=0) - genau die drei Faelle, die
@@ -568,7 +572,7 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
 
  const zeichneBand=(e,y,unterhalb)=>{
   if(e.art==="mass"){
-   g+=anbMassWaag(e.x1,e.x2,y,e.text,X,Y,unterhalb);
+   g+=anbMassWaag(e.x1,e.x2,y,e.text,X,Y,unterhalb,mitteX);
    merkMassWaag(e.x1,e.x2,y,e.text,unterhalb);
    return;
   }
