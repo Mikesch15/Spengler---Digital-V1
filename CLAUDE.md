@@ -64,7 +64,9 @@ dieselbe Positionsstruktur verwenden.
 ## 3. Tech-Stack
 
 - Vanilla JavaScript (kein Build-Schritt, kein Framework, kein
-  Bundler), modular als einzelne Dateien unter `js/`.
+  Bundler), modular als einzelne Dateien unter `js/`. Änderungen an
+  `js/` wirken direkt; es gibt keine Stufe, die Fehler vorab abfängt –
+  deshalb die Prüfstände.
 - HTML/CSS ohne Präprozessor.
 - Service Worker für Offline-Fähigkeit und App-Cache.
 - Supabase als Backend-as-a-Service:
@@ -172,7 +174,8 @@ Weitere Regeln:
 - Bestehende IDs und Beziehungen beachten.
 - Bestehende Supabase-RLS berücksichtigen.
 - Bestehende Offline-Funktionen beachten.
-- Service Worker bei neuen Frontend-Dateien berücksichtigen.
+- Neue Frontend-Dateien in die App-Shell-Liste in `sw.js` UND in
+  `index.html` eintragen – sonst werden sie offline nicht ausgeliefert.
 - Jede auf `main` gepushte fachliche Änderung erhöht den
   Versionsstand (in `index.html`/`sw.js` sowie in
   `PROJECT_STATE.md`) und beachtet den Cache (Service Worker,
@@ -192,9 +195,14 @@ Weitere Regeln:
   Tausch. Wird die Regression hinterher rot: sofort beheben und
   nachschieben, oder – wenn das nicht in wenigen Minuten geht – `main`
   auf den letzten grünen Stand zurücksetzen und es sagen.
-  Ausnahme: Änderungen am gemeinsamen Kern (js/01, js/05, js/16,
-  js/29, App-Shell in sw.js) hängen an zwanzig Modulen – dort wird die
-  Schnellprüfung entsprechend ausgeweitet.
+  Ausnahme: Änderungen am **gemeinsamen Kern** – `js/01`, `js/05`,
+  `js/16`, `js/29`, `js/45` (Aufgaben), `js/70` (die Ansicht), `index.html`,
+  `css/05`, App-Shell in `sw.js`. Dort läuft die **volle Regression VOR**
+  dem Veröffentlichen, nicht danach. Begründung aus zwei echten Fällen am
+  5.10.2026: v3.252 und v3.258 änderten je `js/70` und rissen je **fünf**
+  Prüfstände mit – beide Male hiessen die übersehenen Prüfstände anders als
+  die Änderung. Eine nach Namen zusammengesuchte Schnellprüfung ist Raten;
+  bei einer Kerndatei kostet Raten mehr als die 13 Minuten.
 - **Jede Antwort endet mit einem Statusblock**, immer gleich aufgebaut,
   immer zuunterst – Ansage des Anwenders: "Ich weiss manchmal nicht wann
   du fertig bist und wann nicht."
@@ -210,6 +218,27 @@ Weitere Regeln:
   "Läuft" und "Von dir" nichts, ist die Arbeit fertig und ich tue nichts
   mehr, bis der Anwender schreibt. Keine Prosa im Block, keine Details –
   die stehen darüber.
+- **So tokensparend wie möglich arbeiten** – Ansage des Anwenders. Das
+  kostet nichts an Sorgfalt, es verbietet nur Verschwendung:
+  - **Nie eine grosse Datei ganz lesen.** `index.html` sind ~55 000 Token,
+    `js/41` ~42 000, `js/70` ~30 000. Mit `grep -n` die Stelle suchen und
+    mit `sed -n 'a,bp'` nur sie lesen.
+  - **Nicht erneut lesen, was schon im Kontext steht**, und nach einer
+    Änderung nicht zur Kontrolle nachlesen – `Edit` meldet Fehlschläge
+    selbst.
+  - **Ausgaben kurz halten**: Prüfstände über `grep -c "FEHLGESCHLAGEN:"`
+    statt vollem Protokoll, `ci-lauf.js` über `tail`.
+  - **Wiederkehrende Rituale als Skript**, nicht als jedes Mal neu
+    getippter Code – der Versionswechsel läuft über
+    `node werkzeug-version.js <alt> <neu>`.
+  - **Messen statt vermuten** bleibt die Ausnahme, die sich immer lohnt:
+    eine Abfrage an die echten Daten ist billiger als eine falsch gebaute
+    Funktion.
+  - `PROJECT_STATE.md` hält nur den aktuellen Stand, die **letzten drei
+    Versionen** und die dauerhaften Regeln. Ältere Versionen wandern nach
+    `CHANGELOG_HISTORIE.md`. Gemessen am 5.10.2026 war die Datei auf
+    67 000 Zeichen (~17 000 Token) gewachsen und wuchs um ~2 000 Zeichen je
+    Version; sie wird bei fast jeder Aufgabe gelesen.
 - Diese Anleitung (`CLAUDE.md`) so knapp wie möglich halten. Sie
   wird bei jeder Session automatisch in den Kontext geladen und
   kostet dadurch bei jeder Aufgabe Tokens – neue Versions-Details,
@@ -244,12 +273,6 @@ Unsicherheit nicht einfach alte Funktionalität ersetzen.
   Live-Tests gegen Produktion sind entsprechend nicht ohne
   Weiteres durchführbar und dürfen nicht als durchgeführt
   behauptet werden, wenn sie es nicht wurden.
-- `sw.js` enthält die JavaScript-App-Shell-Liste; neue
-  Frontend-Dateien müssen dort ergänzt werden, sonst werden sie
-  offline nicht ausgeliefert.
-- Kein Build-Schritt vorhanden: Änderungen an `js/`-Dateien wirken
-  direkt, es gibt keine Kompilier- oder Bundling-Stufe, die Fehler
-  vorab abfängt.
 
 ---
 
