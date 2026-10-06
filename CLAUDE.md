@@ -211,6 +211,19 @@ Weitere Regeln:
   Prüfstände anders als die Änderung – ein Name ist keine Abhängigkeit.
   Bei `js/20`/`js/62` gehört `vermassung` dazu, bei `js/45`/`js/70` die
   Aufgaben- und Startseiten-Prüfstände.
+- **„Veröffentlicht" heisst ausgeliefert, nicht gepusht.** Nach jedem Push
+  prüfen, ob GitHub Pages den Stand auch wirklich ausgeliefert hat:
+  `gh api repos/Mikesch15/Spengler---Digital-V1/actions/runs?per_page=5` –
+  der Lauf „pages build and deployment" für den eigenen Commit muss
+  `success` sein. Ist er `failure`/`cancelled`:
+  `gh api -X POST repos/.../actions/runs/<id>/rerun-failed-jobs`.
+  Am 5.10.2026 liefen v3.260 und v3.261 beide ins Leere: die Jobs bekamen
+  keinen Runner und wurden nach exakt 15 Minuten abgebrochen, der Build
+  selbst dauert 24 Sekunden. Der Anwender sass derweil auf v3.259, während
+  ich zweimal „ist online" gemeldet hatte. Erst melden, wenn der Deploy
+  grün ist – und dass die Live-Seite aus dieser Sandbox nicht erreichbar
+  ist, heisst: der Deploy-Status ist der einzige Beleg, den ich habe, und
+  ein Blick auf die Seite selbst darf nicht behauptet werden.
 - **Jede Antwort endet mit einem Statusblock**, immer gleich aufgebaut,
   immer zuunterst – Ansage des Anwenders: "Ich weiss manchmal nicht wann
   du fertig bist und wann nicht."
