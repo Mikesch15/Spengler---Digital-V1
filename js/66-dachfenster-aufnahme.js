@@ -794,7 +794,13 @@ function dfaPruefungen(){
  fehltLeer(a.lattenabstand,"Lattenabstand fehlt.");
  if(dfaZahl(a.breiteOben)>0&&dfaZahl(a.breiteUnten)>0&&dfaZahl(a.breiteUnten)<=dfaZahl(a.breiteOben))
   m.push({art:"fehler",text:"Breite unten muss grösser sein als Breite oben – sonst ist es kein Trapez."});
- DFA_SEITEN.forEach(s=>{
+ // Nur die Seiten pruefen, die es auch gibt. Vorher stand am Ende der
+ // Schleife ein "if(!a.getrennt)return;" - das verlaesst aber nur den EINEN
+ // Durchlauf, nicht die Schleife. Bei nicht getrennten Seiten wurde deshalb
+ // links UND rechts geprueft und jede Meldung erschien doppelt (gemeldet am
+ // 6.10.2026: "Mass I ... fehlt." stand zweimal im Hinweis).
+ const dfaSeitenJetzt=()=>a.getrennt?DFA_SEITEN:[DFA_SEITEN[0]];
+ dfaSeitenJetzt().forEach(s=>{
   const zusatz=a.getrennt?" ("+s.name+")":"";
   fehlt(dfaSeite("a",s.k),"Mass "+dfaBuchstabe("a")+", "+dfaBezeichnung("a")+zusatz+", fehlt.");
   fehlt(dfaSeite("b",s.k),"Mass "+dfaBuchstabe("b")+", "+dfaBezeichnung("b")+zusatz+", fehlt.");
@@ -802,7 +808,6 @@ function dfaPruefungen(){
   fehlt(dfaSeite("d",s.k),"Mass "+dfaBuchstabe("d")+", "+dfaBezeichnung("d")+zusatz+", fehlt.");
   fehltLeer(dfaSeiteRoh("f",s.k),"Mass "+dfaBuchstabe("f")+", "+dfaBezeichnung("f")+zusatz+", fehlt.");
   fehltLeer(dfaSeiteRoh("g",s.k),"Mass "+dfaBuchstabe("g")+", "+dfaBezeichnung("g")+zusatz+", fehlt.");
-  if(!a.getrennt)return;
  });
  ["ueberlappung","saumVorne","aufVorne","aufHinten","breiteOben","breiteUnten",
   "randAbstand","randStrich","e","eUmschlag","anreiff","anreiffUmschlag",
@@ -821,7 +826,7 @@ function dfaPruefungen(){
  if(dfaZahl(a.aufVorne)>0&&dfaZahl(a.aufHinten)>0&&dfaZahl(a.saumVorne)>=dfaZahl(a.aufVorne))
   m.push({art:"warnung",text:"Die Aufbordungshöhe vorne ist nicht kleiner als die "
     +"Aufbordungshöhe Seite – der Saum liefe dann bis auf das Dach zurück."});
- DFA_SEITEN.forEach(s=>{
+ dfaSeitenJetzt().forEach(s=>{
   const L=dfaLaenge(s.k);
   const zusatz=a.getrennt?" ("+s.name+")":"";
   if(!dfaMitKnick()){
@@ -838,7 +843,6 @@ function dfaPruefungen(){
    m.push({art:"fehler",text:"Mass "+dfaBuchstabe("b")+zusatz+" ist nicht grösser als "
      +dfaBuchstabe("breiteUnten")+" (Breite unten) – daraus ergibt sich kein Seitenteil."});
   }
-  if(!a.getrennt)return;
  });
  if(!(dfaZahl(a.lattenabstand)>0))
   m.push({art:"warnung",text:"Ohne Lattenabstand kann die Anzahl Bleilappen nicht berechnet werden."});
@@ -1560,6 +1564,12 @@ function dfaFuellen(d){
   else if(v===0||v)a[k]=v;
  });
  a.getrennt=!!w.getrennt;
+ // v3.263: die Bauart MUSS mit eingelesen werden. Bis v3.262 fehlte sie hier -
+ // gespeichert wurde sie (seit v3.260), gelesen nicht. Eine mit Knick
+ // erfasste Aufnahme kam dadurch als "separat" zurueck, verlangte in der
+ // Kontrolle Mass I, das es in dieser Bauart gar nicht gibt, und liess sich
+ // nicht mehr speichern. Ein Datensatz ohne das Feld ist wie bisher "separat".
+ a.seitenteilArt=w.seitenteilArt==="knick"?"knick":"separat";
  ["a","b","c","d","f","g"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};
