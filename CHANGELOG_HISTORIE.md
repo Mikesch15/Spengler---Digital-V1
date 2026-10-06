@@ -33219,3 +33219,54 @@ festgehalten, mit den gemessenen Zahlen:
 `CLAUDE.md` wuchs dabei netto um 1 556 Zeichen — die neue Regel kam dazu,
 zwei doppelte Regeln fielen weg. Das sind ~400 Token je Sitzung, gegen
 ~13 000 gesparte je PROJECT_STATE-Lektüre.
+
+### v3.260 — der Schnitt der Dachfenstereinfassung
+
+Meldung des Anwenders zum Rüstblatt: „man sieht nicht sofort welches mass für
+welche länge steht. Die masslinien/masse überschneiden sich teilweise und
+stehen in der zeichnung drin."
+
+**1. Warum die Masse aufeinanderlagen.** Die Höhenbahnen der Bemassung standen
+in **Millimetern** (34, 72, 56, 28) und wurden deshalb mitskaliert. Bei einem
+langen Dachfenster schrumpften sie auf wenige Bildpunkte zusammen. Gemessen am
+Fall des Anwenders: `F = 100` und `D = 42` überlappten sich um 80 px². Jetzt
+stehen die Bahnen in **Bildpunkten**, und welches Mass in welche Bahn kommt,
+wird **gerechnet** statt eingetragen: jedes bekommt die unterste Bahn, in der
+es — samt Textbreite — keinem schon gesetzten Mass in die Quere kommt. Damit
+ist die Zeichnung bei *jeder* Masskombination überschneidungsfrei, nicht nur
+bei der, die ich beim Bauen vor Augen hatte.
+
+**2. Warum das niemand gemerkt hat.** `pruefstand-vermassung-v3-32` misst
+genau das — Beschriftung gegen Beschriftung, in echtem Chromium, über „alle
+zwölf Arten". Nur: in `faelle-druck.js` fehlte die **Dachfenstereinfassung**.
+Der Kopf der Datei behauptete „alle zwölf Arten", die Liste hatte elf. Der
+Prüfstand war grün, weil der Fall nie gezeichnet wurde. Beide Bauarten stehen
+jetzt drin; mit dem alten Code schlägt der Prüfstand fehl (gegengeprüft).
+
+**3. Was der Prüfstand nicht prüfte.** „Keine Masse direkt im Schnitt" war
+durch nichts abgedeckt. Neu: `pruefstand-dachfenster-schnitt-v3-260` misst den
+Hüllkasten der Blechlinien und hält jede Beschriftung dagegen — mit Gegenprobe
+(ein Text mitten im Rumpf *muss* gefunden werden, sonst misst die Probe nur
+nichts). Mit dem alten Code: `H = 130` steht mit 190 px² im Schnitt,
+`O / P = 10 / 12` mit 289 px².
+
+**4. Neue Bauart: durchgehendes Seitenteil mit Knick.** Auf Nachfrage
+entschieden: `B` ist dann die **ganze Länge**, `H` (Überlappung) und `I`
+entfallen. Aus acht Zuschnitten werden sechs. Die Bauart steht an **einer**
+Stelle (`dfaMassGilt`), auf die sich Formular, Kontrolle, Übersicht und
+Zeichnung gleichermassen beziehen. Vorgabe bleibt „separat", und eine Aufnahme
+ohne das Feld ist eine mit separaten Seitenteilen — jede gespeicherte Aufnahme
+verhält sich unverändert (eigene Probe).
+
+**5. Die verdeckte Oberkante begann zu weit vorne.** Sie war ab dem *Fuss* der
+Trapezschräge gestrichelt. Der Fuss liegt auf dem Dach (Höhe 0), die Oberkante
+auf Höhe `aufVorne` — dazwischen läuft die Schräge noch darunter durch und
+verdeckt nichts. Gestrichelt gehört sie erst ab der **Kreuzung**. Im geprüften
+Fall 620 mm statt 885 mm, also 265 mm zu früh.
+
+**6. Nebenbefund auf dem Rüstblatt.** Dort stand „Überlappung waagr. / senkr.
+0 / 0 mm" — `ueberlappungT` und `ueberlappungH` gibt es im Datenmodell der
+Dachfenstereinfassung gar nicht, sie kamen aus einer anderen Art. Die Zeile
+nennt jetzt die Bauart mit der tatsächlichen Überlappung. Ausserdem wurde
+`seitenteilArt` beim Speichern vergessen — ohne das Feld wäre jede mit Knick
+erfasste Aufnahme beim Öffnen still auf „separat" zurückgefallen.

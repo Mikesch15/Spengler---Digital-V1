@@ -3,9 +3,32 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.263`
+- Aktueller Entwicklungsstand: `v3.264`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.264 — der Kopf der Einfassungskarte lief nicht mit
+
+Meldung: „Wiso wird beim einfassung rund die einfassung 1 oben rechts der
+zuschnitt berechnet und bei einfassung 2 nicht?"
+
+**Gerechnet wurde immer richtig.** Nachgestellt im Browser: der Datensatz der
+zweiten Einfassung trug alle Masse, `einfaBerechne` lieferte 350 × 933 — auf
+der Karte stand „0 × 38".
+
+Ursache: `einfaLive()` führt nach jedem Tastendruck Kennzahlen, Zeichnung und
+den Punkt am Kontroll-Register nach, die **Kartenköpfe nicht**. Der Kopf stand
+noch so da, wie die Karte beim *Anlegen* aussah. Dieselbe Ursache liess dort
+„Einfassung 2" statt der eingegebenen Bezeichnung stehen. Die erste Karte sah
+nur richtig aus, weil sie zuletzt mit ihren Werten gezeichnet worden war.
+
+Der Kopf steht jetzt in `einfaKartenKopfHtml()` als **eine** Quelle für
+Erstzeichnung und Nachführung. Nachgeführt wird nur der Kopf, nicht die Karte
+— sonst verlöre das Feld, in dem gerade getippt wird, den Fokus.
+
+Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Werte
+nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
+missverstanden werden.
 
 ### v3.262 — Bleilappen und der fehlende Lattenabstand
 
@@ -97,57 +120,6 @@ gegen Linie — A3 schliesst die Lücke dazwischen, in die `M = 120` gefallen wa
 des Bildausschnitts. Die lag anfangs bequem im Rumpf und rutschte heraus,
 sobald die Bänder aussen herum wuchsen — ab da hätte die Gegenprobe nur noch
 sich selbst geprüft. Sie hängt jetzt am Mittelpunkt einer echten Blechlinie.
-
-### v3.260 — der Schnitt der Dachfenstereinfassung
-
-Meldung des Anwenders zum Rüstblatt: „man sieht nicht sofort welches mass für
-welche länge steht. Die masslinien/masse überschneiden sich teilweise und
-stehen in der zeichnung drin."
-
-**1. Warum die Masse aufeinanderlagen.** Die Höhenbahnen der Bemassung standen
-in **Millimetern** (34, 72, 56, 28) und wurden deshalb mitskaliert. Bei einem
-langen Dachfenster schrumpften sie auf wenige Bildpunkte zusammen. Gemessen am
-Fall des Anwenders: `F = 100` und `D = 42` überlappten sich um 80 px². Jetzt
-stehen die Bahnen in **Bildpunkten**, und welches Mass in welche Bahn kommt,
-wird **gerechnet** statt eingetragen: jedes bekommt die unterste Bahn, in der
-es — samt Textbreite — keinem schon gesetzten Mass in die Quere kommt. Damit
-ist die Zeichnung bei *jeder* Masskombination überschneidungsfrei, nicht nur
-bei der, die ich beim Bauen vor Augen hatte.
-
-**2. Warum das niemand gemerkt hat.** `pruefstand-vermassung-v3-32` misst
-genau das — Beschriftung gegen Beschriftung, in echtem Chromium, über „alle
-zwölf Arten". Nur: in `faelle-druck.js` fehlte die **Dachfenstereinfassung**.
-Der Kopf der Datei behauptete „alle zwölf Arten", die Liste hatte elf. Der
-Prüfstand war grün, weil der Fall nie gezeichnet wurde. Beide Bauarten stehen
-jetzt drin; mit dem alten Code schlägt der Prüfstand fehl (gegengeprüft).
-
-**3. Was der Prüfstand nicht prüfte.** „Keine Masse direkt im Schnitt" war
-durch nichts abgedeckt. Neu: `pruefstand-dachfenster-schnitt-v3-260` misst den
-Hüllkasten der Blechlinien und hält jede Beschriftung dagegen — mit Gegenprobe
-(ein Text mitten im Rumpf *muss* gefunden werden, sonst misst die Probe nur
-nichts). Mit dem alten Code: `H = 130` steht mit 190 px² im Schnitt,
-`O / P = 10 / 12` mit 289 px².
-
-**4. Neue Bauart: durchgehendes Seitenteil mit Knick.** Auf Nachfrage
-entschieden: `B` ist dann die **ganze Länge**, `H` (Überlappung) und `I`
-entfallen. Aus acht Zuschnitten werden sechs. Die Bauart steht an **einer**
-Stelle (`dfaMassGilt`), auf die sich Formular, Kontrolle, Übersicht und
-Zeichnung gleichermassen beziehen. Vorgabe bleibt „separat", und eine Aufnahme
-ohne das Feld ist eine mit separaten Seitenteilen — jede gespeicherte Aufnahme
-verhält sich unverändert (eigene Probe).
-
-**5. Die verdeckte Oberkante begann zu weit vorne.** Sie war ab dem *Fuss* der
-Trapezschräge gestrichelt. Der Fuss liegt auf dem Dach (Höhe 0), die Oberkante
-auf Höhe `aufVorne` — dazwischen läuft die Schräge noch darunter durch und
-verdeckt nichts. Gestrichelt gehört sie erst ab der **Kreuzung**. Im geprüften
-Fall 620 mm statt 885 mm, also 265 mm zu früh.
-
-**6. Nebenbefund auf dem Rüstblatt.** Dort stand „Überlappung waagr. / senkr.
-0 / 0 mm" — `ueberlappungT` und `ueberlappungH` gibt es im Datenmodell der
-Dachfenstereinfassung gar nicht, sie kamen aus einer anderen Art. Die Zeile
-nennt jetzt die Bauart mit der tatsächlichen Überlappung. Ausserdem wurde
-`seitenteilArt` beim Speichern vergessen — ohne das Feld wäre jede mit Knick
-erfasste Aufnahme beim Öffnen still auf „separat" zurückgefallen.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
