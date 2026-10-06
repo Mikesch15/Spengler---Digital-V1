@@ -503,15 +503,24 @@ jedes Mass liegt, nicht die aktuelle Aufnahme.</div>
 <div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><tbody>${zeilen}</tbody></table></div>
 </details>`;
 }
+// Der Kopf einer Einfassungskarte: Bezeichnung und das gerechnete L x B.
+// Steht hier als EINE Quelle, weil ihn zwei Stellen brauchen - das erste
+// Zeichnen und die Nachfuehrung beim Tippen (einfaLive). Vorher stand er nur
+// im Zeichnen; beim Tippen wurde er nie erneuert, und eine Karte, die beim
+// Anlegen leer war, zeigte dauerhaft "Einfassung 2 - 0 x 38 mm", obwohl die
+// Werte laengst erfasst und richtig gerechnet waren (gemeldet 6.10.2026).
+function einfaKartenKopfHtml(e,i){
+ const erg=einfaBerechne(e);
+ const kopf=(e.bez||"").trim()||("Einfassung "+(i+1));
+ return esc(kopf)+`<span class="small" style="float:right;font-weight:400;color:var(--muted)">`
+  +(erg?einfaMm(erg.breiteGesamt)+" × "+einfaMm(erg.abwicklung)+" mm":"–")+`</span>`;
+}
 function einfaEinfassungenHtml(){
  const a=einfA;
  const liste=einfaListe();
  const karten=liste.map((e,i)=>{
-  const erg=einfaBerechne(e);
-  const kopf=(e.bez||"").trim()||("Einfassung "+(i+1));
   return `<div class="card"${i===a.aktiv?' style="border-color:var(--blue)"':""}>
-<h2>${esc(kopf)}<span class="small" style="float:right;font-weight:400;color:var(--muted)">${
-   erg?einfaMm(erg.breiteGesamt)+" × "+einfaMm(erg.abwicklung)+" mm":"–"}</span></h2>
+<h2 id="einfa_kopf_${i}">${einfaKartenKopfHtml(e,i)}</h2>
 <div class="grid">
 ${einfaFeld("Bezeichnung",`<input id="einfa_bez_${i}" type="text" value="${esc(e.bez||"")}">`)}
 ${einfaZahlFeld("Ø Standrohr (mm)","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
@@ -687,6 +696,10 @@ function einfaLive(){
   const frisch=neu.firstElementChild;
   if(frisch)kenn.innerHTML=frisch.innerHTML;
  }
+ einfaListe().forEach((e,i)=>{
+  const k=$("einfa_kopf_"+i);
+  if(k)k.innerHTML=einfaKartenKopfHtml(e,i);
+ });
  const z=$("einfa_zeichnung");
  if(z){
   const aktiv=einfaListe()[einfA.aktiv]||einfaListe()[0];
