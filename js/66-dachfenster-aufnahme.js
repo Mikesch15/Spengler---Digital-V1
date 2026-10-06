@@ -299,13 +299,36 @@ function dfaZuschnitte(){
 }
 
 // ---- Bleilappen ---------------------------------------------------------------
-// Wie bei der Kamineinfassung: AUFGERUNDET, je Seitenteil, aus Laenge und
-// Lattenabstand.
+// Gerechnet wird aus VORDERTEIL und HINTERTEIL, je Seite, ABGERUNDET.
+//
+// Ansage des Anwenders (6.10.2026), nachdem die App bei 990 mm Seitenlaenge
+// und 355 mm Lattenabstand 6 Lappen zeigte statt 8:
+//   "Beim dachfenster gibt es (mit knick, durchgehend) ein vorderteil,
+//    bestehend aus mass C + G und ein hinterteil bestehend aus mass N + R
+//    und daraus muessen die bleilappen berechnet werden"
+//   "... beide abgerundet und dann mal zwei (fuer linke und rechte seite)"
+//
+// Vorher wurde je ZUSCHNITT gerechnet und aufgerundet. Das zaehlte die
+// Teilung am Knick mit (drei Stuecke je Seite statt einer durchgehenden
+// Strecke) und traf die Lattung nicht.
+//
+// Mit den gemeldeten Massen: vorne 225 + 990 = 1215, hinten 160 + 295 = 455,
+// bei 355 Lattenabstand also 3 + 1 = 4 je Seite, beide Seiten = 8.
+//
+// EINE Verallgemeinerung gegenueber dem Wortlaut: statt C + G steht hier
+// C + SEITENLAENGE. Beim durchgehenden Seitenteil ist die Seitenlaenge genau
+// G, es ist also dasselbe; bei zwei separaten Seitenteilen ist sie
+// G + I - Ueberlappung, und nur so stimmt die Strecke auch dort.
 function dfaBleilappen(){
  const la=dfaZahl(dfaA.lattenabstand);
- const zeilen=dfaZuschnitte().filter(x=>x.rolle==="seite")
-  .map(x=>({name:x.name+" "+x.seite,laenge:x.laenge,
-    anzahl:(la>0&&x.laenge>0)?Math.max(1,Math.ceil(x.laenge/la)):null}));
+ const bu=dfaZahl(dfaA.breiteUnten);
+ const teil=(name,laenge)=>({name,laenge:Math.round(laenge),
+   anzahl:(la>0&&laenge>0)?Math.floor(laenge/la):null});
+ const zeilen=[];
+ DFA_SEITEN.forEach(s=>{
+  zeilen.push(teil("Vorderteil "+s.name,dfaSeite("a",s.k)+dfaLaenge(s.k)));
+  zeilen.push(teil("Hinterteil "+s.name,bu+dfaSeite("d",s.k)));
+ });
  const gesamt=zeilen.every(x=>x.anzahl===null)?null
    :zeilen.reduce((s,x)=>s+(x.anzahl||0),0);
  return {lattenabstand:la,zeilen,gesamt};
