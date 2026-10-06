@@ -211,6 +211,15 @@ Weitere Regeln:
   Prüfstände anders als die Änderung – ein Name ist keine Abhängigkeit.
   Bei `js/20`/`js/62` gehört `vermassung` dazu, bei `js/45`/`js/70` die
   Aufgaben- und Startseiten-Prüfstände.
+- **Eine abgebrochene Regression zählt als ungeprüft veröffentlicht.** Die
+  volle Regression nach dem Push ist nur dann ein Schutz, wenn sie zu Ende
+  läuft UND ihr Ergebnis angeschaut wird. Kommt währenddessen die nächste
+  Aufgabe: die Regression zuerst fertig laufen lassen, sonst ist der Stand
+  auf `main` ungeprüft – und das gehört dann gesagt. Am 6.10.2026 habe ich
+  sie für die nächste Frage abgebrochen; v3.262 war in GitHub rot, und
+  gemerkt habe ich es erst zwei Versionen später beim Deploy-Nachschauen.
+  Wieder grün wurde sie durch spätere Änderungen – das war Glück, nicht
+  Absicht.
 - **„Veröffentlicht" heisst ausgeliefert, nicht gepusht.** Nach jedem Push
   prüfen, ob GitHub Pages den Stand auch wirklich ausgeliefert hat:
   `gh api repos/Mikesch15/Spengler---Digital-V1/actions/runs?per_page=5` –
