@@ -1522,6 +1522,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Seitliche Höhe"+seitenTxt,paar("hoehe")+" mm")}${cell("Überlappung Knick",mm(d.ueberlappung)+" mm")}</tr>
 <tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / hinten / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagHinten)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
 <tr>${cell("Kaminlänge längs Dach",(d.kaminLaenge?(d.getrennt?mm(d.kaminLaenge.l)+" / "+mm(d.kaminLaenge.r):mm(d.kaminLaenge.l)):"–")+" mm")}${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}</tr>
+<tr>${cell("Lattenabstand",d.lattenabstand?mm(d.lattenabstand)+" mm":"–")}<td></td></tr>
 </table>
 ${kamSchnitt?`<div class="eb-section-head">Schnitt</div>${kamSchnitt}`:""}
 ${teile.length?`<div class="eb-section-head">Stückliste</div>
@@ -1574,7 +1575,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Aufbordungshöhe vorne"+seitenTxt,paar("aufVorne")+" mm")}${cell("Aufbordungshöhe hinten"+seitenTxt,paar("aufHinten")+" mm")}</tr>
 <tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Seitenteil",d.seitenteilArt==="knick"?"durchgehend mit Knick":"zwei separate Teile, Überlappung "+mm(d.ueberlappung)+" mm")}</tr>
 <tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
-<tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}<td></td></tr>
+<tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}${cell("Lattenabstand",d.lattenabstand?mm(d.lattenabstand)+" mm":"–")}</tr>
 </table>
 ${dfaSchnitt?`<div class="eb-section-head">Schnitt</div>${dfaSchnitt}`:""}
 ${teile.length?`<div class="eb-section-head">Stückliste</div>
