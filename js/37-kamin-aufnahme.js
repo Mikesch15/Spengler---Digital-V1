@@ -286,16 +286,25 @@ function kamaZuschnitte(){
 }
 
 // ---- Bleilappen -----------------------------------------------------------
-// Wie bei der Einfassung Rund: AUFGERUNDET, nicht abgerundet - die Lappen
-// muessen die ganze Laenge abdecken (siehe die Korrektur in v2.70). Gerechnet
-// wird je Seitenteil, denn jedes bekommt seine eigenen Lappen. Ohne
+// ABGERUNDET, je Seitenteil. Ansage des Anwenders vom 6.10.2026: "Ja, beim
+// kamin und anschlussblech auch abrunden" - auf die ausdrueckliche Nachfrage,
+// ob die gegenteilige Festlegung wirklich umgedreht werden soll.
+//
+// Bis v3.262 wurde AUFGERUNDET (v2.70: "die Lappen muessen die ganze Laenge
+// abdecken"). Diese Begruendung gilt nicht mehr; sie steht hier nur noch,
+// damit niemand die alte Regel aus Versehen wiederherstellt.
+//
+// Damit runden jetzt alle vier Arten ab, die Bleilappen kennen: Einfassung
+// Rund (seit v3.70), Kamin, Anschlussblech und Dachfenster (v3.262/3.263).
+//
+// Gerechnet wird je Seitenteil, denn jedes bekommt seine eigenen Lappen. Ohne
 // Lattenabstand ist die Zahl nicht bestimmbar; dann bleibt sie null und die
 // Anzeige zeigt "-", statt eine erfundene Zahl zu nennen.
 function kamaBleilappen(){
  const la=kamaZahl(kamA.lattenabstand);
  const zeilen=kamaZuschnitte().filter(x=>x.rolle==="seite")
   .map(x=>({name:x.name+" "+x.seite,laenge:x.laenge,
-    anzahl:(la>0&&x.laenge>0)?Math.max(1,Math.ceil(x.laenge/la)):null}));
+    anzahl:(la>0&&x.laenge>0)?Math.floor(x.laenge/la):null}));
  const gesamt=zeilen.every(x=>x.anzahl===null)?null
    :zeilen.reduce((s,x)=>s+(x.anzahl||0),0);
  return {lattenabstand:la,zeilen,gesamt};

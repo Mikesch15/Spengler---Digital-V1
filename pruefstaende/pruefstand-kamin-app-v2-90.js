@@ -427,8 +427,15 @@ const FALL={
  console.log("\nG · Bleilappen");
  await setz(page,FALL);
  const bl=await page.evaluate(()=>kamaBleilappen());
- p(bl.gesamt===8,"8 Bleilappen (je Seitenteil aufgerundet)",bl.gesamt);
- p(bl.zeilen.length===4&&bl.zeilen[0].anzahl===2,"vier Seitenteile, 500/330 aufgerundet = 2",bl.zeilen);
+ // v3.263: ABGERUNDET statt aufgerundet. Ansage des Anwenders vom 6.10.2026
+ // ("Ja, beim kamin und anschlussblech auch abrunden"), auf die
+ // ausdrueckliche Nachfrage, ob die Festlegung von v2.70 umgedreht werden
+ // soll. 500/330 = 1,51 -> 1 und 400/330 = 1,21 -> 1, vier Seitenteile = 4.
+ p(bl.gesamt===4,"4 Bleilappen (je Seitenteil abgerundet)",bl.gesamt);
+ p(bl.zeilen.length===4&&bl.zeilen[0].anzahl===1,"vier Seitenteile, 500/330 abgerundet = 1",bl.zeilen);
+ // Gegenproben: die alte, aufgerundete Zahl darf nicht zurueckkommen.
+ p(bl.gesamt!==8,"die aufgerundete Zahl 8 kommt nicht mehr heraus",bl.gesamt);
+ p(!bl.zeilen.some(z=>z.anzahl===2),"und kein Seitenteil zaehlt mehr 2",bl.zeilen);
  const blOhne=await page.evaluate(()=>{const alt=kamA.lattenabstand;kamA.lattenabstand="";
    const r=kamaBleilappen();kamA.lattenabstand=alt;return r});
  p(blOhne.gesamt===null,"ohne Lattenabstand wird keine Zahl erfunden",blOhne.gesamt);

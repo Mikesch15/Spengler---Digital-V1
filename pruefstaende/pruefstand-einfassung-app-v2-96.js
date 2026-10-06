@@ -10,7 +10,9 @@
 // Von Hand, mit den Einstellungen Umschlag 20, Mass seitlich 100, Latten 330:
 //   Gesamtbreite = Durchmesser + 2*20 + 2*100
 //     Oe 110 -> 350      Oe 160 -> 400
-//   Bleilappen = aufgerundet(pi*Durchmesser / Lattenabstand)
+//   Bleilappen = abgerundet((a + b) / Lattenabstand) * 2
+//   (bis v3.68 aus dem Rohrumfang pi*Durchmesser, bis v3.70 aufgerundet -
+//    beides geaendert; dieser Kopf nannte bis v3.263 noch die alte Formel)
 //     Oe 110: pi*110 = 345.58 / 330 = 1.047 -> 2
 //     Oe 160: pi*160 = 502.65 / 330 = 1.523 -> 2
 //   Flaeche = Summe(Laenge*Breite)/1e6
