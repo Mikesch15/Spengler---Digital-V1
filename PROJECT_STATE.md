@@ -30,6 +30,38 @@ Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Wert
 nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
 missverstanden werden.
 
+### v3.263 — eine Aufnahme mit Knick liess sich nicht speichern
+
+Dringende Meldung des Anwenders: „Diese massaufnahme muss gespeichert werden
+können und darf nicht verloren gehen." Beim Speichern erschien zweimal
+„Mass I, Vorderkant Knick bis Hinterkant Dachfenster, fehlt."
+
+**1. Die Bauart wurde nicht eingelesen.** Seit v3.260 wird `seitenteilArt`
+gespeichert — gelesen wurde sie nie. `dfaAusDaten()` füllt eine feste Liste
+von Schlüsseln, und `seitenteilArt` stand nicht darin. Jede mit Knick erfasste
+Aufnahme kam als „separat" zurück, verlangte dort Mass I und die Überlappung
+— Masse, die es in dieser Bauart nicht gibt — und das Speichern bricht bei
+einem Fehler hart ab (`js/16`: alert + return). **Mein Fehler aus v3.260:
+Schreiben eingebaut, Lesen vergessen.** Die Probe prüfte „gespeichert", nicht
+„gespeichert und wieder geöffnet".
+
+**2. Jede Meldung kam doppelt.** In `dfaPruefungen` stand am Ende der
+Seiten-Schleife `if(!a.getrennt)return;`. Ein `return` in einem `forEach`
+verlässt nur den **einen Durchlauf**, nicht die Schleife — bei nicht
+getrennten Seiten wurde deshalb links und rechts geprüft.
+
+**3. Bleilappen runden jetzt überall ab.** Auf Nachfrage bestätigt, weil in
+`js/20` die gegenteilige, datierte Anweisung vom 05.09.2026 stand. Gemessene
+Folgen: Kamin-Testfall 8 → 4, Anschlussblech 20 → 19. Zwei Prüfstände, die die
+alte Regel festschrieben, sind auf den neuen Vertrag umgestellt — je mit
+Gegenprobe gegen die alte Zahl.
+
+**Ehrlich dazu:** v3.262 war in GitHub rot. Ich hatte die volle Regression
+hier abgebrochen, als die nächste Frage kam, und das Ergebnis nie angeschaut.
+Durch die Änderungen in v3.263 wurde sie wieder grün — das war Glück, nicht
+Absicht. Die Regression nach dem Push schützt nur, wenn sie zu Ende läuft und
+ihr Ergebnis gelesen wird.
+
 ### v3.262 — Bleilappen und der fehlende Lattenabstand
 
 Zwei Meldungen des Anwenders am 6.10.2026.
@@ -76,50 +108,6 @@ mit angewählt. In `js/20` steht aber die ausdrückliche Anweisung des Betriebs
 vom 05.09.2026, dort **aufzurunden**, beim Kamin dasselbe seit v2.70. Eine
 datierte Entscheidung wird nicht still umgedreht — nachgefragt, Antwort steht
 aus.
-
-### v3.261 — die Wahl war unsichtbar, kurze Masse app-weit
-
-Zwei Meldungen des Anwenders zu v3.260: „wo kann jetzt mit oder ohne knick
-ausgewählt werden? Ich sehe es nirgends." und, zugesagt, die kurzen Masse
-app-weit.
-
-**1. Die Wahl war da, aber nicht zu sehen.** Die beiden Knöpfe standen seit
-v3.260 oben im Register *Fenstermasse*. Nur: `class="gray blue"` ergibt
-**grau**. In `css/01-basis.css` steht `.blue` auf Zeile 27, `.gray` auf Zeile
-29, gleiche Spezifität — die spätere gewinnt. Beide Knöpfe sahen identisch
-aus, und zwei gleiche graue Knöpfe liest niemand als Wahl. Es wird jetzt nur
-noch **eine** Klasse gesetzt. Dieselbe Stelle steckte in *Linke Seite / Rechte
-Seite* bei Dachfenster **und** Kamin — drei Schalterpaare, seit jeher ohne
-ablesbaren Zustand. Eine Probe über alle `js/`-Dateien hält fest, dass kein
-Knopf beide Klassen zugleich trägt.
-
-**2. Kurze Masse, app-weit.** Ist ein Mass kürzer als seine eigene Zahl —
-`D = 42` über 17 Bildpunkten, die Zahl braucht 50 — stand sie trotzdem mittig
-und ragte beidseitig über die Masshilfslinien hinaus, die sie dann
-durchstrichen. Die Regel steht jetzt in `anbMassTextLage` /
-`anbMassTextLageSenk` in `js/20` und gilt damit für **alle zwölf Arten**:
-passt die Zahl, bleibt sie mittig; passt sie nicht, rückt sie daneben.
-
-**Auf welche Seite**, entscheidet die Mitte der Zeichnung: nach innen. Der
-erste Anlauf wich immer nach rechts aus — damit lag `M = 120` genau auf der
-Führungslinie der Abdeckkappe. Aussen sitzen Kanten, Aufbüge und Fahnen; nach
-aussen auszuweichen legt die Zahl in den vollsten Teil des Bildes.
-
-**Dieselbe Funktion liefert auch den belegten Platz**, und die Bandzuteilung in
-`js/66` rechnet damit statt mit einer eigenen Annahme. Rechnete sie weiter
-„immer mittig", teilte sie nach einer Lage ein, die die Zeichnung gar nicht
-mehr benutzt.
-
-**3. Gemessen.** Vorher wurden in der Dachfenster-Zeichnung **sechs** Zahlen
-von Linien durchschnitten (M, H, C, D, F, Q), jetzt keine. Die neue Probe A3
-im Prüfstand schneidet jede Textkiste gegen jede gezeichnete Strecke
-(Liang-Barsky) und hat eine Gegenprobe; A prüft Zahl gegen Schnitt, A2 Linie
-gegen Linie — A3 schliesst die Lücke dazwischen, in die `M = 120` gefallen war.
-
-**Nebenbei korrigiert:** die Gegenprobe in A setzte den Probetext in die Mitte
-des Bildausschnitts. Die lag anfangs bequem im Rumpf und rutschte heraus,
-sobald die Bänder aussen herum wuchsen — ab da hätte die Gegenprobe nur noch
-sich selbst geprüft. Sie hängt jetzt am Mittelpunkt einer echten Blechlinie.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

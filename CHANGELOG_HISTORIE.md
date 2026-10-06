@@ -33270,3 +33270,47 @@ Dachfenstereinfassung gar nicht, sie kamen aus einer anderen Art. Die Zeile
 nennt jetzt die Bauart mit der tatsächlichen Überlappung. Ausserdem wurde
 `seitenteilArt` beim Speichern vergessen — ohne das Feld wäre jede mit Knick
 erfasste Aufnahme beim Öffnen still auf „separat" zurückgefallen.
+
+### v3.261 — die Wahl war unsichtbar, kurze Masse app-weit
+
+Zwei Meldungen des Anwenders zu v3.260: „wo kann jetzt mit oder ohne knick
+ausgewählt werden? Ich sehe es nirgends." und, zugesagt, die kurzen Masse
+app-weit.
+
+**1. Die Wahl war da, aber nicht zu sehen.** Die beiden Knöpfe standen seit
+v3.260 oben im Register *Fenstermasse*. Nur: `class="gray blue"` ergibt
+**grau**. In `css/01-basis.css` steht `.blue` auf Zeile 27, `.gray` auf Zeile
+29, gleiche Spezifität — die spätere gewinnt. Beide Knöpfe sahen identisch
+aus, und zwei gleiche graue Knöpfe liest niemand als Wahl. Es wird jetzt nur
+noch **eine** Klasse gesetzt. Dieselbe Stelle steckte in *Linke Seite / Rechte
+Seite* bei Dachfenster **und** Kamin — drei Schalterpaare, seit jeher ohne
+ablesbaren Zustand. Eine Probe über alle `js/`-Dateien hält fest, dass kein
+Knopf beide Klassen zugleich trägt.
+
+**2. Kurze Masse, app-weit.** Ist ein Mass kürzer als seine eigene Zahl —
+`D = 42` über 17 Bildpunkten, die Zahl braucht 50 — stand sie trotzdem mittig
+und ragte beidseitig über die Masshilfslinien hinaus, die sie dann
+durchstrichen. Die Regel steht jetzt in `anbMassTextLage` /
+`anbMassTextLageSenk` in `js/20` und gilt damit für **alle zwölf Arten**:
+passt die Zahl, bleibt sie mittig; passt sie nicht, rückt sie daneben.
+
+**Auf welche Seite**, entscheidet die Mitte der Zeichnung: nach innen. Der
+erste Anlauf wich immer nach rechts aus — damit lag `M = 120` genau auf der
+Führungslinie der Abdeckkappe. Aussen sitzen Kanten, Aufbüge und Fahnen; nach
+aussen auszuweichen legt die Zahl in den vollsten Teil des Bildes.
+
+**Dieselbe Funktion liefert auch den belegten Platz**, und die Bandzuteilung in
+`js/66` rechnet damit statt mit einer eigenen Annahme. Rechnete sie weiter
+„immer mittig", teilte sie nach einer Lage ein, die die Zeichnung gar nicht
+mehr benutzt.
+
+**3. Gemessen.** Vorher wurden in der Dachfenster-Zeichnung **sechs** Zahlen
+von Linien durchschnitten (M, H, C, D, F, Q), jetzt keine. Die neue Probe A3
+im Prüfstand schneidet jede Textkiste gegen jede gezeichnete Strecke
+(Liang-Barsky) und hat eine Gegenprobe; A prüft Zahl gegen Schnitt, A2 Linie
+gegen Linie — A3 schliesst die Lücke dazwischen, in die `M = 120` gefallen war.
+
+**Nebenbei korrigiert:** die Gegenprobe in A setzte den Probetext in die Mitte
+des Bildausschnitts. Die lag anfangs bequem im Rumpf und rutschte heraus,
+sobald die Bänder aussen herum wuchsen — ab da hätte die Gegenprobe nur noch
+sich selbst geprüft. Sie hängt jetzt am Mittelpunkt einer echten Blechlinie.
