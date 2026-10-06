@@ -3,9 +3,56 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.261`
+- Aktueller Entwicklungsstand: `v3.262`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.262 — Bleilappen und der fehlende Lattenabstand
+
+Zwei Meldungen des Anwenders am 6.10.2026.
+
+**1. Bleilappen: 6 statt 8.** Bei 990 mm Seitenlänge und 355 mm Lattenabstand
+zeigte die App 6. Gerechnet wurde je **Zuschnittstück** und **aufgerundet**
+(990/355 = 2,79 → 3 je Seite). Damit zählte die Teilung am Knick mit und die
+Lattung wurde verfehlt.
+
+Die Regel des Betriebs, wörtlich erfragt: Vorderteil (Mass C + G) und
+Hinterteil (Mass N + R), **beide abgerundet**, mal zwei für links und rechts.
+Der Fall: vorne 1215 → 3, hinten 455 → 1, je Seite 4, gesamt 8.
+
+**Eine Verallgemeinerung gegenüber dem Wortlaut**, bewusst: statt `C + G`
+rechnet die App `C + Seitenlänge`. Beim durchgehenden Seitenteil ist die
+Seitenlänge genau G — dasselbe. Bei zwei separaten Seitenteilen ist sie
+`G + I − Überlappung`; mit `C + G` wäre die Strecke dort zu kurz. Der
+Prüfstand zeigt beides: 990 durchgehend und 600 + 500 − 110 ergeben dieselben
+8.
+
+**2. Der Lattenabstand fehlte im PDF** — bei Dachfenster **und** Kamin. Er
+stand nur als Fussnote unter der Bleilappen-Tabelle, und die fällt ganz weg,
+sobald die Bleilappen nicht berechenbar sind. Beide haben jetzt eine eigene
+Zeile in den Angaben, wie die Einfassung rund längst.
+
+**„Und prüfen ob das sonst noch irgendwo fehlt."** Dafür gibt es
+`pruefstand-blatt-vollstaendig-v3-262`: er erzeugt für **jeden** Druckfall das
+fertige Blatt (indem er sich an `pdfDruckVorbereiten` hängt) und hält jeden
+gespeicherten Zahlenwert dagegen. Gefunden hat er genau diese eine Lücke.
+
+Zwei Dinge, die beinahe zu **erfundenen** Fehlern geführt hätten:
+
+- Zahlen stehen im Blatt in Schweizer Schreibweise (`1'005`, `42,5`). Ohne
+  Entfernen der Trennzeichen meldete die Probe vier von sieben Treffern
+  falsch.
+- Vier weitere Treffer sind Absicht: Winkel werden umgerechnet gedruckt
+  (Kamin 115/65 statt 25, Einfassung rund 120 statt 30), Restschwelle und
+  Gehrungszugabe sind Einstellwerte. Sie stehen als **Ausnahmen mit Grund**
+  im Prüfstand — und jede wird selbst geprüft: deckt eine keinen echten Fall
+  mehr, fällt das auf, statt eine spätere Lücke durchzulassen.
+
+**Offen:** Kamin und Anschlussblech waren für die neue Rundungsregel
+mit angewählt. In `js/20` steht aber die ausdrückliche Anweisung des Betriebs
+vom 05.09.2026, dort **aufzurunden**, beim Kamin dasselbe seit v2.70. Eine
+datierte Entscheidung wird nicht still umgedreht — nachgefragt, Antwort steht
+aus.
 
 ### v3.261 — die Wahl war unsichtbar, kurze Masse app-weit
 
@@ -101,44 +148,6 @@ Dachfenstereinfassung gar nicht, sie kamen aus einer anderen Art. Die Zeile
 nennt jetzt die Bauart mit der tatsächlichen Überlappung. Ausserdem wurde
 `seitenteilArt` beim Speichern vergessen — ohne das Feld wäre jede mit Knick
 erfasste Aufnahme beim Öffnen still auf „separat" zurückgefallen.
-
-### v3.259 — fünf rote Prüfstände, und sparsamer arbeiten
-
-**1. Die fünf Regressionen aus v3.258.** Alle aus einem Grund: sie messen
-Aufgaben*zeilen*, und die sind seit v3.258 zugeklappt. An der App war nichts
-kaputt. Statt denselben Ablauf fünfmal einzusetzen, steht er jetzt in
-`pruefstaende/aufgaben-aufklappen.js` — einmal, mit beiden Fallen
-dokumentiert (Schnappschuss wird durchs Neuzeichnen ungültig; über den echten
-Weg klicken, nicht über den Zustand). Der Helfer gibt es auch als
-`window.__aufgabenAufklappen()` für Prüfstände, die Aufbau und Messung in
-einem `evaluate` machen — derselbe Rumpf, daraus erzeugt.
-
-**2. Warum die Schnellprüfung sie verpasst hat.** Ich hatte die Prüfstände
-*nach Namen* ausgesucht. Beide Fehlschläge heute (v3.252, v3.258) betrafen
-`js/70`, und beide Male hiessen die übersehenen Prüfstände anders als die
-Änderung. **Ein Name ist keine Abhängigkeit.** `CLAUDE.md` nennt `js/45`,
-`js/70`, `index.html` und `css/05` jetzt beim gemeinsamen Kern — und dort
-läuft die volle Regression **vor** dem Veröffentlichen.
-
-Ein Werkzeug, das die betroffenen Prüfstände aus dem Diff *ableitet*, habe
-ich gebaut und **wieder weggeworfen**: es fand nur 2 der 5. Verhaltens-
-änderungen lassen sich per Textsuche nicht vorhersagen — die fünf hängen an
-`.a2-zeile-reihe`, und das stand im Diff gar nicht. Ein Netz, das drei von
-fünf durchlässt, ist schlimmer als keines, weil man sich darauf verlässt.
-
-**3. Tokensparend arbeiten** (Ansage des Anwenders), als Regel in `CLAUDE.md`
-festgehalten, mit den gemessenen Zahlen:
-
-| Massnahme | gemessen |
-|---|---|
-| `PROJECT_STATE.md` auf Stand + 3 Versionen + Regeln gekürzt | 67 053 → ~14 800 Zeichen (**−13 000 Token je Lektüre**) |
-| Architektur/Workflow hier gelöscht (stand doppelt in `CLAUDE.md`, und falsch: „Module 01 bis 78") | eine Wahrheit statt zwei |
-| `werkzeug-version.js` statt elf Handgriffe je Version | ~600 Token und eine Fehlerquelle je Version |
-| Nie grosse Dateien ganz lesen | `index.html` ~55 000, `js/41` ~42 000, `js/70` ~30 000 Token |
-
-`CLAUDE.md` wuchs dabei netto um 1 556 Zeichen — die neue Regel kam dazu,
-zwei doppelte Regeln fielen weg. Das sind ~400 Token je Sitzung, gegen
-~13 000 gesparte je PROJECT_STATE-Lektüre.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

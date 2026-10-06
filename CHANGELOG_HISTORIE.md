@@ -33181,3 +33181,41 @@ Dabei zweimal dieselbe Falle: ein Schnappschuss aus `querySelectorAll` wird
 durch das Neuzeichnen nach dem ersten Klick ungültig — die übrigen Elemente
 hängen nicht mehr im Dokument, ein Klick darauf tut nichts. Beide Stellen
 suchen jeden Kopf jetzt einzeln neu. Steht als Kommentar dort.
+
+### v3.259 — fünf rote Prüfstände, und sparsamer arbeiten
+
+**1. Die fünf Regressionen aus v3.258.** Alle aus einem Grund: sie messen
+Aufgaben*zeilen*, und die sind seit v3.258 zugeklappt. An der App war nichts
+kaputt. Statt denselben Ablauf fünfmal einzusetzen, steht er jetzt in
+`pruefstaende/aufgaben-aufklappen.js` — einmal, mit beiden Fallen
+dokumentiert (Schnappschuss wird durchs Neuzeichnen ungültig; über den echten
+Weg klicken, nicht über den Zustand). Der Helfer gibt es auch als
+`window.__aufgabenAufklappen()` für Prüfstände, die Aufbau und Messung in
+einem `evaluate` machen — derselbe Rumpf, daraus erzeugt.
+
+**2. Warum die Schnellprüfung sie verpasst hat.** Ich hatte die Prüfstände
+*nach Namen* ausgesucht. Beide Fehlschläge heute (v3.252, v3.258) betrafen
+`js/70`, und beide Male hiessen die übersehenen Prüfstände anders als die
+Änderung. **Ein Name ist keine Abhängigkeit.** `CLAUDE.md` nennt `js/45`,
+`js/70`, `index.html` und `css/05` jetzt beim gemeinsamen Kern — und dort
+läuft die volle Regression **vor** dem Veröffentlichen.
+
+Ein Werkzeug, das die betroffenen Prüfstände aus dem Diff *ableitet*, habe
+ich gebaut und **wieder weggeworfen**: es fand nur 2 der 5. Verhaltens-
+änderungen lassen sich per Textsuche nicht vorhersagen — die fünf hängen an
+`.a2-zeile-reihe`, und das stand im Diff gar nicht. Ein Netz, das drei von
+fünf durchlässt, ist schlimmer als keines, weil man sich darauf verlässt.
+
+**3. Tokensparend arbeiten** (Ansage des Anwenders), als Regel in `CLAUDE.md`
+festgehalten, mit den gemessenen Zahlen:
+
+| Massnahme | gemessen |
+|---|---|
+| `PROJECT_STATE.md` auf Stand + 3 Versionen + Regeln gekürzt | 67 053 → ~14 800 Zeichen (**−13 000 Token je Lektüre**) |
+| Architektur/Workflow hier gelöscht (stand doppelt in `CLAUDE.md`, und falsch: „Module 01 bis 78") | eine Wahrheit statt zwei |
+| `werkzeug-version.js` statt elf Handgriffe je Version | ~600 Token und eine Fehlerquelle je Version |
+| Nie grosse Dateien ganz lesen | `index.html` ~55 000, `js/41` ~42 000, `js/70` ~30 000 Token |
+
+`CLAUDE.md` wuchs dabei netto um 1 556 Zeichen — die neue Regel kam dazu,
+zwei doppelte Regeln fielen weg. Das sind ~400 Token je Sitzung, gegen
+~13 000 gesparte je PROJECT_STATE-Lektüre.
