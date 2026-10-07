@@ -558,7 +558,23 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(/Stückliste/.test(dr),"Stueckliste im PDF");
  p(/Zuschnitt aus Rollenblech/.test(dr),"Rollenblech im PDF");
  p(/Ausmass/.test(dr),"Ausmass im PDF");
- p(/<div class="eb-section-head">Schnitt<\/div>/.test(dr)&&/<svg/.test(dr),"Schnittzeichnung im PDF");
+ // v3.265: der Ausdruck zeigt JEDE Einfassung mit eigenem Schnitt, vier je
+ // A4-Seite (Ansage des Anwenders). Die Ueberschrift heisst bei mehreren
+ // deshalb "Schnitte". Bis v3.264 stand hier genau einer - der Datensatz
+ // spiegelt die erste Einfassung obenauf, und nur die wurde gezeichnet.
+ // FALL hat zwei Einfassungen, also muessen zwei Zeichnungen im Blatt sein.
+ p(/<div class="eb-section-head">Schnitte<\/div>/.test(dr)&&/<svg/.test(dr),
+   "Schnittzeichnungen im PDF");
+ const imGitter=(dr.match(/<div class="eb-diagram-gitter[^"]*">/g)||[]).length;
+ const svgImGitter=(()=>{
+  const m=/<div class="eb-diagram-gitter[^"]*">([\s\S]*?)<div class="eb-section-head">/.exec(dr);
+  return m?(m[1].match(/<svg/g)||[]).length:0;
+ })();
+ p(svgImGitter===2,"beide Einfassungen bekommen einen eigenen Schnitt",svgImGitter);
+ // Gegenprobe: genau das war bis v3.264 nicht so. Bliebe es bei einem,
+ // faellt es hier auf, statt still wieder zu verschwinden.
+ p(svgImGitter!==1,"nicht mehr nur der eine gespiegelte Schnitt",svgImGitter);
+ p(imGitter===1,"zwei passen in EIN Raster - erst ab fuenf wird umgebrochen",imGitter);
  // pdfLxB() schreibt "400 × 308"; die Einheit steht im Spaltenkopf "(mm)".
  p(/400\s*(&#215;|×)\s*308/.test(dr)&&/Zuschnitt L (&#215;|×) B \(mm\)/.test(dr),
    "Zuschnitt als L × B im PDF",(dr.match(/.{0,50}(×|&#215;) 308.{0,20}/)||[""])[0]);
