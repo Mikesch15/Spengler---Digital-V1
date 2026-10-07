@@ -3,9 +3,38 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.264`
+- Aktueller Entwicklungsstand: `v3.265`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.265 — alle Schnitte der Einfassung rund im PDF
+
+Ansage: „Im pdf von einfassung rund, soll bei mehreren einfassungen alle
+schnitte angezeigt werden (grösse 4 stk pro a4 seite)."
+
+**Ursache.** Seit v2.96 liegen die Einfassungen in `d.einfassungen`, der
+Datensatz spiegelt die **erste** aber zusätzlich auf oberster Ebene — und genau
+die zeichnete `rsSvg(m,"Schnitt")`. Die übrigen tauchten im Ausdruck nie auf.
+
+`js/60` gibt jetzt je Einfassung einen Eintrag aus. Der erste behält den Titel
+`"Schnitt"`: Rüstansicht und `rsSvg` finden ihn seit jeher darunter, und das
+alte Format (bis v2.95, ohne `d.einfassungen`) bleibt unverändert. Die
+Abbildung Eintrag → Zeichnung macht `einfaEingabe()` aus `js/38` — die eine
+Stelle, die sie kennt.
+
+**Vier je Seite.** Zwei Spalten, zwei Reihen; 182 × 266 mm Satzspiegel, rund
+88 mm je Zelle, 108 mm Höhengrenze je Zeichnung.
+
+Der erste Anlauf brachte nur **zwei** auf die Seite, obwohl darunter eine
+halbe Seite frei war: das Raster durfte mitten drin umbrechen. Gemessen an
+einem echten A4-PDF, nicht überschlagen. Mit `page-break-inside:avoid` wandert
+eine Vierergruppe geschlossen auf die nächste Seite — erst das ist die Zusage.
+
+**Geprüft am echten Blatt** mit 1, 2, 4, 5 und 6 Einfassungen und mit dem alten
+Format, samt Gegenprobe, dass die Zeichnungen **verschieden** sind — sonst
+bestünde auch viermal dieselbe. Abschnitt L in
+`pruefstand-einfassung-app-v2-96` verlangte wörtlich die Einzahl „Schnitt" und
+ist auf den neuen Vertrag umgestellt, mit Gegenprobe gegen den alten Zustand.
 
 ### v3.264 — der Kopf der Einfassungskarte lief nicht mit
 
@@ -61,53 +90,6 @@ hier abgebrochen, als die nächste Frage kam, und das Ergebnis nie angeschaut.
 Durch die Änderungen in v3.263 wurde sie wieder grün — das war Glück, nicht
 Absicht. Die Regression nach dem Push schützt nur, wenn sie zu Ende läuft und
 ihr Ergebnis gelesen wird.
-
-### v3.262 — Bleilappen und der fehlende Lattenabstand
-
-Zwei Meldungen des Anwenders am 6.10.2026.
-
-**1. Bleilappen: 6 statt 8.** Bei 990 mm Seitenlänge und 355 mm Lattenabstand
-zeigte die App 6. Gerechnet wurde je **Zuschnittstück** und **aufgerundet**
-(990/355 = 2,79 → 3 je Seite). Damit zählte die Teilung am Knick mit und die
-Lattung wurde verfehlt.
-
-Die Regel des Betriebs, wörtlich erfragt: Vorderteil (Mass C + G) und
-Hinterteil (Mass N + R), **beide abgerundet**, mal zwei für links und rechts.
-Der Fall: vorne 1215 → 3, hinten 455 → 1, je Seite 4, gesamt 8.
-
-**Eine Verallgemeinerung gegenüber dem Wortlaut**, bewusst: statt `C + G`
-rechnet die App `C + Seitenlänge`. Beim durchgehenden Seitenteil ist die
-Seitenlänge genau G — dasselbe. Bei zwei separaten Seitenteilen ist sie
-`G + I − Überlappung`; mit `C + G` wäre die Strecke dort zu kurz. Der
-Prüfstand zeigt beides: 990 durchgehend und 600 + 500 − 110 ergeben dieselben
-8.
-
-**2. Der Lattenabstand fehlte im PDF** — bei Dachfenster **und** Kamin. Er
-stand nur als Fussnote unter der Bleilappen-Tabelle, und die fällt ganz weg,
-sobald die Bleilappen nicht berechenbar sind. Beide haben jetzt eine eigene
-Zeile in den Angaben, wie die Einfassung rund längst.
-
-**„Und prüfen ob das sonst noch irgendwo fehlt."** Dafür gibt es
-`pruefstand-blatt-vollstaendig-v3-262`: er erzeugt für **jeden** Druckfall das
-fertige Blatt (indem er sich an `pdfDruckVorbereiten` hängt) und hält jeden
-gespeicherten Zahlenwert dagegen. Gefunden hat er genau diese eine Lücke.
-
-Zwei Dinge, die beinahe zu **erfundenen** Fehlern geführt hätten:
-
-- Zahlen stehen im Blatt in Schweizer Schreibweise (`1'005`, `42,5`). Ohne
-  Entfernen der Trennzeichen meldete die Probe vier von sieben Treffern
-  falsch.
-- Vier weitere Treffer sind Absicht: Winkel werden umgerechnet gedruckt
-  (Kamin 115/65 statt 25, Einfassung rund 120 statt 30), Restschwelle und
-  Gehrungszugabe sind Einstellwerte. Sie stehen als **Ausnahmen mit Grund**
-  im Prüfstand — und jede wird selbst geprüft: deckt eine keinen echten Fall
-  mehr, fällt das auf, statt eine spätere Lücke durchzulassen.
-
-**Offen:** Kamin und Anschlussblech waren für die neue Rundungsregel
-mit angewählt. In `js/20` steht aber die ausdrückliche Anweisung des Betriebs
-vom 05.09.2026, dort **aufzurunden**, beim Kamin dasselbe seit v2.70. Eine
-datierte Entscheidung wird nicht still umgedreht — nachgefragt, Antwort steht
-aus.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
