@@ -99,7 +99,28 @@ const RS_SKIZZEN={
   if(typeof anbZeichnung==="function")rsEintrag(liste,"Schnitt",()=>anbZeichnung(d));
  },
  einfassung_rund(d,liste){
-  if(typeof einfZeichnung==="function")rsEintrag(liste,"Schnitt",()=>einfZeichnung(d));
+  if(typeof einfZeichnung!=="function")return;
+  // Ab v2.96 koennen es MEHRERE Einfassungen sein. Der Datensatz spiegelt die
+  // erste zusaetzlich auf oberster Ebene - und genau die wurde bis v3.264 als
+  // einziger Schnitt gezeichnet. Die zweite, dritte ... tauchten im Ausdruck
+  // nie auf (gemeldet 7.10.2026). Jetzt bekommt jede ihren eigenen.
+  //
+  // Der erste behaelt den Titel "Schnitt": die Ruestansicht und
+  // rsSvg(m,"Schnitt") finden ihn seit jeher darunter.
+  //
+  // Die Abbildung Eintrag -> Zeichnung macht einfaEingabe() in js/38 - die
+  // EINE Stelle, die weiss, dass Deckung und Lattenabstand aus dem Datensatz
+  // kommen und die Masse aus dem Eintrag. Hier nachgebaut waere sie eine
+  // zweite Wahrheit; fehlt sie (Modul nicht geladen), bleibt es beim
+  // gespiegelten ersten Schnitt.
+  const einf=Array.isArray(d.einfassungen)?d.einfassungen:[];
+  if(!einf.length||typeof einfaEingabe!=="function"){
+   rsEintrag(liste,"Schnitt",()=>einfZeichnung(d));
+   return;
+  }
+  einf.forEach((e,i)=>{
+   rsEintrag(liste,i?("Schnitt "+(i+1)):"Schnitt",()=>einfZeichnung(einfaEingabe(e,d)));
+  });
  },
  kamineinfassung(d,liste){
   if(typeof kamaSkizze!=="function")return;

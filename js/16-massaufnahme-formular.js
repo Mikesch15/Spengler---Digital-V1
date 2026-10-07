@@ -833,6 +833,22 @@ const PDF_LAYOUT_CSS=`
  .eb-diagram-title{font-size:6.4pt;font-weight:700;color:#6b757c;text-transform:uppercase;
   letter-spacing:.07em;margin-bottom:1.6mm}
  .eb-diagram-row svg{max-width:100%!important;max-height:72mm;width:auto;height:auto}
+ /* Vier Schnitte je A4-Seite (Ansage des Anwenders, 7.10.2026). Satzspiegel
+    bei A4 hoch mit diesen Raendern: 182 x 266 mm. Zwei Spalten ergeben rund
+    88 mm je Zelle; die Hoehengrenze von 108 mm laesst neben zwei Reihen noch
+    Platz fuer Ueberschrift und Zeilentitel. */
+ /* Das Raster bleibt als Ganzes zusammen. Ohne das bricht es mitten drin um:
+    bei vier Schnitten standen zwei auf der Seite und zwei auf der naechsten,
+    obwohl darunter eine halbe Seite frei war. Passt die Vierergruppe nicht
+    mehr, wandert sie geschlossen auf die naechste Seite - das ist genau
+    "vier Stueck je A4-Seite". */
+ .eb-diagram-gitter{display:grid;grid-template-columns:1fr 1fr;gap:5mm 6mm;margin:3mm 0 0;
+  page-break-inside:avoid;break-inside:avoid}
+ .eb-diagram-gitter .eb-diagram{margin:0;padding:0 2mm;
+  page-break-inside:avoid;break-inside:avoid}
+ .eb-diagram-gitter svg{max-width:100%!important;max-height:108mm;width:auto;height:auto}
+ /* Jede weitere Vierergruppe beginnt auf einer neuen Seite. */
+ .eb-gitter-neue-seite{page-break-before:always;break-before:page}
  /* Kehle: b/c/d bleiben deutlich hervorgehoben, aber schwarz/weiss tauglich */
  .kehle-print-haupt{border:1.2pt solid #17202a;border-top:0;padding:2.5mm 3mm;margin:0;
   page-break-inside:avoid;break-inside:avoid}
@@ -1234,6 +1250,35 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   const breiteGesamt=d.breiteGesamt!==undefined&&d.breiteGesamt!==null?d.breiteGesamt:(erg?erg.breiteGesamt:null);
   const anzahlBleilappen=d.anzahlBleilappen!==undefined&&d.anzahlBleilappen!==null?d.anzahlBleilappen:(erg?erg.anzahlBleilappen:null);
   const cell=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
+  // ALLE Schnitte, vier je A4-Seite (Ansage des Anwenders, 7.10.2026). Bis
+  // v3.264 stand hier genau einer: der Datensatz spiegelt die erste
+  // Einfassung auf oberster Ebene, und nur die zeichnete rsSvg(m,"Schnitt").
+  // Bei mehreren Einfassungen fehlten die uebrigen im Ausdruck ganz.
+  //
+  // Geholt werden sie ueber rsSkizzen() - dieselbe Quelle, aus der auch die
+  // Ruestansicht zeichnet. Der Ausdruck baut nichts nach (siehe Abschnitt J
+  // in pruefstand-vermassung-v3-32).
+  const einfSchnitteHtml=(()=>{
+   const alle=(typeof rsSkizzen==="function"?rsSkizzen(m):[])
+     .filter(x=>/^Schnitt( \d+)?$/.test(x.titel));
+   if(!alle.length)return "";
+   const einf=Array.isArray(d.einfassungen)?d.einfassungen:[];
+   const titel=i=>{
+    const e=einf[i];
+    const name=((e&&e.bez)||"").trim()||("Einfassung "+(i+1));
+    const dm=Math.round(Number(e&&e.durchmesser)||0);
+    return name+(dm>0?" · Ø "+dm+" mm":"");
+   };
+   let h=`<div class="eb-section-head">Schnitt${alle.length>1?"e":""}</div>`;
+   for(let i=0;i<alle.length;i+=4){
+    h+=`<div class="eb-diagram-gitter${i?" eb-gitter-neue-seite":""}">`
+     +alle.slice(i,i+4).map((sk,j)=>`<div class="eb-diagram">${
+        alle.length>1?`<div class="eb-diagram-title">${esc(titel(i+j))}</div>`:""
+       }${sk.svg}</div>`).join("")
+     +`</div>`;
+   }
+   return h;
+  })();
   // Gespeichert ist unveraendert die Dachneigung; gedruckt wird ab v2.97 der
   // Innenwinkel Dach/Rohr (Dachneigung + 90) - dieselbe Korrektur der
   // Beschriftung wie bei der Kamineinfassung in v2.95 (CLAUDE.md 99.3).
@@ -1248,8 +1293,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(breiteGesamt,abw))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
 <tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>
 </table>
-<div class="eb-section-head">Schnitt</div>
-<div class="eb-diagram">${rsSvg(m,"Schnitt")}</div>
+${einfSchnitteHtml}
 <div class="eb-section-head">Masse</div>
 <table class="eb-cutlist">
 <thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th></tr></thead>
