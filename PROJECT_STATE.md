@@ -3,9 +3,27 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.271`
+- Aktueller Entwicklungsstand: `v3.272`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.272 — Dachfenster: zwei Standard-Zugaben richtiggestellt
+
+Klarstellung des Anwenders (8.10.2026) zur Annahme aus v3.270:
+- **Seitenteil hinten gefalzt:** die 15 ist der **Umschlag am Aufbug (T)** —
+  Annahme bestätigt (505 = N + R + S + T).
+- **Seitenteil hinten gepunktet:** die 15 ist eine **Standard-Nahtüberlappung**,
+  kein erfasstes Mass (nicht O, wie angenommen) → `DFA_NAHTUEBERLAPPUNG = 15`.
+- **Vorderteil gefalzt:** Breite vorne **+ 10 als Standard-Falzzugabe** (nicht
+  der Umschlag am Anreiff B) → `DFA_FALZZUGABE_VORNE = 10`; Hinterteil bleibt
+  `DFA_FALZZUGABE_HINTEN = 25`. B wirkt dort nur noch in die **Breite**.
+- Seitenteil gefalzt (1225 = C + G + **B**) bleibt unverändert.
+
+Mit Nord Nr.1 ändert sich keine Zahl (O, T, B und die Zugaben sind dort gleich
+gross); der Prüfstand `dachfenster-ausfuehrung-v3-270` (86) verändert deshalb
+jedes Mass einzeln und prüft, dass genau das richtige wirkt (Gegenproben:
+O/T/Anreiff berühren die Länge nicht mehr, Umschlag vorne/Seite auch nicht).
+**Alle offenen Annahmen zu den Abwicklungen sind damit geklärt.**
 
 ### v3.271 — Dachfenster: Pflicht-Dropdowns, N auf Höhe von R, keine Stückliste im PDF
 
@@ -30,48 +48,6 @@ Drei Ansagen des Anwenders (8.10.2026):
 Prüfstände: `dachfenster-ausfuehrung-v3-270` 80, `dachfenster-schnitt-v3-260`
 56 (Abschnitt I auf Dropdowns umgestellt, neuer Abschnitt J für N/R mit
 Gegenprobe „zu breit → tiefer"). Mutationsproben rot (N/R, Pflicht, Stückliste).
-
-### v3.270 — Dachfenster: gepunktet oder gefalzt, Abwicklungen neu
-
-Ansage (8.10.2026, am Blatt „Nord Nr.1"): zwei Ausführungen — **gepunktet**
-(Seitenteile seitwärts angepunktet) und **gefalzt** (senkrechter Falz) — mit
-den Sollmassen des Anwenders; jederzeit auch an gespeicherten Aufnahmen
-umschaltbar. Neues Feld `ausfuehrung`, Umschalter unter der Bauart, im
-Ausdruck in den Angaben genannt (nur wenn gespeichert).
-
-**Sechs Zuschnitte, beide Bauarten:** Vorderteil, Hinterteil, je Seite
-Seitenteil + Seitenteil hinten. Breite × Länge (Nord Nr.1):
-
-| | gepunktet | gefalzt |
-|---|---|---|
-| Vorderteil | 280 × 774 | 280 × 564 |
-| Hinterteil | 467 × 774 | 467 × 595 |
-| Seitenteil | 190 × 990 | 190 × 1225 |
-| Seitenteil hinten | 224 × 175 | 224 × 505 |
-
-Formeln (aus den Antworten des Anwenders; Herleitung im Kommentar bei
-`dfaZuschnitte`): Vorderteil-Breite = Umschlag vorne + Saum + C + **B**
-(Anreiff selbst zählt nicht, er steckt in C); gepunktet sind Vorder- und
-Hinterteil gleich lang (Breite vorne + 2 × Umschlag Seite + J + K), gefalzt
-Vorderteil = Breite vorne + **B**, Hinterteil = Breite hinten + **25**
-(Standard-Falzzugabe, `DFA_FALZZUGABE`); Seitenteil = Länge (gefalzt:
-+ C + B), Breite mit **F** (nicht dem grösseren Mass); Seitenteil hinten
-Breite = Umschlag Seite + (J + K + (Breite vorne − hinten)/2) + Q + O + P.
-„Die 10" in 564/1225 ist **B** (Umschlag am Anreiff) — nicht Umschlag
-vorne/Seite, obwohl alle drei im Beispiel 10 sind.
-
-**ANNAHME, noch zu bestätigen:** die „15" beim Seitenteil hinten (175 = 160 +
-15, 505 = 160 + 295 + 35 + 15) ist von O, T und dem Anreiff nicht zu
-unterscheiden. Gerechnet wird gepunktet mit **O**, gefalzt mit **T**.
-Bei anderen Werten als 15/15/15 ist das relevant.
-
-Bestehende Aufnahmen: der gespeicherte Datensatz behält seine Zahlen, bis
-er geöffnet und neu gespeichert wird; ohne Feld gilt „gepunktet".
-Prüfstand `dachfenster-ausfuehrung-v3-270` (72 Prüfungen: die zwölf Sollwerte
-in beiden Bauarten, jedes Mass einzeln verändert, Speichern → Öffnen →
-Umschalten, echter Klick, Ausdruck; vier Mutationsproben rot). Die vier
-Erwartungen in `dachfenster-schnitt-v3-260` (acht Zuschnitte, 995 + 10) sind
-auf den neuen Vertrag umgestellt, die alten Werte stehen als Gegenprobe.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
