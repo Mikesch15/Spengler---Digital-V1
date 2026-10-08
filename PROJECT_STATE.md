@@ -3,9 +3,35 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.272`
+- Aktueller Entwicklungsstand: `v3.273`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.273 — Dachfenster „separat": zwei Seitenteile je Seite
+
+Ansage (8.10.2026): „Es braucht bei separat zwei Seitenteile. Das mittlere ist
+einfach Mass I, und das vordere Seitenteil wird gerechnet wie jetzt. Alles
+andere bleibt gleich." Dazu: das „+10" beim Seitenteil gefalzt **bleibt B**.
+
+**Korrektur an v3.270:** dort hatte ich „bei zwei separaten Teilen wird auch so
+gerechnet" falsch gelesen — beide Bauarten rechneten *ein* Seitenteil mit
+G + I − H. Nun: **Knick** = sechs Zuschnitte wie bisher; **separat** = acht
+(je Seite *Seitenteil vorne*, *Seitenteil Mitte*, *Seitenteil hinten*).
+- vorne: Länge **G** (gefalzt C + G + B), Breite wie das durchgehende (190);
+- Mitte: Länge **I**, gleiche Breite;
+- H (Überlappung) steckt in G und I und ändert keines der Teile;
+- Vorderteil, Hinterteil, Seitenteil hinten unverändert; Bleilappen rechnen
+  weiter mit der Gesamtlänge (G + I − H).
+
+**ANNAHME:** „wie jetzt" = Regel des durchgehenden Seitenteils, aber mit **G**
+(nicht der Summe) als Länge — sonst wäre I doppelt gezählt. Falls der Anwender
+das vordere Seitenteil über die Summe meint, ist es eine Zeile in
+`dfaZuschnitte` (`dfaSeite("b")` → `dfaLaenge`).
+
+Prüfstand `dachfenster-ausfuehrung-v3-270` 101 (separat: acht Zuschnitte, G/I/H
+einzeln verändert, Gegenproben; Mutation „separat wie Knick" → 12 rot),
+`dachfenster-schnitt-v3-260` 57 (separat wieder acht; die Zwischenfassung
+„Summe als ein Stück" steht als Gegenprobe).
 
 ### v3.272 — Dachfenster: zwei Standard-Zugaben richtiggestellt
 
@@ -24,30 +50,6 @@ gross); der Prüfstand `dachfenster-ausfuehrung-v3-270` (86) verändert deshalb
 jedes Mass einzeln und prüft, dass genau das richtige wirkt (Gegenproben:
 O/T/Anreiff berühren die Länge nicht mehr, Umschlag vorne/Seite auch nicht).
 **Alle offenen Annahmen zu den Abwicklungen sind damit geklärt.**
-
-### v3.271 — Dachfenster: Pflicht-Dropdowns, N auf Höhe von R, keine Stückliste im PDF
-
-Drei Ansagen des Anwenders (8.10.2026):
-1. **Zwei Pflicht-Dropdowns statt vier Knöpfen** — *Bauart des Seitenteils*
-   (separat / Knick) und *Ausführung* (gepunktet / gefalzt). Beide beginnen
-   **leer** (`dfaLeer`), tragen `data-pflicht` (Weiter-Sperre) und `dfaPruefungen`
-   meldet die fehlende Wahl als Fehler (Speichern gesperrt). Gespeichert wird
-   die Wahl **roh** — ein leerer Entwurf wird nicht still zu „separat/gepunktet";
-   ein Datensatz **ohne** Feld (vor v3.260/v3.270) gilt weiter als
-   separat/gepunktet. Ereignisse hängen an `#measTypeDachfenster` (nicht am
-   Behälter) — beim Prüfen darum Vorfahren sichtbar machen, nicht verschieben.
-2. **N auf der Höhe von R** im Schnitt. Die Bänder-Verteilung sah die Randzugabe
-   beider Kästen als Überlappung. Jetzt wird N in R's Band gesetzt, wenn die
-   *belegten Bereiche* (`anbMassTextLage`) nur aneinandergrenzen (Toleranz 1 px)
-   und kein anderes Mass im Band liegt; sonst wie bisher eigenes Band.
-3. **Tabelle „Stückliste" im PDF entfällt**, wenn der Rollenblech-Zuschnitt da
-   ist (dasselbe). Rückfall: ohne `d.rollen` bleibt die Stückliste, sonst hätte
-   das Blatt keine Zuschnittmasse. „Bleilappen" bleibt (zählt in der PDF-Listen-
-   Wahl weiter zur Kategorie Stückliste).
-
-Prüfstände: `dachfenster-ausfuehrung-v3-270` 80, `dachfenster-schnitt-v3-260`
-56 (Abschnitt I auf Dropdowns umgestellt, neuer Abschnitt J für N/R mit
-Gegenprobe „zu breit → tiefer"). Mutationsproben rot (N/R, Pflicht, Stückliste).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
