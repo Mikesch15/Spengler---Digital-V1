@@ -78,6 +78,8 @@
 // (voll = Vorderkant, gestrichelt = Hinterkant) genau wie beim Knick der
 // Kamineinfassung.
 //
+// [Stand v3.270: Die Zuschnitte sind neu gefasst - siehe "Die Zuschnitte" bei
+// dfaZuschnitte(). Der folgende Absatz beschreibt den Stand v3.64 bis v3.269.]
 // Acht Zuschnitte (v3.64, nach Rueckmeldung des Anwenders - mehr als bei der
 // Kamineinfassung, die nur sechs hat): Vorderteil und Hinterteil (quer zum
 // Fenster), dazu JE SEITE DREI Seitenteile statt zwei - "Seitenteil vorne"
@@ -172,7 +174,7 @@ function dfaLeer(){
  const s=dfaSettings||DFA_STANDARD;
  return {
   material:"", deckung:s.deckung, lattenabstand:"",
-  getrennt:false, skizzeSeite:"l", seitenteilArt:"separat",
+  getrennt:false, skizzeSeite:"l", seitenteilArt:"separat", ausfuehrung:"gepunktet",
   a:{l:"",r:""}, d:{l:"",r:""}, ueberlappung:"",
   saumVorne:"", breiteOben:"", breiteUnten:"",
   randAbstand:"", randStrich:"",
@@ -198,6 +200,17 @@ const DFA_SEITEN=[{k:"l",name:"links"},{k:"r",name:"rechts"}];
 //               keine Ueberlappung und kein zweites Laengenmass: B ist die
 //               ganze Laenge, H und I entfallen.
 function dfaMitKnick(quelle){ return (quelle||dfaA).seitenteilArt==="knick" }
+// v3.270: Ausfuehrung - wie die Seitenteile mit Vorder- und Hinterteil
+// verbunden werden. Unabhaengig von der Bauart oben (separat / Knick).
+//   "gepunktet" - die Seitenteile werden seitwaerts an Vorder- und Hinterteil
+//                 angepunktet; diese reichen deshalb seitlich ueber das
+//                 Fenster hinaus (Umschlag Seite + J + K je Seite).
+//   "gefalzt"   - die Seitenteile werden mit senkrechtem Falz verbunden; sie
+//                 laufen dafuer ueber die ganze Einfassung durch.
+// Ein Datensatz ohne das Feld ist "gepunktet": so wurde bis v3.269 gerechnet.
+function dfaGefalzt(quelle){ return (quelle||dfaA).ausfuehrung==="gefalzt" }
+// Standard-Falzzugabe am Hinterteil (Angabe des Anwenders, 8.10.2026).
+const DFA_FALZZUGABE=25;
 function dfaSeite(feld,seite,quelle){
  const q=quelle||dfaA;
  const w=q[feld];
@@ -228,27 +241,51 @@ function dfaLaenge(seite,quelle){
  return dfaSeite("b",seite,q)+dfaSeite("c",seite,q)-dfaZahl(q.ueberlappung);
 }
 
-// ---- Die acht Zuschnitte -----------------------------------------------------
-// Nach Rueckmeldung des Anwenders (v3.64): jede Seite hat DREI Zuschnitte,
-// nicht zwei - dieselbe Ueberlappungs-Logik wie bisher (B und die Seitenteile
-// laufen um die Knickbreite ineinander), aber der hintere Teil (bisher
-// "Seitenteil hinten" = C) wird selbst nochmals geteilt:
-//   Seitenteil vorne  - Vorderkant Aufbordung bis Hinterkant Knick, Laenge B
-//                        (unveraendert, erste gestrichelte Linie = Knick hinten)
-//   Seitenteil Mitte  - Vorderkant Knick bis 10mm vor der Hinterkant Auf-
-//                        bordung (die "zweite gestrichelte Linie", derselbe
-//                        Ruecklauf wie bei der Oberkante in der Skizze),
-//                        Laenge C - DFA_HINTERKANTE_RUECKLAUF
-//   Seitenteil hinten - die letzten DFA_HINTERKANTE_RUECKLAUF (10mm) bis zur
-//                        Hinterkant Aufbordung selbst (schraeger Trapezstrich)
-// Vorderteil und Hinterteil (quer zum Fenster) bekommen ihre Zuschnittlaenge
-// neu NICHT mehr direkt aus Breite vorne/hinten, sondern zuzueglich dessen,
-// was seitlich noch dazugehoert: 2x Umschlag Seite + F links + F rechts +
-// G links + G rechts (bei nicht getrennten Seiten ist das dasselbe wie
-// "2x Umschlag + 2x F + 2x G"). Hinterteil bekommt zusaetzlich Rand-Abstand
-// und D in die Abwicklung (Umschlag hinten bleibt bestehen).
+// ---- Die Zuschnitte ----------------------------------------------------------
+// v3.270: Vorderteil, Hinterteil und je Seite ein Seitenteil und ein Seitenteil
+// hinten. Vorher gab es je Seite zwei bzw. drei Seitenteile (die Teilung am
+// Knick und die letzten 10 mm); Ansage des Anwenders mit seinen Sollmassen am
+// Blatt "Nord Nr.1" (8.10.2026) - beide Bauarten (separat / Knick) rechnen so.
+//
+// Beispiel (Nord Nr.1: C 225, G 990, N 160, R 295, S 35, T 15, F 80, Q 95,
+// O/P 15/12, J/K 50/50, B 10, Saum 35, Umschlag vorne/Seite 10/10, Breite
+// vorne/hinten 554/570), L x B:
+//                      gepunktet     gefalzt
+//   Vorderteil         774 x 280     564 x 280
+//   Hinterteil         774 x 467     595 x 467
+//   Seitenteil         990 x 190    1225 x 190      (je Seite)
+//   Seitenteil hinten  175 x 224     505 x 224      (je Seite)
+//
+// Laengen:
+//   Vorderteil  gepunktet: Breite vorne + 2 x Umschlag Seite + J + K beider Seiten
+//               gefalzt:   Breite vorne + B (Umschlag am Anreiff)
+//   Hinterteil  gepunktet: gleich lang wie das Vorderteil
+//               gefalzt:   Breite hinten + Falzzugabe (25)
+//   Seitenteil  gepunktet: Seitenlaenge (G)
+//               gefalzt:   C + G + B
+//   Seitenteil hinten  gepunktet: N + O          (ANNAHME fuer die 15, s. u.)
+//                      gefalzt:   N + R + S + T  (ANNAHME fuer die 15, s. u.)
+// Breiten (Abwicklung):
+//   Vorderteil  Umschlag vorne + Saum vorne + C + B. Der Anreiff selbst zaehlt
+//               nicht mit: C misst bis zu seiner Spitze (v3.60), er steckt
+//               schon darin. Die Aufbordungshoehe der Seite gehoert nicht ins
+//               Vorderteil.
+//   Hinterteil  Aufbordungshoehe hinten + O + P + R + S + T (wie bisher)
+//   Seitenteil  Umschlag Seite + K + J + F (Aufbordungshoehe VORNE, nicht das
+//               grossere Mass - Q ist die hintere Aufbordung)
+//   Seitenteil hinten  Umschlag Seite + (J + K hinten) + Q + O + P
+//               J + K hinten = J + K vorne + (Breite vorne - Breite hinten) / 2,
+//               gleichwertig zu (Gesamtbreite vorne - Breite hinten - 2 x
+//               Umschlag Seite) / 2 - so gab es der Anwender an. Das Fenster
+//               ist hinten breiter (554 / 570), dort bleibt weniger Seitenteil.
+//
+// ANNAHME: die "15" bei den Seitenteilen hinten (175 = 160 + 15, 505 = 160 +
+// 295 + 35 + 15) ist in Nord Nr.1 von O, T und dem Anreiff nicht zu
+// unterscheiden. Gerechnet wird gepunktet mit O (Abdeckkappe oben) und gefalzt
+// mit T (Umschlag Aufbug) als Gegenstueck zu B vorne - vom Anwender noch zu
+// bestaetigen.
 function dfaZuschnitte(){
- const a=dfaA, z=[];
+ const a=dfaA, z=[], gefalzt=dfaGefalzt();
  const teilBreite=t=>t.reduce((s,x)=>s+dfaZahl(x.wert),0);
  const dazu=(name,rolle,seite,laenge,teile)=>{
   z.push({nr:z.length+1,name,rolle,seite,
@@ -257,18 +294,18 @@ function dfaZuschnitte(){
    teile,
    merkmal:name, hinweis:seite||""});
  };
- // Seitliche Zugabe fuer Vorder-/Hinterteil: beide Seiten zusammengezaehlt
- // (bei nicht getrennten Seiten ist links=rechts, ergibt also "2x").
- const seitlicheZugabe=2*dfaZahl(a.umschlagSeite)
-   +dfaSeite("f","l")+dfaSeite("f","r")+dfaSeite("g","l")+dfaSeite("g","r");
- dazu("Vorderteil","vorne","",dfaZahl(a.breiteVorne)+seitlicheZugabe,[
+ const us=dfaZahl(a.umschlagSeite);
+ const jk=k=>dfaSeite("f",k)+dfaSeite("g",k);                // J + K einer Seite
+ const bV=dfaZahl(a.breiteVorne), bH=dfaZahl(a.breiteHinten);
+ const seitlicheZugabe=2*us+jk("l")+jk("r");
+ const laengeVorderteil=gefalzt?bV+dfaZahl(a.anreiffUmschlag):bV+seitlicheZugabe;
+ const laengeHinterteil=gefalzt?bH+DFA_FALZZUGABE:laengeVorderteil;
+ dazu("Vorderteil","vorne","",laengeVorderteil,[
   {name:"Winkel auf Fensterrahmen",wert:dfaZahl(a.umschlagVorne)},
-  {name:"Aufbordungshöhe Seite",wert:dfaZahl(a.aufVorne)},
-  {name:"Aufbordungshöhe vorne",wert:dfaZahl(a.saumVorne)},
+  {name:"Saum vorne",wert:dfaZahl(a.saumVorne)},
   {name:dfaMassLabel("a"),wert:dfaADurchgehend()},
-  {name:"Anreiff",wert:dfaZahl(a.anreiff)},
   {name:"Umschlag Anreiff",wert:dfaZahl(a.anreiffUmschlag)}]);
- dazu("Hinterteil","hinten","",dfaZahl(a.breiteHinten)+seitlicheZugabe,[
+ dazu("Hinterteil","hinten","",laengeHinterteil,[
   {name:"Aufbordungshöhe hinten",wert:dfaZahl(a.aufHinten)},
   {name:"Abdeckkappe oben",wert:dfaZahl(a.randAbstand)},
   {name:"Abdeckkappe nach unten",wert:dfaZahl(a.randStrich)},
@@ -276,24 +313,22 @@ function dfaZuschnitte(){
   {name:"Aufbug hinten ("+dfaBuchstabe("e")+")",wert:dfaZahl(a.e)},
   {name:"Umschlag Aufbug",wert:dfaZahl(a.eUmschlag)}]);
  DFA_SEITEN.forEach(s=>{
-  const h=Math.max(dfaZahl(a.aufVorne),dfaZahl(a.aufHinten));
-  const teile=[
-   {name:"Umschlag Seite",wert:dfaZahl(a.umschlagSeite)},
+  const L=dfaLaenge(s.k);
+  dazu("Seitenteil","seite",s.name,
+   L>0?(gefalzt?L+dfaSeite("a",s.k)+dfaZahl(a.anreiffUmschlag):L):0,[
+   {name:"Umschlag Seite",wert:us},
    {name:"Mass "+dfaBuchstabe("g")+" · unter Deckmaterial",wert:dfaSeite("g",s.k)},
    {name:"Mass "+dfaBuchstabe("f")+" · bis Deckmaterial",wert:dfaSeite("f",s.k)},
-   {name:"Aufbordungshöhe (grösseres Mass)",wert:h}];
-  // Mit durchgehendem Seitenteil (Knick) gibt es die Teilung am Knick nicht:
-  // EIN Stueck ueber die ganze Laenge, hinten wie gehabt die letzten 10 mm
-  // als schraeger Trapezstrich. Aus acht Zuschnitten werden dann sechs.
-  const L=dfaLaenge(s.k);
-  if(dfaMitKnick()){
-   dazu("Seitenteil","seite",s.name,Math.max(0,L-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
-   dazu("Seitenteil hinten","seite",s.name,L>0?DFA_HINTERKANTE_RUECKLAUF:0,teile.map(x=>Object.assign({},x)));
-   return;
-  }
-  dazu("Seitenteil vorne","seite",s.name,dfaSeite("b",s.k),teile.map(x=>Object.assign({},x)));
-  dazu("Seitenteil Mitte","seite",s.name,Math.max(0,dfaSeite("c",s.k)-DFA_HINTERKANTE_RUECKLAUF),teile.map(x=>Object.assign({},x)));
-  dazu("Seitenteil hinten","seite",s.name,dfaSeite("c",s.k)>0?DFA_HINTERKANTE_RUECKLAUF:0,teile.map(x=>Object.assign({},x)));
+   {name:"Aufbordungshöhe Seite",wert:dfaZahl(a.aufVorne)}]);
+  const N=dfaZahl(a.breiteUnten);
+  const jkHinten=Math.max(0,jk(s.k)+(bV-bH)/2);
+  dazu("Seitenteil hinten","seite",s.name,
+   N>0?(gefalzt?N+dfaSeite("d",s.k)+dfaZahl(a.e)+dfaZahl(a.eUmschlag):N+dfaZahl(a.randAbstand)):0,[
+   {name:"Umschlag Seite",wert:us},
+   {name:"Mass "+dfaBuchstabe("g")+" + "+dfaBuchstabe("f")+" hinten (aus Breite vorne/hinten)",wert:jkHinten},
+   {name:"Aufbordungshöhe hinten",wert:dfaZahl(a.aufHinten)},
+   {name:"Abdeckkappe oben",wert:dfaZahl(a.randAbstand)},
+   {name:"Abdeckkappe nach unten",wert:dfaZahl(a.randStrich)}]);
  });
  return z;
 }
@@ -1075,7 +1110,14 @@ des Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")} entfal
   :`<b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b>
 überlappen sich im Knick – die Länge des Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")}
 − ${dfaBuchstabe("ueberlappung")}.`;
- return dfaUebersichtHtml()+artWahl+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
+ const gefalzt=dfaGefalzt();
+ // v3.270: Ausfuehrung. Auch bei einer schon gespeicherten Aufnahme jederzeit
+ // umschaltbar - die Zuschnitte rechnen sich daraus neu.
+ const ausWahl=`<div class="bar" style="margin-bottom:8px">
+<button type="button" class="${!gefalzt?"blue":"gray"}" data-dfa-ausfuehrung="gepunktet">Gepunktet (Seitenteile seitlich)</button>
+<button type="button" class="${gefalzt?"blue":"gray"}" data-dfa-ausfuehrung="gefalzt">Gefalzt (senkrechter Falz)</button>
+</div>`;
+ return dfaUebersichtHtml()+artWahl+ausWahl+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
 gleich vermasst wie bei der Kamineinfassung. ${laengeSatz} Vorne ist die Aufbordung niedriger und hat oben einen Saum; hinten
 ist sie höher und bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
@@ -1145,8 +1187,8 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil abgerundet aus
 Länge ÷ Lattenabstand (${dfaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
- return `<div class="info">Acht Zuschnitte: Vorderteil, Hinterteil und je drei Seitenteile
-(vorne, Mitte, hinten) links und rechts. Die Abwicklung entsteht aus den erfassten Massen –
+ return `<div class="info">Sechs Zuschnitte: Vorderteil, Hinterteil und je Seite ein Seitenteil
+und ein Seitenteil hinten (${dfaGefalzt()?"gefalzt":"gepunktet"}). Die Abwicklung entsteht aus den erfassten Massen –
 hier wird nichts von Hand eingegeben.</div>
 <div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt (Länge × Breite)</th><th>Abwicklung aus</th></tr></thead>
@@ -1362,6 +1404,11 @@ function dfaVerdrahten(){
    dfaA.seitenteilArt=art.dataset.dfaSeitenteil==="knick"?"knick":"separat";
    renderDfaAufnahme(); return;
   }
+  const aus=t.closest("[data-dfa-ausfuehrung]");
+  if(aus){
+   dfaA.ausfuehrung=aus.dataset.dfaAusfuehrung==="gefalzt"?"gefalzt":"gepunktet";
+   renderDfaAufnahme(); return;
+  }
   if(t.id==="dfa_zurueck"){dfaSetzeSchritt(dfaSchritt-1);return}
   if(t.id==="dfa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
@@ -1499,6 +1546,10 @@ function dfaDaten(){
   // spaetere Oeffnen lesen nur den Datensatz. Fehlte sie, faelle jede mit
   // Knick erfasste Aufnahme beim Oeffnen still auf zwei Seitenteile zurueck.
   seitenteilArt:dfaMitKnick()?"knick":"separat",
+  // v3.270: ohne dieses Feld im Datensatz wuerde das spaetere Oeffnen (und das
+  // Ruestblatt) die Ausfuehrung nicht kennen - dieselbe Falle wie bei der
+  // Bauart in v3.263.
+  ausfuehrung:dfaGefalzt()?"gefalzt":"gepunktet",
   a:paar("a"), d:paar("d"), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
   randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
@@ -1570,6 +1621,8 @@ function dfaFuellen(d){
  // Kontrolle Mass I, das es in dieser Bauart gar nicht gibt, und liess sich
  // nicht mehr speichern. Ein Datensatz ohne das Feld ist wie bisher "separat".
  a.seitenteilArt=w.seitenteilArt==="knick"?"knick":"separat";
+ // v3.270: Ausfuehrung. Ein aelterer Datensatz ohne das Feld ist "gepunktet".
+ a.ausfuehrung=w.ausfuehrung==="gefalzt"?"gefalzt":"gepunktet";
  ["a","b","c","d","f","g"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};

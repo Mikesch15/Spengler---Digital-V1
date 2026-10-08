@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.269.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.270.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1089,8 +1089,13 @@ ${dfaBuchstabe("c")} minus der Überlappung
 nichts zu überlappen: <b>${dfaBuchstabe("b")}</b> ist die ganze Länge des
 Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")}
 entfallen – die Felder verschwinden, und die Kontrolle verlangt sie nicht
-mehr. Aus acht Zuschnitten werden sechs.</li>
+mehr.</li>
 </ul>
+<p><b>Dann die Ausführung wählen:</b> <b>gepunktet</b> (die Seitenteile werden
+seitlich an Vorder- und Hinterteil angepunktet) oder <b>gefalzt</b> (senkrechter
+Falz, die Seitenteile laufen durch). Die Wahl lässt sich auch bei einer schon
+gespeicherten Aufnahme noch ändern – die Zuschnitte rechnen sich neu, sobald die
+Aufnahme wieder gespeichert wird.</p>
 <p>Umschalten ist gefahrlos: die schon eingegebenen Masse bleiben stehen und
 sind beim Zurückschalten unverändert wieder da. Eine vor dieser Version
 gespeicherte Aufnahme ist immer eine mit separaten Seitenteilen.</p>
@@ -1118,7 +1123,7 @@ Spitze. Ganz vorne, vor ${dfaBuchstabe("a")}, sitzt spiegelbildlich der
 die Abwicklung der Seitenteile ein, haben aber keinen Vorgabewert.</p>`},
 
 "dfa-umschlaege":{titel:"Umschläge",text:()=>`
-<p>Die Zugaben, die in die Abwicklung der acht Teile eingehen. Vorbelegt sind
+<p>Die Zugaben, die in die Abwicklung der sechs Teile eingehen. Vorbelegt sind
 die Werte aus den Einstellungen; hier gelten sie nur für diese
 Massaufnahme.</p>
 <p><b>Breite vorne/hinten (${dfaBuchstabe("breiteVorne")}/${dfaBuchstabe("breiteHinten")})</b>
@@ -1128,12 +1133,21 @@ den Seitenteilen (2× Umschlag Seite (${dfaBuchstabe("umschlagSeite")}) +
 ${dfaBuchstabe("f")} links/rechts + ${dfaBuchstabe("g")} links/rechts dazu).</p>`},
 
 "dfa-stueckliste":{titel:"Stückliste",text:`
-<p>Acht Zuschnitte: Vorderteil, Hinterteil und je DREI Seitenteile (vorne,
-Mitte, hinten) links und rechts.</p>
-<p><b>Seitenteil Mitte</b> und <b>Seitenteil hinten</b> teilen sich das, was
-bisher ein einziges Stück war: hinten sind die letzten 10 mm bis zur
-Hinterkant Aufbordung (die zweite gestrichelte Linie in der Skizze), Mitte
-der Rest davor.</p>
+<p>Sechs Zuschnitte: Vorderteil, Hinterteil und je Seite ein
+<b>Seitenteil</b> und ein <b>Seitenteil hinten</b> (das Trapezstück am Ende).
+Wie sie sich zusammensetzen, hängt von der <b>Ausführung</b> ab:</p>
+<ul>
+<li><b>Gepunktet:</b> Vorder- und Hinterteil sind gleich lang (Breite vorne +
+2 × Umschlag Seite + J + K) und reichen seitlich bis zu den Seitenteilen. Das
+Seitenteil ist so lang wie das Fenster.</li>
+<li><b>Gefalzt:</b> Vorderteil = Breite vorne + Umschlag am Anreiff, Hinterteil =
+Breite hinten + 25 mm Falzzugabe. Das Seitenteil läuft durch: C + Seitenlänge +
+Umschlag am Anreiff.</li>
+</ul>
+<p>Das Vorderteil rechnet ohne den Anreiff selbst (er steckt in C) und ohne die
+Aufbordungshöhe der Seite. Das Seitenteil nimmt die Aufbordungshöhe <b>vorne</b>;
+beim Seitenteil hinten kommt Breite vorne minus Breite hinten ins Spiel, weil
+das Fenster hinten breiter ist.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus <b>Vorderteil</b> (Mass C +
 Seitenlänge) und <b>Hinterteil</b> (Mass N + R) gerechnet: Länge ÷ Lattenabstand,
 jeweils <b>abgerundet</b>, links und rechts zusammen.</p>`},

@@ -252,13 +252,22 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
            alle:dfaZuschnitte().length, L:dfaLaenge("l")}};
   return {separat:mit(sep),knick:mit(kni)};
  },[SEP,KNI]);
- p(rechnung.separat.alle===8,"separat: acht Zuschnitte",rechnung.separat.alle);
- p(rechnung.knick.alle===6,"knick: sechs Zuschnitte - die Teilung am Knick faellt weg",rechnung.knick.alle);
+ // v3.270: auf den neuen Vertrag umgestellt (Ansage des Anwenders, 8.10.2026):
+ // BEIDE Bauarten rechnen jetzt mit Vorderteil, Hinterteil und je Seite einem
+ // Seitenteil plus einem Seitenteil hinten - sechs Zuschnitte. Die Teilung am
+ // Knick (vorne / Mitte / hinten) und die letzten 10 mm gibt es nicht mehr.
+ // Die alten Erwartungen (acht bzw. 995 + 10) bleiben als GEGENPROBE stehen:
+ // sie duerfen nicht zurueckkommen.
+ p(rechnung.separat.alle===6,"separat: sechs Zuschnitte (nicht mehr acht)",rechnung.separat.alle);
+ p(rechnung.knick.alle===6,"knick: sechs Zuschnitte",rechnung.knick.alle);
+ p(rechnung.separat.alle!==8,"Gegenprobe: die alte Teilung in acht Zuschnitte kommt nicht zurueck",rechnung.separat.alle);
  p(rechnung.separat.L===1005,"separat: Laenge = B + I - H = 1005",rechnung.separat.L);
  p(rechnung.knick.L===1005,"knick: Laenge = B = 1005",rechnung.knick.L);
- p(rechnung.separat.z.some(t=>/^Seitenteil vorne /.test(t)),"separat: es gibt ein Seitenteil vorne",rechnung.separat.z);
+ p(rechnung.separat.z.filter(t=>t==="Seitenteil 1005").length===2,"separat: je Seite EIN Seitenteil ueber die ganze Laenge (B + I - H = 1005)",rechnung.separat.z);
+ p(!rechnung.separat.z.some(t=>/^Seitenteil (vorne|Mitte) /.test(t)),"Gegenprobe separat: kein Seitenteil vorne/Mitte mehr",rechnung.separat.z);
  p(!rechnung.knick.z.some(t=>/^Seitenteil (vorne|Mitte) /.test(t)),"knick: kein Seitenteil vorne/Mitte mehr",rechnung.knick.z);
- p(rechnung.knick.z.some(t=>t==="Seitenteil 995"),"knick: EIN durchgehendes Seitenteil ueber 995 (1005 minus Ruecklauf)",rechnung.knick.z);
+ p(rechnung.knick.z.filter(t=>t==="Seitenteil 1005").length===2,"knick: je Seite EIN durchgehendes Seitenteil ueber die ganze Laenge 1005",rechnung.knick.z);
+ p(!rechnung.knick.z.some(t=>t==="Seitenteil 995"),"Gegenprobe knick: nicht mehr 995 plus 10 mm Ruecklauf",rechnung.knick.z);
 
  // ---- E · Die verdeckte Oberkante beginnt an der Kreuzung ------------------
  // av = 100, ah = 100, bu = 385, bo = 120, L = 1005.
@@ -357,7 +366,10 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
   return {knick:dfaMitKnick(),L:dfaLaenge("l"),zuschnitte:dfaZuschnitte().length};
  },SEP);
  p(alt.knick===false,"ohne Feld seitenteilArt gilt: zwei separate Seitenteile",alt);
- p(alt.L===1005&&alt.zuschnitte===8,"ohne Feld rechnet sie wie bisher (1005 mm, acht Zuschnitte)",alt);
+ p(alt.L===1005,"ohne Feld rechnet sie wie bisher die Laenge 1005 mm",alt);
+ // v3.270: die Zuschnitte selbst sind neu gefasst (sechs, nicht acht) - das gilt
+ // auch fuer eine Aufnahme ohne das Feld: sie rechnet beim naechsten Oeffnen neu.
+ p(alt.zuschnitte===6,"und rechnet beim Oeffnen mit den neuen sechs Zuschnitten",alt);
 
  // ---- I · Die Wahl der Bauart ist zu sehen und zu bedienen ----------------
  // Meldung des Anwenders: "wo kann jetzt mit oder ohne knick ausgewaehlt

@@ -1632,6 +1632,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Seitenteil",d.seitenteilArt==="knick"?"durchgehend mit Knick":"zwei separate Teile, Überlappung "+mm(d.ueberlappung)+" mm")}</tr>
 <tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
 <tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}${cell("Lattenabstand",d.lattenabstand?mm(d.lattenabstand)+" mm":"–")}</tr>
+${d.ausfuehrung?`<tr>${cell("Ausführung",d.ausfuehrung==="gefalzt"?"gefalzt (senkrechter Falz)":"gepunktet (Seitenteile seitlich angepunktet)")}<td></td></tr>`:""}
 </table>
 ${dfaSchnitt?`<div class="eb-section-head">Schnitt</div>${dfaSchnitt}`:""}
 ${teile.length?`<div class="eb-section-head">Stückliste</div>
