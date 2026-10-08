@@ -130,7 +130,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p(nah((A2.xMin+A2.xMax)/2,A2.mitteX)&&nah(A2.mitteX,175),
    "das Loch liegt quer genau in der Mitte (175 mm von jeder Kante)",A2);
  p(nah((A2.yMin+A2.yMax)/2,A2.mitteY)&&nah(A2.mitteY,288),
-   "und in der Laenge bei Mitte Rohr: 20 Umschlag + 18 Anreiss + 250 = 288 mm",A2);
+   "und in der Laenge bei Mitte Rohr: 20 Umschlag + 18 Anreiff + 250 = 288 mm",A2);
  p(A2.yMin>0&&A2.yMax<A2.laenge&&A2.xMin>0&&A2.xMax<A2.breite,
    "das Loch liegt vollstaendig im Blech",A2);
 
@@ -156,13 +156,13 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  // Von Hand nachgerechnet: 20 + 18 + 250 + 200 + 35 + 20 = 543.
  p(nah(B[0].laenge,543)&&nah(B[0].breite,350),
    "erster Fall von Hand: 350 × 543 mm",B[0]);
- // Der Anreiss wird NICHT kopiert, sondern aus js/21 geholt.
+ // Der Anreiff wird NICHT kopiert, sondern aus js/21 geholt.
  const B2=await page.evaluate(()=>({
   ausJs21:EINF_ANREISS_LAENGE, ausJs77:abwTablettAnreiss(),
   ohneAnreiss:abwTablett({D:110,alpha:25,a:250,b:200,c:35,
     umschlag:20,massSeitlich:100,lochZugabe:0,anreiss:0}).laenge}));
- p(B2.ausJs21===B2.ausJs77,"der Anreiss kommt aus js/21, er ist nicht kopiert",B2);
- p(nah(B2.ohneAnreiss,525),"ohne Anreiss werden es 18 mm weniger",B2.ohneAnreiss);
+ p(B2.ausJs21===B2.ausJs77,"der Anreiff kommt aus js/21, er ist nicht kopiert",B2);
+ p(nah(B2.ohneAnreiss,525),"ohne Anreiff werden es 18 mm weniger",B2.ohneAnreiss);
 
  // ---- C  Fehler und Warnungen ---------------------------------------------
  console.log("\nC · Was die Rechnung verweigert und wovor sie warnt");
@@ -180,8 +180,15 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p(C.negativeLuft.ok===false,"negative Luft am Loch auch nicht",C.negativeLuft.fehler);
  p(C.gut.ok===true&&C.gut.fehler.length===0,"die Standardmasse gehen durch",C.gut.fehler);
  // Warnungen heissen: die Zahlen stimmen, aber so laesst es sich nicht bauen.
- p(C.inAnreiss.ok===true&&C.inAnreiss.warnungen.some(w=>w.indexOf("Anreiss")>=0),
-   "Loch bis in den Anreiss: gerechnet wird, aber es wird gewarnt",C.inAnreiss.warnungen);
+ // v3.268: Der Begriff heisst jetzt ueberall "Anreiff" (Ansage des Anwenders,
+ // 8.10.2026; js/66 schrieb ihn seit jeher so). Die Pruefung ist auf den neuen
+ // Wortlaut umgestellt - mit Gegenprobe, damit die alte Schreibweise nicht
+ // unbemerkt zurueckkommt.
+ p(C.inAnreiss.ok===true&&C.inAnreiss.warnungen.some(w=>w.indexOf("Anreiff")>=0),
+   "Loch bis in den Anreiff: gerechnet wird, aber es wird gewarnt",C.inAnreiss.warnungen);
+ p(!C.inAnreiss.warnungen.some(w=>/Anrei(ss|\u00df)/.test(w)),
+   'Gegenprobe: die alte Schreibweise "Anreiss" steht in keiner Meldung mehr',
+   C.inAnreiss.warnungen);
  p(C.inAufbug.ok===true&&C.inAufbug.warnungen.some(w=>w.indexOf("Aufbug")>=0),
    "Loch bis in den Aufbug: ebenso",C.inAufbug.warnungen);
  p(C.anDenRand.warnungen.some(w=>w.indexOf("seitlichen Umschlag")>=0),
@@ -202,16 +209,16 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
           ohneQuer:y(ohne), ohneLaengs:x(ohne), ohneCQuer:y(ohneC)};
  });
  p(D.konturLen===4,"der Zuschnitt ist ein Rechteck - vier Eckpunkte",D.konturLen);
- // 20 (Umschlag vorne), 38 (Anreiss-Knick), 488 (Aufbug), 523 (Umschlag oben)
+ // 20 (Umschlag vorne), 38 (Anreiff-Knick), 488 (Aufbug), 523 (Umschlag oben)
  p(JSON.stringify(D.quer)===JSON.stringify([20,38,488,523]),
-   "vier Biegelinien quer: Umschlag vorne, Anreiss, Aufbug, Umschlag oben",D.quer);
+   "vier Biegelinien quer: Umschlag vorne, Anreiff, Aufbug, Umschlag oben",D.quer);
  p(JSON.stringify(D.laengs)===JSON.stringify([20,330]),
    "zwei laengs: der seitliche Umschlag an beiden Kanten",D.laengs);
  // GEGENPROBE: ohne Umschlag verschwinden genau die Linien, die es dann nicht
  // gibt - eine Biegelinie ohne Biegung waere eine Behauptung.
  p(D.ohneLaengs.length===0,"ohne Umschlag gibt es keine seitliche Biegelinie",D.ohneLaengs);
  p(JSON.stringify(D.ohneQuer)===JSON.stringify([18,468]),
-   "und quer nur noch Anreiss und Aufbug",D.ohneQuer);
+   "und quer nur noch Anreiff und Aufbug",D.ohneQuer);
  p(JSON.stringify(D.ohneCQuer)===JSON.stringify([20,38,488]),
    "ohne Aufbug faellt auch der obere Umschlag weg",D.ohneCQuer);
 

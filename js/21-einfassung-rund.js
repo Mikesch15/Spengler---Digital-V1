@@ -11,7 +11,7 @@
 // Zahl aus Rohrdurchmesser + 2× Umschlag + 2× Mass seitlich neben Rohr.
 //
 // Geometrie:
-//   vorne  Anreiss (fest 20° steiler als die Dachschräge, kurzes
+//   vorne  Anreiff (fest 20° steiler als die Dachschräge, kurzes
 //          festes Stück) mit anschliessendem 180°-Umschlag
 //   a      Vorderkante auf Deckmaterial bis Mitte Rohr – liegt in der
 //          Dachschräge (Winkel)
@@ -44,7 +44,7 @@ const EINF_DECKUNGEN = Object.freeze({
   naturschiefer: { name: "Naturschiefer" }
 });
 
-// Anreiss vorne: fixer Winkel und eine kleine, feste Länge – kein
+// Anreiff vorne: fixer Winkel und eine kleine, feste Länge – kein
 // eigenes Eingabefeld, siehe Rückmeldung an den Anwender.
 const EINF_ANREISS_WINKEL = 20;
 const EINF_ANREISS_LAENGE = 18;
@@ -137,7 +137,7 @@ function einfProfil(e) {
     return [v[0] * Math.cos(r) - v[1] * Math.sin(r), v[0] * Math.sin(r) + v[1] * Math.cos(r)];
   };
   const u = rot([1, 0], winkel);                         // Dachschräge, bergwärts
-  const kickDir = rot(u, EINF_ANREISS_WINKEL);            // Anreiss: steiler als die Dachschräge
+  const kickDir = rot(u, EINF_ANREISS_WINKEL);            // Anreiff: steiler als die Dachschräge
   const cDir = rot(u, 90);                                // Aufbug: immer 90° zur Dachschräge
 
   const p0 = [0, 0];
@@ -186,7 +186,7 @@ function einfZeichnung(e) {
   const hoehePx = Math.round((yMax - yMin) * s + 2 * rand);
   const ox = rand - xMin * s;
   const oy = rand + yMax * s;
-  // v3.267: Die beiden Eck-Fahnen "180° · Anreiss 20°" (vorne unten, nach
+  // v3.267: Die beiden Eck-Fahnen "180° · Anreiff 20°" (vorne unten, nach
   // links) und "Umschlag oben 135°" (hinten oben, nach rechts) standen zum
   // Teil ausserhalb des Blattes und waren abgeschnitten - gemessen an
   // Ø 110 / 30° / a 150 / b 200 fehlten rechts "35°" und links "180° · An".
@@ -197,7 +197,7 @@ function einfZeichnung(e) {
   // dieselbe Schaetzung wie in anbMassTextLage (Zeichen x Groesse x 0.56).
   const textBreit = t => String(t).length * 13 * 0.56;
   const ueberLinks = foldLen > 0
-    ? Math.max(0, -( (ox + p.pts[0][0] * s) - 34 - textBreit("180° · Anreiss 20°") )) : 0;
+    ? Math.max(0, -( (ox + p.pts[0][0] * s) - 34 - textBreit("180° · Anreiff 20°") )) : 0;
   const ueberRechts = foldLen > 0
     ? Math.max(0, (ox + p.pts[5][0] * s) + 26 + textBreit("Umschlag oben 135°") - breitePx) : 0;
   const blattBreite = Math.round(breitePx + ueberLinks + ueberRechts);
@@ -226,7 +226,7 @@ function einfZeichnung(e) {
   const cMid = [(p.pts[3][0] + p.pts[4][0]) / 2, (p.pts[3][1] + p.pts[4][1]) / 2];
   g += anbFahne(cMid[0], cMid[1], 26, 0, "c = " + zahl(c) + " · 90°", X, Y);
   if (foldLen > 0) {
-    g += anbFahne(p.pts[0][0], p.pts[0][1], -30, -8, "180° · Anreiss 20°", X, Y);
+    g += anbFahne(p.pts[0][0], p.pts[0][1], -30, -8, "180° · Anreiff 20°", X, Y);
     g += anbFahne(p.pts[5][0], p.pts[5][1], 22, -18, "Umschlag oben 135°", X, Y);
   }
 

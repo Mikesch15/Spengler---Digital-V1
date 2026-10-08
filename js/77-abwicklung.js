@@ -273,7 +273,7 @@ function abwRechne(roh){
 // der Einfassung rund (js/21, loch_zugabe).
 //
 // KEINE ZWEITE WAHRHEIT ZUR LAENGE: die Laenge des Zuschnitts ist
-//   Umschlag + Anreiss + a + b + c + Umschlag
+//   Umschlag + Anreiff + a + b + c + Umschlag
 // und damit dieselbe Zahl, die einfBerechnen() in js/21 als
 // "Zuschnittbreite (Querschnitt)" ausgibt. Dort wird sie als Summe der
 // Profilstrecken gerechnet, hier direkt - der Pruefstand rechnet beide
@@ -286,7 +286,11 @@ function abwRechne(roh){
 // sie die Oberflaeche (js/78).
 // ===========================================================================
 
-// Der Anreiss vorne ist ein festes Mass der Einfassung rund (js/21). Es wird
+// v3.268: Der Begriff heisst im ganzen Haus "Anreiff" (Ansage des Anwenders;
+// js/66 schreibt ihn seit jeher so). Geaendert ist die Beschriftung, NICHT die
+// Bezeichner: "anreiss" ist hier ein Schluessel der Eingabe und EINF_ANREISS_*
+// stehen in js/21 - ein Umbenennen waere eine Datenaenderung ohne Nutzen.
+// Der Anreiff vorne ist ein festes Mass der Einfassung rund (js/21). Es wird
 // hier nicht kopiert, sondern bei jedem Aufruf von dort geholt; die 18 gelten
 // nur, wenn diese Datei ohne js/21 laeuft (Pruefstand).
 function abwTablettAnreiss(){
@@ -314,7 +318,7 @@ function abwTablettFehler(e){
  if(!(e.umschlag>=0))f.push("Der Umschlag darf nicht negativ sein.");
  if(!(e.massSeitlich>=0))f.push("Das Mass seitlich neben dem Rohr darf nicht negativ sein.");
  if(!(e.lochZugabe>=0))f.push("Die Luft am Lochausschnitt darf nicht negativ sein.");
- if(!(e.anreiss>=0))f.push("Der Anreiss darf nicht negativ sein.");
+ if(!(e.anreiss>=0))f.push("Der Anreiff darf nicht negativ sein.");
  return f;
 }
 
@@ -339,7 +343,7 @@ function abwTablett(roh){
  const kontur=[[0,0],[breite,0],[breite,laenge],[0,laenge]];
 
  // Biegelinien quer (ueber die ganze Breite), in der Reihenfolge des
- // Profils aus js/21: vorderer 180er, Anreiss-Knick, Aufbug 90 Grad,
+ // Profils aus js/21: vorderer 180er, Anreiff-Knick, Aufbug 90 Grad,
  // Umschlag oben 135 Grad. Eine Linie mit Laenge 0 wird nicht gezeichnet.
  const quer=[];
  const querY=[];
@@ -369,7 +373,7 @@ function abwTablett(roh){
 
  const warnungen=[];
  if(halbLang>=e.a)
-  warnungen.push("Das Loch reicht bis in den Anreiss vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Tablett nicht kanten.");
+  warnungen.push("Das Loch reicht bis in den Anreiff vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Tablett nicht kanten.");
  if(halbLang>=e.b)
   warnungen.push("Das Loch reicht bis in den Aufbug hinten (Mass b ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm).");
  if(halbQuer>=e.D/2+e.massSeitlich)

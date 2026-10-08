@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.267.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.268.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1632,7 +1632,7 @@ steht unter <b>Einstellungen → Massaufnahmen → Einfassung Rund</b>;
 <b>0</b> ist dort ein gültiger Wert und heisst „Loch exakt auf Rohrmass“.</div>
 <div class="hin">Die <b>Zuschnittlänge</b> ist dieselbe Zahl, die die
 Massaufnahme Einfassung rund als <b>Zuschnittbreite (Querschnitt)</b>
-ausgibt: Umschlag + Anreiss + a + b + c + Umschlag. Ein <b>Biegeausgleich</b>
+ausgibt: Umschlag + Anreiff + a + b + c + Umschlag. Ein <b>Biegeausgleich</b>
 wird bewusst nicht dazugerechnet – die Einfassung rechnet auch keinen, und
 zwei Längen für dasselbe Blech wären eine zu viel.</div>
 <div class="hin">Die vier <b>Ecken</b> sind doppelt belegt: der seitliche
