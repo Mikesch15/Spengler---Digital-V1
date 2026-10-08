@@ -33528,3 +33528,22 @@ Ein Zahlenfeld gibt es im Rapport erst mit einer Zeile; E0 hält fest, dass
 Leere läuft. Prüfstand: `pruefstand-bereiche-v3-156.js`, Abschnitt E (35
 Prüfungen, vorher 32).
 
+
+### v3.268 — der Begriff heisst überall „Anreiff"
+
+Ansage: „Ändere den begriff anreiss in anreiff."
+
+Die Dachfenstereinfassung (`js/66`) schreibt den Begriff seit jeher
+**Anreiff**; die Einfassung rund und die Tablett-Abwicklung schrieben
+**Anreiss**. Geändert ist jetzt die Beschriftung überall: die Fahne in der
+Schnittzeichnung („180° · Anreiff 20°"), die Hilfe, die Anleitung und die
+beiden Meldungen der Tablett-Abwicklung.
+
+**Nicht geändert sind die Bezeichner im Code** (`EINF_ANREISS_WINKEL`,
+`EINF_ANREISS_LAENGE`, der Eingabeschlüssel `anreiss`, `abwTablettAnreiss()`).
+Der Schlüssel ist Teil der Eingabe und ein Umbenennen wäre eine
+Datenänderung ohne Nutzen; die Kommentare an diesen Stellen sagen das.
+
+Der Prüfstand `abwicklung-tablett` prüft den neuen Wortlaut und hat eine
+Gegenprobe dazu: die alte Schreibweise darf in keiner Meldung mehr stehen.
+
