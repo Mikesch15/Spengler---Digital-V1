@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.268.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.269.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1062,8 +1062,7 @@ Massaufnahme.</p>`},
 <p>Sechs Zuschnitte: Vorderteil, Hinterteil und je zwei Seitenteile vorne und
 hinten.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
-Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
-Länge nicht decken.</p>`},
+Lattenabstand gerechnet und <b>abgerundet</b> (Betriebsregel seit v3.263).</p>`},
 
 // v3.94: text als Funktion statt fester Zeichenkette - die genannten
 // Buchstaben kommen live aus DFA_MASSLISTE (dfaBuchstabe), siehe
@@ -1135,9 +1134,9 @@ Mitte, hinten) links und rechts.</p>
 bisher ein einziges Stück war: hinten sind die letzten 10 mm bis zur
 Hinterkant Aufbordung (die zweite gestrichelte Linie in der Skizze), Mitte
 der Rest davor.</p>
-<p>Die <b>Bleilappen</b> werden je Seitenteil aus Zuschnittlänge und
-Lattenabstand gerechnet und aufgerundet – ein abgerundeter Wert würde die
-Länge nicht decken.</p>`},
+<p>Die <b>Bleilappen</b> werden je Seitenteil aus <b>Vorderteil</b> (Mass C +
+Seitenlänge) und <b>Hinterteil</b> (Mass N + R) gerechnet: Länge ÷ Lattenabstand,
+jeweils <b>abgerundet</b>, links und rechts zusammen.</p>`},
 
 "einf-liste":{titel:"Einfassungen",text:`
 <p>Auf einem Dach steht selten nur ein Rohr – hier lassen sich mehrere

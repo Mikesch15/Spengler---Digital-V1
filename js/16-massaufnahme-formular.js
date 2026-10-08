@@ -1584,7 +1584,7 @@ ${(Array.isArray(bl.zeilen)&&bl.zeilen.length&&bl.gesamt!==null&&bl.gesamt!==und
 <tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${mm(x.laenge)}</td><td>${x.anzahl===null?"–":esc(x.anzahl)}</td></tr>`).join("")}
 <tr><td colspan="2">Gesamt</td><td>${esc(bl.gesamt)}</td></tr></tbody>
 </table>
-<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil aufgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
+<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil abgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
 ${zuDruckHtml(d.rollen,0,"Teil")}
 ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
 <table class="eb-cutlist">
@@ -1603,6 +1603,16 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
    const w=d[k]||{};
    return d.getrennt?(mm(w.l)+" / "+mm(w.r)):mm(w.l);
   };
+  // v3.269: Die Aufbordungshoehen sind seit v3.9x EINE Zahl (nicht mehr je
+  // Seite). paar() las sie als {l,r}-Objekt: bei einer Zahl ist w.l leer, im
+  // Ausdruck stand "0 mm" - obwohl die Zeichnung F = 80 und Q = 95 zeigte und
+  // die Stueckliste damit rechnete (gesehen am Blatt "Nord Nr.1", 8.10.2026).
+  // Aeltere Datensaetze tragen sie noch als {l,r}: dort gilt wie beim Laden
+  // (js/66) das GROESSERE Mass.
+  const hoehe=k=>{
+   const w=d[k];
+   return (w&&typeof w==="object")?Math.max(Number(w.l)||0,Number(w.r)||0):(Number(w)||0);
+  };
   const seitenTxt=d.getrennt?" (links / rechts)":"";
   const teile=Array.isArray(d.zuschnitte)?d.zuschnitte:[];
   const bl=d.bleilappen||{};
@@ -1618,7 +1628,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <table class="eb-info-table">
 <tr>${cell("Deckungsmaterial",esc(deckName))}${cell("Material",matName)}</tr>
 <tr>${cell("Länge Seitenteil"+seitenTxt,paar("laenge")+" mm")}${cell("Saum vorne",mm(d.saumVorne)+" mm")}</tr>
-<tr>${cell("Aufbordungshöhe vorne"+seitenTxt,paar("aufVorne")+" mm")}${cell("Aufbordungshöhe hinten"+seitenTxt,paar("aufHinten")+" mm")}</tr>
+<tr>${cell("Aufbordungshöhe vorne",mm(hoehe("aufVorne"))+" mm")}${cell("Aufbordungshöhe hinten",mm(hoehe("aufHinten"))+" mm")}</tr>
 <tr>${cell("Breite oben / unten (Trapez hinten)",mm(d.breiteOben)+" / "+mm(d.breiteUnten)+" mm")}${cell("Seitenteil",d.seitenteilArt==="knick"?"durchgehend mit Knick":"zwei separate Teile, Überlappung "+mm(d.ueberlappung)+" mm")}</tr>
 <tr>${cell("Breite vorne / hinten",mm(d.breiteVorne)+" / "+mm(d.breiteHinten)+" mm")}${cell("Umschlag vorne / Seite",mm(d.umschlagVorne)+" / "+mm(d.umschlagSeite)+" mm")}</tr>
 <tr>${d.flaeche_m2?cell("Blechfläche",esc(String(d.flaeche_m2).replace(".",","))+" m²"):"<td></td>"}${cell("Lattenabstand",d.lattenabstand?mm(d.lattenabstand)+" mm":"–")}</tr>
@@ -1637,7 +1647,7 @@ ${(Array.isArray(bl.zeilen)&&bl.zeilen.length&&bl.gesamt!==null&&bl.gesamt!==und
 <tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${mm(x.laenge)}</td><td>${x.anzahl===null?"–":esc(x.anzahl)}</td></tr>`).join("")}
 <tr><td colspan="2">Gesamt</td><td>${esc(bl.gesamt)}</td></tr></tbody>
 </table>
-<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil aufgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
+<div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil abgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
 ${zuDruckHtml(d.rollen,0,"Teil")}
 ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
 <table class="eb-cutlist">

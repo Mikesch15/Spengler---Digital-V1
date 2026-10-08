@@ -135,6 +135,53 @@ const NICHT_FLACH=["zuschnitte","bleilappen","ausmass","kontrolle","rollen","pie
     name+": das Wort \"Lattenabstand\" steht auf dem Blatt",z);
  });
 
+ console.log("\nD2 · Aufbordungshoehe und Bleilappen-Fussnote beim Dachfenster (v3.269)");
+ // Gemeldet am echten Blatt "Nord Nr.1" (8.10.2026): in den Angaben stand
+ // "Aufbordungshoehe vorne 0 mm / hinten 0 mm", obwohl die Zeichnung F = 80 und
+ // Q = 95 zeigte. Der Ausdruck las die Zahl als {l,r}-Objekt. Dass es
+ // durchrutschte: die "Jedes Mass steht auf dem Blatt"-Pruefung A sucht den
+ // Wert irgendwo auf dem Blatt - und "100" steht dort auch in der Zeichnung.
+ // Hier wird deshalb die ZELLE mit ihrer Beschriftung gelesen.
+ const dfa=await page.evaluate(async faelle=>{
+  const raus=[];
+  const lies=async(data)=>{
+   window.__blatt=null;
+   try{ await printMeasurement({id:1,type:"dachfenstereinfassung",data,title:"x",note:""},{}); }catch(e){}
+   const box=document.createElement("div"); box.innerHTML=window.__blatt||"";
+   const wert=name=>{
+    const l=[...box.querySelectorAll("label")].find(x=>x.textContent.trim()===name);
+    return l?l.parentElement.querySelector(".val").textContent.trim():null;
+   };
+   return {vorne:wert("Aufbordungshöhe vorne"),hinten:wert("Aufbordungshöhe hinten"),
+     text:box.textContent.replace(/\s+/g," ")};
+  };
+  for(const [name,type,data] of faelle){
+   if(type!=="dachfenstereinfassung")continue;
+   const d=JSON.parse(JSON.stringify(data)); d.aufVorne=80; d.aufHinten=95;
+   // Die Fussnote erscheint nur, wenn Bleilappen im Datensatz stehen.
+   d.bleilappen={gesamt:8,lattenabstand:355,zeilen:[
+     {name:"Vorderteil links",laenge:1215,anzahl:3},{name:"Hinterteil links",laenge:455,anzahl:1},
+     {name:"Vorderteil rechts",laenge:1215,anzahl:3},{name:"Hinterteil rechts",laenge:455,anzahl:1}]};
+   raus.push(Object.assign({name,art:"zahl"},await lies(d)));
+   // Gegenprobe: ein alter Datensatz mit {l,r} - das groessere Mass gilt.
+   const alt=JSON.parse(JSON.stringify(data)); alt.aufVorne={l:70,r:90}; alt.aufHinten={l:60,r:55};
+   raus.push(Object.assign({name,art:"alt"},await lies(alt)));
+  }
+  return raus;
+ },FAELLE);
+ const zahl=dfa.filter(x=>x.art==="zahl"), alte=dfa.filter(x=>x.art==="alt");
+ p(zahl.length>0&&zahl.every(x=>x.vorne==="80 mm"&&x.hinten==="95 mm"),
+   "die Angaben nennen die gespeicherten Aufbordungshoehen (80 / 95), nicht 0",
+   zahl.map(x=>[x.name,x.vorne,x.hinten]));
+ p(alte.length>0&&alte.every(x=>x.vorne==="90 mm"&&x.hinten==="60 mm"),
+   "Gegenprobe: ein alter Datensatz mit {l,r} zeigt das groessere Mass",
+   alte.map(x=>[x.name,x.vorne,x.hinten]));
+ p(dfa.every(x=>!/aufgerundet/.test(x.text)),
+   "die Fussnote zu den Bleilappen sagt nicht mehr \"aufgerundet\" (es wird abgerundet)",
+   dfa.filter(x=>/aufgerundet/.test(x.text)).map(x=>x.name));
+ p(dfa.some(x=>/abgerundet aus Länge ÷ Lattenabstand/.test(x.text)),
+   "und nennt stattdessen \"abgerundet\"",dfa.map(x=>x.text.slice(-120)));
+
  console.log("\nD · Keine JavaScript-Fehler");
  p(fehler.length===0,"keine Fehler auf der Seite",fehler.slice(0,3));
 

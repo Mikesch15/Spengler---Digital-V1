@@ -744,7 +744,7 @@ function dfaAusmassZeilen(){
  zeile("Blechfläche Zuschnitt",dfaQm(dfaFlaecheM2()),"m²","Summe Länge × Abwicklung");
  const bl=dfaBleilappen();
  if(bl.gesamt!==null)
-  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil aufgerundet aus Länge ÷ Lattenabstand",true);
+  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
  const bcFormel=dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" − Überlappung";
  if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm",bcFormel);
@@ -1143,7 +1143,7 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${dfaMm(x.laenge)}</td>
 <td>${x.anzahl===null?"–":x.anzahl}</td></tr>`).join("")}
 <tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
-<div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil aufgerundet aus
+<div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil abgerundet aus
 Länge ÷ Lattenabstand (${dfaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
  return `<div class="info">Acht Zuschnitte: Vorderteil, Hinterteil und je drei Seitenteile
 (vorne, Mitte, hinten) links und rechts. Die Abwicklung entsteht aus den erfassten Massen –
