@@ -292,6 +292,60 @@ const tab=(page,k)=>page.evaluate(k=>{
  p(amSchirm&&amSchirm!=="none",
    "D2 Gegenprobe: am Bildschirm bleibt er - dort gehoert er hin",{schirm:amSchirm});
 
+ // ---- E  Der Ausdruck ohne Zaehlpfeile ------------------------------------
+ // v3.266: Chrome zeichnet an einem Zahlenfeld zwei kleine Pfeile zum Hoch-
+ // und Runterzaehlen. Im Regierapport standen sie im fertigen PDF mitten in
+ // den Spalten Std., Menge und Fr./E (gemeldet am 8.10.2026, am PC sichtbar,
+ // auf dem Tablet nicht). Dieselbe Familie wie der Anfasser in D - und
+ // dieselbe Falle: appearance:none am Feld selbst erreicht die Pfeile nicht,
+ // sie sind ein eigenes Element im Schatten-Baum und brauchen ihre eigene
+ // Regel.
+ //
+ // Gemessen wird am Bild, nicht an der Stilangabe: getComputedStyle mit
+ // "::-webkit-inner-spin-button" gibt in Chrome die Werte des Feldes selbst
+ // zurueck (gemessen: display inline-block, width 120px = Feldbreite,
+ // appearance auto - in Druck UND Bildschirm gleich). Damit ist dort weder
+ // ein Erfolg noch ein Fehlschlag zu erkennen.
+ // Chrome zeichnet die Pfeile nur, solange der Zeiger auf dem Feld steht.
+ // Also je Medium zwei Aufnahmen desselben Feldes - ohne und mit Zeiger
+ // darauf - und verglichen werden die Bilder: im Druck muessen beide gleich
+ // sein (keine Pfeile), am Bildschirm muessen sie sich unterscheiden (dort
+ // gehoeren die Pfeile hin). Das Styling bleibt dabei je Vergleich gleich,
+ // weil beide Aufnahmen im selben Medium entstehen.
+ //
+ // Zahlenfelder gibt es im Rapport erst mit einer Zeile: Std. steht in einer
+ // Arbeitsposition. Ohne Zeile gibt es nichts zu messen - E0 haelt das fest,
+ // damit die Pruefung nicht stillschweigend ins Leere laeuft.
+ await page.evaluate(()=>{
+  if(typeof works!=="undefined"&&typeof neueArbeitsposition==="function"&&!works.length)
+   works.push(neueArbeitsposition());
+  if(typeof renderMain==="function")renderMain();
+ });
+ await page.waitForTimeout(250);
+ const zahlenfeld=page.locator('#reportScreen input[type=number]').first();
+ const esGibtEins=await zahlenfeld.count()>0;
+ p(esGibtEins,"E0 im Rapport gibt es ueberhaupt ein Zahlenfeld zu pruefen",
+   {gefunden:esGibtEins});
+ if(esGibtEins){
+  const aufnahmen=async()=>{
+   await page.mouse.move(0,0); await page.waitForTimeout(120);
+   const ohne=await zahlenfeld.screenshot();
+   await zahlenfeld.hover(); await page.waitForTimeout(120);
+   const mit=await zahlenfeld.screenshot();
+   await page.mouse.move(0,0);
+   return {gleich:ohne.equals(mit),groesse:ohne.length};
+  };
+  const aSchirm=await aufnahmen();
+  await page.emulateMedia({media:"print"});
+  await page.waitForTimeout(250);
+  const aDruck=await aufnahmen();
+  await page.emulateMedia({media:"screen"});
+  p(aDruck.gleich,"E1 im Ausdruck hat das Zahlenfeld keine Zaehlpfeile mehr",
+    aDruck);
+  p(!aSchirm.gleich,
+    "E2 Gegenprobe: am Bildschirm bleiben sie - dort gehoeren sie hin",aSchirm);
+ }
+
  // ---- F  Anleitung oeffnet die Anleitung ---------------------------------
  // Bis v3.156 fuehrten "Einstellungen" und "Anleitung" unter "Mehr" beide
  // in die Einstellungen - zwei Eintraege, ein Ziel.

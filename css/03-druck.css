@@ -117,6 +117,20 @@ input,select,textarea{
 textarea{min-height:10mm!important;line-height:1.2!important}
 select::-ms-expand{display:none!important}
 input[type=date]::-webkit-calendar-picker-indicator{display:none!important}
+/* v3.266: Ein Zahlenfeld zeichnet in Chrome am Rand zwei kleine Pfeile zum
+   Hoch- und Runterzaehlen. Am Bildschirm sind sie richtig, im Ausdruck hatten
+   sie nichts zu suchen: im Regierapport standen sie in den Spalten Std.,
+   Menge und Fr./E mitten in den Zahlen (gemeldet vom Anwender am fertigen
+   PDF, 8.10.2026 - am PC sichtbar, auf dem Tablet nicht).
+   Das appearance:none oben am Feld selbst erreicht sie NICHT: die Pfeile sind
+   ein eigenes Element im Schatten-Baum und brauchen ihre eigene Regel.
+   Dasselbe Muster wie beim Datumswaehler darueber und beim Anfasser des
+   Textfelds. */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{
+ -webkit-appearance:none!important;appearance:none!important;
+ display:none!important;margin:0!important;width:0!important}
+input[type=number]{-moz-appearance:textfield!important}
 
 /* Tables */
 .scroll{overflow:visible!important;border:0!important}
