@@ -3,9 +3,45 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.265`
+- Aktueller Entwicklungsstand: `v3.266`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.266 — Zählpfeile im Regierapport-Ausdruck
+
+Ansage: „Im regieraport pdf gibts am pc diese pfeile, entferne sie" (mit Foto
+des fertigen Ausdrucks). Die Pfeile standen in den Spalten *Std.*, *Menge* und
+*Fr./E* mitten in den Zahlen.
+
+**Was es war:** Chrome zeichnet an jedem `input[type=number]` zwei kleine
+Pfeile zum Hoch- und Runterzählen. `css/03-druck.css` setzt am Feld selbst
+seit langem `appearance:none` — das erreicht die Pfeile **nicht**: sie sind
+ein eigenes Element im Schatten-Baum und brauchen ihre eigene Regel. Genau
+dieselbe Familie wie der Datumswähler (v3.x) und der Anfasser des Textfelds
+(v3.156), die beide schon ihre eigene Zeile haben. Behoben mit einer Regel
+auf `::-webkit-inner-spin-button` / `::-webkit-outer-spin-button` im
+`@media print`-Block, dazu `-moz-appearance:textfield` für Firefox.
+
+**Gemessen statt vermutet — und der erste Messweg war falsch.**
+`getComputedStyle(feld,"::-webkit-inner-spin-button")` gibt in Chrome die
+Werte des **Feldes** zurück: gemessen an einer leeren Testseite `display
+inline-block`, `width 120px` (= Feldbreite), `appearance auto` — identisch im
+Druck und am Bildschirm, mit und ohne Regel. Damit wäre weder ein Erfolg noch
+ein Fehlschlag zu erkennen gewesen; die drei ersten Prüfungen schlugen
+entsprechend mit `null` bzw. unverändert fehl.
+
+Der Prüfstand misst deshalb **am Bild**: Chrome zeichnet die Pfeile nur,
+solange der Zeiger auf dem Feld steht. Je Medium zwei Aufnahmen desselben
+Feldes — ohne und mit Zeiger darauf — und verglichen werden die Bilder
+(`Buffer.equals`, ohne zusätzliche Abhängigkeit, damit es auf dem
+GitHub-Runner genauso läuft). Im Druck müssen beide gleich sein, am Bildschirm
+unterschiedlich. Gegenprobe gefahren: ohne die neue Regel schlägt E1 fehl
+(`gleich:false`), mit ihr ist sie grün.
+
+Ein Zahlenfeld gibt es im Rapport erst mit einer Zeile; E0 hält fest, dass
+überhaupt eines zu messen war, damit die Prüfung nicht stillschweigend ins
+Leere läuft. Prüfstand: `pruefstand-bereiche-v3-156.js`, Abschnitt E (35
+Prüfungen, vorher 32).
 
 ### v3.265 — alle Schnitte der Einfassung rund im PDF
 
@@ -58,38 +94,6 @@ Erstzeichnung und Nachführung. Nachgeführt wird nur der Kopf, nicht die Karte
 Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Werte
 nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
 missverstanden werden.
-
-### v3.263 — eine Aufnahme mit Knick liess sich nicht speichern
-
-Dringende Meldung des Anwenders: „Diese massaufnahme muss gespeichert werden
-können und darf nicht verloren gehen." Beim Speichern erschien zweimal
-„Mass I, Vorderkant Knick bis Hinterkant Dachfenster, fehlt."
-
-**1. Die Bauart wurde nicht eingelesen.** Seit v3.260 wird `seitenteilArt`
-gespeichert — gelesen wurde sie nie. `dfaAusDaten()` füllt eine feste Liste
-von Schlüsseln, und `seitenteilArt` stand nicht darin. Jede mit Knick erfasste
-Aufnahme kam als „separat" zurück, verlangte dort Mass I und die Überlappung
-— Masse, die es in dieser Bauart nicht gibt — und das Speichern bricht bei
-einem Fehler hart ab (`js/16`: alert + return). **Mein Fehler aus v3.260:
-Schreiben eingebaut, Lesen vergessen.** Die Probe prüfte „gespeichert", nicht
-„gespeichert und wieder geöffnet".
-
-**2. Jede Meldung kam doppelt.** In `dfaPruefungen` stand am Ende der
-Seiten-Schleife `if(!a.getrennt)return;`. Ein `return` in einem `forEach`
-verlässt nur den **einen Durchlauf**, nicht die Schleife — bei nicht
-getrennten Seiten wurde deshalb links und rechts geprüft.
-
-**3. Bleilappen runden jetzt überall ab.** Auf Nachfrage bestätigt, weil in
-`js/20` die gegenteilige, datierte Anweisung vom 05.09.2026 stand. Gemessene
-Folgen: Kamin-Testfall 8 → 4, Anschlussblech 20 → 19. Zwei Prüfstände, die die
-alte Regel festschrieben, sind auf den neuen Vertrag umgestellt — je mit
-Gegenprobe gegen die alte Zahl.
-
-**Ehrlich dazu:** v3.262 war in GitHub rot. Ich hatte die volle Regression
-hier abgebrochen, als die nächste Frage kam, und das Ergebnis nie angeschaut.
-Durch die Änderungen in v3.263 wurde sie wieder grün — das war Glück, nicht
-Absicht. Die Regression nach dem Push schützt nur, wenn sie zu Ende läuft und
-ihr Ergebnis gelesen wird.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
