@@ -3,9 +3,33 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.270`
+- Aktueller Entwicklungsstand: `v3.271`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.271 — Dachfenster: Pflicht-Dropdowns, N auf Höhe von R, keine Stückliste im PDF
+
+Drei Ansagen des Anwenders (8.10.2026):
+1. **Zwei Pflicht-Dropdowns statt vier Knöpfen** — *Bauart des Seitenteils*
+   (separat / Knick) und *Ausführung* (gepunktet / gefalzt). Beide beginnen
+   **leer** (`dfaLeer`), tragen `data-pflicht` (Weiter-Sperre) und `dfaPruefungen`
+   meldet die fehlende Wahl als Fehler (Speichern gesperrt). Gespeichert wird
+   die Wahl **roh** — ein leerer Entwurf wird nicht still zu „separat/gepunktet";
+   ein Datensatz **ohne** Feld (vor v3.260/v3.270) gilt weiter als
+   separat/gepunktet. Ereignisse hängen an `#measTypeDachfenster` (nicht am
+   Behälter) — beim Prüfen darum Vorfahren sichtbar machen, nicht verschieben.
+2. **N auf der Höhe von R** im Schnitt. Die Bänder-Verteilung sah die Randzugabe
+   beider Kästen als Überlappung. Jetzt wird N in R's Band gesetzt, wenn die
+   *belegten Bereiche* (`anbMassTextLage`) nur aneinandergrenzen (Toleranz 1 px)
+   und kein anderes Mass im Band liegt; sonst wie bisher eigenes Band.
+3. **Tabelle „Stückliste" im PDF entfällt**, wenn der Rollenblech-Zuschnitt da
+   ist (dasselbe). Rückfall: ohne `d.rollen` bleibt die Stückliste, sonst hätte
+   das Blatt keine Zuschnittmasse. „Bleilappen" bleibt (zählt in der PDF-Listen-
+   Wahl weiter zur Kategorie Stückliste).
+
+Prüfstände: `dachfenster-ausfuehrung-v3-270` 80, `dachfenster-schnitt-v3-260`
+56 (Abschnitt I auf Dropdowns umgestellt, neuer Abschnitt J für N/R mit
+Gegenprobe „zu breit → tiefer"). Mutationsproben rot (N/R, Pflicht, Stückliste).
 
 ### v3.270 — Dachfenster: gepunktet oder gefalzt, Abwicklungen neu
 
@@ -48,24 +72,6 @@ in beiden Bauarten, jedes Mass einzeln verändert, Speichern → Öffnen →
 Umschalten, echter Klick, Ausdruck; vier Mutationsproben rot). Die vier
 Erwartungen in `dachfenster-schnitt-v3-260` (acht Zuschnitte, 995 + 10) sind
 auf den neuen Vertrag umgestellt, die alten Werte stehen als Gegenprobe.
-
-### v3.269 — zwei Fehler am Blatt der Dachfenstereinfassung
-
-Beim Auswerten der Vorlage „Nord Nr.1" (8.10.2026) fielen zwei Fehler auf, die
-mit den Abwicklungen nichts zu tun haben:
-
-1. **„Aufbordungshöhe vorne / hinten 0 mm"** in den Angaben, obwohl F = 80 und
-   Q = 95 in der Zeichnung stehen. `js/16` las `aufVorne`/`aufHinten` mit
-   `paar()` als `{l,r}`-Objekt; seit sie eine einzelne Zahl sind, ist `w.l`
-   leer. Gerechnet wurde richtig. **Warum der Prüfstand es nicht sah:** die
-   Prüfung „jedes Mass steht auf dem Blatt" sucht den Wert *irgendwo* — und
-   „100" steht auch in der Zeichnung. Neu liest eine Prüfung die **Zelle mit
-   ihrer Beschriftung**, mit Gegenprobe für alte `{l,r}`-Datensätze (dort gilt
-   das grössere Mass, wie beim Laden).
-2. **Fussnote „aufgerundet"** unter den Bleilappen, obwohl seit v3.262/263
-   abgerundet wird — PDF (Dachfenster, Kamin), App-Anzeige, Hilfe.
-
-Ohne die Korrektur schlagen vier der neuen Prüfungen fehl (gemessen).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

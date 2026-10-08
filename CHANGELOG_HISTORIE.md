@@ -33547,3 +33547,22 @@ Datenänderung ohne Nutzen; die Kommentare an diesen Stellen sagen das.
 Der Prüfstand `abwicklung-tablett` prüft den neuen Wortlaut und hat eine
 Gegenprobe dazu: die alte Schreibweise darf in keiner Meldung mehr stehen.
 
+
+### v3.269 — zwei Fehler am Blatt der Dachfenstereinfassung
+
+Beim Auswerten der Vorlage „Nord Nr.1" (8.10.2026) fielen zwei Fehler auf, die
+mit den Abwicklungen nichts zu tun haben:
+
+1. **„Aufbordungshöhe vorne / hinten 0 mm"** in den Angaben, obwohl F = 80 und
+   Q = 95 in der Zeichnung stehen. `js/16` las `aufVorne`/`aufHinten` mit
+   `paar()` als `{l,r}`-Objekt; seit sie eine einzelne Zahl sind, ist `w.l`
+   leer. Gerechnet wurde richtig. **Warum der Prüfstand es nicht sah:** die
+   Prüfung „jedes Mass steht auf dem Blatt" sucht den Wert *irgendwo* — und
+   „100" steht auch in der Zeichnung. Neu liest eine Prüfung die **Zelle mit
+   ihrer Beschriftung**, mit Gegenprobe für alte `{l,r}`-Datensätze (dort gilt
+   das grössere Mass, wie beim Laden).
+2. **Fussnote „aufgerundet"** unter den Bleilappen, obwohl seit v3.262/263
+   abgerundet wird — PDF (Dachfenster, Kamin), App-Anzeige, Hilfe.
+
+Ohne die Korrektur schlagen vier der neuen Prüfungen fehl (gemessen).
+
