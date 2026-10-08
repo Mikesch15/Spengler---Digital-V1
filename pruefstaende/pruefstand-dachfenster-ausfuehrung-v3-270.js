@@ -14,7 +14,8 @@
 // Dazu: "soll auch im nachhinein noch geaendert werden koennen zu gefalzt
 // (ich habe echte massaufnahmen, welche noch nicht geruestet sind)".
 //
-//   A  die zwoelf Sollmasse aus dem Blatt, in BEIDEN Bauarten des Seitenteils
+//   A  die zwoelf Sollmasse aus dem Blatt (Bauart mit Knick); bei SEPARATEN
+//      Seitenteilen (v3.273) je Seite zwei - vorne (Mass G) und Mitte (Mass I)
 //   B  die Formeln stecken nicht nur im Beispiel: jedes Mass wird veraendert
 //      und muss mitgehen (sonst waere die Zahl hineingeschrieben)
 //   C  Speichern, wieder oeffnen, umschalten - die Ausfuehrung geht nicht verloren
@@ -74,13 +75,32 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
   gefalzt:{"Vorderteil":"280 x 564","Hinterteil":"467 x 595",
    "Seitenteil links":"190 x 1225","Seitenteil rechts":"190 x 1225",
    "Seitenteil hinten links":"224 x 505","Seitenteil hinten rechts":"224 x 505"}};
- for(const [bauart,basis] of [["Knick",KNICK],["separat",SEPARAT]]){
-  for(const art of ["gepunktet","gefalzt"]){
-   const ist=await rechne(basis,art);
-   for(const [name,soll] of Object.entries(SOLL[art]))
-    p(ist[name]===soll,bauart+" · "+art+" · "+name+" = "+soll,{ist:ist[name]});
-   p(Object.keys(ist).length===6,bauart+" · "+art+": sechs Zuschnitte",Object.keys(ist));
-  }
+ for(const art of ["gepunktet","gefalzt"]){
+  const ist=await rechne(KNICK,art);
+  for(const [name,soll] of Object.entries(SOLL[art]))
+   p(ist[name]===soll,"Knick · "+art+" · "+name+" = "+soll,{ist:ist[name]});
+  p(Object.keys(ist).length===6,"Knick · "+art+": sechs Zuschnitte",Object.keys(ist));
+ }
+ // Separat (Ansage des Anwenders, 8.10.2026): "es braucht bei separat zwei
+ // seitenteile. Das mittlere ist einfach mass I, und das vordere seitenteil
+ // wird gerechnet wie jetzt. Alles andere bleibt gleich." Vorderteil, Hinterteil
+ // und Seitenteil hinten sind also dieselben Zahlen wie bei Knick; die zwei
+ // Seitenteile haben die Breite des Seitenteils (190), das vordere die Laenge G
+ // (gefalzt zusaetzlich C + B), das mittlere I.
+ // ANNAHME: "wie jetzt" = nach der Regel des durchgehenden Seitenteils, aber mit
+ // G (nicht der Summe G + I - H) als Laenge - sonst waere I doppelt gezaehlt.
+ const SOLL_SEP={
+  gepunktet:Object.assign({},SOLL.gepunktet,{"Seitenteil vorne links":"190 x 500","Seitenteil vorne rechts":"190 x 500",
+   "Seitenteil Mitte links":"190 x 500","Seitenteil Mitte rechts":"190 x 500"}),
+  gefalzt:Object.assign({},SOLL.gefalzt,{"Seitenteil vorne links":"190 x 735","Seitenteil vorne rechts":"190 x 735",
+   "Seitenteil Mitte links":"190 x 500","Seitenteil Mitte rechts":"190 x 500"})};
+ for(const art of ["gepunktet","gefalzt"]){
+  const ist=await rechne(SEPARAT,art), soll=Object.assign({},SOLL_SEP[art]);
+  delete soll["Seitenteil links"]; delete soll["Seitenteil rechts"];
+  for(const [name,w] of Object.entries(soll))
+   p(ist[name]===w,"separat · "+art+" · "+name+" = "+w,{ist:ist[name]});
+  p(Object.keys(ist).length===8,"separat · "+art+": acht Zuschnitte",Object.keys(ist));
+  p(!("Seitenteil links" in ist),"Gegenprobe separat · "+art+": kein Seitenteil mit der Summe mehr",Object.keys(ist));
  }
  // Gegenprobe: die alten Zahlen vor v3.270 duerfen nicht zurueckkommen.
  const k=await rechne(KNICK,"gepunktet");
@@ -154,6 +174,30 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  p(d[1]===4,"gepunktet: Umschlag Seite +2 -> Vorderteil 4 laenger (je Seite)",d);
  d=await diff("gepunktet",{f:{l:60,r:60}},"Seitenteil links");
  p(d[0]===10,"Seitenteil: Mass J +10 -> 10 breiter",d);
+
+ // Separat: jedes Mass wirkt auf das richtige der beiden Seitenteile.
+ const diffS=async(art,aenderung,name)=>{
+  const vor=zahl((await rechne(SEPARAT,art))[name]), nach=zahl((await rechne(SEPARAT,art,aenderung))[name]);
+  return [nach[0]-vor[0],nach[1]-vor[1]];
+ };
+ d=await diffS("gepunktet",{b:{l:510,r:510}},"Seitenteil vorne links");
+ p(d[1]===10,"separat: Mass G +10 -> das vordere Seitenteil 10 laenger",d);
+ d=await diffS("gepunktet",{b:{l:510,r:510}},"Seitenteil Mitte links");
+ p(d[1]===0,"Gegenprobe: G aendert das mittlere Seitenteil nicht",d);
+ d=await diffS("gepunktet",{c:{l:510,r:510}},"Seitenteil Mitte links");
+ p(d[1]===10,"separat: Mass I +10 -> das mittlere Seitenteil 10 laenger (es IST Mass I)",d);
+ d=await diffS("gepunktet",{c:{l:510,r:510}},"Seitenteil vorne links");
+ p(d[1]===0,"Gegenprobe: I aendert das vordere Seitenteil nicht",d);
+ d=await diffS("gepunktet",{ueberlappung:30},"Seitenteil Mitte links");
+ p(d[0]===0&&d[1]===0,"Mass H (Ueberlappung) aendert keines der beiden Seitenteile - sie steckt in G und I",d);
+ d=await diffS("gefalzt",{a:{l:235,r:235}},"Seitenteil vorne links");
+ p(d[1]===10,"separat gefalzt: Mass C +10 -> das vordere Seitenteil 10 laenger (C + G + B)",d);
+ d=await diffS("gefalzt",{a:{l:235,r:235}},"Seitenteil Mitte links");
+ p(d[1]===0,"Gegenprobe: C gehoert nicht ins mittlere Seitenteil",d);
+ d=await diffS("gefalzt",{anreiffUmschlag:12},"Seitenteil vorne links");
+ p(d[1]===2,"separat gefalzt: Umschlag Anreiff +2 -> vorderes Seitenteil 2 laenger (der Anwender: die 10 bleibt B)",d);
+ d=await diffS("gepunktet",{aufVorne:90},"Seitenteil Mitte links");
+ p(d[0]===10,"beide Seitenteile gleich breit: Aufbordungshoehe vorne +10 -> auch das mittlere 10 breiter",d);
 
  // Getrennt erfasst: links und rechts duerfen verschieden sein.
  const getr=await page.evaluate(([bs])=>{

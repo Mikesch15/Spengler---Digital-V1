@@ -252,19 +252,21 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
            alle:dfaZuschnitte().length, L:dfaLaenge("l")}};
   return {separat:mit(sep),knick:mit(kni)};
  },[SEP,KNI]);
- // v3.270: auf den neuen Vertrag umgestellt (Ansage des Anwenders, 8.10.2026):
- // BEIDE Bauarten rechnen jetzt mit Vorderteil, Hinterteil und je Seite einem
- // Seitenteil plus einem Seitenteil hinten - sechs Zuschnitte. Die Teilung am
- // Knick (vorne / Mitte / hinten) und die letzten 10 mm gibt es nicht mehr.
- // Die alten Erwartungen (acht bzw. 995 + 10) bleiben als GEGENPROBE stehen:
- // sie duerfen nicht zurueckkommen.
- p(rechnung.separat.alle===6,"separat: sechs Zuschnitte (nicht mehr acht)",rechnung.separat.alle);
+ // Vertrag seit v3.273 (Ansage des Anwenders, 8.10.2026): die Bauart "mit Knick"
+ // hat je Seite EIN durchgehendes Seitenteil (+ Seitenteil hinten = sechs
+ // Zuschnitte); "separate Seitenteile" hat je Seite ZWEI - das vordere (Mass G)
+ // und das mittlere (Mass I) - plus Seitenteil hinten = acht Zuschnitte. Die
+ // Zwischenfassung v3.270-3.272 (beide Bauarten sechs, "separat" mit der
+ // Summe als EINEM Stueck) steht als Gegenprobe: sie darf nicht zurueckkommen.
+ // Die 995 + 10 mm Ruecklauf der Zeit davor ebenso.
+ p(rechnung.separat.alle===8,"separat: acht Zuschnitte (Vorderteil, Hinterteil, je Seite vorne + Mitte + hinten)",rechnung.separat.alle);
  p(rechnung.knick.alle===6,"knick: sechs Zuschnitte",rechnung.knick.alle);
- p(rechnung.separat.alle!==8,"Gegenprobe: die alte Teilung in acht Zuschnitte kommt nicht zurueck",rechnung.separat.alle);
+ p(rechnung.separat.alle!==6,"Gegenprobe: separat rechnet nicht mehr wie Knick mit einem Stueck",rechnung.separat.alle);
  p(rechnung.separat.L===1005,"separat: Laenge = B + I - H = 1005",rechnung.separat.L);
  p(rechnung.knick.L===1005,"knick: Laenge = B = 1005",rechnung.knick.L);
- p(rechnung.separat.z.filter(t=>t==="Seitenteil 1005").length===2,"separat: je Seite EIN Seitenteil ueber die ganze Laenge (B + I - H = 1005)",rechnung.separat.z);
- p(!rechnung.separat.z.some(t=>/^Seitenteil (vorne|Mitte) /.test(t)),"Gegenprobe separat: kein Seitenteil vorne/Mitte mehr",rechnung.separat.z);
+ p(rechnung.separat.z.filter(t=>t==="Seitenteil vorne 380").length===2,"separat: das vordere Seitenteil ist Mass G lang (380) - je Seite",rechnung.separat.z);
+ p(rechnung.separat.z.filter(t=>t==="Seitenteil Mitte 755").length===2,"separat: das mittlere Seitenteil ist Mass I lang (755) - je Seite",rechnung.separat.z);
+ p(!rechnung.separat.z.some(t=>t==="Seitenteil 1005"),"Gegenprobe separat: nicht mehr die Summe 1005 als ein Stueck",rechnung.separat.z);
  p(!rechnung.knick.z.some(t=>/^Seitenteil (vorne|Mitte) /.test(t)),"knick: kein Seitenteil vorne/Mitte mehr",rechnung.knick.z);
  p(rechnung.knick.z.filter(t=>t==="Seitenteil 1005").length===2,"knick: je Seite EIN durchgehendes Seitenteil ueber die ganze Laenge 1005",rechnung.knick.z);
  p(!rechnung.knick.z.some(t=>t==="Seitenteil 995"),"Gegenprobe knick: nicht mehr 995 plus 10 mm Ruecklauf",rechnung.knick.z);
@@ -367,9 +369,9 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
  },SEP);
  p(alt.knick===false,"ohne Feld seitenteilArt gilt: zwei separate Seitenteile",alt);
  p(alt.L===1005,"ohne Feld rechnet sie wie bisher die Laenge 1005 mm",alt);
- // v3.270: die Zuschnitte selbst sind neu gefasst (sechs, nicht acht) - das gilt
- // auch fuer eine Aufnahme ohne das Feld: sie rechnet beim naechsten Oeffnen neu.
- p(alt.zuschnitte===6,"und rechnet beim Oeffnen mit den neuen sechs Zuschnitten",alt);
+ // v3.270/3.273: die Zuschnitte sind neu gefasst - auch fuer eine Aufnahme ohne
+ // das Feld (sie ist "separat"): acht Zuschnitte, rechnet beim Oeffnen neu.
+ p(alt.zuschnitte===8,"und rechnet beim Oeffnen mit den neuen acht Zuschnitten (separat)",alt);
 
  // ---- I · Die Wahl der Bauart ist zu sehen und zu bedienen ----------------
  // Meldung des Anwenders: "wo kann jetzt mit oder ohne knick ausgewaehlt

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.272.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.273.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1135,6 +1135,8 @@ ${dfaBuchstabe("f")} links/rechts + ${dfaBuchstabe("g")} links/rechts dazu).</p>
 "dfa-stueckliste":{titel:"Stückliste",text:`
 <p>Sechs Zuschnitte: Vorderteil, Hinterteil und je Seite ein
 <b>Seitenteil</b> und ein <b>Seitenteil hinten</b> (das Trapezstück am Ende).
+Bei <b>separaten Seitenteilen</b> sind es <b>acht</b>: je Seite ein <b>vorderes</b>
+Seitenteil (Länge G) und ein <b>mittleres</b> (Länge I), beide gleich breit.
 Wie sie sich zusammensetzen, hängt von der <b>Ausführung</b> ab:</p>
 <ul>
 <li><b>Gepunktet:</b> Vorder- und Hinterteil sind gleich lang (Breite vorne +

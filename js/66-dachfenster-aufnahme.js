@@ -255,7 +255,7 @@ function dfaLaenge(seite,quelle){
 
 // ---- Die Zuschnitte ----------------------------------------------------------
 // v3.270: Vorderteil, Hinterteil und je Seite ein Seitenteil und ein Seitenteil
-// hinten. Vorher gab es je Seite zwei bzw. drei Seitenteile (die Teilung am
+// hinten (v3.273: bei SEPARATEN Seitenteilen je Seite zwei - vorne und Mitte). Vorher gab es je Seite zwei bzw. drei Seitenteile (die Teilung am
 // Knick und die letzten 10 mm); Ansage des Anwenders mit seinen Sollmassen am
 // Blatt "Nord Nr.1" (8.10.2026) - beide Bauarten (separat / Knick) rechnen so.
 //
@@ -327,13 +327,26 @@ function dfaZuschnitte(){
   {name:"Aufbug hinten ("+dfaBuchstabe("e")+")",wert:dfaZahl(a.e)},
   {name:"Umschlag Aufbug",wert:dfaZahl(a.eUmschlag)}]);
  DFA_SEITEN.forEach(s=>{
-  const L=dfaLaenge(s.k);
-  dazu("Seitenteil","seite",s.name,
-   L>0?(gefalzt?L+dfaSeite("a",s.k)+dfaZahl(a.anreiffUmschlag):L):0,[
+  const seitenBreite=()=>[
    {name:"Umschlag Seite",wert:us},
    {name:"Mass "+dfaBuchstabe("g")+" · unter Deckmaterial",wert:dfaSeite("g",s.k)},
    {name:"Mass "+dfaBuchstabe("f")+" · bis Deckmaterial",wert:dfaSeite("f",s.k)},
-   {name:"Aufbordungshöhe Seite",wert:dfaZahl(a.aufVorne)}]);
+   {name:"Aufbordungshöhe Seite",wert:dfaZahl(a.aufVorne)}];
+  // Laenge des (vorderen) Seitenteils: gepunktet die Seitenlaenge, gefalzt
+  // zusaetzlich C + B, weil es dort ueber die ganze Einfassung durchlaeuft.
+  const mitVorlauf=l=>l>0?(gefalzt?l+dfaSeite("a",s.k)+dfaZahl(a.anreiffUmschlag):l):0;
+  if(dfaMitKnick()){
+   // EIN durchgehendes Seitenteil: G ist die ganze Laenge.
+   dazu("Seitenteil","seite",s.name,mitVorlauf(dfaLaenge(s.k)),seitenBreite());
+  }else{
+   // v3.273 (Ansage des Anwenders): bei SEPARATEN Seitenteilen gibt es zwei -
+   // das vordere (Mass G, sonst gerechnet wie das durchgehende) und das
+   // mittlere, das schlicht Mass I lang ist. Beide gleich breit. Die
+   // Ueberlappung H steckt darin: G + I - H ist die Gesamtlaenge, die Teile
+   // selbst sind aber G bzw. I lang.
+   dazu("Seitenteil vorne","seite",s.name,mitVorlauf(dfaSeite("b",s.k)),seitenBreite());
+   dazu("Seitenteil Mitte","seite",s.name,dfaSeite("c",s.k),seitenBreite());
+  }
   const N=dfaZahl(a.breiteUnten);
   const jkHinten=Math.max(0,jk(s.k)+(bV-bH)/2);
   dazu("Seitenteil hinten","seite",s.name,
@@ -1239,7 +1252,8 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil abgerundet aus
 Länge ÷ Lattenabstand (${dfaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
- return `<div class="info">Sechs Zuschnitte: Vorderteil, Hinterteil und je Seite ein Seitenteil
+ return `<div class="info">${dfaMitKnick()?"Sechs":"Acht"} Zuschnitte: Vorderteil, Hinterteil und je Seite
+${dfaMitKnick()?"ein Seitenteil":"ein vorderes und ein mittleres Seitenteil"}
 und ein Seitenteil hinten (${dfaGefalzt()?"gefalzt":"gepunktet"}). Die Abwicklung entsteht aus den erfassten Massen –
 hier wird nichts von Hand eingegeben.</div>
 <div class="scroll"><table class="eb-table ra-tab">
