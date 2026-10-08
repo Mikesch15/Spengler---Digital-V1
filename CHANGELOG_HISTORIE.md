@@ -33418,3 +33418,33 @@ Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Wert
 nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
 missverstanden werden.
 
+
+### v3.265 — alle Schnitte der Einfassung rund im PDF
+
+Ansage: „Im pdf von einfassung rund, soll bei mehreren einfassungen alle
+schnitte angezeigt werden (grösse 4 stk pro a4 seite)."
+
+**Ursache.** Seit v2.96 liegen die Einfassungen in `d.einfassungen`, der
+Datensatz spiegelt die **erste** aber zusätzlich auf oberster Ebene — und genau
+die zeichnete `rsSvg(m,"Schnitt")`. Die übrigen tauchten im Ausdruck nie auf.
+
+`js/60` gibt jetzt je Einfassung einen Eintrag aus. Der erste behält den Titel
+`"Schnitt"`: Rüstansicht und `rsSvg` finden ihn seit jeher darunter, und das
+alte Format (bis v2.95, ohne `d.einfassungen`) bleibt unverändert. Die
+Abbildung Eintrag → Zeichnung macht `einfaEingabe()` aus `js/38` — die eine
+Stelle, die sie kennt.
+
+**Vier je Seite.** Zwei Spalten, zwei Reihen; 182 × 266 mm Satzspiegel, rund
+88 mm je Zelle, 108 mm Höhengrenze je Zeichnung.
+
+Der erste Anlauf brachte nur **zwei** auf die Seite, obwohl darunter eine
+halbe Seite frei war: das Raster durfte mitten drin umbrechen. Gemessen an
+einem echten A4-PDF, nicht überschlagen. Mit `page-break-inside:avoid` wandert
+eine Vierergruppe geschlossen auf die nächste Seite — erst das ist die Zusage.
+
+**Geprüft am echten Blatt** mit 1, 2, 4, 5 und 6 Einfassungen und mit dem alten
+Format, samt Gegenprobe, dass die Zeichnungen **verschieden** sind — sonst
+bestünde auch viermal dieselbe. Abschnitt L in
+`pruefstand-einfassung-app-v2-96` verlangte wörtlich die Einzahl „Schnitt" und
+ist auf den neuen Vertrag umgestellt, mit Gegenprobe gegen den alten Zustand.
+
