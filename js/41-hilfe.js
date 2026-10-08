@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.271.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.272.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1140,14 +1140,15 @@ Wie sie sich zusammensetzen, hängt von der <b>Ausführung</b> ab:</p>
 <li><b>Gepunktet:</b> Vorder- und Hinterteil sind gleich lang (Breite vorne +
 2 × Umschlag Seite + J + K) und reichen seitlich bis zu den Seitenteilen. Das
 Seitenteil ist so lang wie das Fenster.</li>
-<li><b>Gefalzt:</b> Vorderteil = Breite vorne + Umschlag am Anreiff, Hinterteil =
-Breite hinten + 25 mm Falzzugabe. Das Seitenteil läuft durch: C + Seitenlänge +
+<li><b>Gefalzt:</b> Vorderteil = Breite vorne + 10 mm, Hinterteil =
+Breite hinten + 25 mm (beides Standard-Falzzugaben). Das Seitenteil läuft durch: C + Seitenlänge +
 Umschlag am Anreiff.</li>
 </ul>
 <p>Das Vorderteil rechnet ohne den Anreiff selbst (er steckt in C) und ohne die
 Aufbordungshöhe der Seite. Das Seitenteil nimmt die Aufbordungshöhe <b>vorne</b>;
 beim Seitenteil hinten kommt Breite vorne minus Breite hinten ins Spiel, weil
-das Fenster hinten breiter ist.</p>
+das Fenster hinten breiter ist. Seine Länge ist gepunktet N + 15 mm
+(Standard-Nahtüberlappung), gefalzt N + R + S + Umschlag am Aufbug.</p>
 <p>Die <b>Bleilappen</b> werden je Seitenteil aus <b>Vorderteil</b> (Mass C +
 Seitenlänge) und <b>Hinterteil</b> (Mass N + R) gerechnet: Länge ÷ Lattenabstand,
 jeweils <b>abgerundet</b>, links und rechts zusammen.</p>`},

@@ -215,8 +215,14 @@ function dfaMitKnick(quelle){ return (quelle||dfaA).seitenteilArt==="knick" }
 //                 laufen dafuer ueber die ganze Einfassung durch.
 // Ein Datensatz ohne das Feld ist "gepunktet": so wurde bis v3.269 gerechnet.
 function dfaGefalzt(quelle){ return (quelle||dfaA).ausfuehrung==="gefalzt" }
-// Standard-Falzzugabe am Hinterteil (Angabe des Anwenders, 8.10.2026).
-const DFA_FALZZUGABE=25;
+// Standardzugaben (Angaben des Anwenders, 8.10.2026) - feste Werte, keine
+// erfassten Masse:
+//   Falzzugabe vorne  (gefalzt: Vorderteil = Breite vorne + 10)
+//   Falzzugabe hinten (gefalzt: Hinterteil = Breite hinten + 25)
+//   Nahtueberlappung  (gepunktet: Seitenteil hinten = N + 15)
+const DFA_FALZZUGABE_VORNE=10;
+const DFA_FALZZUGABE_HINTEN=25;
+const DFA_NAHTUEBERLAPPUNG=15;
 function dfaSeite(feld,seite,quelle){
  const q=quelle||dfaA;
  const w=q[feld];
@@ -264,13 +270,13 @@ function dfaLaenge(seite,quelle){
 //
 // Laengen:
 //   Vorderteil  gepunktet: Breite vorne + 2 x Umschlag Seite + J + K beider Seiten
-//               gefalzt:   Breite vorne + B (Umschlag am Anreiff)
+//               gefalzt:   Breite vorne + 10 (Standard-Falzzugabe, kein Mass)
 //   Hinterteil  gepunktet: gleich lang wie das Vorderteil
-//               gefalzt:   Breite hinten + Falzzugabe (25)
+//               gefalzt:   Breite hinten + 25 (Standard-Falzzugabe, kein Mass)
 //   Seitenteil  gepunktet: Seitenlaenge (G)
 //               gefalzt:   C + G + B
-//   Seitenteil hinten  gepunktet: N + O          (ANNAHME fuer die 15, s. u.)
-//                      gefalzt:   N + R + S + T  (ANNAHME fuer die 15, s. u.)
+//   Seitenteil hinten  gepunktet: N + 15 (Standard-Nahtueberlappung, kein Mass)
+//                      gefalzt:   N + R + S + T (T = Umschlag am Aufbug)
 // Breiten (Abwicklung):
 //   Vorderteil  Umschlag vorne + Saum vorne + C + B. Der Anreiff selbst zaehlt
 //               nicht mit: C misst bis zu seiner Spitze (v3.60), er steckt
@@ -285,11 +291,13 @@ function dfaLaenge(seite,quelle){
 //               Umschlag Seite) / 2 - so gab es der Anwender an. Das Fenster
 //               ist hinten breiter (554 / 570), dort bleibt weniger Seitenteil.
 //
-// ANNAHME: die "15" bei den Seitenteilen hinten (175 = 160 + 15, 505 = 160 +
-// 295 + 35 + 15) ist in Nord Nr.1 von O, T und dem Anreiff nicht zu
-// unterscheiden. Gerechnet wird gepunktet mit O (Abdeckkappe oben) und gefalzt
-// mit T (Umschlag Aufbug) als Gegenstueck zu B vorne - vom Anwender noch zu
-// bestaetigen.
+// Geklaert (Anwender, 8.10.2026): die "15" beim Seitenteil hinten ist gefalzt
+// der Umschlag am Aufbug (T), gepunktet eine Standard-Nahtueberlappung ohne
+// definiertes Mass; die "10" beim Vorderteil gefalzt ist ebenfalls eine
+// Standard-Falzzugabe. In Nord Nr.1 sind O, T, A, B und diese Zugaben alle 10
+// bzw. 15 - der Pruefstand variiert deshalb jedes Mass einzeln.
+// Das Seitenteil gefalzt (1225 = C + G + 10) rechnet weiter mit B, dem Umschlag
+// am Anreiff (Antwort des Anwenders auf die Frage nach "der 10").
 function dfaZuschnitte(){
  const a=dfaA, z=[], gefalzt=dfaGefalzt();
  const teilBreite=t=>t.reduce((s,x)=>s+dfaZahl(x.wert),0);
@@ -304,8 +312,8 @@ function dfaZuschnitte(){
  const jk=k=>dfaSeite("f",k)+dfaSeite("g",k);                // J + K einer Seite
  const bV=dfaZahl(a.breiteVorne), bH=dfaZahl(a.breiteHinten);
  const seitlicheZugabe=2*us+jk("l")+jk("r");
- const laengeVorderteil=gefalzt?bV+dfaZahl(a.anreiffUmschlag):bV+seitlicheZugabe;
- const laengeHinterteil=gefalzt?bH+DFA_FALZZUGABE:laengeVorderteil;
+ const laengeVorderteil=gefalzt?bV+DFA_FALZZUGABE_VORNE:bV+seitlicheZugabe;
+ const laengeHinterteil=gefalzt?bH+DFA_FALZZUGABE_HINTEN:laengeVorderteil;
  dazu("Vorderteil","vorne","",laengeVorderteil,[
   {name:"Winkel auf Fensterrahmen",wert:dfaZahl(a.umschlagVorne)},
   {name:"Saum vorne",wert:dfaZahl(a.saumVorne)},
@@ -329,7 +337,7 @@ function dfaZuschnitte(){
   const N=dfaZahl(a.breiteUnten);
   const jkHinten=Math.max(0,jk(s.k)+(bV-bH)/2);
   dazu("Seitenteil hinten","seite",s.name,
-   N>0?(gefalzt?N+dfaSeite("d",s.k)+dfaZahl(a.e)+dfaZahl(a.eUmschlag):N+dfaZahl(a.randAbstand)):0,[
+   N>0?(gefalzt?N+dfaSeite("d",s.k)+dfaZahl(a.e)+dfaZahl(a.eUmschlag):N+DFA_NAHTUEBERLAPPUNG):0,[
    {name:"Umschlag Seite",wert:us},
    {name:"Mass "+dfaBuchstabe("g")+" + "+dfaBuchstabe("f")+" hinten (aus Breite vorne/hinten)",wert:jkHinten},
    {name:"Aufbordungshöhe hinten",wert:dfaZahl(a.aufHinten)},

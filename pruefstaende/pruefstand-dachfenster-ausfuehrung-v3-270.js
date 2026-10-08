@@ -110,8 +110,14 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  p(d[1]===10,"gepunktet: Breite vorne +10 -> Hinterteil UND Vorderteil 10 laenger",d);
  d=await diff("gepunktet",{breiteVorne:564},"Vorderteil");
  p(d[1]===10,"gepunktet: Breite vorne +10 -> Vorderteil 10 laenger",d);
+ // v3.272: die "10" beim Vorderteil gefalzt ist eine STANDARD-Falzzugabe, kein
+ // erfasstes Mass (Klarstellung des Anwenders). B wirkt nur noch in die BREITE.
  d=await diff("gefalzt",{anreiffUmschlag:12},"Vorderteil");
- p(d[0]===2&&d[1]===2,"gefalzt: Umschlag Anreiff +2 -> Vorderteil 2 breiter und 2 laenger (der Anwender: die 10 sind B)",d);
+ p(d[0]===2&&d[1]===0,"gefalzt: Umschlag Anreiff +2 -> Vorderteil 2 breiter, aber NICHT laenger (Laenge = Breite vorne + 10 Standard)",d);
+ d=await diff("gefalzt",{umschlagVorne:12,umschlagSeite:12},"Vorderteil");
+ p(d[1]===0,"gefalzt: Umschlag vorne / Seite aendern die Laenge des Vorderteils nicht",d);
+ d=await diff("gefalzt",{breiteVorne:564},"Vorderteil");
+ p(d[1]===10,"gefalzt: Breite vorne +10 -> Vorderteil 10 laenger (die Zugabe selbst bleibt 10)",d);
  d=await diff("gefalzt",{anreiffUmschlag:12},"Seitenteil links");
  p(d[1]===2,"gefalzt: Umschlag Anreiff +2 -> Seitenteil 2 laenger (C + G + B)",d);
  d=await diff("gepunktet",{anreiffUmschlag:12},"Seitenteil links");
@@ -127,7 +133,15 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  d=await diff("gepunktet",{aufHinten:105},"Seitenteil links");
  p(d[0]===0,"Gegenprobe: die Aufbordungshoehe hinten gehoert nicht ins Seitenteil",d);
  d=await diff("gepunktet",{randAbstand:20,randStrich:14},"Seitenteil hinten links");
- p(d[0]===7&&d[1]===5,"Seitenteil hinten: Abdeckkappe oben +5 / nach unten +2 -> 7 breiter, 5 laenger (gepunktet)",d);
+ p(d[0]===7&&d[1]===0,"Seitenteil hinten: Abdeckkappe oben +5 / nach unten +2 -> 7 breiter, Laenge gleich (die 15 ist eine Standard-Nahtueberlappung, nicht O)",d);
+ d=await diff("gepunktet",{eUmschlag:20,anreiff:25},"Seitenteil hinten links");
+ p(d[0]===0&&d[1]===0,"gepunktet: weder Umschlag Aufbug (T) noch Anreiff beruehren das Seitenteil hinten",d);
+ d=await diff("gefalzt",{eUmschlag:20},"Seitenteil hinten links");
+ p(d[1]===5,"gefalzt: Umschlag Aufbug (T) +5 -> Seitenteil hinten 5 laenger (N + R + S + T)",d);
+ d=await diff("gefalzt",{randAbstand:20},"Seitenteil hinten links");
+ p(d[1]===0&&d[0]===5,"Gegenprobe gefalzt: O wirkt nur in die Breite, nicht in die Laenge",d);
+ d=await diff("gepunktet",{breiteUnten:170},"Seitenteil hinten links");
+ p(d[1]===10,"gepunktet: Breite unten (N) +10 -> Seitenteil hinten 10 laenger (N + 15)",d);
  d=await diff("gefalzt",{breiteUnten:170},"Seitenteil hinten links");
  p(d[1]===10,"gefalzt: Breite unten (N) +10 -> Seitenteil hinten 10 laenger",d);
  d=await diff("gefalzt",{d:{l:305,r:305}},"Seitenteil hinten links");
