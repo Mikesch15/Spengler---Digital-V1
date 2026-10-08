@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.270.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.271.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1077,7 +1077,7 @@ Lattenabstand gerechnet und <b>abgerundet</b> (Betriebsregel seit v3.263).</p>`}
 hinten (${dfaBuchstabe("breiteHinten")}) durchnummeriert - die aufklappbare
 Übersicht am Anfang dieses Registers zeigt eine Beispielskizze mit allen
 Buchstaben.</p>
-<p><b>Zuerst die Bauart des Seitenteils wählen</b> – sie bestimmt, welche
+<p><b>Zuerst die Bauart des Seitenteils wählen</b> (Dropdown, Pflichtfeld) – sie bestimmt, welche
 Masse es überhaupt gibt:</p>
 <ul>
 <li><b>Separate Seitenteile:</b> zwei Teile, die sich im Knick überlappen.
@@ -1091,12 +1091,12 @@ Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")}
 entfallen – die Felder verschwinden, und die Kontrolle verlangt sie nicht
 mehr.</li>
 </ul>
-<p><b>Dann die Ausführung wählen:</b> <b>gepunktet</b> (die Seitenteile werden
+<p><b>Dann die Ausführung wählen</b> (ebenfalls Pflicht-Dropdown): <b>gepunktet</b> (die Seitenteile werden
 seitlich an Vorder- und Hinterteil angepunktet) oder <b>gefalzt</b> (senkrechter
 Falz, die Seitenteile laufen durch). Die Wahl lässt sich auch bei einer schon
 gespeicherten Aufnahme noch ändern – die Zuschnitte rechnen sich neu, sobald die
 Aufnahme wieder gespeichert wird.</p>
-<p>Umschalten ist gefahrlos: die schon eingegebenen Masse bleiben stehen und
+<p>Beide Felder beginnen <b>leer</b> – ohne Wahl lässt sich das Register nicht verlassen und die Aufnahme nicht speichern. Umschalten ist gefahrlos: die schon eingegebenen Masse bleiben stehen und
 sind beim Zurückschalten unverändert wieder da. Eine vor dieser Version
 gespeicherte Aufnahme ist immer eine mit separaten Seitenteilen.</p>
 <p>Die Masse längs des Dachs laufen von vorne nach hinten – genau gleich

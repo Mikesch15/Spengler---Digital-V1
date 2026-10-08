@@ -18,8 +18,9 @@
 //   B  die Formeln stecken nicht nur im Beispiel: jedes Mass wird veraendert
 //      und muss mitgehen (sonst waere die Zahl hineingeschrieben)
 //   C  Speichern, wieder oeffnen, umschalten - die Ausfuehrung geht nicht verloren
-//   D  der Umschalter ist zu sehen (die beiden Knoepfe sehen verschieden aus)
+//   D  die Wahl sind zwei PFLICHT-DROPDOWNS (ab v3.271; vorher vier Knoepfe)
 //   E  der Ausdruck nennt die Ausfuehrung
+//   G  die Stueckliste faellt im Ausdruck weg, wenn der Rollenblech-Zuschnitt da ist (v3.271)
 //
 // Jede Probe hat eine Gegenprobe. Die alten Zahlen (375 breit, 205 breit,
 // 790 lang) duerfen nicht zurueckkommen.
@@ -178,8 +179,13 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
   const kaputt=JSON.parse(JSON.stringify(gepunktet)); kaputt.ausfuehrung="blabla";
   dfaFuellen(kaputt);
   r.unbekannt=dfaA.ausfuehrung;
-  // eine neue Aufnahme
-  r.neu=dfaLeer().ausfuehrung;
+  // eine neue Aufnahme: beides LEER - Pflichtwahl (v3.271)
+  r.neu=dfaLeer().ausfuehrung; r.neuArt=dfaLeer().seitenteilArt;
+  // ein leer gespeicherter Entwurf bleibt leer (wird nicht still gewaehlt)
+  const leer=JSON.parse(JSON.stringify(gepunktet)); leer.ausfuehrung=""; leer.seitenteilArt="";
+  dfaFuellen(leer);
+  r.leerAus=dfaA.ausfuehrung; r.leerArt=dfaA.seitenteilArt;
+  r.leerGespeichert=[dfaDaten().ausfuehrung,dfaDaten().seitenteilArt];
   return r;
  },[KNICK]);
  p(weg.gespeichert==="gepunktet","die Ausfuehrung steht im gespeicherten Datensatz",weg);
@@ -191,59 +197,70 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  p(weg.seitenteilHintenGefalzt==="224 x 505","auch das Seitenteil hinten im Datensatz (505)",weg);
  p(weg.ohneFeld==="gepunktet","ein aelterer Datensatz ohne das Feld ist gepunktet - so wurde bisher gerechnet",weg);
  p(weg.unbekannt==="gepunktet","ein unbekannter Wert faellt auf gepunktet zurueck",weg);
- p(weg.neu==="gepunktet","eine neue Aufnahme beginnt mit gepunktet",weg);
+ p(weg.neu===""&&weg.neuArt==="","eine neue Aufnahme beginnt OHNE Vorwahl (Pflicht-Dropdowns)",weg);
+ p(weg.leerAus===""&&weg.leerArt===""&&weg.leerGespeichert.join("")==="",
+   "Gegenprobe: eine leer gespeicherte Wahl wird nicht still zu gepunktet/separat",weg);
 
- // ---- D · Der Umschalter ist zu sehen -----------------------------------------
- // Lehre aus v3.261: zwei gleich aussehende graue Knoepfe liest niemand als Wahl.
- console.log("\nD · Der Umschalter");
- const wahl=await page.evaluate(()=>{
-  dfaA=dfaLeer();
-  const box=document.createElement("div");
-  box.style.cssText="width:400px;position:fixed;left:0;top:0;background:#fff;z-index:99999";
-  document.body.appendChild(box);
-  const lies=()=>{
-   box.innerHTML=dfaMasseHtml();
-   return [...box.querySelectorAll("[data-dfa-ausfuehrung]")].map(x=>({
-    wert:x.dataset.dfaAusfuehrung,text:x.textContent.trim(),
-    farbe:getComputedStyle(x).backgroundColor}));
-  };
-  const vorher=lies();
-  dfaA.ausfuehrung="gefalzt";
-  const nachher=lies();
-  box.remove();
-  return {vorher,nachher};
- });
- p(wahl.vorher.length===2&&wahl.vorher.map(x=>x.wert).join()==="gepunktet,gefalzt",
-   "es gibt zwei Knoepfe: gepunktet und gefalzt",wahl.vorher.map(x=>x.text));
- p(wahl.vorher.length===2&&wahl.vorher[0].farbe!==wahl.vorher[1].farbe,
-   "gepunktet gewaehlt: die beiden Knoepfe sehen VERSCHIEDEN aus",wahl.vorher);
- p(wahl.nachher.length===2&&wahl.nachher[0].farbe!==wahl.nachher[1].farbe
-   &&wahl.nachher[1].farbe===wahl.vorher[0].farbe,
-   "gefalzt gewaehlt: die Hervorhebung wandert auf den anderen Knopf",{v:wahl.vorher,n:wahl.nachher});
-
- // Der Klick selbst: in der echten Oberflaeche. Gerendert wird die Aufnahme in
- // ihren Behaelter "dfaAufnahme", gedrueckt wird der Knopf wie vom Anwender.
- const klick=await page.evaluate(async()=>{
+ // ---- D · Zwei Pflicht-Dropdowns -----------------------------------------------
+ // Ansage des Anwenders (8.10.2026): "mache die vier auswahlfelder als 2
+ // pflichtdropdowns". Geprueft wird in der echten Oberflaeche: gerendert,
+ // bedient (value setzen + change) und die Weiter-Sperre befragt.
+ console.log("\nD · Zwei Pflicht-Dropdowns");
+ const ui=await page.evaluate(async()=>{
   let ziel=document.getElementById("dfaAufnahme");
   if(!ziel){ziel=document.createElement("div");ziel.id="dfaAufnahme";document.body.appendChild(ziel)}
-  ziel.style.cssText="position:fixed;left:0;top:0;width:400px;background:#fff;z-index:99999";
+  // Der echte Behaelter steckt in einem verborgenen Bildschirm, und die
+  // Ereignisse werden an dessen Elternteil (#measTypeDachfenster) abgehoert -
+  // der Behaelter darf also NICHT herausgeloest werden. Stattdessen werden alle
+  // Vorfahren sichtbar gemacht; die Weiter-Sperre (ersteUngueltigePflicht)
+  // uebergeht unsichtbare Felder und schluege sonst nie an.
+  for(let n=ziel;n&&n!==document.body;n=n.parentElement){
+   n.hidden=false;
+   if(getComputedStyle(n).display==="none")n.style.display="block";
+  }
+  measurementMaterials=[{id:2,name:"Titanzink"}];
   dfaA=dfaLeer(); dfaSchritt=2;
   renderDfaAufnahme();
-  const knopf=w=>document.querySelector('#dfaAufnahme [data-dfa-ausfuehrung="'+w+'"]');
-  const r={vorher:dfaA.ausfuehrung,knopfDa:!!knopf("gefalzt")};
-  if(knopf("gefalzt"))knopf("gefalzt").click();
-  r.nachKlick=dfaA.ausfuehrung;
-  r.gefalztMarkiert=!!(knopf("gefalzt")&&knopf("gefalzt").classList.contains("blue"));
-  r.gepunktetGrau=!!(knopf("gepunktet")&&knopf("gepunktet").classList.contains("gray"));
-  if(knopf("gepunktet"))knopf("gepunktet").click();
-  r.zurueck=dfaA.ausfuehrung;
+  const q=id=>document.querySelector("#dfaAufnahme #"+id);
+  const stand=()=>({
+   art:q("dfa_seitenteilArt")?q("dfa_seitenteilArt").value:null,
+   aus:q("dfa_ausfuehrung")?q("dfa_ausfuehrung").value:null,
+   artPflicht:!!(q("dfa_seitenteilArt")&&q("dfa_seitenteilArt").required),
+   ausPflicht:!!(q("dfa_ausfuehrung")&&q("dfa_ausfuehrung").required),
+   erstesUngueltig:(()=>{const f=ersteUngueltigePflicht(document.getElementById("dfaAufnahme"));return f?f.id:null})(),
+   zustand:[dfaA.seitenteilArt,dfaA.ausfuehrung]});
+  const setze=(id,w)=>{const e=q(id);e.value=w;e.dispatchEvent(new Event("change",{bubbles:true}))};
+  const r={start:stand(),
+   optA:[...q("dfa_seitenteilArt").options].map(o=>o.value),
+   optB:[...q("dfa_ausfuehrung").options].map(o=>o.value),
+   knoepfe:document.querySelectorAll("#dfaAufnahme [data-dfa-seitenteil],#dfaAufnahme [data-dfa-ausfuehrung]").length};
+  setze("dfa_seitenteilArt","knick"); r.nachArt=stand();
+  setze("dfa_ausfuehrung","gefalzt"); r.nachAus=stand();
+  setze("dfa_ausfuehrung","gepunktet"); r.zurueck=stand();
+  setze("dfa_seitenteilArt",""); r.geleert=stand();
+  r.pruefung=dfaPruefungen().filter(m=>m.art==="fehler"&&/nicht gewählt/.test(m.text)).map(m=>m.text);
+  setze("dfa_seitenteilArt","separat"); setze("dfa_ausfuehrung","gefalzt");
+  r.pruefungGewaehlt=dfaPruefungen().filter(m=>/nicht gewählt/.test(m.text)).length;
   ziel.remove();
   return r;
  });
- p(klick.knopfDa&&klick.vorher==="gepunktet","der Knopf \"gefalzt\" steht im Register Fenstermasse",klick);
- p(klick.nachKlick==="gefalzt","ein Klick darauf schaltet auf gefalzt um",klick);
- p(klick.gefalztMarkiert&&klick.gepunktetGrau,"und die Anzeige folgt: gefalzt blau, gepunktet grau",klick);
- p(klick.zurueck==="gepunktet","zurueckschalten geht ebenso",klick);
+ p(ui.optA.join()===",separat,knick"&&ui.optB.join()===",gepunktet,gefalzt",
+   "zwei Dropdowns mit Leer-Option und den zwei Werten",{a:ui.optA,b:ui.optB});
+ p(ui.start.artPflicht&&ui.start.ausPflicht,"beide sind Pflichtfelder (required)",ui.start);
+ p(ui.start.art===""&&ui.start.aus===""&&ui.start.erstesUngueltig==="dfa_seitenteilArt",
+   "neu: nichts gewaehlt - die Weiter-Sperre haelt beim ersten leeren Feld an",ui.start);
+ p(ui.nachArt.zustand.join()==="knick,"&&ui.nachArt.erstesUngueltig==="dfa_ausfuehrung",
+   "Bauart gewaehlt: der Zustand folgt, die Sperre wandert zur Ausfuehrung",ui.nachArt);
+ p(ui.nachAus.zustand.join()==="knick,gefalzt"
+   &&ui.nachAus.erstesUngueltig!=="dfa_seitenteilArt"&&ui.nachAus.erstesUngueltig!=="dfa_ausfuehrung",
+   "beide gewaehlt: der Zustand folgt, die beiden Wahlen halten das Weiterblaettern nicht mehr auf (offen sind nur noch die Masse)",ui.nachAus);
+ p(ui.zurueck.zustand.join()==="knick,gepunktet","Umschalten geht in beide Richtungen",ui.zurueck);
+ p(ui.geleert.zustand[0]===""&&ui.geleert.erstesUngueltig==="dfa_seitenteilArt",
+   "wieder auf \"bitte waehlen\": die Pflicht greift erneut",ui.geleert);
+ p(ui.pruefung.length===1&&/Bauart/.test(ui.pruefung[0]),
+   "die Kontrolle meldet die fehlende Wahl als Fehler - Speichern ist gesperrt",ui.pruefung);
+ p(ui.pruefungGewaehlt===0,"Gegenprobe: mit beiden Wahlen meldet sie nichts",ui);
+ p(ui.knoepfe===0,"Gegenprobe: die vier alten Auswahlknoepfe gibt es nicht mehr",ui);
 
  // ---- E · Der Ausdruck nennt die Ausfuehrung -----------------------------------
  console.log("\nE · Der Ausdruck");
@@ -266,6 +283,36 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  p(/^gepunktet/.test(druck.gepunktet||""),"der Ausdruck nennt: gepunktet",druck);
  p(/^gefalzt/.test(druck.gefalzt||""),"der Ausdruck nennt: gefalzt",druck);
  p(druck.ohne===null,"Gegenprobe: ein alter Datensatz ohne das Feld bekommt keine erfundene Ausfuehrung",druck);
+
+ // ---- G · Die Stueckliste faellt im Ausdruck weg --------------------------------
+ // Ansage des Anwenders (8.10.2026): "im pdf kannst du die tabelle stueckliste
+ // entfernen, sie ist dasselbe wie zuschnitt aus rollenblech". Die Tabelle
+ // "Bleilappen" bleibt. Gegenprobe: ohne Rollenblech-Zuschnitt (nie eine Rolle
+ // gewaehlt) bliebe das Blatt ohne jede Zuschnittmasse - dann steht die
+ // Stueckliste als Rueckfall weiter da.
+ console.log("\nG · Stueckliste im Ausdruck");
+ const liste=await page.evaluate(async bs=>{
+  pdfDruckVorbereiten=async html=>{window.__b=html;return null};
+  measurementMaterials=[{id:2,name:"Titanzink"}];
+  const raus={};
+  const drucke=async(name,aend)=>{
+   dfaA=Object.assign(dfaLeer(),bs,{material:"2",ausfuehrung:"gepunktet"});
+   const daten=JSON.parse(JSON.stringify(dfaDaten()));
+   aend(daten);
+   window.__b=null;
+   try{await printMeasurement({id:1,type:"dachfenstereinfassung",data:daten,title:"x",note:""},{})}catch(e){}
+   const box=document.createElement("div"); box.innerHTML=window.__b||"";
+   raus[name]=[...box.querySelectorAll(".eb-section-head")].map(h=>h.textContent.trim());
+  };
+  await drucke("mitRollen",()=>{});
+  await drucke("ohneRollen",d=>{delete d.rollen});
+  return raus;
+ },KNICK);
+ p(liste.mitRollen.indexOf("Zuschnitt aus Rollenblech")>=0,"das Blatt hat den Abschnitt Zuschnitt aus Rollenblech",liste.mitRollen);
+ p(liste.mitRollen.indexOf("Stückliste")<0,"und KEINE Stueckliste mehr daneben",liste.mitRollen);
+ p(liste.mitRollen.indexOf("Bleilappen")>=0,"Gegenprobe: die Tabelle Bleilappen bleibt",liste.mitRollen);
+ p(liste.ohneRollen.indexOf("Stückliste")>=0&&liste.ohneRollen.indexOf("Zuschnitt aus Rollenblech")<0,
+   "Gegenprobe: ohne Rollenblech-Zuschnitt bleibt die Stueckliste als Rueckfall",liste.ohneRollen);
 
  console.log("\nF · Keine JavaScript-Fehler");
  p(fehler.length===0,"keine Fehler auf der Seite",fehler.slice(0,3));

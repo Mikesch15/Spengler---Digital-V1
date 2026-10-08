@@ -174,7 +174,13 @@ function dfaLeer(){
  const s=dfaSettings||DFA_STANDARD;
  return {
   material:"", deckung:s.deckung, lattenabstand:"",
-  getrennt:false, skizzeSeite:"l", seitenteilArt:"separat", ausfuehrung:"gepunktet",
+  getrennt:false, skizzeSeite:"l",
+  // v3.271: Bauart und Ausfuehrung sind PFLICHTWAHLEN (zwei Dropdowns) und
+  // beginnen deshalb LEER - ein vorgewaehlter Wert wuerde unbemerkt
+  // uebernommen, genau das, was die Pflichtfelder bei den Massen verhindern
+  // (siehe dfaLeer oben). Gerechnet wird bis zur Wahl wie "separat" /
+  // "gepunktet"; gespeichert werden kann erst mit Wahl (dfaPruefungen).
+  seitenteilArt:"", ausfuehrung:"",
   a:{l:"",r:""}, d:{l:"",r:""}, ueberlappung:"",
   saumVorne:"", breiteOben:"", breiteUnten:"",
   randAbstand:"", randStrich:"",
@@ -643,7 +649,12 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
   dfaBuchstabe("e")+" = "+zahl(E)+" · 90°"+(eUmschlag>0?" / "+dfaBuchstabe("eUmschlag")+" = "+zahl(eUmschlag):"")));
  if(A>0)unten.push(massEintrag(-A,0,dfaBuchstabe("a")+" = "+zahl(A)));
  if(D>0)unten.push(massEintrag(L,L+D,dfaBuchstabe("d")+" = "+zahl(D)));
- unten.push(massEintrag(Q0[0],Q3[0],dfaBuchstabe("breiteUnten")+" = "+zahl(bu)));
+ // N (Breite unten) liegt eigens: es soll AUF DER HOEHE VON R stehen
+ // (Ansage des Anwenders, 8.10.2026) - R beginnt dort, wo N endet, die beiden
+ // grenzen aneinander. Der Allokator sah die Randzugabe der beiden Kaesten als
+ // Ueberlappung und schob N in ein eigenes Band. Siehe unten bei baenderSetzen.
+ const eintragN=massEintrag(Q0[0],Q3[0],dfaBuchstabe("breiteUnten")+" = "+zahl(bu));
+ const eintragR=D>0?unten[unten.length-1]:null;
  if(anreiff>0)unten.push(fahneEintrag(F1[0],F1[1],-10,
   dfaBuchstabe("anreiff")+" = "+zahl(anreiff)+(anreiffUmschlag>0?" / "+dfaBuchstabe("anreiffUmschlag")+" = "+zahl(anreiffUmschlag):"")));
 
@@ -670,7 +681,30 @@ oben/unten (unten grösser als oben) eingeben.</div>`;
   }
  });
  baenderSetzen(oben,sperren).forEach(e=>zeichneBand(e,obenY(e.band),false));
- baenderSetzen(unten).forEach(e=>zeichneBand(e,untenY(e.band),true));
+ // Unten: erst alles ausser N einteilen, dann N moeglichst in R's Band setzen.
+ // Der Test nimmt die ECHTEN Textkaesten (ohne die Randzugabe der Baender):
+ // N und R duerfen sich beruehren, aber ihre Zahlen nicht. Passt es nicht -
+ // etwa weil N breiter ist als sein Mass und die Zahl neben die Pfeile rutscht,
+ // oder weil ein anderes Mass im selben Band liegt - bekommt N wie bisher ein
+ // eigenes Band. Eine Verschiebung "auf Verdacht" gibt es nicht.
+ {
+  const rest=unten.filter(e=>e!==eintragN);
+  baenderSetzen(rest);
+  const echt=(x1,x2,t)=>anbMassTextLage(X(x1),X(x2),t,15,mitteX);
+  let gleicheHoehe=false;
+  if(eintragR){
+   const n=echt(Q0[0],Q3[0],eintragN.text), r=echt(L,L+D,eintragR.text);
+   // anbMassTextLage liefert den BELEGTEN Bereich (Mass samt eventuell
+   // danebenstehender Zahl), nicht nur den Text. Aneinandergrenzen ist erlaubt
+   // (N endet dort, wo R beginnt: gleiche x-Stelle), Ueberdecken nicht.
+   const zahlenFrei=n.r<=r.l+1||r.r<=n.l+1;
+   const andereImBand=rest.filter(e=>e!==eintragR&&e.band===eintragR.band)
+     .some(z=>eintragN.l<z.r&&eintragN.r>z.l);
+   if(zahlenFrei&&!andereImBand){eintragN.band=eintragR.band;gleicheHoehe=true}
+  }
+  if(!gleicheHoehe)baenderSetzen([eintragN],rest.map(e=>({band:e.band,l:e.l,r:e.r})));
+  rest.concat([eintragN]).forEach(e=>zeichneBand(e,untenY(e.band),true));
+ }
 
  // Senkrechte Masse: links die beiden vorderen Hoehen, rechts die hintere.
  // Auch diese Abstaende sind Bildpunkte - in Millimetern gerechnet klebten
@@ -810,6 +844,13 @@ function dfaPruefungen(){
  // "fehlt" - nicht "ist nicht groesser als 0" wie bei fehlt() oben.
  const fehltLeer=(wert,text)=>{if(wert===""||wert===null||wert===undefined)m.push({art:"fehler",text})};
  if(!a.material)m.push({art:"warnung",text:"Es ist noch kein Material gewählt."});
+ // v3.271: beide Wahlen sind Pflicht - ohne sie ist nicht bestimmt, wie
+ // gerechnet wird (Bauart: welche Masse es gibt; Ausfuehrung: wie die
+ // Zuschnitte entstehen).
+ if(a.seitenteilArt!=="knick"&&a.seitenteilArt!=="separat")
+  m.push({art:"fehler",text:"Die Bauart des Seitenteils ist nicht gewählt (separat oder mit Knick)."});
+ if(a.ausfuehrung!=="gepunktet"&&a.ausfuehrung!=="gefalzt")
+  m.push({art:"fehler",text:"Die Ausführung ist nicht gewählt (gepunktet oder gefalzt)."});
  fehlt(a.breiteVorne,dfaBuchstabe("breiteVorne")+" · Die Breite vorne (Zuschnittlänge Vorderteil) fehlt.");
  fehlt(a.breiteHinten,dfaBuchstabe("breiteHinten")+" · Die Breite hinten (Zuschnittlänge Hinterteil) fehlt.");
  fehlt(a.breiteOben,dfaMassLabel("breiteOben")+" fehlt.");
@@ -1097,11 +1138,21 @@ function dfaMasseHtml(){
 <button type="button" class="${a.skizzeSeite==="r"?"blue":"gray"}" data-dfa-skizze="r">Rechte Seite</button>
 </div>`:"";
  const knick=dfaMitKnick();
- // Bauart des Seitenteils. Die Wahl steht VOR den Massen, weil sie bestimmt,
- // welche Masse es ueberhaupt gibt (dfaMassGilt).
- const artWahl=`<div class="bar" style="margin-bottom:8px">
-<button type="button" class="${!knick?"blue":"gray"}" data-dfa-seitenteil="separat">Separate Seitenteile</button>
-<button type="button" class="${knick?"blue":"gray"}" data-dfa-seitenteil="knick">Mit Knick, durchgehend</button>
+ // Bauart des Seitenteils und Ausfuehrung: zwei PFLICHT-Dropdowns (v3.271,
+ // Ansage des Anwenders: "mache die vier auswahlfelder als 2
+ // pflichtdropdowns"). Bis v3.270 waren es vier Knoepfe. Die Bauart steht VOR
+ // den Massen, weil sie bestimmt, welche Masse es ueberhaupt gibt
+ // (dfaMassGilt). Beide beginnen leer und lassen sich bei einer gespeicherten
+ // Aufnahme jederzeit aendern.
+ const wahlOpt=(liste,aktuell)=>['<option value="">– bitte wählen –</option>']
+  .concat(liste.map(([w,t])=>`<option value="${w}"${w===aktuell?" selected":""}>${esc(t)}</option>`)).join("");
+ const artWahl=`<div class="grid">
+${dfaFeld("Bauart des Seitenteils",`<select id="dfa_seitenteilArt" data-pflicht="1">${wahlOpt([
+  ["separat","Separate Seitenteile (zwei Teile, überlappen)"],
+  ["knick","Mit Knick, durchgehend (ein Stück)"]],a.seitenteilArt)}</select>`)}
+${dfaFeld("Ausführung",`<select id="dfa_ausfuehrung" data-pflicht="1">${wahlOpt([
+  ["gepunktet","Gepunktet (Seitenteile seitlich angepunktet)"],
+  ["gefalzt","Gefalzt (senkrechter Falz)"]],a.ausfuehrung)}</select>`)}
 </div>`;
  const laengeSatz=knick
   ?`Das Seitenteil läuft in <b>einem Stück</b> durch und bekommt einen Knick –
@@ -1110,14 +1161,7 @@ des Seitenteils, ${dfaBuchstabe("ueberlappung")} und ${dfaBuchstabe("c")} entfal
   :`<b>${dfaBuchstabe("b")}</b> und <b>${dfaBuchstabe("c")}</b>
 überlappen sich im Knick – die Länge des Seitenteils ist deshalb ${dfaBuchstabe("b")} + ${dfaBuchstabe("c")}
 − ${dfaBuchstabe("ueberlappung")}.`;
- const gefalzt=dfaGefalzt();
- // v3.270: Ausfuehrung. Auch bei einer schon gespeicherten Aufnahme jederzeit
- // umschaltbar - die Zuschnitte rechnen sich daraus neu.
- const ausWahl=`<div class="bar" style="margin-bottom:8px">
-<button type="button" class="${!gefalzt?"blue":"gray"}" data-dfa-ausfuehrung="gepunktet">Gepunktet (Seitenteile seitlich)</button>
-<button type="button" class="${gefalzt?"blue":"gray"}" data-dfa-ausfuehrung="gefalzt">Gefalzt (senkrechter Falz)</button>
-</div>`;
- return dfaUebersichtHtml()+artWahl+ausWahl+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
+ return dfaUebersichtHtml()+artWahl+`<div class="info">Alle Masse in mm, längs des Dachs gemessen - genau
 gleich vermasst wie bei der Kamineinfassung. ${laengeSatz} Vorne ist die Aufbordung niedriger und hat oben einen Saum; hinten
 ist sie höher und bewusst trapezförmig – Breite oben ist kleiner als Breite unten.</div>
 <div class="grid">
@@ -1379,6 +1423,13 @@ function dfaVerdrahten(){
    if(w!==null){dfaA.rollenAuswahl=w; renderDfaAufnahme(); return}}
   if(t.id==="dfa_material"){dfaA.material=t.value; renderDfaAufnahme(); return}
   if(t.id==="dfa_deckung"){dfaA.deckung=t.value; renderDfaAufnahme(); return}
+  // Die bisher eingegebenen Masse bleiben beim Umschalten stehen - wer
+  // versehentlich wechselt, hat sie beim Zurueckwechseln unveraendert wieder.
+  // Sie zaehlen nur in der Bauart, in der es sie gibt (dfaMassGilt).
+  if(t.id==="dfa_seitenteilArt"){
+   dfaA.seitenteilArt=(t.value==="knick"||t.value==="separat")?t.value:""; renderDfaAufnahme(); return}
+  if(t.id==="dfa_ausfuehrung"){
+   dfaA.ausfuehrung=(t.value==="gefalzt"||t.value==="gepunktet")?t.value:""; renderDfaAufnahme(); return}
   if(t.id==="dfa_getrennt"){
    dfaA.getrennt=!!t.checked;
    if(dfaA.getrennt)Object.keys(DFA_SEITENFELDER).forEach(k=>{
@@ -1396,19 +1447,6 @@ function dfaVerdrahten(){
   if(reg){dfaSetzeSchritt(reg.dataset.dfaSchritt);return}
   const sk=t.closest("[data-dfa-skizze]");
   if(sk){dfaA.skizzeSeite=sk.dataset.dfaSkizze==="r"?"r":"l"; renderDfaAufnahme(); return}
-  const art=t.closest("[data-dfa-seitenteil]");
-  if(art){
-   // Die bisher eingegebenen Masse bleiben stehen - wer versehentlich
-   // umschaltet, hat sie beim Zurueckschalten unveraendert wieder. Sie
-   // zaehlen nur in der Bauart, in der es sie gibt (dfaMassGilt).
-   dfaA.seitenteilArt=art.dataset.dfaSeitenteil==="knick"?"knick":"separat";
-   renderDfaAufnahme(); return;
-  }
-  const aus=t.closest("[data-dfa-ausfuehrung]");
-  if(aus){
-   dfaA.ausfuehrung=aus.dataset.dfaAusfuehrung==="gefalzt"?"gefalzt":"gepunktet";
-   renderDfaAufnahme(); return;
-  }
   if(t.id==="dfa_zurueck"){dfaSetzeSchritt(dfaSchritt-1);return}
   if(t.id==="dfa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
@@ -1545,11 +1583,11 @@ function dfaDaten(){
   // Die Bauart MUSS mitgespeichert werden: Ruestblatt, Ausdruck und das
   // spaetere Oeffnen lesen nur den Datensatz. Fehlte sie, faelle jede mit
   // Knick erfasste Aufnahme beim Oeffnen still auf zwei Seitenteile zurueck.
-  seitenteilArt:dfaMitKnick()?"knick":"separat",
+  seitenteilArt:(dfaA.seitenteilArt==="knick"||dfaA.seitenteilArt==="separat")?dfaA.seitenteilArt:"",
   // v3.270: ohne dieses Feld im Datensatz wuerde das spaetere Oeffnen (und das
   // Ruestblatt) die Ausfuehrung nicht kennen - dieselbe Falle wie bei der
   // Bauart in v3.263.
-  ausfuehrung:dfaGefalzt()?"gefalzt":"gepunktet",
+  ausfuehrung:(dfaA.ausfuehrung==="gefalzt"||dfaA.ausfuehrung==="gepunktet")?dfaA.ausfuehrung:"",
   a:paar("a"), d:paar("d"), ueberlappung:dfaZahl(a.ueberlappung),
   saumVorne:dfaZahl(a.saumVorne), breiteOben:dfaZahl(a.breiteOben), breiteUnten:dfaZahl(a.breiteUnten),
   randAbstand:dfaZahl(a.randAbstand), randStrich:dfaZahl(a.randStrich),
@@ -1620,9 +1658,9 @@ function dfaFuellen(d){
  // erfasste Aufnahme kam dadurch als "separat" zurueck, verlangte in der
  // Kontrolle Mass I, das es in dieser Bauart gar nicht gibt, und liess sich
  // nicht mehr speichern. Ein Datensatz ohne das Feld ist wie bisher "separat".
- a.seitenteilArt=w.seitenteilArt==="knick"?"knick":"separat";
+ a.seitenteilArt=w.seitenteilArt==="knick"?"knick":(w.seitenteilArt===""?"":"separat");
  // v3.270: Ausfuehrung. Ein aelterer Datensatz ohne das Feld ist "gepunktet".
- a.ausfuehrung=w.ausfuehrung==="gefalzt"?"gefalzt":"gepunktet";
+ a.ausfuehrung=w.ausfuehrung==="gefalzt"?"gefalzt":(w.ausfuehrung===""?"":"gepunktet");
  ["a","b","c","d","f","g"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};

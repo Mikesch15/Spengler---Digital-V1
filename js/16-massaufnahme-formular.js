@@ -1622,6 +1622,13 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
    const h=rsSvg(m,titel);
    return h?`<div class="eb-diagram">${h}</div>`:"";
   };
+  // v3.271, Ansage des Anwenders: "im pdf kannst du die tabelle stueckliste
+  // entfernen, sie ist dasselbe wie zuschnitt aus rollenblech". Das Blatt zeigt
+  // die Zuschnitte (Stueck x Laenge x Breite, mit Positionsnummern) im Abschnitt
+  // "Zuschnitt aus Rollenblech". Nur wenn dieser fehlt - es wurde nie eine
+  // Rolle gewaehlt - bleibt die Stueckliste als Rueckfall stehen, sonst haette
+  // das Blatt gar keine Zuschnittmasse.
+  const rollenHtml=zuDruckHtml(d.rollen,0,"Teil");
   const dfaSchnitt=dfaSkizze("Schnitt")+(d.getrennt?dfaSkizze("Schnitt rechts"):"");
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
@@ -1635,7 +1642,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 ${d.ausfuehrung?`<tr>${cell("Ausführung",d.ausfuehrung==="gefalzt"?"gefalzt (senkrechter Falz)":"gepunktet (Seitenteile seitlich angepunktet)")}<td></td></tr>`:""}
 </table>
 ${dfaSchnitt?`<div class="eb-section-head">Schnitt</div>${dfaSchnitt}`:""}
-${teile.length?`<div class="eb-section-head">Stückliste</div>
+${(teile.length&&!rollenHtml)?`<div class="eb-section-head">Stückliste</div>
 <table class="eb-cutlist">
 <thead><tr><th>Nr.</th><th>Teil</th><th>Zuschnitt L × B (mm)</th><th>Abwicklung aus</th></tr></thead>
 <tbody>${teile.map(t=>`<tr><td>${esc(t.nr)}</td><td>${esc(t.name)}${t.seite?" "+esc(t.seite):""}</td>
@@ -1649,7 +1656,7 @@ ${(Array.isArray(bl.zeilen)&&bl.zeilen.length&&bl.gesamt!==null&&bl.gesamt!==und
 <tr><td colspan="2">Gesamt</td><td>${esc(bl.gesamt)}</td></tr></tbody>
 </table>
 <div class="note" style="font-size:8pt;color:#68737d">Je Seitenteil abgerundet aus Länge ÷ Lattenabstand (${mm(bl.lattenabstand||d.lattenabstand)} mm).</div>`:""}
-${zuDruckHtml(d.rollen,0,"Teil")}
+${rollenHtml}
 ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
 <table class="eb-cutlist">
 <thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>

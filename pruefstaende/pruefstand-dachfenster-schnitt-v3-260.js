@@ -377,7 +377,11 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
  // aktiven nichts an: class="gray blue" ergibt GRAU, weil .gray in
  // css/01-basis.css nach .blue steht und beide gleich stark sind. Zwei
  // gleich aussehende graue Knoepfe liest niemand als Wahl.
- console.log("\nI · Die Bauart ist als Wahl zu erkennen");
+ // v3.271: aus den zwei Knoepfen der Bauart wurden mit den Knoepfen der
+ // Ausfuehrung zusammen ZWEI PFLICHT-DROPDOWNS (Ansage des Anwenders). Die
+ // Frage von v3.261 - ist die Wahl zu erkennen? - gilt weiter: ein leeres
+ // Dropdown muss als offene Pflicht auffallen, ein gewaehltes den Wert zeigen.
+ console.log("\nI · Die Bauart ist als Wahl zu erkennen (Pflicht-Dropdown)");
  const wahl=await page.evaluate(()=>{
   measurementMaterials=[{id:2,name:"Titanzink"}];
   dfaA=dfaLeer();
@@ -386,9 +390,12 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
   document.body.appendChild(box);
   const lies=()=>{
    box.innerHTML=dfaMasseHtml();
-   return [...box.querySelectorAll("[data-dfa-seitenteil]")].map(k=>({
-    wert:k.dataset.dfaSeitenteil, text:k.textContent.trim(),
-    farbe:getComputedStyle(k).backgroundColor, klassen:k.className}));
+   markierePflichtfelder(box);
+   const sel=box.querySelector("#dfa_seitenteilArt");
+   return {da:!!sel, pflicht:!!(sel&&sel.hasAttribute("data-pflicht")&&sel.required),
+    wert:sel?sel.value:null, gueltig:sel?sel.checkValidity():null,
+    optionen:sel?[...sel.options].map(o=>o.value+"|"+o.textContent.trim()):[],
+    alteKnoepfe:box.querySelectorAll("[data-dfa-seitenteil],[data-dfa-ausfuehrung]").length};
   };
   const vorher=lies();
   dfaA.seitenteilArt="knick";
@@ -396,12 +403,12 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
   box.remove();
   return {vorher,nachher};
  });
- const unterschiedlich=z=>z.length===2&&z[0].farbe!==z[1].farbe;
- p(wahl.vorher.length===2,"es gibt zwei Knoepfe fuer die Bauart",wahl.vorher.map(z=>z.text));
- p(unterschiedlich(wahl.vorher),"separat gewaehlt: die beiden Knoepfe sehen VERSCHIEDEN aus",wahl.vorher);
- p(unterschiedlich(wahl.nachher),"knick gewaehlt: die beiden Knoepfe sehen VERSCHIEDEN aus",wahl.nachher);
- p(wahl.vorher[0].farbe===wahl.nachher[1].farbe&&wahl.vorher[0].farbe!==wahl.nachher[0].farbe,
-   "die Hervorhebung wandert beim Umschalten auf den anderen Knopf",wahl);
+ p(wahl.vorher.da&&wahl.vorher.pflicht,"die Bauart ist ein Dropdown und Pflichtfeld",wahl.vorher);
+ p(wahl.vorher.wert===""&&wahl.vorher.gueltig===false,"neu: nichts vorgewaehlt, das Feld ist ungueltig (die Weiter-Sperre greift)",wahl.vorher);
+ p(wahl.vorher.optionen.length===3&&/^\|– bitte wählen –/.test(wahl.vorher.optionen[0]),
+   "erste Option ist \"bitte waehlen\", dann die zwei Bauarten",wahl.vorher.optionen);
+ p(wahl.nachher.wert==="knick"&&wahl.nachher.gueltig===true,"knick gewaehlt: der Wert steht da, das Feld ist gueltig",wahl.nachher);
+ p(wahl.vorher.alteKnoepfe===0,"Gegenprobe: die vier alten Auswahlknoepfe gibt es nicht mehr",wahl.vorher);
  // Dieselbe Falle steckt ueberall, wo ein Knopf beide Klassen traegt -
  // deshalb hier eine Probe ueber ALLE Dateien, nicht nur ueber diese eine.
  const beides=fs.readdirSync("js").filter(f=>/\.js$/.test(f))
@@ -409,6 +416,42 @@ const KNI=FAELLE.find(f=>f[0]==="Dachfenstereinfassung (durchgehend mit Knick)")
   .filter(x=>/class="[^"]*\bgray\b[^"]*\bblue\b|class="[^"]*\bblue\b[^"]*\bgray\b/.test(x.t))
   .map(x=>x.f);
  p(beides.length===0,"kein Knopf traegt gray und blue zugleich - .gray wuerde gewinnen",beides);
+
+ // ---- J · N steht auf der Hoehe von R ------------------------------------------
+ // Ansage des Anwenders am 8.10.2026: "setze in der schnittskizze das mass N
+ // auf die selbe hoehe wie mass R". N endet dort, wo R beginnt; sie grenzen
+ // aneinander. Der Bandverteiler sah die Randzugabe der beiden Kaesten als
+ // Ueberlappung und stellte N in ein eigenes, tieferes Band. Gemessen wird an
+ // der gezeichneten Zahl: gleiche y-Lage von "N = ..." und "R = ...".
+ // Gegenprobe: ist N so breit, dass die Zahl von R in seinen Bereich rutschen
+ // wuerde, bleibt es bei eigenen Baendern - es wird nicht auf Verdacht gestapelt.
+ console.log("\nJ · N steht auf der Hoehe von R");
+ const hoehe=await page.evaluate(()=>{
+  const nord={getrennt:false,lattenabstand:355,seitenteilArt:"knick",ueberlappung:"",
+   breiteVorne:554,breiteHinten:570,umschlagVorne:10,umschlagSeite:10,saumVorne:35,
+   breiteOben:120,breiteUnten:160,randAbstand:15,randStrich:12,
+   a:{l:225,r:225},b:{l:990,r:990},c:{l:"",r:""},d:{l:295,r:295},f:{l:50,r:50},g:{l:50,r:50},
+   aufVorne:80,aufHinten:95,e:35,eUmschlag:15,anreiff:15,anreiffUmschlag:10,skizzeSeite:"l"};
+  const box=document.createElement("div");
+  box.style.cssText="width:740px;position:fixed;left:0;top:0;background:#fff;z-index:99999";
+  document.body.appendChild(box);
+  const lage=d=>{
+   box.innerHTML=dfaSkizze(d);
+   const t=[...box.querySelectorAll("svg text")];
+   const y=pre=>{const e=t.find(x=>x.textContent.trim().indexOf(pre)===0);return e?+e.getAttribute("y"):null};
+   return {N:y("N = "),R:y("R = "),C:y("C = ")};
+  };
+  const r={nord:lage(nord),
+   breit:lage(Object.assign({},nord,{breiteUnten:400,d:{l:120,r:120}})),
+   anders:lage(Object.assign({},nord,{breiteUnten:200,d:{l:200,r:200},a:{l:300,r:300}}))};
+  box.remove();
+  return r;
+ });
+ p(hoehe.nord.N!==null&&hoehe.nord.N===hoehe.nord.R,"Nord Nr.1: N und R stehen auf derselben Hoehe",hoehe.nord);
+ p(hoehe.nord.C===hoehe.nord.R,"und auf der von C - alle drei unten in einer Reihe",hoehe.nord);
+ p(hoehe.anders.N!==null&&hoehe.anders.N===hoehe.anders.R,"auch mit anderen Massen (N 200, R 200): gleiche Hoehe",hoehe.anders);
+ p(hoehe.breit.N!==null&&hoehe.breit.N!==hoehe.breit.R,
+   "Gegenprobe: ist N so breit, dass die Zahl von R in sein Mass reichen wuerde, bleibt N tiefer",hoehe.breit);
 
  console.log("\nH · Keine JavaScript-Fehler");
  p(fehler.length===0,"keine Fehler auf der Seite",fehler);
