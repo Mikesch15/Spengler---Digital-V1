@@ -42,7 +42,9 @@ const ALT=FAELLE.find(f=>/bis v2\.95/.test(f[0]))[2];  // ohne, altes Format
    const muster=d.einfassungen[0];
    d.einfassungen=[];
    for(let i=0;i<n;i++)d.einfassungen.push(Object.assign({},muster,
-     {bez:"Nr."+(i+1), durchmesser:100+i*10}));
+     // v3.267: auch der Winkel wird je Einfassung variiert - jeder Schnitt
+     // muss SEINEN Winkel zeigen, nicht den der ersten.
+     {bez:"Nr."+(i+1), durchmesser:100+i*10, winkel:20+i*10}));
   }
   const m={id:1,type:"einfassung_rund",data:d,title:"Mehrere",note:""};
   window.__b=null;
@@ -58,6 +60,13 @@ const ALT=FAELLE.find(f=>/bis v2\.95/.test(f[0]))[2];  // ohne, altes Format
    gitter:box.querySelectorAll(".eb-diagram-gitter").length,
    neueSeite:box.querySelectorAll(".eb-gitter-neue-seite").length,
    titel:[...box.querySelectorAll(".eb-diagram-gitter .eb-diagram-title")].map(t=>t.textContent.trim()),
+   svgText:svgs.map(x=>[...x.querySelectorAll("text")].map(t=>t.textContent.trim())),
+   bogen:svgs.map(x=>x.querySelectorAll('path[d*="A "]').length),
+   lattenabstand:d.lattenabstand,
+   abschnitte:[...box.querySelectorAll(".eb-section-head")].map(h=>h.textContent.trim()),
+   beschriftungen:[...box.querySelectorAll(".eb-info-table label")].map(t=>t.textContent.trim()),
+   // Woertlich stehengebliebene HTML-Entitaeten irgendwo im Blatt.
+   entitaeten:(box.textContent.match(/&[A-Za-z]{2,10};/g)||[]),
    ueberschrift:[...box.querySelectorAll(".eb-section-head")].map(h=>h.textContent.trim())
      .filter(t=>/^Schnitte?$/.test(t))[0]||"-"
   };
@@ -91,6 +100,53 @@ const ALT=FAELLE.find(f=>/bis v2\.95/.test(f[0]))[2];  // ohne, altes Format
  const alt=await messen(ALT,null);
  p(alt.svgImGitter===1,"ohne d.einfassungen wird genau ein Schnitt gezeichnet",alt);
  p(alt.skizzen.length===1&&alt.skizzen[0]==="Schnitt","und er heisst Schnitt",alt.skizzen);
+
+ console.log("\nF · Winkel und Lattenabstand stehen im Schnitt (v3.267)");
+ // Ansage des Anwenders am 8.10.2026: "im schnitt muss der winkel des rohres
+ // auch dargestellt werden und der lattenabstand auch zu jedem schnitt ... die
+ // masse unter den schnittskizzen sind nicht noetig".
+ // Beides stand bisher nur EINMAL in den Angaben des Blattes - und zwar mit
+ // den Werten der ersten Einfassung, obwohl Durchmesser und Winkel je
+ // Einfassung erfasst werden.
+ const f3=await messen(NEU,3);
+ const winkelText=f3.svgText.map(t=>t.filter(x=>/^Dach\/Rohr /.test(x))[0]||"-");
+ p(winkelText.every(t=>/^Dach\/Rohr \d+°$/.test(t)),
+   "jeder Schnitt nennt den Winkel Dach/Rohr",winkelText);
+ // Gezeichnet wird der Innenwinkel = Dachneigung + 90, wie ihn auch das Blatt
+ // nennt. Die Faelle tragen 20°, 30°, 40° -> 110°, 120°, 130°.
+ p(winkelText.join("|")==="Dach/Rohr 110°|Dach/Rohr 120°|Dach/Rohr 130°",
+   "und zwar SEINEN Winkel (Dachneigung + 90), nicht den der ersten Einfassung",winkelText);
+ p(f3.bogen.every(n=>n>=1),
+   "zum Winkel gehoert ein Bogen in der Zeichnung, nicht nur eine Zahl",f3.bogen);
+ const latten=f3.svgText.map(t=>t.filter(x=>/^Lattenabstand /.test(x))[0]||"-");
+ p(latten.every(t=>t==="Lattenabstand "+Math.round(f3.lattenabstand)+" mm"),
+   "jeder Schnitt nennt den Lattenabstand",{latten,wert:f3.lattenabstand});
+ // Gegenprobe: a, b und c stehen weiterhin IN der Zeichnung - sonst waere mit
+ // der Tabelle darunter die einzige Quelle dieser Masse verschwunden.
+ const abc=f3.svgText.map(t=>["a","b","c"].every(k=>t.some(x=>x.indexOf(k+" = ")===0)));
+ p(abc.every(Boolean),"a, b und c stehen weiterhin in jeder Zeichnung",f3.svgText[0]);
+ p(f3.abschnitte.indexOf("Masse")<0,
+   'die Tabelle "Masse" unter den Schnitten ist weg',f3.abschnitte);
+ // Gegenprobe zur Loeschung: die Stueckliste je Einfassung bleibt - sie ist
+ // das, was in der Werkstatt gebraucht wird.
+ p(f3.abschnitte.indexOf("Stückliste")>=0,
+   "Gegenprobe: die Stueckliste je Einfassung steht weiterhin im Blatt",f3.abschnitte);
+ // Gegenprobe: ohne Lattenabstand steht dort nichts - keine erfundene Zahl.
+ const ohne=await page.evaluate(()=>typeof einfZeichnung==="function"
+   ? einfZeichnung({durchmesser:110,winkel:30,a:150,b:200,c:60,lattenabstand:0}) : "");
+ p(ohne.indexOf("Lattenabstand")<0,
+   "Gegenprobe: ohne Lattenabstand steht keine erfundene Zahl im Schnitt",
+   ohne.slice(0,80));
+ // v3.267, am erzeugten A4-PDF gesehen: in den Angaben stand woertlich
+ // "&OSLASH; STANDROHR". Die Beschriftung lief als Entitaet "&Oslash;" in
+ // cell(), und cell() schickt sie durch esc() - escapet wurde also das
+ // kaufmaennische Und. Geprueft wird beides: die Zeile selbst und, als
+ // Gegenprobe gegen dieselbe Falle anderswo, dass im ganzen Blatt keine
+ // Entitaet woertlich stehenbleibt.
+ p(f3.beschriftungen.indexOf("Ø Standrohr")>=0,
+   "die Angaben nennen den Durchmesser mit dem Zeichen Ø",f3.beschriftungen);
+ p(f3.entitaeten.length===0,
+   "nirgends im Blatt steht eine HTML-Entitaet woertlich",f3.entitaeten);
 
  console.log("\nE · Keine JavaScript-Fehler");
  p(fehler.length===0,"keine Fehler auf der Seite",fehler.slice(0,3));

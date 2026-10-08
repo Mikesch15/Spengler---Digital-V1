@@ -1258,6 +1258,13 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   // Geholt werden sie ueber rsSkizzen() - dieselbe Quelle, aus der auch die
   // Ruestansicht zeichnet. Der Ausdruck baut nichts nach (siehe Abschnitt J
   // in pruefstand-vermassung-v3-32).
+  // v3.267, Ansage des Anwenders: "die masse unter den schnittskizzen sind
+  // nicht noetig". Unter den Schnitten stand bis v3.266 eine Tabelle "Masse"
+  // mit a, b und c. Sie war doppelt - jede Zeichnung beschriftet a, b und c
+  // selbst - und bei mehreren Einfassungen sogar irrefuehrend: die Tabelle
+  // zeigte nur die Werte der ersten (der Datensatz spiegelt sie auf oberster
+  // Ebene), waehrend die Schnitte daneben andere Werte trugen. Je Einfassung
+  // bleibt die Stueckliste darunter.
   const einfSchnitteHtml=(()=>{
    const alle=(typeof rsSkizzen==="function"?rsSkizzen(m):[])
      .filter(x=>/^Schnitt( \d+)?$/.test(x.titel));
@@ -1287,22 +1294,17 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Eindeckungsart",esc(deckName))}${cell("&Oslash; Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
+<!-- v3.267: hier stand "&Oslash; Standrohr". cell() schickt die Beschriftung
+     durch esc() - die Entitaet wurde dadurch mitescapet und im Blatt stand
+     woertlich "&OSLASH; STANDROHR" (gesehen im erzeugten A4-PDF). Darum das
+     Zeichen selbst, nicht die Entitaet. -->
+<tr>${cell("Eindeckungsart",esc(deckName))}${cell("Ø Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
 <tr>${cell("Winkel Dach/Rohr",(d.winkel===0||d.winkel)?esc(Number(d.winkel)+90)+"°":"–")}${cell("Material",matName)}</tr>
 <tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
 <tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(breiteGesamt,abw))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
 <tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>
 </table>
 ${einfSchnitteHtml}
-<div class="eb-section-head">Masse</div>
-<table class="eb-cutlist">
-<thead><tr><th>Mass</th><th>Bedeutung</th><th>Wert</th></tr></thead>
-<tbody>
-<tr><td>a</td><td>Vorne auf Deckmaterial bis Mitte Rohr</td><td>${esc(Math.round(d.a||0))} mm</td></tr>
-<tr><td>b</td><td>Ab Mitte Rohr bis hinten, unter Deckmaterial</td><td>${esc(Math.round(d.b||0))} mm</td></tr>
-<tr><td>c</td><td>Aufbug 90°, oben Umschlag 135°</td><td>${esc(Math.round(d.c||0))} mm</td></tr>
-</tbody>
-</table>
 ${(()=>{
   // Ab v2.96 koennen mehrere Einfassungen erfasst sein. Gedruckt wird
   // ausschliesslich, was beim Speichern abgelegt wurde - ein einmal

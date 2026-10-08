@@ -186,7 +186,22 @@ function einfZeichnung(e) {
   const hoehePx = Math.round((yMax - yMin) * s + 2 * rand);
   const ox = rand - xMin * s;
   const oy = rand + yMax * s;
-  const X = x => Math.round((ox + x * s) * 10) / 10;
+  // v3.267: Die beiden Eck-Fahnen "180° · Anreiss 20°" (vorne unten, nach
+  // links) und "Umschlag oben 135°" (hinten oben, nach rechts) standen zum
+  // Teil ausserhalb des Blattes und waren abgeschnitten - gemessen an
+  // Ø 110 / 30° / a 150 / b 200 fehlten rechts "35°" und links "180° · An".
+  // Der Zuschlag von 40 bzw. 48 mm deckt die Masskette, nicht den Text.
+  // Statt die Zeichnung dafuer zu stauchen (Millimeter zum Bereich addieren
+  // verkleinert alles), wird nur das Blatt breiter: der Massstab bleibt, die
+  // Zeichnung wandert um den Ueberstand nach rechts. Die Textbreite ist
+  // dieselbe Schaetzung wie in anbMassTextLage (Zeichen x Groesse x 0.56).
+  const textBreit = t => String(t).length * 13 * 0.56;
+  const ueberLinks = foldLen > 0
+    ? Math.max(0, -( (ox + p.pts[0][0] * s) - 34 - textBreit("180° · Anreiss 20°") )) : 0;
+  const ueberRechts = foldLen > 0
+    ? Math.max(0, (ox + p.pts[5][0] * s) + 26 + textBreit("Umschlag oben 135°") - breitePx) : 0;
+  const blattBreite = Math.round(breitePx + ueberLinks + ueberRechts);
+  const X = x => Math.round((ox + ueberLinks + x * s) * 10) / 10;
   const Y = y => Math.round((oy - y * s) * 10) / 10;
 
   let g = "";
@@ -202,7 +217,11 @@ function einfZeichnung(e) {
         stroke-linejoin="round" stroke-linecap="round"/>`;
   if (foldLen > 0) g += anbSaum(p.pts[1], p.pts[0], foldLen, X, Y);
 
-  g += anbFahne(p.aMid[0], p.aMid[1], 0, -26, "a = " + zahl(a), X, Y);
+  // v3.267: "a" haengt jetzt UNTER der Dachlinie. Darueber sitzt seit v3.267
+  // der Winkel Dach/Rohr, und beide Beschriftungen lagen uebereinander
+  // (gemessen an 110/30°/a=150: der Text "Dach/Rohr 120°" schnitt durch
+  // "a = 150"). Unter der Linie ist zwischen Vorderkante und Rohr nichts.
+  g += anbFahne(p.aMid[0], p.aMid[1], 0, 26, "a = " + zahl(a), X, Y);
   g += anbFahne(p.bMid[0], p.bMid[1], 0, -26, "b = " + zahl(b), X, Y);
   const cMid = [(p.pts[3][0] + p.pts[4][0]) / 2, (p.pts[3][1] + p.pts[4][1]) / 2];
   g += anbFahne(cMid[0], cMid[1], 26, 0, "c = " + zahl(c) + " · 90°", X, Y);
@@ -211,11 +230,67 @@ function einfZeichnung(e) {
     g += anbFahne(p.pts[5][0], p.pts[5][1], 22, -18, "Umschlag oben 135°", X, Y);
   }
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${breitePx} ${hoehePx}"
+  // v3.267, Ansage des Anwenders: der Winkel des Rohres gehoert IN den
+  // Schnitt, nicht nur in die Angaben des Blattes. Grund: Durchmesser und
+  // Winkel stehen je Einfassung, die Angaben-Tabelle zeigt aber nur die
+  // erste - bei mehreren Einfassungen auf einem Blatt ist am Schnitt selbst
+  // sonst nicht ablesbar, zu welchem Winkel er gehoert.
+  // Gezeichnet wird der Winkel, den auch das Blatt nennt: der INNENwinkel
+  // zwischen Dach und Rohr, also Dachneigung + 90 (gespeichert ist die
+  // Dachneigung - dieselbe Beschriftung wie in js/16 und bei der
+  // Kamineinfassung, CLAUDE.md 99.3).
+  // Der Scheitel sitzt dort, wo die vordere Rohrkante die Dachschraege
+  // schneidet: beide Schenkel des Winkels sind dann schon gezeichnet (die
+  // Blechlinie und die gestrichelte Rohrkante), der Bogen braucht keine
+  // Hilfslinien und laeuft nicht durch den Rohrquerschnitt. Nur wenn a zu
+  // kurz ist, um diesen Scheitel noch auf dem Blech zu haben, bleibt er in
+  // der Rohrmitte.
+  (function () {
+    const winkelGrad = Number(e.winkel) || 0;
+    const r = winkelGrad * Math.PI / 180;
+    const u = [Math.cos(r), Math.sin(r)];               // Dachschräge, bergwärts
+    const wegNachVorn = (durchmesser > 0 && u[0] > 0.2) ? rHalb / u[0] : 0;
+    const scheitel = (wegNachVorn > 0 && a > wegNachVorn + 10)
+      ? [rM[0] - u[0] * wegNachVorn, rM[1] - u[1] * wegNachVorn] : rM;
+    const cx = X(scheitel[0]), cy = Y(scheitel[1]);
+    const rad = 46;
+    // Bildkoordinaten: Y ist gespiegelt (Y(y) = oy - y*s).
+    const a1 = Math.atan2(u[1], -u[0]);                 // Dach talwärts
+    const a2 = Math.atan2(-1, 0);                       // Rohr senkrecht nach oben
+    let delta = a2 - a1;
+    while (delta > Math.PI) delta -= 2 * Math.PI;
+    while (delta < -Math.PI) delta += 2 * Math.PI;
+    const q1 = [cx + rad * Math.cos(a1), cy + rad * Math.sin(a1)];
+    const q2 = [cx + rad * Math.cos(a2), cy + rad * Math.sin(a2)];
+    g += `<path d="M ${q1[0].toFixed(1)} ${q1[1].toFixed(1)} A ${rad} ${rad} 0 0 ${delta > 0 ? 1 : 0} ${q2[0].toFixed(1)} ${q2[1].toFixed(1)}" fill="none" stroke="${ANB_FARBE.mass}" stroke-width="1.2"/>`;
+    const mitte = a1 + delta / 2;
+    const abstand = rad + 34;
+    const tx = Math.min(blattBreite - 62, Math.max(62, cx + abstand * Math.cos(mitte)));
+    const ty = cy + abstand * Math.sin(mitte) + 4;
+    g += `<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle"
+      font-size="13" font-weight="700" fill="${ANB_FARBE.mass}"
+      paint-order="stroke" stroke="#fff" stroke-width="3.5"
+      stroke-linejoin="round">Dach/Rohr ${Math.round(winkelGrad + 90)}°</text>`;
+  })();
+
+  // v3.267: der Lattenabstand gehoert ebenfalls zu jedem Schnitt - aus ihm
+  // ergibt sich die Anzahl Bleilappen, und er stand bisher nur einmal in den
+  // Angaben des Blattes. Oben links, weil die Zeichnung bergwaerts nach
+  // rechts steigt und diese Ecke dadurch frei ist. Ohne Lattenabstand steht
+  // dort nichts - keine erfundene Zahl (die Warnung dazu kommt aus
+  // einfBerechnen).
+  const latten = Math.round(Number(e.lattenabstand) || 0);
+  const lattenHtml = latten > 0
+    ? `<text x="10" y="21" font-size="13" font-weight="700" fill="${ANB_FARBE.mass}"
+        paint-order="stroke" stroke="#fff" stroke-width="3.5"
+        stroke-linejoin="round">Lattenabstand ${latten} mm</text>` : "";
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${blattBreite} ${hoehePx}"
     width="100%" style="display:block;height:auto" font-family="Arial,Helvetica,sans-serif">
-    <rect width="${breitePx}" height="${hoehePx}" fill="#fff"/>
+    <rect width="${blattBreite}" height="${hoehePx}" fill="#fff"/>
     ${g}
-    <text x="${breitePx - 8}" y="${hoehePx - 7}" text-anchor="end" font-size="11"
+    ${lattenHtml}
+    <text x="${blattBreite - 8}" y="${hoehePx - 7}" text-anchor="end" font-size="11"
       fill="#8b969e">Einfassung Rund · Schnitt (Umfang nicht dargestellt) · Rohr senkrecht</text>
   </svg>`;
 }
