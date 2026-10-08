@@ -33394,3 +33394,27 @@ Durch die Änderungen in v3.263 wurde sie wieder grün — das war Glück, nicht
 Absicht. Die Regression nach dem Push schützt nur, wenn sie zu Ende läuft und
 ihr Ergebnis gelesen wird.
 
+
+### v3.264 — der Kopf der Einfassungskarte lief nicht mit
+
+Meldung: „Wiso wird beim einfassung rund die einfassung 1 oben rechts der
+zuschnitt berechnet und bei einfassung 2 nicht?"
+
+**Gerechnet wurde immer richtig.** Nachgestellt im Browser: der Datensatz der
+zweiten Einfassung trug alle Masse, `einfaBerechne` lieferte 350 × 933 — auf
+der Karte stand „0 × 38".
+
+Ursache: `einfaLive()` führt nach jedem Tastendruck Kennzahlen, Zeichnung und
+den Punkt am Kontroll-Register nach, die **Kartenköpfe nicht**. Der Kopf stand
+noch so da, wie die Karte beim *Anlegen* aussah. Dieselbe Ursache liess dort
+„Einfassung 2" statt der eingegebenen Bezeichnung stehen. Die erste Karte sah
+nur richtig aus, weil sie zuletzt mit ihren Werten gezeichnet worden war.
+
+Der Kopf steht jetzt in `einfaKartenKopfHtml()` als **eine** Quelle für
+Erstzeichnung und Nachführung. Nachgeführt wird nur der Kopf, nicht die Karte
+— sonst verlöre das Feld, in dem gerade getippt wird, den Fokus.
+
+Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Werte
+nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
+missverstanden werden.
+

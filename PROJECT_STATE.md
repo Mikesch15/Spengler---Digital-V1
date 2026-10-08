@@ -3,9 +3,52 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.266`
+- Aktueller Entwicklungsstand: `v3.267`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.267 — Winkel und Lattenabstand im Schnitt der Einfassung rund
+
+Ansage: „Einfassung rund, im schnitt muss der winkel des rohres auch
+dargestellt werden und der lattenabstand auch zu jedem schnitt … die masse
+unter den schnittskizzen sind nicht nötig."
+
+**Warum es überhaupt fehlte:** Durchmesser und Winkel werden **je Einfassung**
+erfasst, Deckung und Lattenabstand gelten für die ganze Aufnahme. Die
+Angaben-Tabelle des Blattes zeigt aber nur die Werte der ersten Einfassung
+(der Datensatz spiegelt sie auf oberster Ebene). Seit v3.265 stehen alle
+Schnitte im Blatt — zu welchem Winkel ein Schnitt gehört, war daneben nicht
+mehr ablesbar.
+
+**Gezeichnet** wird derselbe Winkel, den das Blatt nennt: der Innenwinkel
+Dach/Rohr = Dachneigung + 90 (gespeichert ist die Dachneigung). Der Scheitel
+sitzt dort, wo die vordere Rohrkante die Dachschräge schneidet — beide
+Schenkel sind dann schon gezeichnet (Blechlinie und gestrichelte Rohrkante),
+der Bogen braucht keine Hilfslinien und läuft nicht durch den Querschnitt.
+Ist `a` zu kurz dafür, bleibt der Scheitel in der Rohrmitte. Der Lattenabstand
+steht oben links; ohne Wert steht dort nichts statt einer erfundenen Zahl.
+
+**Die Tabelle „Masse" unter den Schnitten ist weg.** Sie war doppelt (a, b, c
+beschriftet jede Zeichnung selbst) und bei mehreren Einfassungen irreführend —
+sie zeigte die Werte der ersten. Die Stückliste je Einfassung bleibt; der
+Prüfstand hält beides fest.
+
+**Zwei Dinge am erzeugten A4-Blatt gesehen und mitbehoben** (beide vorher
+vorhanden, nicht gemeldet):
+1. „a = 150" und der neue Winkeltext lagen übereinander — `a` hängt jetzt
+   unter der Dachlinie, dort ist nichts.
+2. Die Eck-Fahnen „180° · Anreiss 20°" und „Umschlag oben 135°" waren am Rand
+   **abgeschnitten**; der Zuschlag von 40/48 mm deckt die Masskette, nicht den
+   Text. Statt die Zeichnung zu stauchen (Millimeter zum Bereich addieren
+   verkleinert alles) wird nur das Blatt breiter: der Massstab bleibt.
+3. In den Angaben stand wörtlich „&OSLASH; STANDROHR" — die Beschriftung lief
+   als Entität in `cell()`, und `cell()` schickt sie durch `esc()`. Gegenprobe
+   im Prüfstand: im ganzen Blatt darf keine Entität wörtlich stehenbleiben.
+
+Gemessen wurde am echten A4-PDF (fünf Einfassungen → zwei Seiten, vier auf
+der ersten) und an vier gerenderten Schnitten (30°/45°/5°, mit und ohne
+Lattenabstand). Prüfstand `pruefstand-einfassung-schnitte-v3-265.js`: 25
+Prüfungen, vorher 15.
 
 ### v3.266 — Zählpfeile im Regierapport-Ausdruck
 
@@ -71,29 +114,6 @@ Format, samt Gegenprobe, dass die Zeichnungen **verschieden** sind — sonst
 bestünde auch viermal dieselbe. Abschnitt L in
 `pruefstand-einfassung-app-v2-96` verlangte wörtlich die Einzahl „Schnitt" und
 ist auf den neuen Vertrag umgestellt, mit Gegenprobe gegen den alten Zustand.
-
-### v3.264 — der Kopf der Einfassungskarte lief nicht mit
-
-Meldung: „Wiso wird beim einfassung rund die einfassung 1 oben rechts der
-zuschnitt berechnet und bei einfassung 2 nicht?"
-
-**Gerechnet wurde immer richtig.** Nachgestellt im Browser: der Datensatz der
-zweiten Einfassung trug alle Masse, `einfaBerechne` lieferte 350 × 933 — auf
-der Karte stand „0 × 38".
-
-Ursache: `einfaLive()` führt nach jedem Tastendruck Kennzahlen, Zeichnung und
-den Punkt am Kontroll-Register nach, die **Kartenköpfe nicht**. Der Kopf stand
-noch so da, wie die Karte beim *Anlegen* aussah. Dieselbe Ursache liess dort
-„Einfassung 2" statt der eingegebenen Bezeichnung stehen. Die erste Karte sah
-nur richtig aus, weil sie zuletzt mit ihren Werten gezeichnet worden war.
-
-Der Kopf steht jetzt in `einfaKartenKopfHtml()` als **eine** Quelle für
-Erstzeichnung und Nachführung. Nachgeführt wird nur der Kopf, nicht die Karte
-— sonst verlöre das Feld, in dem gerade getippt wird, den Fokus.
-
-Der Prüfstand hält **beides** fest: dass der Kopf mitläuft, und dass die Werte
-nie falsch waren. Ohne das Zweite könnte der Fehler später als Rechenfehler
-missverstanden werden.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
