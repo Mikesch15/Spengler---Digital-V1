@@ -33448,3 +33448,83 @@ bestünde auch viermal dieselbe. Abschnitt L in
 `pruefstand-einfassung-app-v2-96` verlangte wörtlich die Einzahl „Schnitt" und
 ist auf den neuen Vertrag umgestellt, mit Gegenprobe gegen den alten Zustand.
 
+
+### v3.267 — Winkel und Lattenabstand im Schnitt der Einfassung rund
+
+Ansage: „Einfassung rund, im schnitt muss der winkel des rohres auch
+dargestellt werden und der lattenabstand auch zu jedem schnitt … die masse
+unter den schnittskizzen sind nicht nötig."
+
+**Warum es überhaupt fehlte:** Durchmesser und Winkel werden **je Einfassung**
+erfasst, Deckung und Lattenabstand gelten für die ganze Aufnahme. Die
+Angaben-Tabelle des Blattes zeigt aber nur die Werte der ersten Einfassung
+(der Datensatz spiegelt sie auf oberster Ebene). Seit v3.265 stehen alle
+Schnitte im Blatt — zu welchem Winkel ein Schnitt gehört, war daneben nicht
+mehr ablesbar.
+
+**Gezeichnet** wird derselbe Winkel, den das Blatt nennt: der Innenwinkel
+Dach/Rohr = Dachneigung + 90 (gespeichert ist die Dachneigung). Der Scheitel
+sitzt dort, wo die vordere Rohrkante die Dachschräge schneidet — beide
+Schenkel sind dann schon gezeichnet (Blechlinie und gestrichelte Rohrkante),
+der Bogen braucht keine Hilfslinien und läuft nicht durch den Querschnitt.
+Ist `a` zu kurz dafür, bleibt der Scheitel in der Rohrmitte. Der Lattenabstand
+steht oben links; ohne Wert steht dort nichts statt einer erfundenen Zahl.
+
+**Die Tabelle „Masse" unter den Schnitten ist weg.** Sie war doppelt (a, b, c
+beschriftet jede Zeichnung selbst) und bei mehreren Einfassungen irreführend —
+sie zeigte die Werte der ersten. Die Stückliste je Einfassung bleibt; der
+Prüfstand hält beides fest.
+
+**Zwei Dinge am erzeugten A4-Blatt gesehen und mitbehoben** (beide vorher
+vorhanden, nicht gemeldet):
+1. „a = 150" und der neue Winkeltext lagen übereinander — `a` hängt jetzt
+   unter der Dachlinie, dort ist nichts.
+2. Die Eck-Fahnen „180° · Anreiss 20°" und „Umschlag oben 135°" waren am Rand
+   **abgeschnitten**; der Zuschlag von 40/48 mm deckt die Masskette, nicht den
+   Text. Statt die Zeichnung zu stauchen (Millimeter zum Bereich addieren
+   verkleinert alles) wird nur das Blatt breiter: der Massstab bleibt.
+3. In den Angaben stand wörtlich „&OSLASH; STANDROHR" — die Beschriftung lief
+   als Entität in `cell()`, und `cell()` schickt sie durch `esc()`. Gegenprobe
+   im Prüfstand: im ganzen Blatt darf keine Entität wörtlich stehenbleiben.
+
+Gemessen wurde am echten A4-PDF (fünf Einfassungen → zwei Seiten, vier auf
+der ersten) und an vier gerenderten Schnitten (30°/45°/5°, mit und ohne
+Lattenabstand). Prüfstand `pruefstand-einfassung-schnitte-v3-265.js`: 25
+Prüfungen, vorher 15.
+
+### v3.266 — Zählpfeile im Regierapport-Ausdruck
+
+Ansage: „Im regieraport pdf gibts am pc diese pfeile, entferne sie" (mit Foto
+des fertigen Ausdrucks). Die Pfeile standen in den Spalten *Std.*, *Menge* und
+*Fr./E* mitten in den Zahlen.
+
+**Was es war:** Chrome zeichnet an jedem `input[type=number]` zwei kleine
+Pfeile zum Hoch- und Runterzählen. `css/03-druck.css` setzt am Feld selbst
+seit langem `appearance:none` — das erreicht die Pfeile **nicht**: sie sind
+ein eigenes Element im Schatten-Baum und brauchen ihre eigene Regel. Genau
+dieselbe Familie wie der Datumswähler (v3.x) und der Anfasser des Textfelds
+(v3.156), die beide schon ihre eigene Zeile haben. Behoben mit einer Regel
+auf `::-webkit-inner-spin-button` / `::-webkit-outer-spin-button` im
+`@media print`-Block, dazu `-moz-appearance:textfield` für Firefox.
+
+**Gemessen statt vermutet — und der erste Messweg war falsch.**
+`getComputedStyle(feld,"::-webkit-inner-spin-button")` gibt in Chrome die
+Werte des **Feldes** zurück: gemessen an einer leeren Testseite `display
+inline-block`, `width 120px` (= Feldbreite), `appearance auto` — identisch im
+Druck und am Bildschirm, mit und ohne Regel. Damit wäre weder ein Erfolg noch
+ein Fehlschlag zu erkennen gewesen; die drei ersten Prüfungen schlugen
+entsprechend mit `null` bzw. unverändert fehl.
+
+Der Prüfstand misst deshalb **am Bild**: Chrome zeichnet die Pfeile nur,
+solange der Zeiger auf dem Feld steht. Je Medium zwei Aufnahmen desselben
+Feldes — ohne und mit Zeiger darauf — und verglichen werden die Bilder
+(`Buffer.equals`, ohne zusätzliche Abhängigkeit, damit es auf dem
+GitHub-Runner genauso läuft). Im Druck müssen beide gleich sein, am Bildschirm
+unterschiedlich. Gegenprobe gefahren: ohne die neue Regel schlägt E1 fehl
+(`gleich:false`), mit ihr ist sie grün.
+
+Ein Zahlenfeld gibt es im Rapport erst mit einer Zeile; E0 hält fest, dass
+überhaupt eines zu messen war, damit die Prüfung nicht stillschweigend ins
+Leere läuft. Prüfstand: `pruefstand-bereiche-v3-156.js`, Abschnitt E (35
+Prüfungen, vorher 32).
+
