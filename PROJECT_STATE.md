@@ -3,9 +3,24 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.280`
+- Aktueller Entwicklungsstand: `v3.281`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.281 — Korrektur an v3.280: Satz zur Fotowand
+
+v3.280 ging **rot** hinaus: `navigation-v3-203` (Abschnitt C) verlangt, dass das
+Dateien-Register die Fotowand „Alle Fotos" beschriftet nennt. Ich hatte den Satz
+unter dem Knopf umformuliert und das Wort gestrichen. Die Fotowand ist weiter
+erreichbar, nur der Hinweis fehlte — der Prüfstand hat recht, nicht angepasst.
+Behoben, indem der Satz sie wieder nennt.
+
+**Warum ich es erst im Lauf nach dem Push sah:** die Schnellprüfung hatte ich
+**nach Namen** zusammengesucht (`ansicht|a2|aufgaben|projekt|…`) — `navigation`
+fehlte darin. Genau der Fall, vor dem `CLAUDE.md` bei `js/70` warnt („ein Name ist
+keine Abhängigkeit"). Für Änderungen an `js/70`/`js/45` künftig **alle**
+Prüfstände mit `ansicht`, `a2`, `navigation`, `start`, `aufgaben`, `leiste`,
+`bereiche`, `projekt` **und** `register`/`mehr` mitnehmen.
 
 ### v3.280 — Projektfotos im Register „Dateien"
 
@@ -29,37 +44,6 @@ Register; Vorschauen nach dem Zeichnen (`medienThumbsAufloesen` in
 `data-a2-tu="fotosalle"` zeigt alle; ohne Bilder kein Abschnitt. Druck und
 Herkunftsfilter bleiben in der Fotowand.
 Prüfstand `projektfotos-v3-280` (12; zwei Mutationsproben rot).
-
-### v3.279 — ersetzte Bilder löscht die App beim Speichern selbst
-
-Ansage (9.10.2026), nach der Erklärung zur verwaisten Skizze: „Wenn dadurch
-keine Dateien verloren gehen, kann die App die verwaisten Dateien selbstständig
-löschen beim Ersetzen." (Das ist eine **Umkehr** der Antwort „nein, nicht von
-selber" kurz davor — der Anwender hatte die Frage zuerst anders verstanden.)
-
-`js/16`: `measBilderGespeichert(id)` liest **vor** dem UPDATE, was in der Zeile
-steht; `measBilderAufraeumen(id,projekt,vorher,nachher)` löscht **nach** dem
-erfolgreichen UPDATE, was vorher darin stand und nachher nicht mehr (ersetzt
-oder im Formular entfernt). Sicherungen — gelöscht wird nur, wenn alles zutrifft:
-1. die Datei stand vorher in **dieser** Zeile und steht nachher nicht mehr darin;
-2. sie liegt im Ordner `measurements/<Projekt>/<Massaufnahme>/` — ältere flache
-   Pfade, Projektdateien, Logo, andere Massaufnahmen werden nie angefasst
-   (Präfix mit Schrägstrich: 114 ≠ 1140);
-3. keine **andere** Massaufnahme des Projekts verweist darauf;
-4. das Speichern ist gelungen (Aufruf hinter dem UPDATE).
-Im Zweifel (Abfrage- oder Löschfehler) wird **nichts** gelöscht und das
-Speichern bleibt heil; die Datei bleibt dann als Waise wie bisher.
-Das Löschen läuft über die normale Storage-Policy: für Pfade
-`measurements/<Projekt-Nr.>/…` genügt die Firma des Projekts
-(`storage_object_is_own_company`), keine Referenz nötig — kein
-Edge-Function-Umweg.
-**Nicht erfasst (nicht gefragt):** wird eine **ganze Massaufnahme** gelöscht
-(`js/09`), bleiben ihre Dateien liegen; ebenso Ersetzen über den Offline-Weg
-(`js/43`). Beides wäre ein eigener Auftrag.
-Prüfstand `bilder-aufraeumen-v3-279` (21; vier Mutationsproben rot: Ordner-
-Präfix, Verweis-Prüfung, Aufruf entfernt, Abfragefehler) — Datenbank und
-Speicher gestubbt; der **echte** Speichern-Weg ist dabei durchlaufen
-(Hochladen → Lesen → UPDATE → Löschen), gegen die echte Datenbank lief nichts.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
