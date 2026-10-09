@@ -2106,7 +2106,7 @@ function a2RegDateien(p){
  html+=`<div class="a2-knopf-reihe" style="margin:0 0 6px">
    <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="cockpit">
     \ud83d\udcc2 Dateien, Fotos und Verlauf \u00f6ffnen</button></div>
-  <p class="a2-zweck">Dort kann man Dateien hochladen und l\u00f6schen, die Fotos
+  <p class="a2-zweck">Dort kann man Dateien hochladen und l\u00f6schen, \u201EAlle Fotos\u201C
    nach Herkunft filtern und als Fotodokumentation ausdrucken \u2013 und sieht den
    Verlauf, wer wann was ge\u00e4ndert hat.</p>`;
  return html;
