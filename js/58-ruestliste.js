@@ -105,6 +105,7 @@ function rlBlockHtml(m,plan){
 </tr>`;
  }).join("");
  return `<div class="eb-section-head">${esc(rlTyp(m.type))}${m.title?" · "+esc(m.title):""}</div>
+${(typeof dfaVeraltetHinweis==="function"&&dfaVeraltetHinweis(m))?`<div class="note rl-alt" style="font-weight:700;border:2px solid #c0392b;padding:4px 6px">⚠️ ${esc(dfaVeraltetHinweis(m))}</div>`:""}
 ${kopfzeile.length?`<div class="note rl-kopfzeile">${esc(kopfzeile.join(" · "))}</div>`:""}
 <table class="eb-cutlist rl-tab">
 <thead><tr><th>Anzahl</th><th>Zuschnitt L × B (mm)</th><th>Stück – abhaken</th><th>Bemerkung</th></tr></thead>

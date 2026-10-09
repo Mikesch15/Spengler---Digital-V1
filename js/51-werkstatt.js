@@ -594,6 +594,7 @@ function werkAufnahmeHtml(a,jetztK){
    ${aktion?`<div class="werk-karte-akt">${aktion}</div>`:""}
   </div>
   ${verfallen?'<div class="small werk-karte-warn">Diese Massaufnahme wurde nach der Freigabe geändert. Sie muss erneut freigegeben werden, bevor daran weitergearbeitet wird.</div>':""}
+  ${(typeof dfaVeraltetHinweis==="function"&&dfaVeraltetHinweis(a))?'<div class="small werk-karte-warn dfa-alt">⚠️ '+esc(dfaVeraltetHinweis(a))+"</div>":""}
   ${offen?`<div class="werk-karte-body">
    ${wer?`<div class="small" style="color:var(--muted)">${wer}</div>`:""}
    ${(typeof rbBlattHtml==="function")?rbBlattHtml(a):""}

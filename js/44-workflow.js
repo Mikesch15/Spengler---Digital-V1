@@ -277,6 +277,12 @@ function mwAktiv(){return (typeof workflowAktiv==="undefined")||workflowAktiv!==
 // eingeteilte Leute, waere aber sonst von einer frisch erfassten nicht zu
 // unterscheiden (v3.06).
 function mwBadgeFuerListe(m){
+ // v3.282: alter Dachfenster-Zuschnitt (js/66) - unabhaengig vom Workflow-Schalter.
+ const alt=(typeof dfaZuschnittVeraltet==="function"&&dfaZuschnittVeraltet(m))
+  ?`<span class="mw-next mw-rot dfa-alt" title="${esc(dfaVeraltetHinweis(m))}">⚠️ Alter Zuschnitt</span> `:"";
+ return alt+mwBadgeFuerListeRoh(m);
+}
+function mwBadgeFuerListeRoh(m){
  if(!m||!mwAktiv())return "";
  // v3.10: Bis v3.09 stand hier der Status ("Zu rüsten") - der sagt aber
  // nicht, was zu tun ist und von wem. Jetzt steht genau eine Angabe da: der

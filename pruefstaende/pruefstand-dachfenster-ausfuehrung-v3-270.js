@@ -253,8 +253,9 @@ const SEPARAT=Object.assign({},NORD,{seitenteilArt:"separat",ueberlappung:10,
  p(weg.zuschnitteGepunktet==="280 x 774"&&weg.zuschnitteGefalzt==="280 x 564",
    "die gespeicherten Zuschnitte folgen dem Umschalten (774 -> 564)",weg);
  p(weg.seitenteilHintenGefalzt==="224 x 505","auch das Seitenteil hinten im Datensatz (505)",weg);
- p(weg.ohneFeld==="gepunktet","ein aelterer Datensatz ohne das Feld ist gepunktet - so wurde bisher gerechnet",weg);
- p(weg.unbekannt==="gepunktet","ein unbekannter Wert faellt auf gepunktet zurueck",weg);
+ p(weg.ohneFeld==="","ein aelterer Datensatz ohne das Feld oeffnet OHNE Vorwahl - die Wahl soll bewusst fallen (v3.282)",weg);
+ p(weg.unbekannt==="","ein unbekannter Wert wird nicht still uebernommen, sondern bleibt ungewaehlt",weg);
+ p(weg.nachOeffnen==="gepunktet"&&weg.nachZweitemOeffnen==="gefalzt","Gegenprobe: ein gespeicherter Wert kommt weiter unveraendert zurueck",weg);
  p(weg.neu===""&&weg.neuArt==="","eine neue Aufnahme beginnt OHNE Vorwahl (Pflicht-Dropdowns)",weg);
  p(weg.leerAus===""&&weg.leerArt===""&&weg.leerGespeichert.join("")==="",
    "Gegenprobe: eine leer gespeicherte Wahl wird nicht still zu gepunktet/separat",weg);

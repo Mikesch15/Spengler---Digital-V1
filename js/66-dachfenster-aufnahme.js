@@ -1681,8 +1681,8 @@ function dfaFuellen(d){
  // Kontrolle Mass I, das es in dieser Bauart gar nicht gibt, und liess sich
  // nicht mehr speichern. Ein Datensatz ohne das Feld ist wie bisher "separat".
  a.seitenteilArt=w.seitenteilArt==="knick"?"knick":(w.seitenteilArt===""?"":"separat");
- // v3.270: Ausfuehrung. Ein aelterer Datensatz ohne das Feld ist "gepunktet".
- a.ausfuehrung=w.ausfuehrung==="gefalzt"?"gefalzt":(w.ausfuehrung===""?"":"gepunktet");
+ // v3.270: Ausfuehrung. Ein aelterer Datensatz ohne das Feld bleibt ungewaehlt (v3.282): sein gespeicherter Zuschnitt folgt noch der alten Regel, die Wahl soll bewusst fallen.
+ a.ausfuehrung=w.ausfuehrung==="gefalzt"?"gefalzt":(w.ausfuehrung==="gepunktet"?"gepunktet":"");
  ["a","b","c","d","f","g"].forEach(k=>{
   const v=w[k];
   if(v&&typeof v==="object")a[k]={l:(v.l===0||v.l)?v.l:"",r:(v.r===0||v.r)?v.r:""};
@@ -1699,4 +1699,17 @@ function dfaFuellen(d){
  dfaBestaetigt=dfaPruefungen().some(x=>x.art==="fehler")
   ?new Set():new Set(DFA_REGISTER.filter(r=>r.nr!==DFA_KONTROLLE).map(r=>r.nr));
  renderDfaAufnahme();
+}
+
+// v3.282: Eine Dachfenster-Massaufnahme ohne gespeicherte Ausfuehrung stammt aus der
+// Zeit vor v3.270. Ihr gespeicherter Zuschnitt (Ruestliste, Werkstatt, Material)
+// folgt noch der alten Regel und stimmt mit den heutigen Abwicklungen nicht
+// ueberein. Eine Stelle entscheidet das - Listen, Werkstatt und Ruestliste fragen hier.
+function dfaZuschnittVeraltet(m){
+ return !!m&&m.type==="dachfenstereinfassung"
+  &&!((m.data||{}).ausfuehrung==="gepunktet"||(m.data||{}).ausfuehrung==="gefalzt");
+}
+function dfaVeraltetHinweis(m){
+ if(!dfaZuschnittVeraltet(m))return "";
+ return "Alter Zuschnitt: Diese Dachfenster-Aufnahme wurde vor der Wahl «gepunktet / gefalzt» gespeichert, ihre Abwicklungen stimmen nicht mehr. Aufnahme öffnen, Ausführung wählen und speichern – eine bereits erteilte Freigabe verfällt dabei.";
 }
