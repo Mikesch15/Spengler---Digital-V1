@@ -3,9 +3,32 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.279`
+- Aktueller Entwicklungsstand: `v3.280`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.280 — Projektfotos im Register „Dateien"
+
+Ansage (9.10.2026): „Alle Fotos, die in einem Projekt in verschiedenen
+Massaufnahmen gemacht wurden, sollen in den Projektfotos zu sehen sein."
+
+**Befund:** die Fotowand „📷 Alle Fotos" (`js/24 cockpitFotoListe()`, seit
+v3.142) sammelte schon Fotos **und** Skizzen aus allen Massaufnahmen (auch
+archivierten — `projectMeasurementsCache` hält alle), Ausmass, Rapporten,
+Offerten, Bilddateien. In der **neuen Ansicht** lag sie aber hinter dem Knopf
+„Dateien, Fotos und Verlauf öffnen"; das Register „Dateien" (`js/70
+a2RegDateien`) zeigte nur `projectFilesCache`. **Annahme:** „Projektfotos"
+meint dieses Register. Ein Fehler in der Sammlung selbst wurde **nicht**
+gefunden (sie ist eine reine Funktion der Spalten); wer meint, dort fehlten
+Bilder, muss sagen, welche.
+**Umsetzung:** `a2FotosHtml()` baut aus **derselben** `cockpitFotoListe()` die
+Kacheln (Klassen `medien-galerie`/`medien-kachel` wie die Fotowand), oben im
+Register; Vorschauen nach dem Zeichnen (`medienThumbsAufloesen` in
+`a2Zeichnen`, nur wenn solche Bilder da sind); Grossansicht über
+`medienGrossOeffnen` (delegierter Klick); erst die 30 neuesten, Knopf
+`data-a2-tu="fotosalle"` zeigt alle; ohne Bilder kein Abschnitt. Druck und
+Herkunftsfilter bleiben in der Fotowand.
+Prüfstand `projektfotos-v3-280` (12; zwei Mutationsproben rot).
 
 ### v3.279 — ersetzte Bilder löscht die App beim Speichern selbst
 
@@ -37,31 +60,6 @@ Prüfstand `bilder-aufraeumen-v3-279` (21; vier Mutationsproben rot: Ordner-
 Präfix, Verweis-Prüfung, Aufruf entfernt, Abfragefehler) — Datenbank und
 Speicher gestubbt; der **echte** Speichern-Weg ist dabei durchlaufen
 (Hochladen → Lesen → UPDATE → Löschen), gegen die echte Datenbank lief nichts.
-
-### v3.278 — archivierte Massaufnahmen aus der Suche; Entscheide
-
-Antworten des Anwenders (9.10.2026) auf die offenen Fragen aus v3.276:
-- **Suche:** archivierte Massaufnahmen **ausblenden** → `js/04`, beide
-  `measurements`-Abfragen mit `.eq("archived",false)`, **serverseitig vor dem
-  `limit(30)`** (sonst verdrängten Archivierte aktive Treffer). Archivierte
-  *Projekte* bleiben in der Suche (nicht gefragt, nicht geändert).
-- **„Alle Massaufnahmen" (`js/46`) und Ausmass-Auswahl (`js/17`)** zeigen weiter
-  alle — der Anwender hat nur die Suche genannt.
-- **Alte Skizzendatei beim Ersetzen von selbst entfernen: NEIN.** Nichts
-  umgesetzt; das Aufräumen bleibt Handarbeit in der System-Administration.
-- **Dachfenster, vorderes Seitenteil bei „separat": Länge G ist richtig** (die
-  Annahme aus v3.273 ist bestätigt); damit war die angekündigte „kleine
-  Anpassung" bereits die ganze. Dort ist nichts mehr offen.
-
-Prüfstand `suche-archiv-v3-278` (7; Mutationsprobe rot).
-
-**Beleg zur verwaisten Skizze (Massaufnahme 114), jetzt aus dem
-Änderungsprotokoll statt aus der Vermutung:** `audit_log` für 114 zeigt
-08:18:55 *created* → 08:19:24 *updated* (`sketches` 0→1: die erste Skizze wird
-gespeichert, Datei 08:19:22) → 08:19:58 *updated* (`sketches` 1→1: die Skizze
-wird **ersetzt**, Datei 08:19:57) → 08:20:02 *status_changed* (freigegeben).
-Die verwaiste Datei ist die **erste Fassung**, die 34 s später durch eine
-bearbeitete ersetzt wurde. Es ist die einzige verwaiste Datei im Bucket.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
