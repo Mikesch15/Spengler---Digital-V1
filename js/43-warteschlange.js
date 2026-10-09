@@ -523,7 +523,7 @@ if(typeof document!=="undefined"){
   }
   const weg=t.closest("[data-ws-weg]");
   if(weg){
-   if(!confirm("Diesen wartenden Eintrag endgültig verwerfen? Die erfassten Werte gehen dabei verloren."))return;
+   if(!await appConfirm("Diesen wartenden Eintrag endgültig verwerfen? Die erfassten Werte gehen dabei verloren."))return;
    await wsWeg(weg.dataset.wsWeg);
    await wsListeZeichnen(); wsAnzeigeAuffrischen();
    return;

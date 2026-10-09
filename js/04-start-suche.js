@@ -185,14 +185,14 @@ async function renderReportsOverview(){
 </div>`;
  }).join(""):'<div class="empty">Noch keine Rapporte vorhanden.</div>';
 }
-$("recentReportsList").addEventListener("click",e=>{
+$("recentReportsList").addEventListener("click",async e=>{
  const o=e.target.closest("[data-open-report-overview]");
  if(o){const r=recentReportsCache.find(x=>x.id===Number(o.dataset.openReportOverview));if(r)openReport(r);return}
  const d=e.target.closest("[data-del-report-overview]");
  if(d){
-  if(!confirm("Diesen Rapport wirklich löschen?"))return;
+  if(!await appConfirm("Diesen Rapport wirklich löschen?"))return;
   sb.from("reports").delete().eq("id",Number(d.dataset.delReportOverview)).then(({error})=>{
-   if(error){alert("Fehler: "+error.message);return}
+   if(error){appAlert("Fehler: "+error.message);return}
    if(currentReportId===Number(d.dataset.delReportOverview))currentReportId=null;
    renderReportsOverview();
   });
@@ -205,9 +205,9 @@ $("exportReportsCsv").onclick=async()=>{
  $("exportReportsCsv").disabled=true;
  const {data,error}=await sb.from("reports").select("*").order("date",{ascending:false});
  $("exportReportsCsv").disabled=false;
- if(error){alert("Fehler: "+error.message);return}
+ if(error){appAlert("Fehler: "+error.message);return}
  const rows=data||[];
- if(!rows.length){alert("Keine Rapporte zum Exportieren vorhanden.");return}
+ if(!rows.length){appAlert("Keine Rapporte zum Exportieren vorhanden.");return}
  const header=["Datum","Projekt","Auftrags-Nr.","Auftraggeber","Adresse","Arbeitsstunden","Arbeitsbetrag CHF","Materialbetrag CHF","MWST","Gesamtbetrag CHF (inkl. MWST)"];
  const csvRows=[header];
  for(const r of rows){

@@ -175,12 +175,12 @@ async function pdfDruckVorbereiten(html,klasse,opt){
   const auswahl=wunsch==="alle"?new Set(PDF_LISTEN_REIHENFOLGE)
     :new Set([].concat(wunsch).concat(["kopf"]));
   const win=window.open("","_blank");
-  if(!win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return null}
+  if(!win){appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return null}
   return {html:pdfListenZusammenbauen(zerlegt,auswahl),win};
  }
  const r=await pdfListenAuswahl(da,opt&&opt.titel);
  if(!r)return null;
- if(!r.win){alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return null}
+ if(!r.win){appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return null}
  return {html:pdfListenZusammenbauen(zerlegt,r.auswahl),win:r.win};
 }
 

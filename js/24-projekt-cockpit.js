@@ -264,7 +264,7 @@ $("cockpitStatus").addEventListener("change",async e=>{
 // (RLS meldet ein blockiertes UPDATE nicht als Fehler, es trifft 0 Zeilen).
 async function cockpitNachAbschlussArchivieren(p,zeige){
  const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
- if(!confirm("Das Projekt \u201E"+titel+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
+ if(!await appConfirm("Das Projekt \u201E"+titel+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
   +"Es erscheint dann nicht mehr in der Projektliste. Unter \u201EArchiv und Filter\u201C "
   +"bleibt es auffindbar und l\u00E4sst sich wieder reaktivieren."))return;
  const {data,error}=await sb.from("projects").update({archived:true}).eq("id",p.id).select("*");
@@ -1120,7 +1120,7 @@ async function cockpitFotosDrucken(){
  // druckt, erwartet die Rapportfotos, nicht das ganze Projekt.
  const bilder=cockpitFotoGezeigt();
  if(!bilder.length){
-  alert("Für dieses Projekt sind keine Fotos gespeichert – es gibt nichts zu drucken.");
+  appAlert("Für dieses Projekt sind keine Fotos gespeichert – es gibt nichts zu drucken.");
   return;
  }
  // Das Fenster wird SOFORT in diesem Klick geoeffnet. Wuerde erst auf die
@@ -1129,7 +1129,7 @@ async function cockpitFotosDrucken(){
  // Aufloesen spuerbar) - dasselbe Muster wie beim PDF-Dialog in js/35.
  const win=window.open("","_blank");
  if(!win){
-  alert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");
+  appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");
   return;
  }
  win.document.write(`<!doctype html><html><head><meta charset="utf-8">`

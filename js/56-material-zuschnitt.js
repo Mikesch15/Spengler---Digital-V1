@@ -269,11 +269,11 @@ document.addEventListener("click",async e=>{
  const t=e.target.closest?e.target.closest("[data-ze-ein]"):null;
  if(!t)return;
  e.preventDefault(); e.stopPropagation();
- if(typeof pmSchnellEin!=="function"){alert("Die Einstellung ist gerade nicht verfügbar.");return}
+ if(typeof pmSchnellEin!=="function"){appAlert("Die Einstellung ist gerade nicht verfügbar.");return}
  t.disabled=true;
  const r=await pmSchnellEin(t.dataset.zeEin==="haupt"?"haupt":"zuschnitt");
  t.disabled=false;
- if(!r||!r.ok){alert((r&&r.text)||"Das Modul konnte nicht eingeschaltet werden.");return}
+ if(!r||!r.ok){appAlert((r&&r.text)||"Das Modul konnte nicht eingeschaltet werden.");return}
  // Die Stelle, an der der Hinweis stand, neu zeichnen - je nachdem, wo wir sind.
  if(typeof renderWerkstatt==="function"&&$("werkstattModal")&&!$("werkstattModal").hidden)renderWerkstatt();
  else if(typeof mzAuffrischen==="function"&&mzSeiteOffen())mzAuffrischen();
@@ -293,7 +293,7 @@ document.addEventListener("click",async e=>{
   const masse={}; masse[nr]={laenge_mm:Number(t.dataset.zeL)||null,
     breite_mm:Number(t.dataset.zeB)||null,merkmal:t.dataset.zeM||null};
   const r=await zeSetzen(mid,[nr],an,masse);
-  if(r&&r.fehler){alert(r.fehler);return}
+  if(r&&r.fehler){appAlert(r.fehler);return}
   if(r&&r.offline)return;
  }else{
   const mid=t.dataset.zeAlle;
@@ -309,7 +309,7 @@ document.addEventListener("click",async e=>{
              merkmal:b?(b.dataset.zeM||null):null};
   });
   const r=await zeSetzen(mid,an?offen:nrs,an,masse);
-  if(r&&r.fehler){alert(r.fehler);return}
+  if(r&&r.fehler){appAlert(r.fehler);return}
   if(r&&r.offline)return;
  }
  zeMarkierungAuffrischen();

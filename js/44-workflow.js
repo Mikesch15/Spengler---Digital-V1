@@ -489,7 +489,7 @@ function mwHinweisZeigen(text){
 }
 
 function mwFehlerZeigen(text){
- const f=$("mwFehler"); if(!f){alert(text);return}
+ const f=$("mwFehler"); if(!f){appAlert(text);return}
  f.textContent=text; f.hidden=false;
 }
 
@@ -511,7 +511,7 @@ async function mwFreigeben(){
  const frage=mwStand.freigabe_verfallen
   ? "Massaufnahme erneut freigeben?\n\nSie wurde nach der letzten Freigabe geändert. Mit der erneuten Freigabe bestätigst du, dass der jetzige Stand vollständig aufgenommen und kontrolliert ist."
   : "Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde.";
- if(!confirm(frage))return;
+ if(!await appConfirm(frage))return;
  const vorR=mwStand.ruester_id, vorM=mwStand.monteur_id;
  const a=await mwRuf("measurement_freigeben",{p_id:mwStand.id},"Die Freigabe");
  if(!a)return;
@@ -551,7 +551,7 @@ async function mwFreigebenAusListe(id){
 
 async function mwGeruestet(){
  if(!mwStand)return;
- if(!confirm("Rüsten bestätigen?\n\nDamit bestätigst du, dass das Material für diese Massaufnahme gerüstet ist."))return;
+ if(!await appConfirm("Rüsten bestätigen?\n\nDamit bestätigst du, dass das Material für diese Massaufnahme gerüstet ist."))return;
  const a=await mwRuf("measurement_geruestet",{p_id:mwStand.id},"Die Bestätigung");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
@@ -559,7 +559,7 @@ async function mwGeruestet(){
 
 async function mwMontiert(){
  if(!mwStand)return;
- if(!confirm("Montage bestätigen?\n\nDamit bestätigst du, dass die Arbeit montiert ist."))return;
+ if(!await appConfirm("Montage bestätigen?\n\nDamit bestätigst du, dass die Arbeit montiert ist."))return;
  const a=await mwRuf("measurement_montiert",{p_id:mwStand.id},"Die Bestätigung");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
@@ -567,7 +567,7 @@ async function mwMontiert(){
 
 async function mwAbschliessen(){
  if(!mwStand)return;
- if(!confirm("Diese Massaufnahme abschliessen?"))return;
+ if(!await appConfirm("Diese Massaufnahme abschliessen?"))return;
  const a=await mwRuf("measurement_abschliessen",{p_id:mwStand.id},"Das Abschliessen");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
@@ -587,7 +587,7 @@ async function mwNachAbschlussArchivieren(){
  if(!mwStand||mwStand.archived)return;
  const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[mwStand.type])||"Massaufnahme";
  const titel=(mwStand.title||"").trim();
- if(!confirm("Die Massaufnahme \u201E"+art+(titel?" \u2013 "+titel:"")+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
+ if(!await appConfirm("Die Massaufnahme \u201E"+art+(titel?" \u2013 "+titel:"")+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
   +"Sie erscheint dann nicht mehr in der Liste des Projekts. Unter \u201EArchivierte anzeigen\u201C "
   +"bleibt sie auffindbar und l\u00E4sst sich wieder reaktivieren."))return;
  const ok=await measurementArchivSetzen(mwStand.id,true);
@@ -599,7 +599,7 @@ async function mwNachAbschlussArchivieren(){
 async function measurementArchivSetzen(id,archiviert){
  const {data,error}=await sb.from("measurements").update({archived:!!archiviert}).eq("id",id).select("id,archived");
  if(error||!data||!data.length){
-  alert((archiviert?"Das Archivieren":"Das Reaktivieren")+" hat nicht geklappt: "
+  appAlert((archiviert?"Das Archivieren":"Das Reaktivieren")+" hat nicht geklappt: "
    +(error?error.message:"Fehlt die n\u00F6tige Berechtigung?"));
   return false;
  }
@@ -710,7 +710,7 @@ function mwNachSpeichern(zeile){
  }
  // Nur melden, wenn die Freigabe durch genau dieses Speichern verfallen ist.
  if(zeile.freigabe_verfallen&&warFreigegeben){
-  alert("Die Freigabe ist verfallen.\n\nDie Massaufnahme wurde nach der Freigabe fachlich geändert und muss erneut freigegeben werden. Rüster und Monteur bleiben zugewiesen.");
+  appAlert("Die Freigabe ist verfallen.\n\nDie Massaufnahme wurde nach der Freigabe fachlich geändert und muss erneut freigegeben werden. Rüster und Monteur bleiben zugewiesen.");
  }
 }
 

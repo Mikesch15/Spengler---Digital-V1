@@ -828,9 +828,9 @@ $("addProject").onclick=async()=>{
  const name=$("newProjectName").value.trim();
  const orderNo=$("newProjectOrderNo").value.trim();
  const address=$("newProjectObject").value.trim();
- if(!name){alert("Bitte einen Projektnamen eingeben.");return}
- if(!orderNo){alert("Bitte eine Auftrags-Nr. eingeben.");return}
- if(!address){alert("Bitte eine Adresse eingeben.");return}
+ if(!name){appAlert("Bitte einen Projektnamen eingeben.");return}
+ if(!orderNo){appAlert("Bitte eine Auftrags-Nr. eingeben.");return}
+ if(!address){appAlert("Bitte eine Adresse eingeben.");return}
  // v3.164: Eine Auftrags-Nr. gibt es je Firma nur einmal. Diese
  // Vorpruefung ist die freundliche Stufe - sie nennt das bestehende
  // Projekt, bevor ueberhaupt gespeichert wird. Die verbindliche Sperre
@@ -838,7 +838,7 @@ $("addProject").onclick=async()=>{
  // Sie greift auch offline, weil offline angelegte Projekte mit
  // wartet:true schon in allProjects stehen.
  const schon=projektMitAuftragsNr(orderNo);
- if(schon){alert(auftragsNrBelegtText(orderNo,schon));return}
+ if(schon){appAlert(auftragsNrBelegtText(orderNo,schon));return}
  // v3.255: Die Zuteilung wird EINMAL abgelesen und von beiden Wegen
  // (online wie offline) unveraendert mitgeschrieben - in dieselbe Spalte,
  // die auch das Stammdaten-Formular schreibt. Leere Liste heisst
@@ -856,7 +856,7 @@ $("addProject").onclick=async()=>{
     zugeteilt_an:zugeteilt}
   });
   if(!r.ok){
-   alert("Keine Verbindung – und dieses Projekt lässt sich auf diesem Gerät auch nicht "
+   appAlert("Keine Verbindung – und dieses Projekt lässt sich auf diesem Gerät auch nicht "
     +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").");
    return;
   }
@@ -870,7 +870,7 @@ $("addProject").onclick=async()=>{
   $("newProjectCustomer").value="";$("newProjectObject").value="";
   neuesProjektZuteilungZeichnen();
   renderProjectList();renderProjectSelect();
-  alert("Keine Verbindung.\n\nDas Projekt wartet auf diesem Gerät und wird übertragen, "
+  appAlert("Keine Verbindung.\n\nDas Projekt wartet auf diesem Gerät und wird übertragen, "
    +"sobald wieder eine Verbindung besteht. Massaufnahmen dazu lassen sich schon jetzt "
    +"erfassen – sie warten mit.");
   return;
@@ -885,7 +885,7 @@ $("addProject").onclick=async()=>{
  // v3.164: Die Datenbank hat das letzte Wort. Sie faengt den Fall, den
  // die Vorpruefung oben nicht sehen konnte - eine veraltete Projektliste
  // auf diesem Geraet oder zwei Leute, die gleichzeitig speichern.
- if(error){alert(auftragsNrKonfliktText(error)||("Fehler: "+error.message));return}
+ if(error){appAlert(auftragsNrKonfliktText(error)||("Fehler: "+error.message));return}
  $("newProjectName").value="";$("newProjectOrderNo").value="";$("newProjectCustomer").value="";$("newProjectObject").value="";
  // Die Haken gehen mit den Feldern weg - sonst truege das naechste Projekt
  // stillschweigend die Zuteilung des vorigen.
@@ -933,7 +933,7 @@ $("projectList").addEventListener("click",async e=>{
   const id=Number(arch.dataset.archiveProject);
   const proj=allProjects.find(x=>x.id===id);
   const {error}=await sb.from("projects").update({archived:!proj.archived}).eq("id",id);
-  if(error){alert("Fehler: "+error.message);return}
+  if(error){appAlert("Fehler: "+error.message);return}
   const {data}=await sb.from("projects").select("*").order("name");
   allProjects=data||[];
   renderProjectList();
@@ -941,7 +941,7 @@ $("projectList").addEventListener("click",async e=>{
  }
  const del=e.target.closest("[data-del-project]");
  if(del){
-  if(!confirm("Projekt wirklich löschen? Gespeicherte Rapporte bleiben erhalten, verlieren aber die Projekt-Zuordnung."))return;
+  if(!await appConfirm("Projekt wirklich löschen? Gespeicherte Rapporte bleiben erhalten, verlieren aber die Projekt-Zuordnung."))return;
   await sb.from("projects").delete().eq("id",Number(del.dataset.delProject));
   const {data}=await sb.from("projects").select("*").order("name");
   allProjects=data||[];
@@ -974,7 +974,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
    const url=await storageSignedUrl(f.file_path);
    if(url&&fenster)fenster.location.href=url;
    else if(fenster)fenster.close();
-   if(!url)alert("Datei konnte nicht geöffnet werden.");
+   if(!url)appAlert("Datei konnte nicht geöffnet werden.");
   }
   return;
  }
@@ -983,13 +983,13 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   const id=Number(renameF.dataset.renameProjectFile);
   const f=projectFilesCache.find(x=>x.id===id);
   if(!f)return;
-  const neuerName=prompt("Neuer Dateiname:",f.name);
+  const neuerName=await appPrompt("Neuer Dateiname:",f.name);
   if(neuerName===null)return;
   const trimmed=neuerName.trim();
-  if(!trimmed){alert("Bitte einen Namen eingeben.");return}
+  if(!trimmed){appAlert("Bitte einen Namen eingeben.");return}
   const {data:neu,error}=await sb.from("project_files").update({name:trimmed}).eq("id",id).select("id");
-  if(error){alert("Fehler beim Umbenennen: "+dateiFehlerText(error));return}
-  if(!neu||!neu.length){alert("Die Datei konnte nicht umbenannt werden. Fehlt die nötige Berechtigung?");return}
+  if(error){appAlert("Fehler beim Umbenennen: "+dateiFehlerText(error));return}
+  if(!neu||!neu.length){appAlert("Die Datei konnte nicht umbenannt werden. Fehlt die nötige Berechtigung?");return}
   await cockpitBereichAktualisieren("files");
   return;
  }
@@ -1003,13 +1003,13 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  if(delF){
   const id=Number(delF.dataset.delProjectFile);
   const f=projectFilesCache.find(x=>x.id===id);
-  if(!confirm(`Datei „${f?f.name:"?"}" wirklich löschen?`))return;
+  if(!await appConfirm(`Datei „${f?f.name:"?"}" wirklich löschen?`))return;
   // Ein von RLS blockiertes DELETE meldet keinen Fehler, es betrifft
   // still 0 Zeilen (siehe CLAUDE.md 24.1) - deshalb das Ergebnis prüfen,
   // statt Erfolg anzunehmen und die Datei danach trotzdem anzuzeigen.
   const {data:weg,error}=await sb.from("project_files").delete().eq("id",id).select("id");
-  if(error){alert("Fehler beim Löschen: "+dateiFehlerText(error));return}
-  if(!weg||!weg.length){alert("Die Datei konnte nicht gelöscht werden. Fehlt die nötige Berechtigung?");return}
+  if(error){appAlert("Fehler beim Löschen: "+dateiFehlerText(error));return}
+  if(!weg||!weg.length){appAlert("Die Datei konnte nicht gelöscht werden. Fehlt die nötige Berechtigung?");return}
   if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
   await cockpitBereichAktualisieren("files");
   return;
@@ -1018,7 +1018,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  if(open){
   const id=Number(open.dataset.openReport);
   const {data,error}=await sb.from("reports").select("*").eq("id",id).maybeSingle();
-  if(error||!data){alert("Fehler beim Laden: "+(error?error.message:"Rapport nicht gefunden"));return}
+  if(error||!data){appAlert("Fehler beim Laden: "+(error?error.message:"Rapport nicht gefunden"));return}
   openReport(data,"projectCockpit");
   return;
  }
@@ -1073,7 +1073,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  }
  const delM=e.target.closest("[data-del-project-measurement]");
  if(delM){
-  if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
+  if(!await appConfirm("Diese Massaufnahme wirklich löschen?"))return;
   const id=Number(delM.dataset.delProjectMeasurement);
   await sb.from("measurements").delete().eq("id",id);
   await cockpitBereichAktualisieren("meas");
@@ -1099,7 +1099,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  }
  const delA=e.target.closest("[data-del-project-ausmass]");
  if(delA){
-  if(!confirm("Dieses Ausmass wirklich löschen?"))return;
+  if(!await appConfirm("Dieses Ausmass wirklich löschen?"))return;
   const id=Number(delA.dataset.delProjectAusmass);
   await sb.from("ausmass").delete().eq("id",id);
   await cockpitBereichAktualisieren("am");
@@ -1107,7 +1107,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  }
  const delRep=e.target.closest("[data-del-report]");
  if(delRep){
-  if(!confirm("Diesen Rapport wirklich löschen?"))return;
+  if(!await appConfirm("Diesen Rapport wirklich löschen?"))return;
   const id=Number(delRep.dataset.delReport);
   await sb.from("reports").delete().eq("id",id);
   if(currentReportId===id)currentReportId=null;
@@ -1130,7 +1130,7 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   }
   const gespeichert=files.length-fehler.length;
   if(fehler.length){
-   alert(`${gespeichert} von ${files.length} Datei(en) gespeichert.\n\nNicht gespeichert:\n${fehler.join("\n")}`);
+   appAlert(`${gespeichert} von ${files.length} Datei(en) gespeichert.\n\nNicht gespeichert:\n${fehler.join("\n")}`);
   }
   // Erfolg dezent in der Liste bestaetigen statt mit einem Popup (v2.49).
   projectFilesStatus=gespeichert
@@ -1148,7 +1148,7 @@ $("cockpitWorkArea").addEventListener("change",async e=>{
   try{
    await replaceProjectFile(id,file);
   }catch(err){
-   alert("Fehler beim Ersetzen: "+dateiFehlerText(err));
+   appAlert("Fehler beim Ersetzen: "+dateiFehlerText(err));
   }
   await cockpitBereichAktualisieren("files");
  }

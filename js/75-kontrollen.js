@@ -588,7 +588,7 @@ document.addEventListener("click",async e=>{
  if(ab){
   const r=await konAbweisen(ab.getAttribute("data-kon-abweisen"),
                             ab.getAttribute("data-kon-gegenstand"),"");
-  if(!r.ok&&typeof alert==="function")alert(r.meldung);
+  if(!r.ok&&typeof alert==="function")appAlert(r.meldung);
   konNeuZeichnen();
   return;
  }
@@ -597,7 +597,7 @@ document.addEventListener("click",async e=>{
  if(zurueck){
   const r=await konAbweisungWeg(zurueck.getAttribute("data-kon-zurueck"),
                                 zurueck.getAttribute("data-kon-gegenstand"));
-  if(!r.ok&&typeof alert==="function")alert(r.meldung);
+  if(!r.ok&&typeof alert==="function")appAlert(r.meldung);
   konNeuZeichnen();
   return;
  }

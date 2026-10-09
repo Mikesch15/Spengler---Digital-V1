@@ -160,11 +160,11 @@ function rmatSchonImRapport(no){
 
 async function rmatOeffnen(){
  if(!currentProjectId){
-  alert("Bitte zuerst ein Projekt auswählen.\n\nÜbernommen wird das Material der Massaufnahmen genau dieses Projekts.");
+  appAlert("Bitte zuerst ein Projekt auswählen.\n\nÜbernommen wird das Material der Massaufnahmen genau dieses Projekts.");
   return;
  }
  if(typeof wsIstOffline==="function"&&wsIstOffline()){
-  alert("Keine Verbindung.\n\nDie Massaufnahmen dieses Projekts lassen sich deshalb gerade nicht laden. "
+  appAlert("Keine Verbindung.\n\nDie Massaufnahmen dieses Projekts lassen sich deshalb gerade nicht laden. "
    +"Material von Hand erfassen geht weiterhin.");
   return;
  }
@@ -375,7 +375,7 @@ if($("rmatUebernehmenBtn")){
   isDirty=true;
   renderMain();
   $("rmatModal").hidden=true;
-  alert((gewaehlt.length===1?"1 Materialposition übernommen.":gewaehlt.length+" Materialpositionen übernommen.")
+  appAlert((gewaehlt.length===1?"1 Materialposition übernommen.":gewaehlt.length+" Materialpositionen übernommen.")
    +(frei?"\n\n"+(frei===1?"1 davon steht als freie Position (999.9x) im Rapport – dort noch den Preis eintragen."
      :frei+" davon stehen als freie Position (999.9x) im Rapport – dort noch die Preise eintragen."):""));
  };

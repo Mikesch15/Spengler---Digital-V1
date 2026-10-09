@@ -89,7 +89,7 @@ $("logoInput").addEventListener("change",async e=>{
   $("logoPreview").src=logoDataUrl;
   $("logoPreview").hidden=false;
   $("logoRemove").hidden=false;
- }catch(err){alert("Logo konnte nicht geladen werden: "+err.message)}
+ }catch(err){appAlert("Logo konnte nicht geladen werden: "+err.message)}
 });
 $("logoRemove").onclick=()=>{
  logoDataUrl=null;logoUrl="";
@@ -139,15 +139,15 @@ $("saveMadMasse").addEventListener("click",async()=>{
   const {fehler}=await speichereAppSettings({mad_boden_mass_mm:boden,mad_schieber_mass_mm:schieber,
     mad_boden_ausmass_mass_mm:bodenAusmass,mad_schieber_ausmass_mass_mm:schieberAusmass,
     mad_gehrung_mass_mm:gehrung,mad_gehrung_ausmass_mass_mm:gehrungAusmass});
-  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+  if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
   madBodenMass=boden;madSchieberMass=schieber;
   madBodenAusmassMass=bodenAusmass;madSchieberAusmassMass=schieberAusmass;
   madGehrungMass=gehrung;madGehrungAusmassMass=gehrungAusmass;
   if(typeof renderMadResult==="function"&&madSegments.length)renderMadResult();
-  alert("Gespeichert (gilt für alle).");
+  appAlert("Gespeichert (gilt für alle).");
  }catch(err){
   // Ohne das bliebe der Knopf nach einem Fehler dauerhaft gesperrt
-  alert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
+  appAlert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
  }finally{
   knopf.disabled=false;
  }
@@ -158,16 +158,16 @@ $("saveLukMasse").addEventListener("click",async()=>{
  const hr=Number($("lukHilfsrissInput").value)||0;
  const zb=Number($("lukZugabeBreiteInput").value)||0;
  const zl=Number($("lukZugabeLaengeInput").value)||0;
- if(achs<=0){alert("Der Achsabstand muss grösser als 0 sein.");return}
+ if(achs<=0){appAlert("Der Achsabstand muss grösser als 0 sein.");return}
  knopf.disabled=true;
  try{
   const {fehler}=await speichereAppSettings({luk_achsabstand_mm:achs,luk_hilfsriss_mm:hr,luk_zugabe_breite_mm:zb,luk_zugabe_laenge_mm:zl});
-  if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+  if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
   lukAchsabstand=achs;lukHilfsriss=hr;lukZugabeBreite=zb;lukZugabeLaenge=zl;
   if(typeof renderLukResult==="function"&&$("measType").value==="lukarne")renderLukResult();
-  alert("Gespeichert (gilt für alle).");
+  appAlert("Gespeichert (gilt für alle).");
  }catch(err){
-  alert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
+  appAlert("Fehler beim Speichern: "+(err&&err.message?err.message:err));
  }finally{
   knopf.disabled=false;
  }
@@ -180,12 +180,12 @@ $("saveRinneDilaMass").onclick=async()=>{
  $("saveRinneDilaMass").disabled=true;
  const {fehler}=await speichereAppSettings({rinne_dila_mass_mm:wert,rinne_dila_ausmass_mass_mm:wertAusmass});
  $("saveRinneDilaMass").disabled=false;
- if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneDilaMass=wert;
  rinneDilaAusmassMass=wertAusmass;
  if(typeof renderRinneResult==="function"&&rinneSegments.length)renderRinneResult();
  if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
- alert("Gespeichert (gilt für alle).");
+ appAlert("Gespeichert (gilt für alle).");
 };
 // Normlängen je Material und Grösse. Leeres Feld = nichts hinterlegt; dort
 // rechnet die Massaufnahme bewusst nichts, statt eine Stangenlänge zu raten.
@@ -194,25 +194,25 @@ if($("saveRinneNorm"))$("saveRinneNorm").onclick=async()=>{
  $("saveRinneNorm").disabled=true;
  const {fehler}=await speichereAppSettings({rinne_normlaengen:neu});
  $("saveRinneNorm").disabled=false;
- if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneNormlaengen=neu;
  if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
  if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
- alert("Gespeichert (gilt für alle).");
+ appAlert("Gespeichert (gilt für alle).");
 };
 if($("resetRinneNorm"))$("resetRinneNorm").onclick=async()=>{
- if(!confirm("Alle eigenen Normlängen verwerfen und die Vorgaben der App verwenden?"))return;
+ if(!await appConfirm("Alle eigenen Normlängen verwerfen und die Vorgaben der App verwenden?"))return;
  $("resetRinneNorm").disabled=true;
  const {fehler}=await speichereAppSettings({rinne_normlaengen:{}});
  $("resetRinneNorm").disabled=false;
- if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
  rinneNormlaengen={};
  if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();
  if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
 };
 $("saveCompanyName").onclick=async()=>{
  const name=$("companyNameInput").value.trim();
- if(!name){alert("Bitte einen Firmennamen eingeben.");return}
+ if(!name){appAlert("Bitte einen Firmennamen eingeben.");return}
  $("saveCompanyName").disabled=true;
  try{
   let newLogoUrl=logoUrl;
@@ -239,15 +239,15 @@ $("saveCompanyName").onclick=async()=>{
   logoUrl=newLogoUrl;
   logoDataUrl=null;
   applyCompanyName();
-  alert("Gespeichert.");
+  appAlert("Gespeichert.");
  }catch(err){
-  alert("Fehler: "+(err.message||err));
+  appAlert("Fehler: "+(err.message||err));
  }
  $("saveCompanyName").disabled=false;
 };
 $("saveRecentCount").onclick=async()=>{
  const n=Number($("recentCountInput").value);
- if(!n||n<1||n>20){alert("Bitte eine Zahl zwischen 1 und 20 eingeben.");return}
+ if(!n||n<1||n>20){appAlert("Bitte eine Zahl zwischen 1 und 20 eingeben.");return}
  localStorage.setItem("sd_recentCount",String(n));
  recentCount=n;
  const dark=$("darkModeInput").value==="ja";
@@ -264,7 +264,7 @@ $("saveRecentCount").onclick=async()=>{
  // Ein Schalter ohne Wirkung waere schlimmer als keiner.
  if(!$("measurementsModal").hidden)await renderMeasurementsOverview();
  if(!$("ausmassModal").hidden)await renderAusmassOverview();
- alert("Gespeichert (gilt nur für dieses Gerät).");
+ appAlert("Gespeichert (gilt nur für dieses Gerät).");
 };
 // v3.07: Arbeitsablauf firmenweit ein-/ausschalten. Reine Anzeige-Einstellung -
 // die Datenbank prueft jeden Schritt weiterhin selbst. Ein Mitarbeiter ohne
@@ -300,16 +300,16 @@ $("saveEinlaufblechSettings").onclick=()=>{
  const restSchwelle=Number($("eb_restSchwelle").value)||0;
  const endZugabe=Number($("eb_endzugabe").value)||0;
  const gavaAbstand=Number($("eb_gavaAbstand").value)||0;
- if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
- if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
- if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
- if(umschlagOben<0||umschlagUnten<0){alert("Umschlagbreiten dürfen nicht negativ sein.");return}
- if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
- if(endZugabe<0){alert("Endzugabe darf nicht negativ sein.");return}
- if(gavaAbstand<0){alert("Der Abstand der Haltebleche darf nicht negativ sein.");return}
+ if(!stossLaenge||stossLaenge<=0){appAlert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){appAlert("Überlappung darf nicht negativ sein.");return}
+ if(gehrungszugabe<0){appAlert("Gehrungszugabe darf nicht negativ sein.");return}
+ if(umschlagOben<0||umschlagUnten<0){appAlert("Umschlagbreiten dürfen nicht negativ sein.");return}
+ if(restSchwelle<0){appAlert("Restschwelle darf nicht negativ sein.");return}
+ if(endZugabe<0){appAlert("Endzugabe darf nicht negativ sein.");return}
+ if(gavaAbstand<0){appAlert("Der Abstand der Haltebleche darf nicht negativ sein.");return}
  einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe,gava_abstand:gavaAbstand||500};
  localStorage.setItem("sd_einlaufblechSettings",JSON.stringify(einlaufblechSettings));
- alert("Gespeichert (gilt nur für dieses Gerät).");
+ appAlert("Gespeichert (gilt nur für dieses Gerät).");
 };
 $("saveEbkSettings").onclick=()=>{
  const stossLaenge=Number($("ebks_stossLaenge").value);
@@ -319,20 +319,20 @@ $("saveEbkSettings").onclick=()=>{
  const umschlagUnten=Number($("ebks_umschlagUnten").value)||0;
  const restSchwelle=Number($("ebks_restSchwelle").value)||0;
  const endZugabe=Number($("ebks_endzugabe").value)||0;
- if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
- if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
- if(gehrungszugabe<0){alert("Gehrungszugabe darf nicht negativ sein.");return}
- if(umschlagOben<0||umschlagUnten<0){alert("Umschlagbreiten dürfen nicht negativ sein.");return}
- if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
- if(endZugabe<0){alert("Endzugabe darf nicht negativ sein.");return}
+ if(!stossLaenge||stossLaenge<=0){appAlert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){appAlert("Überlappung darf nicht negativ sein.");return}
+ if(gehrungszugabe<0){appAlert("Gehrungszugabe darf nicht negativ sein.");return}
+ if(umschlagOben<0||umschlagUnten<0){appAlert("Umschlagbreiten dürfen nicht negativ sein.");return}
+ if(restSchwelle<0){appAlert("Restschwelle darf nicht negativ sein.");return}
+ if(endZugabe<0){appAlert("Endzugabe darf nicht negativ sein.");return}
  einlaufblechKonischSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe};
  localStorage.setItem("sd_einlaufblechKonischSettings",JSON.stringify(einlaufblechKonischSettings));
- alert("Gespeichert (gilt nur für dieses Gerät).");
+ appAlert("Gespeichert (gilt nur für dieses Gerät).");
 };
 
 // Setzt die Werte eines Einlaufblech-Typs auf die Standardwerte zurück.
-function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
- if(!confirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
+async function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
+ if(!await appConfirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
  const w={...EINLAUFBLECH_STANDARD};
  zuweisen(w);
  localStorage.setItem(speicherSchluessel,JSON.stringify(w));
@@ -345,9 +345,9 @@ function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
  $(praefix+"endzugabe").value=w.end_zugabe;
  // Nur Einlaufblech gerade hat ein GAVA-Feld - konisch braucht keines.
  if($(praefix+"gavaAbstand"))$(praefix+"gavaAbstand").value=w.gava_abstand??500;
- alert("Auf Standardwerte zurückgesetzt.");
+ appAlert("Auf Standardwerte zurückgesetzt.");
 }
-$("resetEinlaufblechSettings").onclick=()=>einlaufblechZuruecksetzen("eb_","sd_einlaufblechSettings",w=>{einlaufblechSettings=w});
+$("resetEinlaufblechSettings").onclick=async ()=>await einlaufblechZuruecksetzen("eb_","sd_einlaufblechSettings",w=>{einlaufblechSettings=w});
 
 // ---- Rollenbreiten des Blechlagers (firmenweit, app_settings) -------------
 // 1000 und 670 mm sind die Standardrollen. Eine leere Liste bedeutet "noch
@@ -370,43 +370,43 @@ $("saveBlechRollenbreiten").onclick=async()=>{
  const gewaehlt=Array.from(document.querySelectorAll("#eb_rollenbreiten [data-rollenbreite]"))
    .filter(c=>c.checked).map(c=>Number(c.dataset.rollenbreite))
    .sort((a,b)=>b-a);
- if(!gewaehlt.length){alert("Bitte mindestens eine Rollenbreite ankreuzen.");return}
+ if(!gewaehlt.length){appAlert("Bitte mindestens eine Rollenbreite ankreuzen.");return}
  const {fehler}=await speichereAppSettings({blech_rollenbreiten:gewaehlt});
- if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
  blechRollenbreiten=gewaehlt;
  renderBlechRollenbreiten();
- alert("Rollenbreiten gespeichert (gilt für die ganze Firma).");
+ appAlert("Rollenbreiten gespeichert (gilt für die ganze Firma).");
 };
 $("resetBlechRollenbreiten").onclick=async()=>{
- if(!confirm("Zurück auf die Standardrollen 1000 und 670 mm?"))return;
+ if(!await appConfirm("Zurück auf die Standardrollen 1000 und 670 mm?"))return;
  const {fehler}=await speichereAppSettings({blech_rollenbreiten:BLECH_ROLLEN_STANDARD});
- if(fehler){alert("Konnte nicht gespeichert werden: "+fehler);return}
+ if(fehler){appAlert("Konnte nicht gespeichert werden: "+fehler);return}
  blechRollenbreiten=BLECH_ROLLEN_STANDARD.slice();
  renderBlechRollenbreiten();
- alert("Auf 1000 und 670 mm zurückgesetzt.");
+ appAlert("Auf 1000 und 670 mm zurückgesetzt.");
 };
-$("resetEbkSettings").onclick=()=>einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
+$("resetEbkSettings").onclick=async ()=>await einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
 
 // ---- Kehle: Zuschnittmasse der Segmente (nur dieses Geraet) ---------------
 $("saveKehleSettings").onclick=()=>{
  const stossLaenge=Number($("keas_stossLaenge").value);
  const ueberlappung=Number($("keas_ueberlappung").value);
  const restSchwelle=Number($("keas_restSchwelle").value)||0;
- if(!stossLaenge||stossLaenge<=0){alert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
- if(ueberlappung<0){alert("Überlappung darf nicht negativ sein.");return}
- if(restSchwelle<0){alert("Restschwelle darf nicht negativ sein.");return}
+ if(!stossLaenge||stossLaenge<=0){appAlert("Bitte eine gültige Länge Stoss bis Stoss eingeben.");return}
+ if(ueberlappung<0){appAlert("Überlappung darf nicht negativ sein.");return}
+ if(restSchwelle<0){appAlert("Restschwelle darf nicht negativ sein.");return}
  kehleSettings={stoss_laenge:stossLaenge,ueberlappung,rest_schwelle:restSchwelle};
  localStorage.setItem("sd_kehleSettings",JSON.stringify(kehleSettings));
- alert("Gespeichert (gilt nur für dieses Gerät).");
+ appAlert("Gespeichert (gilt nur für dieses Gerät).");
 };
-$("resetKehleSettings").onclick=()=>{
- if(!confirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
+$("resetKehleSettings").onclick=async ()=>{
+ if(!await appConfirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
  kehleSettings={...KEHLE_STANDARD};
  localStorage.setItem("sd_kehleSettings",JSON.stringify(kehleSettings));
  $("keas_stossLaenge").value=kehleSettings.stoss_laenge;
  $("keas_ueberlappung").value=kehleSettings.ueberlappung;
  $("keas_restSchwelle").value=kehleSettings.rest_schwelle;
- alert("Auf Standardwerte zurückgesetzt.");
+ appAlert("Auf Standardwerte zurückgesetzt.");
 };
 
 // v3.176: Die Auswahlliste der Werkstoffe. Sie kommt aus derselben Quelle
@@ -473,14 +473,14 @@ const debouncedBzMaterialUpdate=katalogSpeicher("blitzschutz_materials");
 // Server (smart-action fragt profiles.email ab und antwortet mit einem
 // verstaendlichen Satz) - eine eigene Vorabpruefung waere ein Wettlauf.
 $("mitarbeiterAnlegen").addEventListener("click",async()=>{
- if(!meineRechte.admin){alert("Nur ein Administrator kann Konten anlegen.");return}
+ if(!meineRechte.admin){appAlert("Nur ein Administrator kann Konten anlegen.");return}
  const vor=$("neuMitarbeiterVor").value.trim();
  const nach=$("neuMitarbeiterNach").value.trim();
- if(!vor||!nach){alert("Bitte Vor- und Nachname eingeben.");return}
+ if(!vor||!nach){appAlert("Bitte Vor- und Nachname eingeben.");return}
  const mailFeld=$("neuMitarbeiterEmail");
  const mail=mailFeld?String(mailFeld.value||"").trim().toLowerCase():"";
  if(mail&&typeof mailFormatOk==="function"&&!mailFormatOk(mail)){
-  alert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
+  appAlert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
   if(mailFeld)mailFeld.focus();
   return;
  }
@@ -489,8 +489,8 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
  try{
   const {data,error}=await sb.functions.invoke("smart-action",
     {body:{first_name:vor,last_name:nach,email:mail||undefined}});
-  if(error){alert(await edgeFunctionErrorMessage(error,"Konto konnte nicht angelegt werden."));return}
-  if(!data?.ok){alert(data?.error||"Konto konnte nicht angelegt werden.");return}
+  if(error){appAlert(await edgeFunctionErrorMessage(error,"Konto konnte nicht angelegt werden."));return}
+  if(!data?.ok){appAlert(data?.error||"Konto konnte nicht angelegt werden.");return}
   const username=data?.user?.username||data?.username||(vor.toLowerCase()+"."+nach.toLowerCase());
   const passwort=data?.password||"(vom Server vergeben)";
   // Zum Weitergeben in einem kopierbaren Feld statt in einem alert() (v3.04):
@@ -503,7 +503,7 @@ $("mitarbeiterAnlegen").addEventListener("click",async()=>{
   await loadAllData();
   renderSettings();
  }catch(err){
-  alert("Fehler: "+((err&&err.message)||err));
+  appAlert("Fehler: "+((err&&err.message)||err));
  }finally{
   knopf.disabled=false;
  }
@@ -612,21 +612,21 @@ function neuesStartpasswort(){
 $("employeeSettings").addEventListener("click",async e=>{
  const knopf=e.target.closest("[data-pw-reset]");
  if(!knopf)return;
- if(!meineRechte.admin){alert("Nur ein Administrator kann Passwörter zurücksetzen.");return}
+ if(!meineRechte.admin){appAlert("Nur ein Administrator kann Passwörter zurücksetzen.");return}
  const i=Number(knopf.dataset.pwReset);
  const id=employeeIds[i];
  const name=settings.employees[i]||"diesen Mitarbeiter";
- if(!id){alert("Zu diesem Eintrag gibt es kein Konto.");return}
- if(!confirm("Passwort von "+name+" wirklich zurücksetzen?\n\nDas bisherige Passwort wird ungültig."))return;
+ if(!id){appAlert("Zu diesem Eintrag gibt es kein Konto.");return}
+ if(!await appConfirm("Passwort von "+name+" wirklich zurücksetzen?\n\nDas bisherige Passwort wird ungültig."))return;
  const neu=neuesStartpasswort();
  knopf.disabled=true;
  try{
   const {data,error}=await sb.functions.invoke("reset-password",{body:{profile_id:id,password:neu}});
-  if(error){alert("Fehler: "+(await edgeFunctionErrorMessage(error,"Passwort konnte nicht zurückgesetzt werden.")));return}
-  if(!data?.ok){alert("Fehler: "+(data?.error||"Passwort konnte nicht zurückgesetzt werden."));return}
-  alert("Neues Startpasswort für "+name+":\n\n"+neu+"\n\nBitte weitergeben. Bei der nächsten Anmeldung muss ein eigenes Passwort vergeben werden.");
+  if(error){appAlert("Fehler: "+(await edgeFunctionErrorMessage(error,"Passwort konnte nicht zurückgesetzt werden.")));return}
+  if(!data?.ok){appAlert("Fehler: "+(data?.error||"Passwort konnte nicht zurückgesetzt werden."));return}
+  appAlert("Neues Startpasswort für "+name+":\n\n"+neu+"\n\nBitte weitergeben. Bei der nächsten Anmeldung muss ein eigenes Passwort vergeben werden.");
  }catch(err){
-  alert("Fehler: "+((err&&err.message)||err));
+  appAlert("Fehler: "+((err&&err.message)||err));
  }finally{
   knopf.disabled=false;
  }

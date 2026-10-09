@@ -55,7 +55,7 @@ $("logout").onclick=async()=>{
  if(typeof wsAlle==="function"){
   let warten=[];
   try{ warten=await wsAlle() }catch(e){ warten=[] }
-  if(warten.length&&!confirm(
+  if(warten.length&&!await appConfirm(
     `${warten.length} ${warten.length===1?"Eintrag wartet":"Einträge warten"} noch auf die `
     +"Übertragung und sind NOCH NICHT in der Datenbank.\n\nSie bleiben auf diesem Gerät "
     +"gespeichert und werden übertragen, sobald du dich hier wieder anmeldest und eine "

@@ -1254,19 +1254,19 @@ function applyKaminSettings(){
    mass_vorne:zahl("kamsMassVorne")||0,
    mass_hinten:zahl("kamsMassHinten")||0
   };
-  if(typeof EINF_DECKUNGEN==="object"&&!EINF_DECKUNGEN[w.deckung]){alert("Bitte ein Deckmaterial wählen.");return}
+  if(typeof EINF_DECKUNGEN==="object"&&!EINF_DECKUNGEN[w.deckung]){appAlert("Bitte ein Deckmaterial wählen.");return}
   if(["lattenabstand","umschlag_vorne","umschlag_hinten","umschlag_seite","ueberlappung",
       "aufbug_hinten","mass_vorne","mass_hinten"]
-     .some(k=>w[k]<0)){alert("Diese Werte dürfen nicht negativ sein.");return}
+     .some(k=>w[k]<0)){appAlert("Diese Werte dürfen nicht negativ sein.");return}
   kamEinstellungenSichern(w);
   applyKaminSettings();
-  alert("Gespeichert (gilt nur für dieses Gerät).");
+  appAlert("Gespeichert (gilt nur für dieses Gerät).");
  };
- $("resetKaminSettings").onclick=()=>{
-  if(!confirm("Alle Werte der Kamineinfassung auf die Standardwerte zurücksetzen?"))return;
+ $("resetKaminSettings").onclick=async ()=>{
+  if(!await appConfirm("Alle Werte der Kamineinfassung auf die Standardwerte zurücksetzen?"))return;
   kamEinstellungenSichern(Object.assign({},KAMIN_STANDARD));
   applyKaminSettings();
-  alert("Auf Standardwerte zurückgesetzt.");
+  appAlert("Auf Standardwerte zurückgesetzt.");
  };
 })();
 

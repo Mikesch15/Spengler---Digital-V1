@@ -1186,7 +1186,7 @@ function katalogSpeicher(tabelle,ms){
 let katalogHinweisZeit=null;
 function katalogHinweis(text,fehler){
  const el=$("katalogHinweis");
- if(!el){if(fehler)alert(text);return}
+ if(!el){if(fehler)appAlert(text);return}
  el.textContent=text||"";
  el.classList.toggle("fehler",!!fehler);
  el.classList.toggle("an",!!text);

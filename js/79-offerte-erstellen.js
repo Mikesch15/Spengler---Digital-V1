@@ -653,8 +653,8 @@ if($("offAddPosition")){
  };
 }
 if($("offAddAbschnitt")){
- $("offAddAbschnitt").onclick=()=>{
-  const name=prompt("Name des neuen Abschnitts?\n\n(z. B. Arbeit, Material, Gerüst, Entsorgung)");
+ $("offAddAbschnitt").onclick=async ()=>{
+  const name=await appPrompt("Name des neuen Abschnitts?\n\n(z. B. Arbeit, Material, Gerüst, Entsorgung)");
   if(name===null)return;
   const titel=String(name).trim();
   if(!titel)return;
@@ -665,9 +665,9 @@ if($("offAddAbschnitt")){
  };
 }
 if($("offDeleteAllPositions")){
- $("offDeleteAllPositions").onclick=()=>{
+ $("offDeleteAllPositions").onclick=async ()=>{
   if(!offPositionen.length)return;
-  if(!confirm(`Wirklich alle ${offPositionen.length} Position(en) löschen?`))return;
+  if(!await appConfirm(`Wirklich alle ${offPositionen.length} Position(en) löschen?`))return;
   offPositionen=[];
   isDirty=true;
   renderOffPositionsTabelle();
@@ -941,8 +941,8 @@ if($("startFromOfferteEdit"))$("startFromOfferteEdit").onclick=()=>{
 // bzw. der Trigger set_creator_editor_meta_offerten setzen sie serverseitig.
 async function offerteSpeichern(){
  const title=String($("offTitle").value||"").trim();
- if(!title){alert("Bitte eine Bezeichnung für die Offerte eintragen.");return false}
- if(!offSelectedProjectId){alert("Eine Offerte gehört immer zu einem Projekt.\n\nBitte oben ein Projekt wählen.");return false}
+ if(!title){appAlert("Bitte eine Bezeichnung für die Offerte eintragen.");return false}
+ if(!offSelectedProjectId){appAlert("Eine Offerte gehört immer zu einem Projekt.\n\nBitte oben ein Projekt wählen.");return false}
  const d=offFormularDaten();
  const payload={
   project_id:offSelectedProjectId,
@@ -968,12 +968,12 @@ async function offerteSpeichern(){
  if(currentOfferteId){
   const {data,error}=await sb.from("offerten").update(payload).eq("id",currentOfferteId).select();
   if(error)throw error;
-  if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return false}
+  if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return false}
   currentOfferteMeta={...currentOfferteMeta,updated_by:data[0].updated_by,updated_at:data[0].updated_at};
  }else{
   const {data,error}=await sb.from("offerten").insert(payload).select();
   if(error)throw error;
-  if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return false}
+  if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return false}
   currentOfferteId=data[0].id;
   currentOfferteMeta={created_by:data[0].created_by,created_at:data[0].created_at,
                       updated_by:data[0].updated_by,updated_at:data[0].updated_at};
@@ -991,7 +991,7 @@ if($("saveOfferte")){
     $("offerteEditModal").hidden=true;
     await offEditZurueck();
    }
-  }catch(e){alert("Fehler beim Speichern: "+(e&&e.message?e.message:e))}
+  }catch(e){appAlert("Fehler beim Speichern: "+(e&&e.message?e.message:e))}
   $("saveOfferte").disabled=false;
  };
 }
@@ -1044,15 +1044,15 @@ function offPdfErzeugen(){
 }
 if($("offPdfErzeugen")){
  $("offPdfErzeugen").onclick=()=>{
-  if(!offPositionen.length){alert("Die Offerte hat noch keine Positionen.");return}
+  if(!offPositionen.length){appAlert("Die Offerte hat noch keine Positionen.");return}
   if(!offPdfVerfuegbar()){
-   alert("Die PDF-Bibliothek konnte nicht geladen werden.\n\nBitte die Seite einmal neu laden.");
+   appAlert("Die PDF-Bibliothek konnte nicht geladen werden.\n\nBitte die Seite einmal neu laden.");
    return;
   }
   try{
    const v=offPdfErzeugen();
    if($("offPdfRahmen")){$("offPdfRahmen").src=v.url;$("offPdfRahmen").hidden=false}
-  }catch(e){alert("Das PDF konnte nicht erzeugt werden: "+(e&&e.message?e.message:e))}
+  }catch(e){appAlert("Das PDF konnte nicht erzeugt werden: "+(e&&e.message?e.message:e))}
  };
 }
 if($("offPdfBereich")){
@@ -1062,7 +1062,7 @@ if($("offPdfBereich")){
    return;
   }
   if(e.target.closest("[data-off-pdf-entfernen]")){
-   if(!confirm("Das abgelegte PDF aus dieser Offerte entfernen?\n\nDie Datei selbst bleibt im Projekt-Speicher."))return;
+   if(!await appConfirm("Das abgelegte PDF aus dieser Offerte entfernen?\n\nDie Datei selbst bleibt im Projekt-Speicher."))return;
    offPdfAbgelegt=null;
    isDirty=true;
    renderOffPdfBereich();
@@ -1076,12 +1076,12 @@ if($("offPdfBereich")){
    try{
     const url=await storageSignedUrl(offPdfAbgelegt.path);
     if(w)w.location=url; else window.location=url;
-   }catch(err){ if(w)w.close(); alert("Das PDF konnte nicht geöffnet werden: "+(err&&err.message?err.message:err)) }
+   }catch(err){ if(w)w.close(); appAlert("Das PDF konnte nicht geöffnet werden: "+(err&&err.message?err.message:err)) }
    return;
   }
   const ablegen=e.target.closest("[data-off-pdf-ablegen]");
   if(ablegen&&offPdfVorschau){
-   if(!offSelectedProjectId){alert("Eine Offerte gehört immer zu einem Projekt.\n\nBitte oben ein Projekt wählen.");return}
+   if(!offSelectedProjectId){appAlert("Eine Offerte gehört immer zu einem Projekt.\n\nBitte oben ein Projekt wählen.");return}
    ablegen.disabled=true;
    try{
     offPdfAbgelegt=await offPdfHochladen(offSelectedProjectId,offPdfVorschau.blob,offPdfVorschau.name);
@@ -1093,7 +1093,7 @@ if($("offPdfBereich")){
     if($("offPdfRahmen")){$("offPdfRahmen").hidden=true;$("offPdfRahmen").src=""}
    }catch(err){
     offPdfAbgelegt=null;
-    alert("Das PDF konnte nicht abgelegt werden: "+(err&&err.message?err.message:err));
+    appAlert("Das PDF konnte nicht abgelegt werden: "+(err&&err.message?err.message:err));
    }
    ablegen.disabled=false;
   }
@@ -1151,7 +1151,7 @@ if($("cockpitNeueOfferteErstellen")){
 // Eigener Listener auf #cockpitWorkArea - js/24, js/09 und js/63 haben dort
 // bereits je einen; mehrere Listener auf demselben Knoten sind unproblematisch.
 if($("cockpitWorkArea")){
- $("cockpitWorkArea").addEventListener("click",e=>{
+ $("cockpitWorkArea").addEventListener("click",async e=>{
   const openO=e.target.closest("[data-open-project-offerte]");
   if(openO){
    const o=projectOffertenCache.find(x=>x.id===Number(openO.dataset.openProjectOfferte));
@@ -1160,9 +1160,9 @@ if($("cockpitWorkArea")){
   }
   const delO=e.target.closest("[data-del-project-offerte]");
   if(delO){
-   if(!confirm("Diese Offerte wirklich löschen?"))return;
+   if(!await appConfirm("Diese Offerte wirklich löschen?"))return;
    sb.from("offerten").delete().eq("id",Number(delO.dataset.delProjectOfferte)).then(({error})=>{
-    if(error){alert("Fehler: "+error.message);return}
+    if(error){appAlert("Fehler: "+error.message);return}
     if(typeof cockpitBereichAktualisieren==="function")cockpitBereichAktualisieren("offerten");
    });
   }

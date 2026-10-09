@@ -279,7 +279,7 @@ const profil=async(page,liste)=>{
  // Kein blindes .click(): verschwindet der Block (weil er faelschlich in
  // einen neu geschriebenen Container gehaengt wurde), soll das ein sauberer
  // Fehlschlag sein und nicht den Pruefstand abbrechen.
- const uebernahme=await page.evaluate(()=>{
+ const uebernahme=await page.evaluate(async()=>{
   const knopf=document.getElementById("fp_sketchUebernehmen");
   const vor=document.getElementById("fp_sketchVorschau");
   if(!knopf||!vor)return {fehlt:true,sichtbar:false,modell:fpA.schenkel.length,gleich:false,erste:null};
@@ -288,6 +288,8 @@ const profil=async(page,liste)=>{
     [{laenge:30,winkel:0},{laenge:200,winkel:90},{laenge:45,winkel:-90}]),0);
   const sichtbar=!vor.hidden;
   knopf.click();
+  // v3.286: die Rueckfrage ist ein eigener Dialog (await) - erst danach steht das Modell.
+  await new Promise(r=>setTimeout(r,60));
   return {sichtbar,modell:fpA.schenkel.length,global:fpSchenkel.length,
    gleich:fpSchenkel===fpA.schenkel,
    erste:fpA.schenkel[0]&&fpA.schenkel[0].laenge};

@@ -254,7 +254,7 @@ async function faSperreOeffnen(){
 // Abgemeldet wird dafuer wie ueberall sonst - samt Zwischenspeicher, es
 // darf keine Firma auf dem Geraet zurueckbleiben (js/03).
 async function faSperreAufgeben(){
- if(typeof confirm==="function"&&!confirm(
+ if(typeof confirm==="function"&&!await appConfirm(
    "Abmelden und mit Benutzername und Passwort anmelden?\n\n"
   +"Der Fingerabdruck bleibt eingerichtet und entsperrt die App wieder, "
   +"sobald du angemeldet bist."))return;

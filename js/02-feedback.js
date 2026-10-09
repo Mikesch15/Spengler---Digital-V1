@@ -244,14 +244,14 @@ function feedbackSortHandler(e){
 }
 
 async function feedbackExportXlsxHandler(){
- if(!feedbackAuswahl.size){alert("Bitte mindestens ein Feedback auswählen.");return}
+ if(!feedbackAuswahl.size){appAlert("Bitte mindestens ein Feedback auswählen.");return}
  // v3.205: Die Excel-Bibliothek haengt nicht mehr im Kopf von index.html,
  // sondern wird hier nachgeladen (xlsxLaden in js/01) - sie kostete 880 kB
  // bei jedem Start der App, fuer eine Funktion, die man selten braucht.
  // Klappt das nicht, sagen wir das ehrlich, statt eine kaputte Datei zu
  // erzeugen.
  if(!await xlsxLaden()){
-  alert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen – oder den Textdatei-Export verwenden.");
+  appAlert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen – oder den Textdatei-Export verwenden.");
   return;
  }
  const daten=[feedbackSpalten(),...feedbackExportZeilen()];
@@ -268,7 +268,7 @@ async function feedbackExportXlsxHandler(){
 }
 
 function feedbackExportTxtHandler(){
- if(!feedbackAuswahl.size){alert("Bitte mindestens ein Feedback auswählen.");return}
+ if(!feedbackAuswahl.size){appAlert("Bitte mindestens ein Feedback auswählen.");return}
  const zeilen=feedbackExportZeilen();
  const gewaehlt=feedbackAusgewaehlt();
  const offen=gewaehlt.filter(f=>!f.resolved).length;
@@ -328,27 +328,27 @@ async function feedbackListeHandler(e){
   // Fremde Firma: nur ueber die serverseitig geschuetzte Funktion.
   const {data,error}=await sb.rpc("system_admin_set_feedback_resolved",
     {p_id:id,p_resolved:neuerStatus});
-  if(error){alert("Fehler: "+error.message);return}
-  if(!data){alert("Es wurde nichts geändert. Fehlt die nötige Berechtigung?");return}
+  if(error){appAlert("Fehler: "+error.message);return}
+  if(!data){appAlert("Es wurde nichts geändert. Fehlt die nötige Berechtigung?");return}
   feedbackNeuLaden({behalten:true});
   return;
  }
  const del=e.target.closest("[data-feedback-del]");
  if(del){
   if(!feedbackAnsicht.darfLoeschen)return;
-  if(!confirm("Dieses Feedback wirklich löschen?"))return;
+  if(!await appConfirm("Dieses Feedback wirklich löschen?"))return;
   // Fremde Firma: die RESTRICTIVE Policy tenant_boundary_feedback blockiert
   // ein direktes DELETE ausserhalb der eigenen Firma auch fuer Admins -
   // deshalb ueber dieselbe serverseitig geschuetzte Funktion wie beim
   // Erledigt-Umschalten (system_admin_set_feedback_resolved).
   const {error}=await sb.rpc("system_admin_delete_feedback",{p_id:Number(del.dataset.feedbackDel)});
-  if(error){alert("Fehler: "+error.message);return}
+  if(error){appAlert("Fehler: "+error.message);return}
   feedbackNeuLaden({behalten:true});
  }
 }
 $("saveFeedback").onclick=async()=>{
  const message=$("feedbackMessage").value.trim();
- if(!message){alert("Bitte ein Feedback eingeben.");return}
+ if(!message){appAlert("Bitte ein Feedback eingeben.");return}
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
  if(wsIstOffline()){
   // Derselbe Text zweimal ist ein Doppelklick, kein zweites Feedback.
@@ -356,12 +356,12 @@ $("saveFeedback").onclick=async()=>{
    schluessel:"feedback:"+$("feedbackModul").value+":"+message,
    payload:{module:$("feedbackModul").value,message}});
   if(!r.ok){
-   alert("Keine Verbindung – und dieses Feedback lässt sich auf diesem Gerät auch nicht "
+   appAlert("Keine Verbindung – und dieses Feedback lässt sich auf diesem Gerät auch nicht "
     +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").");
    return;
   }
   $("feedbackModal").hidden=true;
-  alert("Keine Verbindung – dein Feedback wartet auf diesem Gerät und wird gesendet, "
+  appAlert("Keine Verbindung – dein Feedback wartet auf diesem Gerät und wird gesendet, "
    +"sobald wieder eine Verbindung besteht. Danke!");
   return;
  }
@@ -372,7 +372,7 @@ $("saveFeedback").onclick=async()=>{
   created_by:currentProfile?currentProfile.id:null
  });
  $("saveFeedback").disabled=false;
- if(error){alert("Fehler beim Senden: "+error.message);return}
+ if(error){appAlert("Fehler beim Senden: "+error.message);return}
  $("feedbackModal").hidden=true;
- alert("Danke für dein Feedback!");
+ appAlert("Danke für dein Feedback!");
 };

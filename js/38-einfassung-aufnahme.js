@@ -754,7 +754,7 @@ function einfaVerdrahten(){
   // Eine Zifferneingabe zeichnet auch beim Verlassen nicht neu.
   if(einfaFeldZuweisen(t.id,t.value)){einfaLive(); return}
  });
- wurzel.addEventListener("click",e=>{
+ wurzel.addEventListener("click",async e=>{
   const t=e.target;
   const reg=t.closest("[data-einfa-schritt]");
   if(reg){einfaSetzeSchritt(reg.dataset.einfaSchritt);return}
@@ -762,7 +762,7 @@ function einfaVerdrahten(){
   if(zeig){einfA.aktiv=Number(zeig.dataset.einfaZeichnen)||0; renderEinfassungAufnahme(); return}
   const abw=t.closest("[data-einfa-abwicklung]");
   if(abw){
-   if(typeof abwAusMassaufnahme!=="function"){alert("Der Abwicklungsrechner ist auf diesem Gerät noch nicht geladen.");return}
+   if(typeof abwAusMassaufnahme!=="function"){appAlert("Der Abwicklungsrechner ist auf diesem Gerät noch nicht geladen.");return}
    const v=einfaAbwicklungVorgabe(Number(abw.dataset.einfaAbwicklung)||0,
                                   abw.dataset.einfaBauteil||"rohr");
    if(v)abwAusMassaufnahme(v);
@@ -772,8 +772,8 @@ function einfaVerdrahten(){
   if(weg){
    const i=Number(weg.dataset.einfaWeg);
    const liste=einfaListe();
-   if(liste.length<=1){alert("Es muss mindestens eine Einfassung bleiben.");return}
-   if(!confirm("Diese Einfassung wirklich löschen?"))return;
+   if(liste.length<=1){appAlert("Es muss mindestens eine Einfassung bleiben.");return}
+   if(!await appConfirm("Diese Einfassung wirklich löschen?"))return;
    liste.splice(i,1);
    if(einfA.aktiv>=liste.length)einfA.aktiv=liste.length-1;
    renderEinfassungAufnahme(); return;

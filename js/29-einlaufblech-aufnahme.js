@@ -1265,6 +1265,16 @@ function ebaAbschluss(){
  setTimeout(()=>ziel.classList.remove("ra-ziel"),2500);
 }
 
+// v3.286: Die Rueckfrage der Rinnen-Uebernahme (js/15) ist ein eigener Dialog -
+// die Uebernahme ist damit NICHT mehr fertig, wenn der Klick im Wurzel-Handler
+// unten ankommt (er laeuft synchron im selben Blubbern). js/15 meldet sich deshalb
+// nach der Uebernahme hier und uebergibt das neue Array ans Modell.
+function ebaNachUebernahme(){
+ const w=$("measTypeEinlaufblech");
+ if(!w||!$("eb_rinneList")||!w.contains($("eb_rinneList")))return;
+ if(Array.isArray(ebPieces)&&ebPieces!==ebA.stuecke){ebA.stuecke=ebPieces;renderEinlaufblechAufnahme();}
+}
+
 function ebaVerdrahten(){
  const wurzel=$("measTypeEinlaufblech");
  if(!wurzel||wurzel.dataset.ebaVerdrahtet)return;
@@ -1319,7 +1329,7 @@ function ebaVerdrahten(){
   if(d.ebaGr!==undefined){ebaGehrung(Number(d.ebaGr),"rechts",t.checked); renderEinlaufblechAufnahme(); return}
  });
 
- wurzel.addEventListener("click",e=>{
+ wurzel.addEventListener("click",async e=>{
   // Die Rinnen-Uebernahme von js/15 haengt am Listen-Element selbst und
   // laeuft durch das Blubbern ZUERST. Sie ersetzt ebPieces durch ein NEUES
   // Array - ohne die folgende Zeile wuerde ebaBruecke() es beim naechsten
@@ -1352,21 +1362,21 @@ function ebaVerdrahten(){
   }
   if(t.id==="eba_neuAusGesamt"){
    const L=ebaZahl(a.gesamtlaenge);
-   if(L<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
-   if((a.stuecke||[]).length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+   if(L<=0){appAlert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
+   if((a.stuecke||[]).length&&!await appConfirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
    a.stuecke=ebaStueckeAusGesamtlaenge(L);
    renderEinlaufblechAufnahme(); return;
   }
   if(t.id==="eba_anhaengen"){
    const L=ebaZahl(a.gesamtlaenge);
-   if(L<=0){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
+   if(L<=0){appAlert("Bitte eine gültige Gesamtlänge eingeben.");return}
    a.stuecke=(a.stuecke||[]).concat(ebaStueckeAusGesamtlaenge(L));
    renderEinlaufblechAufnahme(); return;
   }
   if(t.id==="eba_stueckPlus"){a.stuecke.push(ebaNeuesStueck()); renderEinlaufblechAufnahme(); return}
   if(t.id==="eba_endStart"||t.id==="eba_endEnde"){
    const fehler=ebaEndzugabe(t.id==="eba_endStart"?"start":"ende");
-   if(fehler)alert(fehler); else renderEinlaufblechAufnahme();
+   if(fehler)appAlert(fehler); else renderEinlaufblechAufnahme();
    return;
   }
   if(t.id==="eba_gavaZurueck"){a.gava.anzahl=null; renderEinlaufblechAufnahme(); return}

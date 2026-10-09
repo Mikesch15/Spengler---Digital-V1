@@ -149,9 +149,9 @@ ${(!e.used_at&&!abgelaufen)?`<button type="button" class="red" data-einladung-lo
 $("sysAdminEinladungListe").addEventListener("click",async e=>{
  const b=e.target.closest("[data-einladung-loeschen]");
  if(!b)return;
- if(!confirm("Diesen Einladungslink zurückziehen? Er funktioniert danach nicht mehr."))return;
+ if(!await appConfirm("Diesen Einladungslink zurückziehen? Er funktioniert danach nicht mehr."))return;
  const {error}=await sb.from("company_invites").delete().eq("id",b.dataset.einladungLoeschen);
- if(error){alert("Fehler: "+error.message);return}
+ if(error){appAlert("Fehler: "+error.message);return}
  await renderSysAdminEinladungen();
 });
 
@@ -616,7 +616,7 @@ document.addEventListener("click",async e=>{
  const b=e.target&&e.target.closest?e.target.closest("#sysStorageLoeschen"):null;
  if(!b)return;
  if(!sysStorageVerwaist.length)return;
- if(!confirm(`${sysStorageVerwaist.length} verwaiste Datei(en) endgültig löschen?\n\nDas lässt sich nicht rückgängig machen.`))return;
+ if(!await appConfirm(`${sysStorageVerwaist.length} verwaiste Datei(en) endgültig löschen?\n\nDas lässt sich nicht rückgängig machen.`))return;
  b.disabled=true;
  sysStorageHinweis("");
  try{

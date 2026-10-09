@@ -424,7 +424,7 @@ document.addEventListener("click",async e=>{
  const r=(reststuecke||[]).find(x=>x.id===id);
  if(!r)return;
  restLagerHinweis("");
- if(l&&!confirm(`Rest „${restBeschreibung(r)}" endgültig aus dem Lager entfernen?`))return;
+ if(l&&!await appConfirm(`Rest „${restBeschreibung(r)}" endgültig aus dem Lager entfernen?`))return;
  const {data,error}=l
   ? await sb.from("reststuecke").delete().eq("id",id).select()
   : await sb.from("reststuecke").update({verbraucht:true}).eq("id",id).select();
@@ -446,9 +446,9 @@ document.addEventListener("click",async e=>{
  if(!r)return;
  restLagerHinweis("");
  const m=restMerkmale(r);
- const st=prompt("Materialstärke in mm (leer = unbekannt):",m.staerke!==null?String(m.staerke):"");
+ const st=await appPrompt("Materialstärke in mm (leer = unbekannt):",m.staerke!==null?String(m.staerke):"");
  if(st===null)return;
- const au=prompt("Oberfläche / Ausführung (leer = unbekannt):",r.ausfuehrung||"");
+ const au=await appPrompt("Oberfläche / Ausführung (leer = unbekannt):",r.ausfuehrung||"");
  if(au===null)return;
  const stZahl=String(st).trim()===""?null:Number(String(st).replace(",","."));
  if(stZahl!==null&&(!Number.isFinite(stZahl)||stZahl<=0)){
@@ -465,9 +465,9 @@ document.addEventListener("click",async e=>{
 
 if($("restLagerNeu")){
  $("restLagerNeu").onclick=async()=>{
-  const laenge=prompt("Länge des Restes in mm:");
+  const laenge=await appPrompt("Länge des Restes in mm:");
   if(laenge===null)return;
-  const breite=prompt("Breite des Restes in mm:");
+  const breite=await appPrompt("Breite des Restes in mm:");
   if(breite===null)return;
   if(restZahl(laenge)<=0||restZahl(breite)<=0){restLagerHinweis("Länge und Breite müssen grösser als 0 sein.",true);return}
   const {fehler,anzahl}=await restEinlagern(

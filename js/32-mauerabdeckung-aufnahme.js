@@ -764,7 +764,7 @@ function madaVerdrahten(){
   }
  });
 
- wurzel.addEventListener("click",e=>{
+ wurzel.addEventListener("click",async e=>{
   const t=e.target.closest("button,[data-mada-schritt]");
   if(!t)return;
   const d=t.dataset||{}, a=madA;
@@ -787,7 +787,7 @@ function madaVerdrahten(){
   }
   if(t.id==="mada_segPlus"){madaSegmentAnhaengen();renderMauerabdeckungAufnahme();return}
   if(d.madaWeg!==undefined){
-   if(confirm("Segment "+(Number(d.madaWeg)+1)+" wirklich löschen?")){
+   if(await appConfirm("Segment "+(Number(d.madaWeg)+1)+" wirklich löschen?")){
     madaSegmentLoeschen(Number(d.madaWeg)); renderMauerabdeckungAufnahme();
    }
    return;
@@ -801,9 +801,9 @@ function madaVerdrahten(){
   }
   if(t.id==="mada_schieberPlus"){
    const L=madaGesamtlaenge();
-   const pos=Number(prompt("Position ab Start (mm):","0"));
+   const pos=Number(await appPrompt("Position ab Start (mm):","0"));
    if(!Number.isFinite(pos)||pos<=0||pos>=L){
-    alert("Position muss zwischen 0 und "+Math.round(L)+" mm liegen.");return;
+    appAlert("Position muss zwischen 0 und "+Math.round(L)+" mm liegen.");return;
    }
    a.schieber.push({posAbStart:pos});
    a.schieber.sort((x,y)=>madaZahl(x.posAbStart)-madaZahl(y.posAbStart));

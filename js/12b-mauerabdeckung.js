@@ -444,10 +444,10 @@ $("mad_stuecklisteBody").addEventListener("click",e=>{
   renderMadResult();
  }
 });
-$("mad_addSchieber").onclick=()=>{
+$("mad_addSchieber").onclick=async ()=>{
  const {gesamtlaenge}=computeMadBoundaries(madSegments);
- const pos=Number(prompt("Position ab Start (mm):","0"));
- if(!Number.isFinite(pos)||pos<=0||pos>=gesamtlaenge){alert("Position muss zwischen 0 und "+Math.round(gesamtlaenge)+" mm liegen.");return}
+ const pos=Number(await appPrompt("Position ab Start (mm):","0"));
+ if(!Number.isFinite(pos)||pos<=0||pos>=gesamtlaenge){appAlert("Position muss zwischen 0 und "+Math.round(gesamtlaenge)+" mm liegen.");return}
  $("mad_manuell").checked=true;
  madSchieber.push({posAbStart:pos});
  madSchieber.sort((a,b)=>a.posAbStart-b.posAbStart);

@@ -1073,12 +1073,12 @@ document.addEventListener("click",async e=>{
   const treffer=werkReservierungen.filter(r=>r.project_id===pid&&resvRang(r.status)<ziel);
   if(!treffer.length)return;
   const name=(typeof resvStatusName==="function")?resvStatusName(status):status;
-  if(!confirm(treffer.length+" Position"+(treffer.length===1?"":"en")+" dieses Projekts auf „"+name+"\" setzen?\n\n"
+  if(!await appConfirm(treffer.length+" Position"+(treffer.length===1?"":"en")+" dieses Projekts auf „"+name+"\" setzen?\n\n"
     +"Positionen, die schon weiter sind, bleiben unberührt."))return;
   bulk.disabled=true;
   const erg=await resvBulkStatus(treffer.map(r=>r.id),status);
   if(erg&&erg.offline)return;
-  if(erg&&erg.fehler){alert(erg.fehler);bulk.disabled=false;return}
+  if(erg&&erg.fehler){appAlert(erg.fehler);bulk.disabled=false;return}
   // Die Werkstatt fuehrt eine eigene Liste - sie wird frisch geladen, statt
   // den Stand zu erraten.
   await werkstattNeuLaden();
@@ -1121,7 +1121,7 @@ document.addEventListener("click",async e=>{
  if(mess){
   const id=Number(mess.dataset.werkMess);
   const {data,error}=await sb.from("measurements").select("*").eq("id",id).maybeSingle();
-  if(error||!data){alert("Diese Massaufnahme ist nicht mehr verfügbar.");werkstattNeuLaden();return}
+  if(error||!data){appAlert("Diese Massaufnahme ist nicht mehr verfügbar.");werkstattNeuLaden();return}
   if(typeof measEditReturnTo!=="undefined")measEditReturnTo="werkstatt";
   const m=$("werkstattModal"); if(m)m.hidden=true;
   if(typeof openMeasurement==="function")openMeasurement(data);

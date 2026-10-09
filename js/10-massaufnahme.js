@@ -140,7 +140,7 @@ $("measPhotoGallery").addEventListener("click",async e=>{
   // Ein bereits gespeicherter Pfad muss vor dem Zeichnen zu einer
   // signierten URL aufgeloest werden - der Bucket ist privat.
   const url=src.startsWith("data:")?src:await storageSignedUrl(src);
-  if(!url){alert("Das Foto konnte nicht geladen werden.");return}
+  if(!url){appAlert("Das Foto konnte nicht geladen werden.");return}
   openSketchFullscreen(url);
   return;
  }
@@ -345,7 +345,7 @@ fotoFelderVerdrahten("measPhotoInput",async e=>{
  // Zuruecksetzen, damit dieselbe Datei erneut gewaehlt werden kann.
  e.target.value="";
  renderMeasPhotoGallery();
- if(misslungen.length)alert("Nicht geladen:\n"+misslungen.join("\n"));
+ if(misslungen.length)appAlert("Nicht geladen:\n"+misslungen.join("\n"));
 });
 
 function dataUrlToBlob(dataUrl){
@@ -445,7 +445,7 @@ function measurementAlsVorlage(m,projektId){
 }
 
 function newMeasurementWithType(type){
- if(modulGesperrt("meas:"+type)){alert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
+ if(modulGesperrt("meas:"+type)){appAlert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("massaufnahme",null);
  isDirty=false;
  measEditReturnTo="measurementsModal";

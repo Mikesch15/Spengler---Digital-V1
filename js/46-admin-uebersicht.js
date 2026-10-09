@@ -356,7 +356,7 @@ async function auOeffnen(){
 // ob sie herausgegeben wird.
 async function auOeffneMassaufnahme(id){
  const {data,error}=await sb.from("measurements").select("*").eq("id",Number(id)).maybeSingle();
- if(error||!data){alert("Diese Massaufnahme ist nicht mehr verfügbar.");auNeuLaden();return}
+ if(error||!data){appAlert("Diese Massaufnahme ist nicht mehr verfügbar.");auNeuLaden();return}
  measEditReturnTo="adminMeasModal";
  $("adminMeasModal").hidden=true;
  openMeasurement(data);

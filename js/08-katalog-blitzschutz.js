@@ -29,22 +29,22 @@ $("bzMaterialPrev").onclick=()=>{if(bzMaterialPage>0){bzMaterialPage--;renderBzM
 $("bzMaterialNext").onclick=()=>{bzMaterialPage++;renderBzMaterialSettings()};
 $("newBzMaterial").onclick=async()=>{
  const {error}=await sb.from("blitzschutz_materials").insert({artikel_nr:"",bezeichnung:"Neues Material",einheit:"Stk"});
- if(error){alert("Fehler: "+error.message);return}
+ if(error){appAlert("Fehler: "+error.message);return}
  const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
  blitzschutzMaterials=data||[];
  bzMaterialExpanded.add(blitzschutzMaterials.length-1);
  bzMaterialPage=Math.floor((blitzschutzMaterials.length-1)/BZ_MATERIAL_PAGE_SIZE);
  renderBzMaterialSettings();
 };
-$("bzMaterialSettings").addEventListener("click",e=>{
+$("bzMaterialSettings").addEventListener("click",async e=>{
  const del=e.target.closest("[data-del-bz-mat]");
  if(del){
   // Blitzschutz-Material ist eine EIGENE Tabelle ohne Blechformat und ohne
   // Reststuecke - hier gilt die Warnung des Material-Katalogs nicht.
-  if(!confirm("Dieses Blitzschutz-Material wirklich löschen?"))return;
+  if(!await appConfirm("Dieses Blitzschutz-Material wirklich löschen?"))return;
   const i=Number(del.dataset.delBzMat);
   sb.from("blitzschutz_materials").delete().eq("id",blitzschutzMaterials[i].id).then(async({error})=>{
-   if(error){alert("Fehler: "+error.message);return}
+   if(error){appAlert("Fehler: "+error.message);return}
    const {data}=await sb.from("blitzschutz_materials").select("*").order("bezeichnung");
    blitzschutzMaterials=data||[];
    renderBzMaterialSettings();
@@ -256,8 +256,8 @@ die Vorschau weist darauf hin.`:""}</div>`;
   const file=input.files[0];
   if(!file)return;
   try{ zeilen=await excelZeilenLesen(file); }
-  catch(err){ alert("Die Datei konnte nicht gelesen werden: "+(err.message||err)); input.value=""; return; }
-  if(!zeilen.length){ alert("Die Datei enthält keine Zeilen."); input.value=""; return; }
+  catch(err){ appAlert("Die Datei konnte nicht gelesen werden: "+(err.message||err)); input.value=""; return; }
+  if(!zeilen.length){ appAlert("Die Datei enthält keine Zeilen."); input.value=""; return; }
   // Nur beim Einlesen automatisch zuordnen - eine spaetere Aenderung von
   // Hand darf nicht ueberschrieben werden.
   zuordnung=$(cfg.headerCheckId).checked?importAutoZuordnen(cfg.felder,zeilen[0]):{};
@@ -492,7 +492,7 @@ die Vorschau weist darauf hin.`:""}</div>`;
  $(cfg.cancelId).onclick=()=>{ zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true; };
  $(cfg.confirmId).onclick=async()=>{
   const daten=verwendbar(datenZeilen());
-  if(!daten.length){ alert("Keine vollständigen Zeilen zum Importieren gefunden."); return; }
+  if(!daten.length){ appAlert("Keine vollständigen Zeilen zum Importieren gefunden."); return; }
   const st=einstufen(daten);
   // v3.231: Festwerte - Angaben, die fuer die GANZE Datei gelten und deshalb
   // nicht in ihr stehen. Beim Lieferanten-Lager ist das der Lieferant: eine
@@ -506,7 +506,7 @@ die Vorschau weist darauf hin.`:""}</div>`;
   // den niemand gewaehlt hat.
   const fest=(typeof cfg.festwerte==="function")?cfg.festwerte():null;
   if(cfg.festwerte&&!fest){
-   alert(cfg.festwerteFehler||"Es fehlt eine Angabe, die für die ganze Datei gilt.");
+   appAlert(cfg.festwerteFehler||"Es fehlt eine Angabe, die für die ganze Datei gilt.");
    return;
   }
   // Nur die zugeordneten Felder schreiben (s. eintragAus): was die Datei
@@ -525,15 +525,15 @@ die Vorschau weist darauf hin.`:""}</div>`;
    if(gesehen[k])doppelt.push(k); else gesehen[k]=true;
   });
   if(doppelt.length){
-   alert("Die Datei enthält dieselbe Nummer mehrfach: "+[...new Set(doppelt)].slice(0,10).join(", ")
+   appAlert("Die Datei enthält dieselbe Nummer mehrfach: "+[...new Set(doppelt)].slice(0,10).join(", ")
     +"\n\nBitte in der Datei bereinigen - sonst ist nicht bestimmt, welche Zeile gilt.");
    return;
   }
   if(!eintraege.length){
-   alert("Alle Positionen der Datei sind bereits so im Katalog - es gibt nichts zu ändern.");
+   appAlert("Alle Positionen der Datei sind bereits so im Katalog - es gibt nichts zu ändern.");
    return;
   }
-  if(!confirm(`${st.neu.length} Position(en) neu anlegen und ${st.geaendert.length} ändern?`
+  if(!await appConfirm(`${st.neu.length} Position(en) neu anlegen und ${st.geaendert.length} ändern?`
     +`\n\nEs wird nichts gelöscht. Positionen, die in der Datei fehlen, bleiben bestehen.`))return;
   $(cfg.confirmId).disabled=true;
   // v3.134: upsert statt insert - Abgleich ueber die Nummer. Ohne
@@ -563,7 +563,7 @@ die Vorschau weist darauf hin.`:""}</div>`;
     const r=await bkStempelWeg(treffer);
     if(!r.ok){
      $(cfg.confirmId).disabled=false;
-     alert("Der Import wurde nicht gestartet: "+r.meldung);
+     appAlert("Der Import wurde nicht gestartet: "+r.meldung);
      return;
     }
    }
@@ -577,19 +577,19 @@ die Vorschau weist darauf hin.`:""}</div>`;
   const {data,error}=await sb.from(cfg.tableName)
     .upsert(eintraege,{onConflict:konflikt}).select();
   $(cfg.confirmId).disabled=false;
-  if(error){ alert("Der Import wurde nicht gespeichert.\n\n"+importFehlerText(error)); return; }
+  if(error){ appAlert("Der Import wurde nicht gespeichert.\n\n"+importFehlerText(error)); return; }
   // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft
   // still 0 Zeilen (CLAUDE.md 24.1) - deshalb wird das Ergebnis geprueft.
-  if(!data||!data.length){ alert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
+  if(!data||!data.length){ appAlert("Es wurde nichts importiert. Fehlt die nötige Berechtigung?"); return; }
   if(data.length<eintraege.length){
    // v3.143: Der Zusatz "oder gehört eine Nummer einer anderen Firma?"
    // ist ersatzlos weg - seit die Nummer je Firma eindeutig ist, KANN sie
    // keiner anderen Firma mehr gehoeren. Der Satz haette den Anwender auf
    // eine Ursache geschickt, die es nicht mehr gibt.
-   alert(`Achtung: ${data.length} von ${eintraege.length} Zeilen wurden geschrieben. `
+   appAlert(`Achtung: ${data.length} von ${eintraege.length} Zeilen wurden geschrieben. `
     +`Die übrigen wurden abgewiesen - fehlt die nötige Berechtigung?`);
   }else{
-   alert(`${st.neu.length} Position(en) angelegt, ${st.geaendert.length} geändert, `
+   appAlert(`${st.neu.length} Position(en) angelegt, ${st.geaendert.length} geändert, `
     +`${st.unveraendert.length} unverändert.`);
   }
   zeilen=[]; zuordnung={}; input.value=""; $(cfg.previewId).hidden=true;
@@ -690,11 +690,11 @@ async function materialExcelExport(){
  // die Pruefung hier ist der Guertel zum Hosentraeger, nicht die einzige
  // Schranke.
  if(typeof isAdmin==="function"&&!isAdmin()){
-  alert("Die Materialliste herausgeben darf der Firmenadministrator.");return false;
+  appAlert("Die Materialliste herausgeben darf der Firmenadministrator.");return false;
  }
  const zeilen=materialExportZeilen();
  if(zeilen.length<2){
-  alert("Im Materialkatalog steht noch keine Position – es gibt nichts zu exportieren.");
+  appAlert("Im Materialkatalog steht noch keine Position – es gibt nichts zu exportieren.");
   return false;
  }
  // Dieselbe nachgeladene Bibliothek wie beim Import (xlsxLaden, js/01). Sie
@@ -702,7 +702,7 @@ async function materialExcelExport(){
  // aber nur, wenn die Datei im Cache liegt. Ein Fehlschlag wird gesagt, nicht
  // verschluckt.
  if(!await xlsxLaden()){
-  alert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen.");
+  appAlert("Die Excel-Funktion konnte nicht geladen werden. Bitte einmal mit bestehender Internetverbindung versuchen.");
   return false;
  }
  const blatt=XLSX.utils.aoa_to_sheet(zeilen);
@@ -760,18 +760,18 @@ function renderRinneFittingSettings(){
 }
 $("newRinneFitting").onclick=async()=>{
  const {error}=await sb.from("rinne_fitting_types").insert({name:"Neuer Typ",mass_mm:0,ausmass_mass_mm:0,symbol:"",angle_deg:0,is_fixpunkt:false,is_schiebestutzen:false});
- if(error){alert("Fehler: "+error.message);return}
+ if(error){appAlert("Fehler: "+error.message);return}
  const {data}=await sb.from("rinne_fitting_types").select("*").order("name");
  rinneFittingTypes=data||[];
  renderRinneFittingSettings();
 };
-$("rinneFittingSettings").addEventListener("click",e=>{
+$("rinneFittingSettings").addEventListener("click",async e=>{
  const del=e.target.closest("[data-del-rinne-fitting]");
  if(!del)return;
- if(!confirm("Diesen Anschlusstyp wirklich löschen?"))return;
+ if(!await appConfirm("Diesen Anschlusstyp wirklich löschen?"))return;
  const i=Number(del.dataset.delRinneFitting);
  sb.from("rinne_fitting_types").delete().eq("id",rinneFittingTypes[i].id).then(async({error})=>{
-  if(error){alert("Fehler: "+error.message);return}
+  if(error){appAlert("Fehler: "+error.message);return}
   const {data}=await sb.from("rinne_fitting_types").select("*").order("name");
   rinneFittingTypes=data||[];
   renderRinneFittingSettings();
@@ -809,9 +809,9 @@ $("saveRinneFittings").onclick=async()=>{
   }).eq("id",f.id)));
   const err=results.find(r=>r.error);
   if(err)throw err.error;
-  alert("Gespeichert.");
+  appAlert("Gespeichert.");
  }catch(err){
-  alert("Fehler beim Speichern: "+(err.message||err));
+  appAlert("Fehler beim Speichern: "+(err.message||err));
  }
  $("saveRinneFittings").disabled=false;
 };
@@ -837,19 +837,19 @@ $("newMeasMaterial").onclick=async()=>{
  // laedt die Liste danach weiterhin selbst neu: sie zeigt auch die
  // Dehnungswerte und soll in der Reihenfolge der Datenbank stehen.
  const raus=await werkstoffAnlegen({name:"Neuer Werkstoff"});
- if(raus.id===null){alert("Fehler: "+(raus.fehler||"Der Werkstoff wurde nicht angelegt."));return}
+ if(raus.id===null){appAlert("Fehler: "+(raus.fehler||"Der Werkstoff wurde nicht angelegt."));return}
  const {data}=await sb.from("measurement_materials").select("*").order("name");
  measurementMaterials=data||[];
  renderMeasMaterialSettings();
  renderMeasMaterialOptions();
 };
-$("measMaterialSettings").addEventListener("click",e=>{
+$("measMaterialSettings").addEventListener("click",async e=>{
  const del=e.target.closest("[data-del-meas-material]");
  if(!del)return;
- if(!confirm("Diesen Werkstoff wirklich löschen?"))return;
+ if(!await appConfirm("Diesen Werkstoff wirklich löschen?"))return;
  const i=Number(del.dataset.delMeasMaterial);
  sb.from("measurement_materials").delete().eq("id",measurementMaterials[i].id).then(async({error})=>{
-  if(error){alert("Fehler: "+error.message);return}
+  if(error){appAlert("Fehler: "+error.message);return}
   const {data}=await sb.from("measurement_materials").select("*").order("name");
   measurementMaterials=data||[];
   renderMeasMaterialSettings();
@@ -888,10 +888,10 @@ async function registerEmployee(vor,nach,email){
  email=(email||"").trim();
  if(!vor||!nach)return false;
  const {data,error}=await sb.functions.invoke("smart-action",{body:{first_name:vor,last_name:nach,email:email||undefined}});
- if(error){alert("Fehler: "+(await edgeFunctionErrorMessage(error,"Mitarbeiter konnte nicht angelegt werden.")));return false}
- if(!data?.ok){alert("Fehler: "+(data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
+ if(error){appAlert("Fehler: "+(await edgeFunctionErrorMessage(error,"Mitarbeiter konnte nicht angelegt werden.")));return false}
+ if(!data?.ok){appAlert("Fehler: "+(data?.error||"Mitarbeiter konnte nicht angelegt werden."));return false}
  const mailZeile=email?("\n\n"+(data.mailVersendet?"Die Zugangsdaten wurden zusätzlich an "+email+" gesendet.":"Die Zugangsdaten konnten NICHT per E-Mail an "+email+" gesendet werden - bitte manuell weitergeben.")):"";
- alert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren."+mailZeile);
+ appAlert("Konto erstellt.\n\nBenutzername: "+data.username+"\nPasswort: "+data.password+"\n\nBitte notieren."+mailZeile);
  return true;
 }
 
@@ -946,11 +946,11 @@ $("materialSettingsSearch").addEventListener("input",e=>{materialFilter=e.target
 $("materialPrev").onclick=()=>{if(materialPage>0){materialPage--;renderMaterialSettings()}};
 $("materialNext").onclick=()=>{materialPage++;renderMaterialSettings()};
 $("newEmployee").onclick=async()=>{
- const vor=prompt("Vorname des neuen Mitarbeiters?");if(!vor)return;
- const nach=prompt("Nachname des neuen Mitarbeiters?");if(!nach)return;
+ const vor=await appPrompt("Vorname des neuen Mitarbeiters?");if(!vor)return;
+ const nach=await appPrompt("Nachname des neuen Mitarbeiters?");if(!nach)return;
  // v3.103: optional - leer lassen und OK/Abbrechen sind beide gueltig,
  // nur eine ungueltige E-Mail wird von der Edge Function abgelehnt.
- const email=prompt("E-Mail-Adresse des neuen Mitarbeiters? (optional - für Zugangsdaten per E-Mail und als zusätzliche Anmeldeadresse; leer lassen, wenn nicht gewünscht)")||"";
+ const email=await appPrompt("E-Mail-Adresse des neuen Mitarbeiters? (optional - für Zugangsdaten per E-Mail und als zusätzliche Anmeldeadresse; leer lassen, wenn nicht gewünscht)")||"";
  if(await registerEmployee(vor,nach,email)){await loadAllData();renderSettings();renderMain()}
 };
 $("newRate").onclick=async()=>{
@@ -963,7 +963,7 @@ $("newRate").onclick=async()=>{
  let name="Neue Funktion",n=2;
  while(settings.rates.some(r=>r[0]===name)){name=`Neue Funktion ${n}`;n++}
  const {error}=await sb.from("rates").insert({name,value:0});
- if(error){alert("Fehler: "+error.message);return}
+ if(error){appAlert("Fehler: "+error.message);return}
  await loadAllData();renderSettings();
 };
 // v3.137: Die EDV-Nr. einer neuen Katalogposition wird BERECHNET, nicht als
@@ -1022,7 +1022,7 @@ $("newMaterial").onclick=async()=>{
    await loadAllData();   // frischer Stand, dann neu rechnen
   }
   if(fehler){
-   alert(/duplicate key|unique constraint/i.test(fehler.message||"")
+   appAlert(/duplicate key|unique constraint/i.test(fehler.message||"")
     ? "Diese EDV-Nr. ist bereits vergeben. Bitte noch einmal versuchen."
     : "Fehler: "+fehler.message);
    return;
@@ -1057,13 +1057,13 @@ $("materialSettings").addEventListener("input",e=>{
 });
 $("employeeSettings").addEventListener("click",async e=>{
  const b=e.target.closest("[data-del-emp]");if(!b)return;
- if(!confirm("Mitarbeiter aus der Liste entfernen?\n\nHinweis: Das Login-Konto selbst kann aus Sicherheitsgründen nur ein Administrator im Supabase-Dashboard vollständig löschen."))return;
+ if(!await appConfirm("Mitarbeiter aus der Liste entfernen?\n\nHinweis: Das Login-Konto selbst kann aus Sicherheitsgründen nur ein Administrator im Supabase-Dashboard vollständig löschen."))return;
  await sb.from("profiles").delete().eq("id",employeeIds[Number(b.dataset.delEmp)]);
  await loadAllData();renderSettings();
 });
 $("rateSettings").addEventListener("click",async e=>{
  const b=e.target.closest("[data-del-rate]");if(!b)return;
- if(!confirm("Diese Funktion/Stundenansatz wirklich löschen?"))return;
+ if(!await appConfirm("Diese Funktion/Stundenansatz wirklich löschen?"))return;
  await sb.from("rates").delete().eq("id",rateIds[Number(b.dataset.delRate)]);
  await loadAllData();renderSettings();
 });
@@ -1089,7 +1089,7 @@ $("materialSettings").addEventListener("click",async e=>{
   // Löschung selbst. Kein Rückfall daneben: ein zweiter, kürzerer Text wäre
   // genau die Lücke wieder, die hier geschlossen wird.
   const mid=materialIds[Number(del.dataset.delMaterial)];
-  if(!confirm(katalogPositionLoeschenWarnung(mid)))return;
+  if(!await appConfirm(katalogPositionLoeschenWarnung(mid)))return;
   await sb.from("materials").delete().eq("id",mid);
   await loadAllData();renderSettings();renderMain();return;
  }
@@ -1138,9 +1138,9 @@ $("cuts").addEventListener("input",e=>{
 });
 $("cuts").addEventListener("click",e=>{const b=e.target.closest("[data-del-cut]");if(b){cuts.splice(Number(b.dataset.delCut),1);if(!cuts.length)cuts.push({l:"",b:"",q:1});renderCuts()}});
 $("takeOver").onclick=()=>{
- if(!selectedSheet){alert("Bitte zuerst ein Material auswählen.");return}
+ if(!selectedSheet){appAlert("Bitte zuerst ein Material auswählen.");return}
  const total=cuts.reduce((s,c)=>s+(Number(c.l)||0)*(Number(c.b)||0)*(Number(c.q)||0)/1000000,0);
- if(total<=0){alert("Bitte mindestens einen gültigen Zuschnitt eingeben.");return}
+ if(total<=0){appAlert("Bitte mindestens einen gültigen Zuschnitt eingeben.");return}
  mats.push({date:new Date().toISOString().slice(0,10),no:selectedSheet[0],qty:Number(total.toFixed(4))});renderMain();$("sheetModal").hidden=true;
 };
 
@@ -1161,7 +1161,7 @@ window.addEventListener("beforeprint",()=>{
  bar.textContent=teile.join(" · ");
 });
 $("save").onclick=async()=>{
- if(!currentProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ if(!currentProjectId){appAlert("Bitte zuerst ein Projekt auswählen. Ein Rapport kann nur einem Projekt zugeordnet gespeichert werden.");return}
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
  if(wsIstOffline()){
   const proj=allProjects.find(x=>String(x.id)===String(currentProjectId));
@@ -1179,13 +1179,13 @@ $("save").onclick=async()=>{
    bilder:{photo_paths:(typeof reportPhotos!=="undefined")?reportPhotos.slice():[]}
   });
   if(!r.ok){
-   alert("Keine Verbindung – und dieser Rapport lässt sich auf diesem Gerät auch nicht "
+   appAlert("Keine Verbindung – und dieser Rapport lässt sich auf diesem Gerät auch nicht "
     +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben "
     +"stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
    return;
   }
   isDirty=false;
-  alert("Keine Verbindung.\n\nDer Rapport wartet jetzt auf diesem Gerät und wird übertragen, "
+  appAlert("Keine Verbindung.\n\nDer Rapport wartet jetzt auf diesem Gerät und wird übertragen, "
    +"sobald wieder eine Verbindung besteht. Bis dahin ist er NICHT in der Datenbank – "
    +"bitte das Gerät nicht zurücksetzen.");
   return;
@@ -1228,20 +1228,20 @@ $("save").onclick=async()=>{
    res=nach;
   }catch(err){
    $("save").disabled=false;
-   alert("Der Rapport wurde gespeichert, aber die Fotos konnten nicht hochgeladen werden: "
+   appAlert("Der Rapport wurde gespeichert, aber die Fotos konnten nicht hochgeladen werden: "
      +(err&&err.message?err.message:err)+"\n\nDie Fotos bleiben im Formular stehen.");
    if(res.data){currentReportId=res.data.id;}
    return;
   }
  }
  $("save").disabled=false;
- if(res.error){alert("Fehler beim Speichern: "+res.error.message);return}
+ if(res.error){appAlert("Fehler beim Speichern: "+res.error.message);return}
  if(res.data){currentReportId=res.data.id;currentReportMeta={created_by:res.data.created_by,created_at:res.data.created_at,updated_by:res.data.updated_by,updated_at:res.data.updated_at};}
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),currentReportId);
  isDirty=false;
- alert("Rapport gespeichert und dem Projekt zugeordnet.");
+ appAlert("Rapport gespeichert und dem Projekt zugeordnet.");
 };
-$("clear").onclick=()=>{if(confirm("Wirklich alle Rapportdaten löschen?")){works=[neueArbeitsposition()];mats=[];currentReportId=null;
+$("clear").onclick=async ()=>{if(await appConfirm("Wirklich alle Rapportdaten löschen?")){works=[neueArbeitsposition()];mats=[];currentReportId=null;
  if(typeof reportPhotos!=="undefined"){reportPhotos=[];if(typeof renderReportFotos==="function")renderReportFotos()}
  if(typeof signatureClient!=="undefined"){signatureClient=null;signatureEmployee=null;if(typeof renderSignatures==="function")renderSignatures()}
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),null);renderMain()}};

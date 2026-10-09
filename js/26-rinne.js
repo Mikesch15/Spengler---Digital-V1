@@ -735,7 +735,7 @@ function applyRinneProfilSettings() {
       renderRinneResult();
       dirty();
     });
-    pb.addEventListener("click", e => {
+    pb.addEventListener("click", async e => {
       const zahlBtn = (name) => {
         const b = e.target.closest("[data-rp-" + name + "]");
         return b ? Number(b.dataset["rp" + name.charAt(0).toUpperCase() + name.slice(1)]) : null;
@@ -753,7 +753,7 @@ function applyRinneProfilSettings() {
         const i = Number(del.dataset.rpSegdel);
         const seg = rinneProfil[i];
         if (!seg) return;
-        if (!confirm("Segment " + (i + 1) + (seg.name ? " („" + seg.name + "“)" : "") + " aus dem Profil löschen?")) return;
+        if (!await appConfirm("Segment " + (i + 1) + (seg.name ? " („" + seg.name + "“)" : "") + " aus dem Profil löschen?")) return;
         rinneProfil.splice(i, 1);
         rinneStueckeAnpassen();
         renderRinneResult();
@@ -772,8 +772,8 @@ function applyRinneProfilSettings() {
     renderRinneResult();
     dirty();
   };
-  if ($("rp_resetProfil")) $("rp_resetProfil").onclick = () => {
-    if (!confirm("Profil auf das Standardprofil der Excel-Vorlage zurücksetzen?\n\nDie erfassten Rinnenstücke bleiben erhalten und werden auf die dann gültige Anzahl variabler Masse angepasst.")) return;
+  if ($("rp_resetProfil")) $("rp_resetProfil").onclick = async () => {
+    if (!await appConfirm("Profil auf das Standardprofil der Excel-Vorlage zurücksetzen?\n\nDie erfassten Rinnenstücke bleiben erhalten und werden auf die dann gültige Anzahl variabler Masse angepasst.")) return;
     rinneProfil = RINNE_STANDARDPROFIL.map(rinneSegment);
     rinneStueckeAnpassen();
     renderRinneResult();
@@ -782,7 +782,7 @@ function applyRinneProfilSettings() {
   if ($("rp_profilAlsStandard")) $("rp_profilAlsStandard").onclick = () => {
     rinneProfilEinstellungenSichern({ profil: rinneProfil, ansetz: rinneAnsetz });
     applyRinneProfilSettings();
-    alert("Dieses Profil gilt jetzt als Vorgabe für neue Rinnen-Massaufnahmen (nur auf diesem Gerät).\n\nBereits gespeicherte Massaufnahmen behalten ihr eigenes Profil.");
+    appAlert("Dieses Profil gilt jetzt als Vorgabe für neue Rinnen-Massaufnahmen (nur auf diesem Gerät).\n\nBereits gespeicherte Massaufnahmen behalten ihr eigenes Profil.");
   };
 
   // --- Stueckliste ---
@@ -820,12 +820,12 @@ function applyRinneProfilSettings() {
     renderRinneStueckTabelle();
     dirty();
   });
-  body.addEventListener("click", e => {
+  body.addEventListener("click", async e => {
     const del = e.target.closest("[data-rp-del]");
     if (!del) return;
     const i = Number(del.dataset.rpDel);
     if (!rinneStuecke[i]) return;
-    if (!confirm("Rinnenstück " + (i + 1) + " löschen?")) return;
+    if (!await appConfirm("Rinnenstück " + (i + 1) + " löschen?")) return;
     rinneStuecke.splice(i, 1);
     renderRinneStueckTabelle();
     renderRinneDiagramm();
@@ -865,20 +865,20 @@ function applyRinneProfilSettings() {
       gehrung: zahl("rpsGehrung"), naht: zahl("rpsNaht"), nichts: zahl("rpsNichts")
     };
     if (Object.keys(ansetz).some(k => !Number.isFinite(ansetz[k]))) {
-      alert("Bitte in allen Feldern eine Zahl eingeben."); return;
+      appAlert("Bitte in allen Feldern eine Zahl eingeben."); return;
     }
     rinneProfilEinstellungenSichern({ profil: rinneWerte(rinneProfilSettings).profil, ansetz });
     applyRinneProfilSettings();
-    alert("Gespeichert (gilt nur für dieses Gerät).\n\nBereits gespeicherte Rinnen-Massaufnahmen behalten ihre bisherigen Werte.");
+    appAlert("Gespeichert (gilt nur für dieses Gerät).\n\nBereits gespeicherte Rinnen-Massaufnahmen behalten ihre bisherigen Werte.");
   };
 
-  $("resetRinneProfilSettings").onclick = () => {
-    if (!confirm("Standardprofil und Ansetztypen auf die Werte der Excel-Vorlage zurücksetzen?")) return;
+  $("resetRinneProfilSettings").onclick = async () => {
+    if (!await appConfirm("Standardprofil und Ansetztypen auf die Werte der Excel-Vorlage zurücksetzen?")) return;
     rinneProfilEinstellungenSichern({
       profil: RINNE_STANDARDPROFIL.map(rinneSegment),
       ansetz: Object.assign({}, RINNE_ANSETZ_STANDARD)
     });
     applyRinneProfilSettings();
-    alert("Auf die Werte der Excel-Vorlage zurückgesetzt.");
+    appAlert("Auf die Werte der Excel-Vorlage zurückgesetzt.");
   };
 })();

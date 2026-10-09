@@ -632,7 +632,7 @@ function lfInvZeichnen(){
 }
 // Alle ANGEZEIGTEN auf einen Mindestbestand setzen - derselbe Grundsatz wie
 // beim Zuordnen: was du siehst, wird gesetzt.
-function lfInvMindestAlle(){
+async function lfInvMindestAlle(){
  if(typeof $!=="function")return;
  const feld=$("liefInvMindestAlle"), h=$("liefInvMeldung");
  const roh=feld?feld.value.trim():"";
@@ -645,7 +645,7 @@ function lfInvMindestAlle(){
  }
  const m=lfZahl(roh);
  if(m<0){ if(h){h.style.color="var(--red)";h.textContent="Ein Mindestbestand kann nicht negativ sein."} return }
- if(typeof confirm==="function"&&!confirm(
+ if(typeof confirm==="function"&&!await appConfirm(
    "Allen "+liste.length+" angezeigten Artikeln den Mindestbestand "+lfZahlText(m)+" geben?\n\n"
   +"Gespeichert wird erst mit „Speichern“."))return;
  liste.forEach(a=>{ lfInvMindest[String(a.id)]=lfZahlText(m) });
@@ -1279,7 +1279,7 @@ function lfZuordnenRegieListeFuellen(){
 // "Alle angezeigten auf ..." - was du siehst, wird gesetzt. Nichts
 // Unsichtbares. Deshalb wirkt es auf lfZuordnenKandidaten(), also samt
 // Gruppen- und Suchfilter und samt dem Schalter "nur offene".
-function lfZuordnenAlleSetzen(){
+async function lfZuordnenAlleSetzen(){
  if(typeof $!=="function")return;
  const feld=$("liefZuordnenRegie");
  const h=$("liefZuordnenMeldung");
@@ -1316,7 +1316,7 @@ function lfZuordnenAlleSetzen(){
     +"Einzeln geht es weiterhin, wenn es fachlich stimmt." }
   return;
  }
- if(typeof confirm==="function"&&!confirm(
+ if(typeof confirm==="function"&&!await appConfirm(
    (weg?passend.length+" von "+liste.length+" angezeigten Artikeln":"Alle "+passend.length+" angezeigten Artikel")
   +" auf „"+r.edv_nr+" · "+r.name+"“ setzen?\n\n"
   +(weg?weg+" Artikel werden ausgelassen: ihre Grösse passt nicht zu dieser Position.\n\n":"")
@@ -1605,7 +1605,7 @@ async function lfKeinePositionAlleSetzen(wert){
  const h=$("liefZuordnenMeldung");
  const liste=lfZuordnenKandidaten();
  if(!liste.length){ if(h){h.style.color="var(--muted)";h.textContent="Es wird gerade nichts angezeigt."} return }
- if(typeof confirm==="function"&&wert&&!confirm(
+ if(typeof confirm==="function"&&wert&&!await appConfirm(
    "Bei allen "+liste.length+" angezeigten Artikeln festhalten, dass es dafür KEINE Regie-Position gibt?\n\n"
   +"Sie verschwinden damit aus „noch offen“ und aus „Was fehlt“. Im Lager bleiben sie voll nutzbar – "
   +"Bestand, Mindestbestand und Einkaufsliste brauchen keine Regie-Position.\n\n"
@@ -2141,7 +2141,7 @@ async function lfSortimentEinlesen(){
   lfMeldung("In der Sortimentsdatei fehlt die Angabe, von welchem Lieferanten sie ist.",true);
   return;
  }
- if(typeof confirm==="function"&&!confirm(
+ if(typeof confirm==="function"&&!await appConfirm(
    liste.length+" Artikel von "+lieferant+" einlesen?\n\n"
   +"Bereits vorhandene Artikelnummern dieses Lieferanten werden aktualisiert, nichts wird gelöscht.\n"
   +"Der Materialkatalog der Firma und die bestehende Lagerverwaltung bleiben unberührt."))return;
@@ -2710,13 +2710,13 @@ if(typeof document!=="undefined")document.addEventListener("DOMContentLoaded",()
  an("liefZuordnenFehlend",()=>lfFehlendeRegieKopieren());
  an("liefZuordnenSpeichern",()=>lfZuordnenSpeichern());
  an("liefZuordnenSchliessen",()=>{ $("liefZuordnenModal").hidden=true });
- an("liefZuordnenAlle",()=>lfZuordnenAlleSetzen());
+ an("liefZuordnenAlle",async ()=>await lfZuordnenAlleSetzen());
  an("liefKeinePositionAlle",()=>lfKeinePositionAlleSetzen(true));
  an("liefKeinePositionAlleZurueck",()=>lfKeinePositionAlleSetzen(false));
  an("liefBewKnopf",()=>lfBewegungenOeffnen());
  an("liefInvKnopf",()=>lfInvOeffnen());
  an("liefInvSchliessen",()=>{ $("liefInvModal").hidden=true });
- an("liefInvMindestSetzen",()=>lfInvMindestAlle());
+ an("liefInvMindestSetzen",async ()=>await lfInvMindestAlle());
  an("liefInvSpeichern",()=>lfInvSpeichern());
  const ig=$("liefInvGruppe");
  if(ig)ig.onchange=()=>{ lfInvGruppe=ig.value; lfInvZeichnen() };

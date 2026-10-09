@@ -375,7 +375,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
  await page.waitForTimeout(150);
  p(handler.gleich,"das Listen-Element ueberlebt das Neuzeichnen",handler);
  // Und die Uebernahme selbst muss im Modell ankommen - nicht nur in ebkPieces.
- const uebernahme=await page.evaluate(()=>{
+ const uebernahme=await page.evaluate(async()=>{
   const segs=[{laenge:5000,winkel:-90},{laenge:3000,winkel:0}];
   ebkRinneCache=[{id:1,title:"Rinne Nord",date:"2026-09-01",data:{segments:segs}}];
   zeigeRinneUebernahmeListe("ebk_rinneHint","ebk_rinneList",
@@ -385,6 +385,8 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebkaSetzeSchritt(k),n);await pa
   const knopf=document.querySelector("[data-pick-ebk-rinne]");
   if(!knopf)return {fehlt:true};
   knopf.click();
+  // v3.286: die Rueckfrage ist ein eigener Dialog (await) - erst danach steht das Modell.
+  await new Promise(r=>setTimeout(r,60));
   return {soll:soll.map(x=>x.laenge).join(), sollAnzahl:soll.length,
           gehrung:soll.some(x=>x.gehrungRechts||x.gehrungLinks),
           modell:ebkA.stuecke.map(x=>x.laenge).join(),

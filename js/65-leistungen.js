@@ -193,7 +193,7 @@ async function leiEditZurueck(){
 
 async function leiSpeichern(){
  const e=leiEingabenAusFeldern();
- if(!e.bezeichnung){alert("Bitte eine Bezeichnung eintragen.");return}
+ if(!e.bezeichnung){appAlert("Bitte eine Bezeichnung eintragen.");return}
  let angebotId=null,angebotPosition=null;
  const sel=$("leiAngebotPosition");
  if(sel&&sel.value!==""){
@@ -209,30 +209,30 @@ async function leiSpeichern(){
  let leistungId=currentLeistungId;
  if(currentLeistungId){
   const {data,error}=await sb.from("leistungen").update(payload).eq("id",currentLeistungId).select();
-  if(error){alert("Fehler beim Speichern: "+error.message);return}
-  if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
+  if(error){appAlert("Fehler beim Speichern: "+error.message);return}
+  if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
  }else{
   const {data,error}=await sb.from("leistungen").insert(payload).select();
-  if(error){alert("Fehler beim Speichern: "+error.message);return}
-  if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
+  if(error){appAlert("Fehler beim Speichern: "+error.message);return}
+  if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
   leistungId=data[0].id;
  }
  // Massaufnahme-Verknuepfungen: bestehende loeschen, ausgewaehlte neu anlegen.
  const {error:delErr}=await sb.from("leistung_massaufnahmen").delete().eq("leistung_id",leistungId);
- if(delErr){alert("Fehler beim Aktualisieren der Massaufnahme-Verknüpfungen: "+delErr.message);return}
+ if(delErr){appAlert("Fehler beim Aktualisieren der Massaufnahme-Verknüpfungen: "+delErr.message);return}
  if(leiAusgewaehlteMassaufnahmen.length){
   const rows=leiAusgewaehlteMassaufnahmen.map(mid=>({leistung_id:leistungId,measurement_id:mid}));
   const {data:ins,error:insErr}=await sb.from("leistung_massaufnahmen").insert(rows).select();
-  if(insErr){alert("Fehler beim Verknüpfen der Massaufnahmen: "+insErr.message);return}
-  if(!ins||ins.length!==rows.length){alert("Nicht alle Verknüpfungen konnten gespeichert werden. Fehlt die nötige Berechtigung?");return}
+  if(insErr){appAlert("Fehler beim Verknüpfen der Massaufnahmen: "+insErr.message);return}
+  if(!ins||ins.length!==rows.length){appAlert("Nicht alle Verknüpfungen konnten gespeichert werden. Fehlt die nötige Berechtigung?");return}
  }
  await leiEditZurueck();
 }
 
 async function leiLoeschen(id){
- if(!confirm("Diese Leistung wirklich löschen?"))return;
+ if(!await appConfirm("Diese Leistung wirklich löschen?"))return;
  const {error}=await sb.from("leistungen").delete().eq("id",id);
- if(error){alert("Fehler beim Löschen: "+error.message);return}
+ if(error){appAlert("Fehler beim Löschen: "+error.message);return}
  await cockpitBereichAktualisieren("leistungen");
 }
 

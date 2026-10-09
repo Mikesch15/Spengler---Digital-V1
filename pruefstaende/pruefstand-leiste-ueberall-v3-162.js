@@ -167,10 +167,10 @@ const rahmen=page=>page.evaluate(()=>{
  // C1: nichts geaendert -> das Formular schliesst kommentarlos.
  await aufraeumen();
  dialogTexte=[];
- const C1=await page.evaluate(()=>{
+ const C1=await page.evaluate(async()=>{
   $("measurementEditModal").hidden=false;
   if(typeof isDirty!=="undefined")isDirty=false;
-  const weiter=a2FormularVerlassen();
+  const weiter=await a2FormularVerlassen();
   return {weiter, zu:$("measurementEditModal").hidden};
  });
  p(C1.weiter&&C1.zu&&dialogTexte.length===0,
@@ -179,10 +179,10 @@ const rahmen=page=>page.evaluate(()=>{
  // C2: geaendert und bestaetigt -> Formular zu.
  await aufraeumen();
  dialogTexte=[]; dialogAntwort=true;
- const C2=await page.evaluate(()=>{
+ const C2=await page.evaluate(async()=>{
   $("measurementEditModal").hidden=false;
   isDirty=true;
-  const weiter=a2FormularVerlassen();
+  const weiter=await a2FormularVerlassen();
   return {weiter, zu:$("measurementEditModal").hidden, dirty:isDirty};
  });
  p(C2.weiter&&C2.zu&&dialogTexte.length===1&&/ungespeicherte/i.test(dialogTexte[0]),
@@ -192,10 +192,10 @@ const rahmen=page=>page.evaluate(()=>{
  // wichtigste Zusicherung des Abschnitts.
  await aufraeumen();
  dialogTexte=[]; dialogAntwort=false;
- const C3=await page.evaluate(()=>{
+ const C3=await page.evaluate(async()=>{
   $("measurementEditModal").hidden=false;
   isDirty=true;
-  const weiter=a2FormularVerlassen();
+  const weiter=await a2FormularVerlassen();
   return {weiter, offen:!$("measurementEditModal").hidden, dirty:isDirty};
  });
  p(!C3.weiter&&C3.offen&&C3.dirty,

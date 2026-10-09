@@ -1105,28 +1105,28 @@ const KATALOG=`()=>{
  p(z.mitSuche.slice().sort().join(",")==="S1,S3"&&z.nachMaterial.join(",")==="S3",
    "P3 und das Suchfeld grenzt darin weiter ein, nach Mass wie nach Werkstoff - damit lassen sich die Groessenpaare (250/330) getrennt setzen",z);
  // Sammelsetzen: was ANGEZEIGT wird, wird gesetzt - nichts Unsichtbares.
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()");
   eval("("+o.g+")()");
   lfZuordnenGruppe="Rinnenstutzen";
   lfZuordnenSuche="250";
   $("liefZuordnenRegie").value="203.06";       // Rinnenseiher - hier nur als Ziel
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   return {gesetzt:Object.assign({},lfZuordnungen)};
  },{k:KATALOG,g:GRUPPE});
  p(Object.keys(z.gesetzt).length===2&&z.gesetzt["1"]==="7001"&&z.gesetzt["3"]==="7001",
    "P4 'Alle angezeigten setzen' trifft genau die sichtbaren zwei - nicht die ganze Gruppe und nicht das ganze Lager",z);
  p(z.gesetzt["2"]===undefined&&z.gesetzt["4"]===undefined,
    "P5 GEGENPROBE: der ausgeblendete Artikel derselben Gruppe und der fremden Gruppe bleiben unangetastet",z);
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()");
   eval("("+o.g+")()");
   lfZuordnenGruppe="Rinnenstutzen";
   $("liefZuordnenRegie").value="999.99";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   const unbekannt={anzahl:Object.keys(lfZuordnungen).length, meldung:$("liefZuordnenMeldung").textContent};
   $("liefZuordnenRegie").value="";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   const leer={anzahl:Object.keys(lfZuordnungen).length, meldung:$("liefZuordnenMeldung").textContent};
   return {unbekannt,leer};
  },{k:KATALOG,g:GRUPPE});
@@ -1767,7 +1767,7 @@ const KATALOG=`()=>{
   lfInvGruppe="Rinnenstutzen";
   const sichtbar=lfInvKandidaten().map(a=>a.artikelnr);
   $("liefInvMindestAlle").value="10";
-  lfInvMindestAlle();
+  await lfInvMindestAlle();
   return {sichtbar, gesetzt:Object.assign({},lfInvMindest)};
  },{f:SB,k:KATALOG,i:INV});
  p(z.sichtbar.join(",")==="S1,S2",
@@ -1778,10 +1778,10 @@ const KATALOG=`()=>{
   eval("("+o.f+")()"); eval("("+o.k+")()"); eval("("+o.i+")()");
   await lfLaden();
   $("liefInvMindestAlle").value="";
-  lfInvMindestAlle();
+  await lfInvMindestAlle();
   const leer={anzahl:Object.keys(lfInvMindest).length,meldung:$("liefInvMeldung").textContent};
   $("liefInvMindestAlle").value="-1";
-  lfInvMindestAlle();
+  await lfInvMindestAlle();
   const neg={anzahl:Object.keys(lfInvMindest).length,meldung:$("liefInvMeldung").textContent};
   return {leer,neg};
  },{f:SB,k:KATALOG,i:INV});
@@ -1844,15 +1844,15 @@ const KATALOG=`()=>{
  p(z.gruppenZu.sort().join(",")==="Bänder,Dichtstoffe",
    "V4 und die Gruppenauswahl zeigt nur die Gruppen dieses Lieferanten - sonst stehen dort Gruppen, die danach keine Zeile haben",z.gruppenZu);
  // Sammelsetzen darf NICHT ueber den Lieferanten hinausgreifen.
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()"); eval("("+o.z+")()");
   lfLieferant="Gyso";
   $("liefZuordnenRegie").value="203.06";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   const zu=Object.keys(lfZuordnungen).sort();
   lfInvGezaehlt={}; lfInvMindest={};
   $("liefInvMindestAlle").value="10";
-  lfInvMindestAlle();
+  await lfInvMindestAlle();
   return {zu, inv:Object.keys(lfInvMindest).sort()};
  },{k:KATALOG,z:ZWEI});
  p(z.zu.join(",")==="3,4",
@@ -2087,11 +2087,11 @@ const KATALOG=`()=>{
  p(/Grösse/.test(z.text)&&/nicht/.test(z.text),
    "X7 und sagt, dass es an der Groesse liegt - ein Knopf, der stumm weniger tut, laesst ihn die Zeilen suchen",z.text);
  // Und der Sammelsetzen-Knopf: er laesst die widersprechenden aus, benannt.
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()"); eval("("+o.g+")()");
   lfZuordnenNurOffene=false;
   $("liefZuordnenRegie").value="201.01";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   return {gesetzt:Object.keys(lfZuordnungen).sort().join(","),
           text:$("liefZuordnenMeldung").textContent};
  },{k:KATALOG,g:GROESSE});
@@ -2100,11 +2100,11 @@ const KATALOG=`()=>{
  p(/ausgelassen/.test(z.text)&&/Grösse/.test(z.text),
    "X9 und es steht da, wie viele ausgelassen wurden und warum",z.text);
  // Gegenprobe: eine Position OHNE Groessenangabe setzt weiterhin alle.
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()"); eval("("+o.g+")()");
   lfZuordnenNurOffene=false;
   $("liefZuordnenRegie").value="203.06";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   return Object.keys(lfZuordnungen).sort().join(",");
  },{k:KATALOG,g:GROESSE});
  p(z==="1,2,3",
@@ -2563,7 +2563,7 @@ const KATALOG=`()=>{
  p(/von Hand/.test(z.entschieden.text),
    "AA8 sondern sagt, was stattdessen geht",z.entschieden);
  // Kein automatischer Weg setzt eine Zuordnung auf einen Entschiedenen.
- z=await page.evaluate((o)=>{
+ z=await page.evaluate(async (o)=>{
   eval("("+o.k+")()"); eval("("+o.z+")()");
   lfArtikelZuId(1).keine_regie_position=true;
   lfArtikelZuId(3).keine_regie_position=true;
@@ -2572,7 +2572,7 @@ const KATALOG=`()=>{
   const nachSicher=Object.keys(lfZuordnungen).sort().join(",");
   lfZuordnungen={};
   $("liefZuordnenRegie").value="203.06";
-  lfZuordnenAlleSetzen();
+  await lfZuordnenAlleSetzen();
   return {nachSicher, nachAlle:Object.keys(lfZuordnungen).sort().join(",")};
  },{k:KATALOG,z:KEINE});
  p(z.nachSicher==="",

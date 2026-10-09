@@ -627,6 +627,13 @@ function ebkaAbschluss(){
  setTimeout(()=>ziel.classList.remove("ra-ziel"),2500);
 }
 
+// v3.286: siehe ebaNachUebernahme (js/29) - die Rueckfrage in js/14 ist ein Dialog.
+function ebkaNachUebernahme(){
+ const w=$("measTypeEinlaufblechKonisch");
+ if(!w||!$("ebk_rinneList")||!w.contains($("ebk_rinneList")))return;
+ if(Array.isArray(ebkPieces)&&ebkPieces!==ebkA.stuecke){ebkA.stuecke=ebkPieces;renderEinlaufblechKonischAufnahme();}
+}
+
 function ebkaVerdrahten(){
  const wurzel=$("measTypeEinlaufblechKonisch");
  if(!wurzel||wurzel.dataset.ebkaVerdrahtet)return;
@@ -672,7 +679,7 @@ function ebkaVerdrahten(){
   if(d.ebkaGr!==undefined){ebkaGehrung(Number(d.ebkaGr),"rechts",t.checked); renderEinlaufblechKonischAufnahme(); return}
  });
 
- wurzel.addEventListener("click",e=>{
+ wurzel.addEventListener("click",async e=>{
   // Die Rinnen-Übernahme von js/14 hängt am Listen-Element selbst und läuft
   // durch das Blubbern ZUERST. Sie ersetzt ebkPieces durch ein NEUES Array -
   // ohne die folgende Zeile würde ebkaBruecke() es beim nächsten Zeichnen
@@ -704,21 +711,21 @@ function ebkaVerdrahten(){
   }
   if(t.id==="ebka_neuAusGesamt"){
    const L=ebkaZahl(a.gesamtlaenge);
-   if(L<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
-   if((a.stuecke||[]).length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+   if(L<=0){appAlert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
+   if((a.stuecke||[]).length&&!await appConfirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
    a.stuecke=ebkaStueckeAusGesamtlaenge(L);
    renderEinlaufblechKonischAufnahme(); return;
   }
   if(t.id==="ebka_anhaengen"){
    const L=ebkaZahl(a.gesamtlaenge);
-   if(L<=0){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
+   if(L<=0){appAlert("Bitte eine gültige Gesamtlänge eingeben.");return}
    a.stuecke=(a.stuecke||[]).concat(ebkaStueckeAusGesamtlaenge(L));
    renderEinlaufblechKonischAufnahme(); return;
   }
   if(t.id==="ebka_stueckPlus"){a.stuecke.push(ebkaNeuesStueck()); renderEinlaufblechKonischAufnahme(); return}
   if(t.id==="ebka_endStart"||t.id==="ebka_endEnde"){
    const fehler=ebkaEndzugabe(t.id==="ebka_endStart"?"start":"ende");
-   if(fehler)alert(fehler); else renderEinlaufblechKonischAufnahme();
+   if(fehler)appAlert(fehler); else renderEinlaufblechKonischAufnahme();
    return;
   }
   if(d.ebkaWeg!==undefined){a.stuecke.splice(Number(d.ebkaWeg),1); renderEinlaufblechKonischAufnahme(); return}

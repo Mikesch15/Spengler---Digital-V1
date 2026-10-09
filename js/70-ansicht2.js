@@ -248,7 +248,7 @@ function a2FormularOffen(){
  return A2_FORMULARE.filter(id=>$(id)&&!$(id).hidden);
 }
 // Gibt true zurueck, wenn weitergegangen werden darf.
-function a2FormularVerlassen(){
+async function a2FormularVerlassen(){
  const offen=a2FormularOffen();
  if(!offen.length)return true;
  // Gefragt wird NUR, wenn wirklich etwas geaendert wurde. Ob das der Fall
@@ -257,7 +257,7 @@ function a2FormularVerlassen(){
  // schlechtere: js/18 haengt am input-Ereignis und bekommt deshalb auch
  // mit, was ein Fachmodul selbst ins Feld schreibt.
  const geaendert=(typeof isDirty!=="undefined")&&isDirty;
- if(geaendert&&!confirm("Das Formular ist noch offen und hat ungespeicherte Eingaben.\n\n"
+ if(geaendert&&!await appConfirm("Das Formular ist noch offen und hat ungespeicherte Eingaben.\n\n"
    +"Verlassen und die Eingaben verwerfen?"))return false;
  offen.forEach(id=>{$(id).hidden=true});
  if(typeof isDirty!=="undefined")isDirty=false;
@@ -1172,7 +1172,7 @@ document.addEventListener("click",async e=>{
   // v3.162: Liegt ein Formular offen, wird es geschlossen - bei
   // ungespeicherten Eingaben erst nach Rueckfrage. Sagt der Anwender
   // nein, passiert gar nichts: er bleibt, wo er war.
-  if(!a2FormularVerlassen())return;
+  if(!await a2FormularVerlassen())return;
   const k=tab.getAttribute("data-a2-tab");
   const eintrag=a2Leisten().find(x=>x.k===k);
   // Ein offener Bereich wird ZUERST geschlossen. Ohne das wechselte die

@@ -270,9 +270,9 @@ if($("angAddPosition"))$("angAddPosition").onclick=()=>{
  renderAngPositionsTable();
 };
 if($("angDeleteAllPositions")){
- $("angDeleteAllPositions").onclick=()=>{
+ $("angDeleteAllPositions").onclick=async ()=>{
   if(!angPositions.length)return;
-  if(!confirm(`Wirklich alle ${angPositions.length} Position(en) löschen?`))return;
+  if(!await appConfirm(`Wirklich alle ${angPositions.length} Position(en) löschen?`))return;
   angPositions=[];
   renderAngPositionsTable();
  };
@@ -300,7 +300,7 @@ if($("angPhotoInput")){
    try{
     const pq=photoQualitySettings();const dataUrl=await resizeImageFile(file,pq.maxDim,pq.quality);
     angPhotos.push(dataUrl);
-   }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
+   }catch(err){appAlert("Foto konnte nicht geladen werden: "+err.message)}
   }
   fotoFelderLeeren("angPhotoInput");
   renderAngPhotoGallery();
@@ -324,7 +324,7 @@ if($("angPhotoGallery")){
     $("angRecognizeStatus").textContent=`${found.length} Position(en) aus Foto ${i+1} erkannt. Bitte prüfen.`;
    }catch(err){
     $("angRecognizeStatus").textContent="";
-    alert("Fehler bei der Erkennung: "+(err.message||err));
+    appAlert("Fehler bei der Erkennung: "+(err.message||err));
    }
    rec.disabled=false;
   }
@@ -332,7 +332,7 @@ if($("angPhotoGallery")){
 }
 if($("angRecognizeAll")){
  $("angRecognizeAll").onclick=async()=>{
-  if(!angPhotos.length){alert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
+  if(!angPhotos.length){appAlert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
   $("angRecognizeAll").disabled=true;
   let totalFound=0;
   for(let i=0;i<angPhotos.length;i++){
@@ -343,7 +343,7 @@ if($("angRecognizeAll")){
     renderAngPositionsTable();
     totalFound+=found.length;
    }catch(err){
-    alert(`Fehler bei Foto ${i+1}: `+(err.message||err));
+    appAlert(`Fehler bei Foto ${i+1}: `+(err.message||err));
    }
   }
   $("angRecognizeStatus").textContent=`${totalFound} Position(en) aus ${angPhotos.length} Foto(s) erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
@@ -449,9 +449,9 @@ if($("angPdfInput")){
   const file=(e.target.files||[])[0];
   e.target.value="";
   if(!file)return;
-  if(dateiEndung(file)!=="pdf"){alert("Bitte nur eine PDF-Datei auswählen.");return}
+  if(dateiEndung(file)!=="pdf"){appAlert("Bitte nur eine PDF-Datei auswählen.");return}
   if(typeof dateiZuGross==="function"&&dateiZuGross(file)){
-   alert(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
+   appAlert(`Die Datei ist zu gross (${formatFileSize(file.size)}). Erlaubt sind höchstens ${MAX_DATEI_TEXT} pro Datei.`);
    return;
   }
   angPdfNewFile=file;
@@ -475,7 +475,7 @@ if($("angPdfBereich")){
    const url=await storageSignedUrl(angPdfExisting.path);
    if(url&&fenster)fenster.location.href=url;
    else if(fenster)fenster.close();
-   if(!url)alert("PDF konnte nicht geöffnet werden.");
+   if(!url)appAlert("PDF konnte nicht geöffnet werden.");
    return;
   }
   const erkennen=e.target.closest("[data-ang-pdf-erkennen]");
@@ -490,7 +490,7 @@ if($("angPdfBereich")){
     if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=`${found.length} Position(en) aus dem PDF erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
    }catch(err){
     if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="";
-    alert("Fehler bei der Erkennung: "+(err.message||err));
+    appAlert("Fehler bei der Erkennung: "+(err.message||err));
    }
    erkennen.disabled=false;
   }
@@ -611,8 +611,8 @@ if($("startFromAngebotEdit"))$("startFromAngebotEdit").onclick=()=>{
 if($("saveAngebot")){
  $("saveAngebot").onclick=async()=>{
   const title=$("angTitle").value.trim();
-  if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
-  if(!angSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Offerte kann nur einem Projekt zugeordnet gespeichert werden.");return}
+  if(!title){appAlert("Bitte eine Bezeichnung eingeben.");return}
+  if(!angSelectedProjectId){appAlert("Bitte zuerst ein Projekt auswählen. Eine Offerte kann nur einem Projekt zugeordnet gespeichert werden.");return}
   // V1 bewusst ohne Offline-Warteschlange (anders als Massaufnahme/
   // Ausmass) - klare Absage statt stillem Zwischenspeichern, siehe
   // Abschlussbericht "Einschraenkungen".
@@ -650,12 +650,12 @@ if($("saveAngebot")){
    if(currentAngebotId){
     const {data,error}=await sb.from("angebote").update(payload).eq("id",currentAngebotId).select();
     if(error)throw error;
-    if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");$("saveAngebot").disabled=false;return}
+    if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");$("saveAngebot").disabled=false;return}
     currentAngebotMeta={...currentAngebotMeta,updated_by:data[0].updated_by,updated_at:data[0].updated_at};
    }else{
     const {data,error}=await sb.from("angebote").insert(payload).select();
     if(error)throw error;
-    if(!data||!data.length){alert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");$("saveAngebot").disabled=false;return}
+    if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");$("saveAngebot").disabled=false;return}
     currentAngebotId=data[0].id;
     currentAngebotMeta={created_by:data[0].created_by,created_at:data[0].created_at,updated_by:data[0].updated_by,updated_at:data[0].updated_at};
    }
@@ -665,7 +665,7 @@ if($("saveAngebot")){
    await angEditZurueck();
    isDirty=false;
   }catch(err){
-   alert("Fehler beim Speichern: "+(err.message||err));
+   appAlert("Fehler beim Speichern: "+(err.message||err));
   }
   $("saveAngebot").disabled=false;
  };
@@ -685,7 +685,7 @@ if($("cockpitNeueOfferte")){
 // Dritter, unabhaengiger Listener auf #cockpitWorkArea (js/24 und js/09
 // haben dort bereits je einen eigenen - siehe CLAUDE.md, unproblematisch).
 if($("cockpitWorkArea")){
- $("cockpitWorkArea").addEventListener("click",e=>{
+ $("cockpitWorkArea").addEventListener("click",async e=>{
   const openA=e.target.closest("[data-open-project-angebot]");
   if(openA){
    const a=projectAngeboteCache.find(x=>x.id===Number(openA.dataset.openProjectAngebot));
@@ -694,9 +694,9 @@ if($("cockpitWorkArea")){
   }
   const delA=e.target.closest("[data-del-project-angebot]");
   if(delA){
-   if(!confirm("Diese Offerte wirklich löschen?"))return;
+   if(!await appConfirm("Diese Offerte wirklich löschen?"))return;
    sb.from("angebote").delete().eq("id",Number(delA.dataset.delProjectAngebot)).then(({error})=>{
-    if(error){alert("Fehler: "+error.message);return}
+    if(error){appAlert("Fehler: "+error.message);return}
     if(typeof cockpitBereichAktualisieren==="function")cockpitBereichAktualisieren("angebote");
    });
   }
@@ -814,7 +814,7 @@ function angMassaufnahmeAusPosition(i){
  const p=angPositions[i];
  if(!p)return;
  if(!angSelectedProjectId){
-  alert("Diese Offerte gehört noch zu keinem Projekt.\n\nEine Massaufnahme braucht ein Projekt – bitte oben eines wählen.");
+  appAlert("Diese Offerte gehört noch zu keinem Projekt.\n\nEine Massaufnahme braucht ein Projekt – bitte oben eines wählen.");
   return;
  }
  const geraten=angMeasArtRaten(p.description);
@@ -836,11 +836,11 @@ function angMassaufnahmeAusPosition(i){
 let angMeasZeilen=[];          // {index,pos,titel,type,erkannt,schonDa,haken}
 async function angMassaufnahmenDialog(){
  if(!angPositions.length){
-  alert("Diese Offerte hat noch keine Positionen.");
+  appAlert("Diese Offerte hat noch keine Positionen.");
   return;
  }
  if(!angSelectedProjectId){
-  alert("Diese Offerte gehört noch zu keinem Projekt.\n\nMassaufnahmen brauchen ein Projekt – bitte oben eines wählen.");
+  appAlert("Diese Offerte gehört noch zu keinem Projekt.\n\nMassaufnahmen brauchen ein Projekt – bitte oben eines wählen.");
   return;
  }
  // Was gibt es im Projekt schon? Gefragt wird die Datenbank, nicht ein
@@ -949,7 +949,7 @@ if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
    await cockpitBereichAktualisieren("meas");
   }
   if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
-  alert(data.length===1
+  appAlert(data.length===1
    ?"1 Massaufnahme wurde im Projekt angelegt – noch ohne Masse."
    :data.length+" Massaufnahmen wurden im Projekt angelegt – noch ohne Masse.");
  }catch(err){

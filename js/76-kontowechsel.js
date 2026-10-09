@@ -237,7 +237,7 @@ function kwZeichnen(){
 function kwMeldung(text){
  const m=(typeof $==="function")?$("kwMeldung"):document.getElementById("kwMeldung");
  if(m)m.textContent=text||"";
- else if(text&&typeof alert==="function")alert(text);
+ else if(text&&typeof alert==="function")appAlert(text);
 }
 // v3.227: Wer diesen Dialog ueberhaupt sehen darf. Ansage des Anwenders:
 // "Die funktion konto wechseln soll es nur fuer mich als firmenadmin geben".
@@ -261,7 +261,7 @@ function kwOeffnen(){
   // Stumm nichts tun waere das Schlimmste - auch hier.
   kwMeldung("");
   if(typeof alert==="function")
-   alert("Konto wechseln ist der Firmenadministration vorbehalten.");
+   appAlert("Konto wechseln ist der Firmenadministration vorbehalten.");
   return;
  }
  kwZeichnen();

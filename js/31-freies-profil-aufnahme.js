@@ -610,7 +610,7 @@ function fpaLive(){
 function fpaNeuerSchenkel(){
  const grenze=(typeof FP_MAX_SCHENKEL==="number")?FP_MAX_SCHENKEL:24;
  if(fpA.schenkel.length>=grenze){
-  alert("Höchstens "+grenze+" Schenkel – das ist die Grenze der bestehenden Prüfung.");
+  appAlert("Höchstens "+grenze+" Schenkel – das ist die Grenze der bestehenden Prüfung.");
   return;
  }
  // v3.66: keine Vorgabe mehr - Laenge und Winkel muessen bewusst
@@ -625,6 +625,14 @@ function fpaAbschluss(){
  if(ziel.scrollIntoView)ziel.scrollIntoView({block:"start",behavior:"smooth"});
  ziel.classList.add("ra-ziel");
  setTimeout(()=>ziel.classList.remove("ra-ziel"),2500);
+}
+
+// v3.286: siehe ebaNachUebernahme (js/29) - die Rueckfrage der Skizzen-Uebernahme
+// in js/14 ist ein Dialog; die Uebernahme ist beim Klick-Blubbern noch nicht fertig.
+function fpaNachUebernahme(){
+ const w=$("measTypeFreiesProfil");
+ if(!w||!$("fp_sketchUebernehmen")||!w.contains($("fp_sketchUebernehmen")))return;
+ if(Array.isArray(fpSchenkel)&&fpSchenkel!==fpA.schenkel){fpA.schenkel=fpSchenkel;renderFreiesProfilAufnahme();}
 }
 
 function fpaVerdrahten(){
@@ -758,11 +766,11 @@ function fpaVerdrahten(){
      .sort((x,y)=>Number(x.dataset.fpaTeilung.split("_")[1])-Number(y.dataset.fpaTeilung.split("_")[1]));
    const werte=felder.map(f=>fpaZahl(f.value));
    if(!werte.length||werte.some(v=>!(v>0))){
-    alert("Jedes Teilstück braucht eine Länge grösser 0.");return;
+    appAlert("Jedes Teilstück braucht eine Länge grösser 0.");return;
    }
    const summe=werte.reduce((s,v)=>s+v,0), ziel=Math.round(fpaZahl(seg.laenge));
    if(Math.abs(summe-ziel)>werte.length){
-    alert("Die Summe der Teilstücke ("+summe+" mm) muss der Segmentlänge entsprechen ("+ziel+" mm).");
+    appAlert("Die Summe der Teilstücke ("+summe+" mm) muss der Segmentlänge entsprechen ("+ziel+" mm).");
     return;
    }
    seg.tafelTeilungManuell=werte;

@@ -88,7 +88,7 @@ function offlineCacheLeeren(){
 // Eine Stelle, eine Meldung. Wird vor jedem Speichern gefragt.
 function offlineSperrtSpeichern(was){
  if(!offlineIstOffline())return false;
- alert("Keine Verbindung.\n\n"+(was||"Dieser Eintrag")+" kann offline nicht gespeichert werden. "
+ appAlert("Keine Verbindung.\n\n"+(was||"Dieser Eintrag")+" kann offline nicht gespeichert werden. "
   +"Die Eingaben bleiben im Formular stehen – bitte speichern, sobald wieder eine Verbindung besteht.");
  return true;
 }

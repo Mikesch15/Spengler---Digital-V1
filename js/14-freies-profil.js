@@ -222,14 +222,15 @@ function fpVorschauZeigen(schenkel,verworfen){
  $("fp_sketchVorschau").hidden=false;
 }
 
-$("fp_sketchUebernehmen").onclick=()=>{
+$("fp_sketchUebernehmen").onclick=async ()=>{
  if(!fpErkanntesProfil||!fpErkanntesProfil.length)return;
- if(fpSchenkel.length&&!confirm("Das vorhandene Profil wird durch die erkannte Form ersetzt. Fortfahren?"))return;
+ if(fpSchenkel.length&&!await appConfirm("Das vorhandene Profil wird durch die erkannte Form ersetzt. Fortfahren?"))return;
  const anzahl=fpErkanntesProfil.length;
  fpSchenkel=fpErkanntesProfil.map(s=>({...s}));
  fpVorschauSchliessen();
  renderFpSchenkelTable();
  renderFpSegmenteList();
+ if(typeof fpaNachUebernahme==="function")fpaNachUebernahme();
  $("fp_sketchStatus").textContent=`✓ ${anzahl} Schenkel übernommen. Bitte Längen und Winkel prüfen und mit den tatsächlichen Massen ergänzen.`;
 };
 $("fp_sketchVerwerfen").onclick=()=>{
@@ -483,9 +484,9 @@ function renderEbkPiecesTable(){
  $("ebk_toggleEndzugabeEnd").textContent=`Endzugabe letztes Stück: ${(ebkPieces.length&&ebkPieces[ebkPieces.length-1].endzugabeEnd)?"ein":"aus"}`;
 }
 function toggleEbkEndzugabe(position){
- if(!ebkPieces.length){alert("Bitte zuerst Stücke erfassen.");return}
+ if(!ebkPieces.length){appAlert("Bitte zuerst Stücke erfassen.");return}
  const endZugabe=Number(einlaufblechKonischSettings.end_zugabe)||0;
- if(!endZugabe){alert("Bitte zuerst in Einstellungen → Massaufnahmen eine Endzugabe > 0 mm hinterlegen.");return}
+ if(!endZugabe){appAlert("Bitte zuerst in Einstellungen → Massaufnahmen eine Endzugabe > 0 mm hinterlegen.");return}
  // Die Endzugabe wird immer auf das Reststück (letztes Stück) gerechnet, nie auf ein reguläres
  // Stück, da kein Stück länger als Länge Stoss bis Stoss + Überlappung sein darf (ausser dem Reststück).
  const idx=ebkPieces.length-1;
@@ -595,14 +596,15 @@ async function refreshEbkRinneList(){
  ebkRinneCache=zustand.liste||[];
  zeigeRinneUebernahmeListe("ebk_rinneHint","ebk_rinneList",zustand,"pick-ebk-rinne");
 }
-$("ebk_rinneList").addEventListener("click",e=>{
+$("ebk_rinneList").addEventListener("click",async e=>{
  const btn=e.target.closest("[data-pick-ebk-rinne]");
  if(!btn)return;
  const m=ebkRinneCache.find(x=>x.id===Number(btn.dataset.pickEbkRinne));
  const segs=(m&&m.data&&m.data.segments)||[];
- if(!segs.length){alert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
- if(ebkPieces.length&&!confirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
+ if(!segs.length){appAlert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
+ if(ebkPieces.length&&!await appConfirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
  ebkPieces=baueEinlaufblechStueckeAusRinne(segs,einlaufblechKonischSettings,splitLengthIntoPieces,true);
  renderEbkPiecesTable();
- alert(`${ebkPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
+ if(typeof ebkaNachUebernahme==="function")ebkaNachUebernahme();
+ appAlert(`${ebkPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen. Bitte jetzt pro Stück Mass links/rechts eintragen.`);
 });

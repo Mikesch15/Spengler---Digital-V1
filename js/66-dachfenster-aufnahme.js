@@ -1576,18 +1576,18 @@ function applyDfaSettings(){
    auf_vorne:zahl("dfasAufVorne")||0,
    auf_hinten:zahl("dfasAufHinten")||0
   };
-  if(typeof EINF_DECKUNGEN==="object"&&!EINF_DECKUNGEN[w.deckung]){alert("Bitte ein Deckmaterial wählen.");return}
-  if(Object.keys(w).filter(k=>k!=="deckung").some(k=>w[k]<0)){alert("Diese Werte dürfen nicht negativ sein.");return}
-  if(w.breite_unten<=w.breite_oben){alert("Breite unten muss grösser sein als Breite oben.");return}
+  if(typeof EINF_DECKUNGEN==="object"&&!EINF_DECKUNGEN[w.deckung]){appAlert("Bitte ein Deckmaterial wählen.");return}
+  if(Object.keys(w).filter(k=>k!=="deckung").some(k=>w[k]<0)){appAlert("Diese Werte dürfen nicht negativ sein.");return}
+  if(w.breite_unten<=w.breite_oben){appAlert("Breite unten muss grösser sein als Breite oben.");return}
   dfaEinstellungenSichern(w);
   applyDfaSettings();
-  alert("Gespeichert (gilt nur für dieses Gerät).");
+  appAlert("Gespeichert (gilt nur für dieses Gerät).");
  };
- $("resetDfaSettings").onclick=()=>{
-  if(!confirm("Alle Werte der Dachfenstereinfassung auf die Standardwerte zurücksetzen?"))return;
+ $("resetDfaSettings").onclick=async ()=>{
+  if(!await appConfirm("Alle Werte der Dachfenstereinfassung auf die Standardwerte zurücksetzen?"))return;
   dfaEinstellungenSichern(Object.assign({},DFA_STANDARD));
   applyDfaSettings();
-  alert("Auf Standardwerte zurückgesetzt.");
+  appAlert("Auf Standardwerte zurückgesetzt.");
  };
 })();
 

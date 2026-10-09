@@ -470,19 +470,19 @@ function applyEinfassungSettings() {
       // 0 ist hier erlaubt und heisst "Loch exakt auf Rohrmass".
       loch_zugabe: Math.max(0, zahl("einfsLochZugabe") || 0)
     };
-    if (!EINF_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
+    if (!EINF_DECKUNGEN[w.deckung]) { appAlert("Bitte ein Deckmaterial wählen."); return; }
     const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
                      "rohrhoehe", "schweifbord", "loch_zugabe"].some(k => w[k] < 0);
-    if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
+    if (negativ) { appAlert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
     applyEinfassungSettings();
-    alert("Gespeichert (gilt nur für dieses Gerät).");
+    appAlert("Gespeichert (gilt nur für dieses Gerät).");
   };
 
-  $("resetEinfassungSettings").onclick = () => {
-    if (!confirm("Alle Werte der Einfassung Rund auf die Standardwerte zurücksetzen?")) return;
+  $("resetEinfassungSettings").onclick = async () => {
+    if (!await appConfirm("Alle Werte der Einfassung Rund auf die Standardwerte zurücksetzen?")) return;
     einfEinstellungenSichern(Object.assign({}, EINFASSUNG_STANDARD));
     applyEinfassungSettings();
-    alert("Auf Standardwerte zurückgesetzt.");
+    appAlert("Auf Standardwerte zurückgesetzt.");
   };
 })();

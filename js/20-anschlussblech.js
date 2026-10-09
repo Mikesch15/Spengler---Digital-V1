@@ -1111,21 +1111,21 @@ function applyAnschlussblechSettings() {
       ort_nase: zahl("anbsOrtNase") || 0,
       lattenabstand: zahl("anbsLattenabstand") || 0
     };
-    if (!ANB_DECKUNGEN[w.deckung]) { alert("Bitte ein Deckmaterial wählen."); return; }
-    if (!(w.stoss_laenge > 0)) { alert("Bitte eine gültige Stücklänge eingeben."); return; }
-    if (w.ueberlappung >= w.stoss_laenge) { alert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
+    if (!ANB_DECKUNGEN[w.deckung]) { appAlert("Bitte ein Deckmaterial wählen."); return; }
+    if (!(w.stoss_laenge > 0)) { appAlert("Bitte eine gültige Stücklänge eingeben."); return; }
+    if (w.ueberlappung >= w.stoss_laenge) { appAlert("Die Überlappung muss kleiner sein als die Stücklänge."); return; }
     const negativ = ["saum", "ueberlappung", "rest_schwelle", "gehrungszugabe", "wand_aufkantung", "ort_aufkantung", "ort_oben", "ort_stirn", "ort_nase", "lattenabstand"]
       .some(k => w[k] < 0);
-    if (negativ) { alert("Diese Werte dürfen nicht negativ sein."); return; }
+    if (negativ) { appAlert("Diese Werte dürfen nicht negativ sein."); return; }
     anbEinstellungenSichern(w);
     applyAnschlussblechSettings();
-    alert("Gespeichert (gilt nur für dieses Gerät).");
+    appAlert("Gespeichert (gilt nur für dieses Gerät).");
   };
 
-  $("resetAnschlussblechSettings").onclick = () => {
-    if (!confirm("Alle Werte des Anschlussblechs auf die Standardwerte zurücksetzen?")) return;
+  $("resetAnschlussblechSettings").onclick = async () => {
+    if (!await appConfirm("Alle Werte des Anschlussblechs auf die Standardwerte zurücksetzen?")) return;
     anbEinstellungenSichern(Object.assign({}, ANSCHLUSSBLECH_STANDARD));
     applyAnschlussblechSettings();
-    alert("Auf Standardwerte zurückgesetzt.");
+    appAlert("Auf Standardwerte zurückgesetzt.");
   };
 })();

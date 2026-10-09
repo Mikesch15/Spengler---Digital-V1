@@ -197,9 +197,9 @@ $("amKeineFertig").onclick=()=>{
 // CLAUDE.md "Offerten".
 let amOfferteListCache=[];
 $("amLoadOfferteBtn").onclick=async()=>{
- if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen.");return}
+ if(!amSelectedProjectId){appAlert("Bitte zuerst ein Projekt auswählen.");return}
  const {data,error}=await sb.from("angebote").select("id,title,positions,date").eq("project_id",amSelectedProjectId).order("date",{ascending:false});
- if(error){alert("Fehler beim Laden der Offerten: "+error.message);return}
+ if(error){appAlert("Fehler beim Laden der Offerten: "+error.message);return}
  amOfferteListCache=data||[];
  const box=$("amOfferteResults");
  box.hidden=false;
@@ -207,13 +207,13 @@ $("amLoadOfferteBtn").onclick=async()=>{
   ?amOfferteListCache.map(a=>`<div class="item" data-pick-am-angebot="${a.id}"><b>${esc(a.title||"Ohne Bezeichnung")}</b><span>${(a.positions||[]).length} Position(en)${a.date?" · "+esc(a.date):""}</span></div>`).join("")
   :'<div class="small">Keine Offerte zu diesem Projekt gefunden.</div>';
 };
-$("amOfferteResults").addEventListener("click",e=>{
+$("amOfferteResults").addEventListener("click",async e=>{
  const it=e.target.closest("[data-pick-am-angebot]");if(!it)return;
  const ang=amOfferteListCache.find(a=>a.id===Number(it.dataset.pickAmAngebot));
  if(!ang)return;
  const neu=Array.isArray(ang.positions)?ang.positions.map(p=>({...p})):[];
  if(amPositions.length)
-  amPositions=confirm("Vorhandene Positionen ersetzen? Abbrechen fügt die Offerte-Positionen stattdessen an.")?neu:amPositions.concat(neu);
+  amPositions=await appConfirm("Vorhandene Positionen ersetzen? Abbrechen fügt die Offerte-Positionen stattdessen an.")?neu:amPositions.concat(neu);
  else amPositions=neu;
  renderAmPositionsTable();
  $("amOfferteResults").hidden=true;
@@ -242,18 +242,18 @@ function amZeilePasstZuPosition(bez,beschreibung){
 let amMassPickIndex=null;
 let amMassPickMeasurementsList=[];
 async function amOpenMassPick(i){
- if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen.");return}
+ if(!amSelectedProjectId){appAlert("Bitte zuerst ein Projekt auswählen.");return}
  amMassPickIndex=i;
  const cacheOk=Array.isArray(projectMeasurementsCache)&&projectMeasurementsCache.length
    &&projectMeasurementsCache[0].project_id===amSelectedProjectId;
  let liste=cacheOk?projectMeasurementsCache:null;
  if(!liste){
   const {data,error}=await sb.from("measurements").select("*").eq("project_id",amSelectedProjectId).order("date",{ascending:false});
-  if(error){alert("Fehler beim Laden der Massaufnahmen: "+error.message);return}
+  if(error){appAlert("Fehler beim Laden der Massaufnahmen: "+error.message);return}
   liste=data||[];
  }
  amMassPickMeasurementsList=liste.filter(m=>Array.isArray(m.data&&m.data.ausmass)&&m.data.ausmass.length);
- if(!amMassPickMeasurementsList.length){alert("Dieses Projekt hat keine Massaufnahme mit Ausmass-Zeilen.");return}
+ if(!amMassPickMeasurementsList.length){appAlert("Dieses Projekt hat keine Massaufnahme mit Ausmass-Zeilen.");return}
  $("amMassPickSelect").innerHTML=amMassPickMeasurementsList.map(m=>{
   const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"Massaufnahme";
   return `<option value="${m.id}">${esc(art)}${m.title?" · "+esc(m.title):""}</option>`;
@@ -283,7 +283,7 @@ $("amMassPickApply").onclick=()=>{
  const m=amMassPickMeasurementsList.find(x=>x.id===Number($("amMassPickSelect").value));
  const rows=(m&&m.data&&Array.isArray(m.data.ausmass))?m.data.ausmass:[];
  const boxen=[...$("amMassPickRows").querySelectorAll("[data-am-mass-row]:checked")];
- if(!boxen.length){alert("Bitte mindestens eine Zeile auswählen.");return}
+ if(!boxen.length){appAlert("Bitte mindestens eine Zeile auswählen.");return}
  let summe=0,einheit="",bezeichnungen=[];
  boxen.forEach(b=>{
   const z=rows[Number(b.dataset.amMassRow)];
@@ -381,7 +381,7 @@ fotoFelderVerdrahten("amPhotoInput",async e=>{
   try{
    const pq=photoQualitySettings();const dataUrl=await resizeImageFile(file,pq.maxDim,pq.quality);
    amPhotos.push(dataUrl);
-  }catch(err){alert("Foto konnte nicht geladen werden: "+err.message)}
+  }catch(err){appAlert("Foto konnte nicht geladen werden: "+err.message)}
  }
  fotoFelderLeeren("amPhotoInput");
  renderAmPhotoGallery();
@@ -403,13 +403,13 @@ $("amPhotoGallery").addEventListener("click",async e=>{
    $("amRecognizeStatus").textContent=`${found.length} Position(en) aus Foto ${i+1} erkannt. Bitte prüfen.`;
   }catch(err){
    $("amRecognizeStatus").textContent="";
-   alert("Fehler bei der Erkennung: "+(err.message||err));
+   appAlert("Fehler bei der Erkennung: "+(err.message||err));
   }
   rec.disabled=false;
  }
 });
 $("amRecognizeAll").onclick=async()=>{
- if(!amPhotos.length){alert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
+ if(!amPhotos.length){appAlert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
  $("amRecognizeAll").disabled=true;
  let totalFound=0;
  for(let i=0;i<amPhotos.length;i++){
@@ -420,7 +420,7 @@ $("amRecognizeAll").onclick=async()=>{
    renderAmPositionsTable();
    totalFound+=found.length;
   }catch(err){
-   alert(`Fehler bei Foto ${i+1}: `+(err.message||err));
+   appAlert(`Fehler bei Foto ${i+1}: `+(err.message||err));
   }
  }
  $("amRecognizeStatus").textContent=`${totalFound} Position(en) aus ${amPhotos.length} Foto(s) erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
@@ -451,7 +451,7 @@ $("amProjectResults").addEventListener("click",e=>{
 });
 
 function newAusmassWithType(type){
- if(modulGesperrt("am:"+type)){alert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
+ if(modulGesperrt("am:"+type)){appAlert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("ausmass",null);
  isDirty=false;
  amEditReturnTo="ausmassModal";
@@ -556,8 +556,8 @@ function amWsNeueMarke(){ amWsMarke="am-"+Date.now().toString(36)+"-"+Math.rando
 function amWsToken(){ if(!amWsMarke)amWsNeueMarke(); return amWsMarke }
 $("saveAusmass").onclick=async()=>{
  const title=$("amTitle").value.trim();
- if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
- if(!amSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Ein Ausmass kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ if(!title){appAlert("Bitte eine Bezeichnung eingeben.");return}
+ if(!amSelectedProjectId){appAlert("Bitte zuerst ein Projekt auswählen. Ein Ausmass kann nur einem Projekt zugeordnet gespeichert werden.");return}
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
  if(wsIstOffline()){
   const r=await wsEinreihen({
@@ -574,12 +574,12 @@ $("saveAusmass").onclick=async()=>{
    bilder:{photo_paths:amPhotos.slice()}
   });
   if(!r.ok){
-   alert("Keine Verbindung – und dieses Ausmass lässt sich auf diesem Gerät auch nicht "
+   appAlert("Keine Verbindung – und dieses Ausmass lässt sich auf diesem Gerät auch nicht "
     +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben im "
     +"Formular stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
    return;
   }
-  alert("Keine Verbindung.\n\nDas Ausmass wartet jetzt auf diesem Gerät und wird übertragen, "
+  appAlert("Keine Verbindung.\n\nDas Ausmass wartet jetzt auf diesem Gerät und wird übertragen, "
    +"sobald wieder eine Verbindung besteht. Bis dahin ist es NICHT in der Datenbank – "
    +"bitte das Gerät nicht zurücksetzen.");
   $("ausmassEditModal").hidden=true;
@@ -617,7 +617,7 @@ $("saveAusmass").onclick=async()=>{
   await amEditZurueck();   // zentrale Rueckkehr, siehe js/24-projekt-cockpit.js
   isDirty=false;
  }catch(err){
-  alert("Fehler beim Speichern: "+(err.message||err));
+  appAlert("Fehler beim Speichern: "+(err.message||err));
  }
  $("saveAusmass").disabled=false;
 };
@@ -645,16 +645,16 @@ ${thumbHtml}
  }).join(""):'<div class="empty">Noch keine Ausmasse vorhanden.</div>';
  resolveSignedThumbnails($("recentAusmassList"));
 }
-$("recentAusmassList").addEventListener("click",e=>{
+$("recentAusmassList").addEventListener("click",async e=>{
  const openA=e.target.closest("[data-open-ausmass]");
  if(openA){const a=ausmassCache.find(x=>x.id===Number(openA.dataset.openAusmass));if(a)openAusmass(a);return}
  const printA=e.target.closest("[data-print-ausmass]");
  if(printA){const a=ausmassCache.find(x=>x.id===Number(printA.dataset.printAusmass));if(a)printAusmass(a);return}
  const delA=e.target.closest("[data-del-ausmass]");
  if(delA){
-  if(!confirm("Dieses Ausmass wirklich löschen?"))return;
+  if(!await appConfirm("Dieses Ausmass wirklich löschen?"))return;
   sb.from("ausmass").delete().eq("id",Number(delA.dataset.delAusmass)).then(({error})=>{
-   if(error){alert("Fehler: "+error.message);return}
+   if(error){appAlert("Fehler: "+error.message);return}
    renderAusmassOverview();
   });
  }

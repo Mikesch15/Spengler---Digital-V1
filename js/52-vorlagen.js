@@ -134,7 +134,7 @@ async function vorlageSpeichern(name,notiz,typ,daten,ueberschreibenId){
 async function vorlageUmbenennen(id){
  const v=vorlagenCache.find(x=>String(x.id)===String(id));
  if(!v)return;
- const neu=prompt("Neuer Name der Vorlage:",v.name);
+ const neu=await appPrompt("Neuer Name der Vorlage:",v.name);
  if(neu===null)return;
  const name=String(neu).trim();
  if(!name){vorlagenHinweis("Der Name darf nicht leer sein.",true);return}
@@ -149,7 +149,7 @@ async function vorlageUmbenennen(id){
 async function vorlageLoeschen(id){
  const v=vorlagenCache.find(x=>String(x.id)===String(id));
  if(!v)return;
- if(!confirm("Vorlage „"+v.name+"“ wirklich löschen?\n\nBereits erfasste Massaufnahmen bleiben unverändert – sie sind eigenständig und hängen nicht an der Vorlage."))return;
+ if(!await appConfirm("Vorlage „"+v.name+"“ wirklich löschen?\n\nBereits erfasste Massaufnahmen bleiben unverändert – sie sind eigenständig und hängen nicht an der Vorlage."))return;
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Vorlage"))return;
  const {data,error}=await sb.from("measurement_vorlagen").delete().eq("id",id).select();
  if(error){vorlagenHinweis("Konnte nicht gelöscht werden: "+error.message,true);return}
@@ -205,7 +205,7 @@ async function vorlageAusFormularSpeichern(){
  const vorhanden=vorlagenCache.find(v=>v.type===m.type&&v.name.toLowerCase()===name.toLowerCase());
  let ueberschreiben=null;
  if(vorhanden){
-  if(!confirm("Es gibt bereits eine Vorlage „"+vorhanden.name+"“ für diese Art.\n\nSoll sie überschrieben werden?\n\nBereits erfasste Massaufnahmen bleiben unverändert."))return;
+  if(!await appConfirm("Es gibt bereits eine Vorlage „"+vorhanden.name+"“ für diese Art.\n\nSoll sie überschrieben werden?\n\nBereits erfasste Massaufnahmen bleiben unverändert."))return;
   ueberschreiben=vorhanden.id;
  }
  const r=await vorlageSpeichern(name,$("vorlageNotiz").value.trim(),m.type,m.data||{},ueberschreiben);
@@ -213,7 +213,7 @@ async function vorlageAusFormularSpeichern(){
  if(r.fehler){melde("Konnte nicht gespeichert werden: "+r.fehler,true);return}
  await vorlagenNeuLaden();
  $("vorlageSpeichernModal").hidden=true;
- alert("✓ Vorlage „"+name+"“ gespeichert.\n\nSie enthält nur die Masse dieser Art – kein Projekt, keine Bezeichnung, keine Fotos.");
+ appAlert("✓ Vorlage „"+name+"“ gespeichert.\n\nSie enthält nur die Masse dieser Art – kein Projekt, keine Bezeichnung, keine Fotos.");
 }
 
 // ---- Vorlage auswaehlen und anwenden --------------------------------------
@@ -359,7 +359,7 @@ async function serieAnlegen(){
  // neuen Zeilen sofort dastehen.
  if(typeof zurueckInsCockpit==="function")await zurueckInsCockpit("meas");
  else if(typeof cockpitBereichAktualisieren==="function")await cockpitBereichAktualisieren("meas");
- alert("✓ "+data.length+" Massaufnahmen angelegt.\n\nJede ist eigenständig: sie lässt sich einzeln bearbeiten, freigeben, zuschneiden, rüsten und montieren. Eine Änderung an einer wirkt nicht auf die anderen.");
+ appAlert("✓ "+data.length+" Massaufnahmen angelegt.\n\nJede ist eigenständig: sie lässt sich einzeln bearbeiten, freigeben, zuschneiden, rüsten und montieren. Eine Änderung an einer wirkt nicht auf die anderen.");
 }
 
 // ---- Verdrahtung ----------------------------------------------------------

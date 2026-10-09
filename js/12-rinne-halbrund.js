@@ -200,9 +200,9 @@ function renderRinneDilasList(){
   $("rinne_dilasSummary").textContent=rinneDilas.length?`${rinneDilas.length} Dila(s) (${tab.label}).`:`Keine Dila nötig (${tab.label}: max. ${tab.mitDehnungselement/1000} m mit Dehnungselement, ${tab.abFixpunkten/1000} m ab Fixpunkten).`;
  }
 }
-$("rinne_calcDilas").onclick=()=>{
- if(!rinneSegments.length){alert("Bitte zuerst Segmente erfassen.");return}
- if(rinneDilas.length&&!confirm("Vorhandene Dilas werden ersetzt. Fortfahren?"))return;
+$("rinne_calcDilas").onclick=async ()=>{
+ if(!rinneSegments.length){appAlert("Bitte zuerst Segmente erfassen.");return}
+ if(rinneDilas.length&&!await appConfirm("Vorhandene Dilas werden ersetzt. Fortfahren?"))return;
  const material=$("rinne_material").value;
  const {dilas}=calcRinneDilas(rinneSegments,material);
  rinneDilas=dilas;

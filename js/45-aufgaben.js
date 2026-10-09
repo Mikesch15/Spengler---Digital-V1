@@ -356,7 +356,7 @@ async function aufgabenNeuLaden(){
 // nichts.
 async function aufgabeOeffnen(id){
  const {data,error}=await sb.from("measurements").select("*").eq("id",id).maybeSingle();
- if(error||!data){alert("Diese Massaufnahme ist nicht mehr verfügbar.");aufgabenNeuLaden();return}
+ if(error||!data){appAlert("Diese Massaufnahme ist nicht mehr verfügbar.");aufgabenNeuLaden();return}
  measEditReturnTo="startScreen";
  $("startScreen").hidden=true;
  openMeasurement(data);
@@ -374,11 +374,11 @@ async function aufgabeAusfuehren(art,id){
  // nirgends als Aufgabe sichtbar.
  if(art==="abschliessen"){
   if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Abschliessen"))return;
-  if(!confirm("Diese Massaufnahme abschliessen?"))return;
+  if(!await appConfirm("Diese Massaufnahme abschliessen?"))return;
   const {error}=await sb.rpc("measurement_abschliessen",{p_id:Number(id)});
   if(error){
    console.error("Aufgabe abschliessen",error);
-   alert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+   appAlert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
   }
   aufgabenNeuLaden();
   if(typeof werkstattNeuLaden==="function")werkstattNeuLaden();
@@ -388,11 +388,11 @@ async function aufgabeAusfuehren(art,id){
  const frage=art==="ruesten"
   ? "Rüsten bestätigen?\n\nDamit bestätigst du, dass das Material für diese Massaufnahme gerüstet ist."
   : "Montage bestätigen?\n\nDamit bestätigst du, dass die Arbeit montiert ist.";
- if(!confirm(frage))return;
+ if(!await appConfirm(frage))return;
  const {error}=await sb.rpc(art==="ruesten"?"measurement_geruestet":"measurement_montiert",{p_id:Number(id)});
  if(error){
   console.error("Aufgabe",art,error);
-  alert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+  appAlert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
  }
  aufgabenNeuLaden();
  // v3.09: derselbe Schritt kann aus der Werkstattansicht kommen - eine
@@ -451,7 +451,7 @@ document.addEventListener("click",async e=>{
   const feld=(block&&block.querySelector('[data-termin-datum="'+schl+'"]'))
            ||document.querySelector('[data-termin-datum="'+schl+'"]');
   const r=await aufgabenTerminSetzen(id,art,feld?feld.value:"");
-  if(!r.ok){alert(r.meldung);return}
+  if(!r.ok){appAlert(r.meldung);return}
   aufgabenTerminFormular=""; aufgabenTerminWahl="";
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
@@ -459,7 +459,7 @@ document.addEventListener("click",async e=>{
  }
  if(was==="termin-weg"){
   const r=await aufgabenTerminWeg(k.dataset.aufgabeId,k.dataset.aufgabeArt);
-  if(!r.ok){alert(r.meldung);return}
+  if(!r.ok){appAlert(r.meldung);return}
   renderAufgaben();
   if(typeof a2Zeichnen==="function")a2Zeichnen();
   return;

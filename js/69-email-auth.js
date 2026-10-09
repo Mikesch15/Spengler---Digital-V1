@@ -82,7 +82,7 @@ if($("prSpeichern"))$("prSpeichern").onclick=async()=>{
   const {data,error}=await sb.functions.invoke("password-reset",{body:{action:"confirm",token:passwordResetToken,password:p1}});
   if(error){err.textContent=await edgeFunctionErrorMessage(error,"Passwort konnte nicht gesetzt werden.");return}
   if(!data?.ok){err.textContent=data?.error||"Passwort konnte nicht gesetzt werden.";return}
-  alert("Passwort gesetzt. Du kannst dich jetzt anmelden.");
+  await appAlert("Passwort gesetzt. Du kannst dich jetzt anmelden.");
   location.href=location.pathname;
  }catch(e){
   err.textContent=(e&&e.message)?e.message:String(e);
@@ -115,7 +115,7 @@ if($("ciSubmit"))$("ciSubmit").onclick=async()=>{
   }});
   if(error){err.textContent=await edgeFunctionErrorMessage(error,"Registrierung fehlgeschlagen.");return}
   if(!data?.ok){err.textContent=data?.error||"Registrierung fehlgeschlagen.";return}
-  alert("Firma "+data.company.name+" wurde angelegt. Du kannst dich jetzt anmelden.");
+  await appAlert("Firma "+data.company.name+" wurde angelegt. Du kannst dich jetzt anmelden.");
   location.href=location.pathname;
  }catch(e){
   err.textContent=(e&&e.message)?e.message:String(e);

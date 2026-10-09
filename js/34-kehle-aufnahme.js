@@ -588,7 +588,7 @@ function keaVerdrahten(){
   renderKehleAufnahme();
  });
 
- wurzel.addEventListener("click",e=>{
+ wurzel.addEventListener("click",async e=>{
   const t=e.target, d=t.dataset||{}, a=kehleA;
   const schritt=t.closest("[data-kea-schritt]");
   if(schritt){keaSetzeSchritt(Number(schritt.dataset.keaSchritt));return}
@@ -618,14 +618,14 @@ function keaVerdrahten(){
    renderKehleAufnahme(); return;
   }
   if(t.id==="kea_ausA"){
-   if(a.segmente.length&&!confirm("Die bestehenden Segmente werden ersetzt. Fortfahren?"))return;
+   if(a.segmente.length&&!await appConfirm("Die bestehenden Segmente werden ersetzt. Fortfahren?"))return;
    if(keaAusLaengeAufteilen())renderKehleAufnahme();
    return;
   }
   const weg=t.closest("[data-kea-weg]");
   if(weg){
    const i=Number(weg.dataset.keaWeg);
-   if(!confirm("Segment "+(i+1)+" löschen?"))return;
+   if(!await appConfirm("Segment "+(i+1)+" löschen?"))return;
    a.segmente.splice(i,1); renderKehleAufnahme(); return;
   }
  });

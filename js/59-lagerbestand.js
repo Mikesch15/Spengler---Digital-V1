@@ -824,7 +824,7 @@ document.addEventListener("click",async e=>{
  // der Blech-Liste (Kriterium: form), bleibt aber als Katalogposition mit
  // EDV-Nr., Preis, Barcode und allen Buchungen vollstaendig erhalten.
  // Ein DELETE waere hier ein Datenverlust, den niemand bestellt hat.
- if(!confirm("„"+lagBeschreibung(l)+"“ nicht mehr als geführtes Blech behandeln?\n\n"
+ if(!await appConfirm("„"+lagBeschreibung(l)+"“ nicht mehr als geführtes Blech behandeln?\n\n"
    +"Der Katalogartikel bleibt erhalten – es wird nur das Format (Stärke, Ausführung, "
    +"Rolle/Tafel) entfernt. Der Zuschnitt rechnet danach nicht mehr mit diesem Blech."))return;
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Der Lagereintrag"))return;

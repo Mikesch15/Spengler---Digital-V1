@@ -645,7 +645,7 @@ if($("reportPhotoInput")){
   e.target.value="";
   for(const f of dateien){
    try{ reportPhotos.push(await resizeImageFile(f,1600,0.8)); }
-   catch(err){ alert("Ein Foto konnte nicht übernommen werden: "+(err&&err.message?err.message:err)); }
+   catch(err){ appAlert("Ein Foto konnte nicht übernommen werden: "+(err&&err.message?err.message:err)); }
   }
   if(dateien.length){isDirty=true;renderReportFotos()}
  });

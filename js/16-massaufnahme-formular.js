@@ -376,49 +376,49 @@ $("cancelMeasurement").onclick=()=>{
 $("saveMeasurement").onclick=async()=>{
  const title=$("measTitle").value.trim();
  const type=$("measType").value;
- if(!title){alert("Bitte eine Bezeichnung eingeben.");return}
- if(!measSelectedProjectId){alert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
- if(type==="skizze_foto"&&!measPhotos.length&&measSketches.length===0){alert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
+ if(!title){appAlert("Bitte eine Bezeichnung eingeben.");return}
+ if(!measSelectedProjectId){appAlert("Bitte zuerst ein Projekt auswählen. Eine Massaufnahme kann nur einem Projekt zugeordnet gespeichert werden.");return}
+ if(type==="skizze_foto"&&!measPhotos.length&&measSketches.length===0){appAlert("Bitte ein Foto aufnehmen oder mindestens eine Skizze zeichnen.");return}
  if(type==="einlaufblech_gerade"){
-  if(!ebPieces.length||!ebPieces.some(p=>Number(p.laenge)>0)){alert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
-  if(!Number($("eb_massA").value)||Number($("eb_massA").value)<=0){alert("Bitte Mass A eingeben (Pflichtfeld).");return}
-  if($("eb_winkel").value===""||$("eb_winkel").value===null){alert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
+  if(!ebPieces.length||!ebPieces.some(p=>Number(p.laenge)>0)){appAlert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
+  if(!Number($("eb_massA").value)||Number($("eb_massA").value)<=0){appAlert("Bitte Mass A eingeben (Pflichtfeld).");return}
+  if($("eb_winkel").value===""||$("eb_winkel").value===null){appAlert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
  }
  if(type==="rinne_halbrund"){
   if(typeof raBruecke==="function")raBruecke();
   if(!rinneSegments.length||!rinneSegments.some(s=>Number(s.laenge)>0)){
-   alert("Bitte mindestens einen Rinnenabschnitt mit einer gültigen Länge eingeben.");return}
+   appAlert("Bitte mindestens einen Rinnenabschnitt mit einer gültigen Länge eingeben.");return}
  }
  if(type==="einlaufblech_konisch"){
-  if(!ebkPieces.length||!ebkPieces.some(p=>Number(p.laenge)>0)){alert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
-  if($("ebk_dachneigung").value===""||$("ebk_dachneigung").value===null){alert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
-  if(ebkPieces.some(p=>!Number(p.massLinks)||!Number(p.massRechts))){alert("Bitte bei jedem Stück Mass links und Mass rechts eingeben (Pflichtfelder).");return}
+  if(!ebkPieces.length||!ebkPieces.some(p=>Number(p.laenge)>0)){appAlert("Bitte mindestens ein Stück mit einer gültigen Länge erfassen.");return}
+  if($("ebk_dachneigung").value===""||$("ebk_dachneigung").value===null){appAlert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
+  if(ebkPieces.some(p=>!Number(p.massLinks)||!Number(p.massRechts))){appAlert("Bitte bei jedem Stück Mass links und Mass rechts eingeben (Pflichtfelder).");return}
  }
  if(type==="freies_profil"){
-  if(!fpSchenkel.length){alert("Bitte mindestens einen Schenkel im Profil erfassen.");return}
-  if(!fpSegmente.length){alert("Bitte mindestens ein Segment erfassen.");return}
+  if(!fpSchenkel.length){appAlert("Bitte mindestens einen Schenkel im Profil erfassen.");return}
+  if(!fpSegmente.length){appAlert("Bitte mindestens ein Segment erfassen.");return}
  }
  if(type==="mauerabdeckung"){
-  if(!madSegments.length){alert("Bitte mindestens ein Segment erfassen.");return}
-  if(madSegments.some(s=>!Number(s.laenge))){alert("Bitte bei jedem Segment eine Länge eingeben.");return}
+  if(!madSegments.length){appAlert("Bitte mindestens ein Segment erfassen.");return}
+  if(madSegments.some(s=>!Number(s.laenge))){appAlert("Bitte bei jedem Segment eine Länge eingeben.");return}
  }
  if(type==="lukarne"){
-  if(!berechneLukarne(typeof lukaEingaben==="function"?lukaEingaben():lukEingabenAusFeldern())){alert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
+  if(!berechneLukarne(typeof lukaEingaben==="function"?lukaEingaben():lukEingabenAusFeldern())){appAlert("Bitte Höhe, obere Länge, Winkel und Achsabstand eingeben. Der obere Innenwinkel muss zwischen 90° und 180° liegen.");return}
  }
  if(type==="anschlussblech"){
   const e=anbEingabenAusFeldern();
-  if(!(Number(e.a)>0)){alert("Bitte mindestens das Mass a eingeben.");return}
+  if(!(Number(e.a)>0)){appAlert("Bitte mindestens das Mass a eingeben.");return}
  }
  if(type==="einfassung_rund"){
   // Die Kontrolle des Moduls ist die eine Wahrheit - was dort ein Fehler ist,
   // blockiert auch das Speichern.
   if(typeof einfaPruefungen==="function"){
    const f=einfaPruefungen().filter(x=>x.art==="fehler");
-   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+   if(f.length){appAlert(f.map(x=>x.text).join("\n"));return}
   }else{
    const e=einfEingabenAusFeldern();
-   if(!(Number(e.durchmesser)>0)){alert("Bitte den Rohrdurchmesser eingeben.");return}
-   if(!(Number(e.a)>0)||!(Number(e.c)>0)){alert("Bitte mindestens die Masse a und c eingeben.");return}
+   if(!(Number(e.durchmesser)>0)){appAlert("Bitte den Rohrdurchmesser eingeben.");return}
+   if(!(Number(e.a)>0)||!(Number(e.c)>0)){appAlert("Bitte mindestens die Masse a und c eingeben.");return}
   }
  }
  if(type==="kamineinfassung"){
@@ -426,13 +426,13 @@ $("saveMeasurement").onclick=async()=>{
   // ist, blockiert auch das Speichern.
   if(typeof kamaPruefungen==="function"){
    const f=kamaPruefungen().filter(x=>x.art==="fehler");
-   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+   if(f.length){appAlert(f.map(x=>x.text).join("\n"));return}
   }
  }
  if(type==="dachfenstereinfassung"){
   if(typeof dfaPruefungen==="function"){
    const f=dfaPruefungen().filter(x=>x.art==="fehler");
-   if(f.length){alert(f.map(x=>x.text).join("\n"));return}
+   if(f.length){appAlert(f.map(x=>x.text).join("\n"));return}
   }
  }
  if(type==="kehle"){
@@ -441,17 +441,17 @@ $("saveMeasurement").onclick=async()=>{
   const mitGehrung=(typeof keaMitGehrung==="function")?keaMitGehrung():true;
   if(mitGehrung){
    const g=kehleBerechnen(kehleEingabenAusFeldern());
-   if(!g.ok){alert(g.fehler.join("\n"));return}
+   if(!g.ok){appAlert(g.fehler.join("\n"));return}
   }
   if(typeof kehleA==="object"&&kehleA){
-   if(!kehleA.material){alert("Bitte ein Material wählen.");return}
-   if(!(kehleA.segmente||[]).length){alert("Bitte mindestens ein Segment erfassen.");return}
+   if(!kehleA.material){appAlert("Bitte ein Material wählen.");return}
+   if(!(kehleA.segmente||[]).length){appAlert("Bitte mindestens ein Segment erfassen.");return}
   }
  }
  if(type==="rinne"){
-  if(!rinneProfil.length){alert("Bitte zuerst das Rinnenprofil festlegen (mindestens ein Segment).");return}
-  if(!rinneStuecke.length){alert("Bitte mindestens ein Rinnenstück erfassen.");return}
-  if(!rinneStuecke.some(st=>Number(st.laenge)>0)){alert("Bitte bei mindestens einem Rinnenstück eine Länge M/M eingeben.");return}
+  if(!rinneProfil.length){appAlert("Bitte zuerst das Rinnenprofil festlegen (mindestens ein Segment).");return}
+  if(!rinneStuecke.length){appAlert("Bitte mindestens ein Rinnenstück erfassen.");return}
+  if(!rinneStuecke.some(st=>Number(st.laenge)>0)){appAlert("Bitte bei mindestens einem Rinnenstück eine Länge M/M eingeben.");return}
  }
  // Ohne Verbindung: in die Warteschlange statt einer Absage (v3.04).
  // Erst hier - alle fachlichen Pruefungen sind bestanden, es wird also nichts
@@ -484,13 +484,13 @@ $("saveMeasurement").onclick=async()=>{
    bilder:{photo_paths:measPhotos.slice(),sketch_paths:measSketches.slice()}
   });
   if(!r.ok){
-   alert("Keine Verbindung – und diese Massaufnahme lässt sich auf diesem Gerät auch nicht "
+   appAlert("Keine Verbindung – und diese Massaufnahme lässt sich auf diesem Gerät auch nicht "
     +"zwischenspeichern ("+(r.grund||"unbekannter Grund")+").\n\nDie Eingaben bleiben im "
     +"Formular stehen. Bitte speichern, sobald wieder eine Verbindung besteht.");
    return;
   }
   measWsAbgelegt=true;
-  alert("Keine Verbindung.\n\nDie Massaufnahme wartet jetzt auf diesem Gerät und wird "
+  appAlert("Keine Verbindung.\n\nDie Massaufnahme wartet jetzt auf diesem Gerät und wird "
    +"übertragen, sobald wieder eine Verbindung besteht. Bis dahin ist sie NICHT in der "
    +"Datenbank – bitte das Gerät nicht zurücksetzen.");
   $("measurementEditModal").hidden=true;
@@ -584,7 +584,7 @@ $("saveMeasurement").onclick=async()=>{
   isDirty=false;
  }catch(err){
   if(platzhalterId)await sb.from("measurements").delete().eq("id",platzhalterId).then(()=>{},()=>{});
-  alert("Fehler beim Speichern: "+(err.message||err));
+  appAlert("Fehler beim Speichern: "+(err.message||err));
  }
  $("saveMeasurement").disabled=false;
 };
@@ -671,14 +671,14 @@ ${thumbHtml}
  }).join(""):'<div class="empty">Noch keine Massaufnahmen vorhanden.</div>';
  resolveSignedThumbnails($("recentMeasurementsList"));
 }
-$("recentMeasurementsList").addEventListener("click",e=>{
+$("recentMeasurementsList").addEventListener("click",async e=>{
  const o=e.target.closest("[data-open-measurement]");
  if(o){const m=measurementsCache.find(x=>x.id===Number(o.dataset.openMeasurement));if(m)openMeasurement(m);return}
  const d=e.target.closest("[data-del-measurement]");
  if(d){
-  if(!confirm("Diese Massaufnahme wirklich löschen?"))return;
+  if(!await appConfirm("Diese Massaufnahme wirklich löschen?"))return;
   sb.from("measurements").delete().eq("id",Number(d.dataset.delMeasurement)).then(({error})=>{
-   if(error){alert("Fehler: "+error.message);return}
+   if(error){appAlert("Fehler: "+error.message);return}
    renderMeasurementsOverview();
   });
  }

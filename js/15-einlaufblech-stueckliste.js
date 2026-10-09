@@ -43,9 +43,9 @@ function renderEbPiecesTable(){
  $("eb_toggleEndzugabeEnd").textContent=`Endzugabe letztes Stück: ${(ebPieces.length&&ebPieces[ebPieces.length-1].endzugabeEnd)?"ein":"aus"}`;
 }
 function toggleEbEndzugabe(position){
- if(!ebPieces.length){alert("Bitte zuerst Stücke erfassen.");return}
+ if(!ebPieces.length){appAlert("Bitte zuerst Stücke erfassen.");return}
  const endZugabe=Number(einlaufblechSettings.end_zugabe)||0;
- if(!endZugabe){alert("Bitte zuerst in Einstellungen → Massaufnahmen eine Endzugabe > 0 mm hinterlegen.");return}
+ if(!endZugabe){appAlert("Bitte zuerst in Einstellungen → Massaufnahmen eine Endzugabe > 0 mm hinterlegen.");return}
  // Die Endzugabe wird immer auf das Reststück (letztes Stück) gerechnet, nie auf ein reguläres
  // Stück, da kein Stück länger als Länge Stoss bis Stoss + Überlappung sein darf (ausser dem Reststück).
  const idx=ebPieces.length-1;
@@ -73,16 +73,16 @@ function buildEbPiecesFromGesamtlaenge(gesamtlaenge){
           gehrungLinks:false,gehrungRechts:false,winkel:0};
  });
 }
-$("eb_regenerate").onclick=()=>{
+$("eb_regenerate").onclick=async ()=>{
  const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
- if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
- if(ebPieces.length&&!confirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
+ if(!gesamtlaenge||gesamtlaenge<=0){appAlert("Bitte zuerst eine gültige Gesamtlänge eingeben.");return}
+ if(ebPieces.length&&!await appConfirm("Vorhandene Stücke werden ersetzt. Fortfahren?"))return;
  ebPieces=buildEbPiecesFromGesamtlaenge(gesamtlaenge);
  renderEbPiecesTable();
 };
 $("eb_appendGesamtlaenge").onclick=()=>{
  const gesamtlaenge=Number($("eb_gesamtlaenge").value)||0;
- if(!gesamtlaenge||gesamtlaenge<=0){alert("Bitte eine gültige Gesamtlänge eingeben.");return}
+ if(!gesamtlaenge||gesamtlaenge<=0){appAlert("Bitte eine gültige Gesamtlänge eingeben.");return}
  const neue=buildEbPiecesFromGesamtlaenge(gesamtlaenge);
  ebPieces=ebPieces.concat(neue);
  renderEbPiecesTable();
@@ -96,18 +96,19 @@ async function refreshEbRinneList(){
  ebRinneCache=zustand.liste||[];
  zeigeRinneUebernahmeListe("eb_rinneHint","eb_rinneList",zustand,"pick-eb-rinne");
 }
-$("eb_rinneList").addEventListener("click",e=>{
+$("eb_rinneList").addEventListener("click",async e=>{
  const btn=e.target.closest("[data-pick-eb-rinne]");
  if(!btn)return;
  const m=ebRinneCache.find(x=>x.id===Number(btn.dataset.pickEbRinne));
  const segs=(m&&m.data&&m.data.segments)||[];
- if(!segs.length){alert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
+ if(!segs.length){appAlert("Diese Rinnen-Massaufnahme hat keine Segmente.");return}
  // Bestehende Stuecke werden nur nach ausdruecklicher Bestaetigung ersetzt.
- if(ebPieces.length&&!confirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
+ if(ebPieces.length&&!await appConfirm("Vorhandene Stücke werden durch die aus dieser Rinne erzeugten Stücke ersetzt. Fortfahren?"))return;
  ebPieces=baueEinlaufblechStueckeAusRinne(segs,einlaufblechSettings,
   l=>teileLaengeInStuecke(l,einlaufblechSettings),false);
  renderEbPiecesTable();
- alert(`${ebPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen.`);
+ if(typeof ebaNachUebernahme==="function")ebaNachUebernahme();
+ appAlert(`${ebPieces.length} Stück(e) aus ${segs.length} Segment(en) übernommen.`);
 });
 
 $("eb_addPiece").onclick=()=>{

@@ -293,7 +293,7 @@ document.addEventListener("click",async e=>{
  }
  if(was==="loeschen"){
   const was_geht=bkOffeneListe.map(d=>"· "+d.edv_nr+" "+d.name+"  ("+bkVerwendungText(bkOffeneKarte[d.id])+")").join("\n");
-  if(!confirm("Diese Positionen werden gelöscht:\n\n"+was_geht
+  if(!await appConfirm("Diese Positionen werden gelöscht:\n\n"+was_geht
    +"\n\nDamit verschwinden auch die daran hängenden Lagerprodukte samt Barcode."
    +"\nLagerzeilen und Reststücke verlieren ihre Verbindung zum Katalog."
    +"\nZeilen in Regierapporten und Massaufnahmen behalten ihre EDV-Nr., finden aber keine Katalogposition mehr."
@@ -317,7 +317,7 @@ document.addEventListener("click",async e=>{
                neuNr:String((settings.materials[i]||[])[0]??"")});
   });
   if(ohne.length){bkMeldung("Für "+ohne.join(", ")+" ist noch keine Ersatz-Position gewählt.",true);return}
-  if(!confirm("Alles, was auf diese "+paare.length+" Beispiel-Position"+(paare.length===1?"":"en")
+  if(!await appConfirm("Alles, was auf diese "+paare.length+" Beispiel-Position"+(paare.length===1?"":"en")
    +" zeigt, zeigt danach auf die gewählte Position – auch bereits gespeicherte Regierapporte"
    +" und Massaufnahmen. Danach werden die Beispiel-Positionen gelöscht.\n\nFortfahren?"))return;
   k.disabled=true; bkMeldung("Wird umgehängt …");

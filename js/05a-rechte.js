@@ -306,7 +306,7 @@ document.addEventListener("change",async e=>{
  const t=e.target;
  const i=t.dataset.rechtMitarbeiter??t.dataset.rechtKataloge??t.dataset.rechtAdmin;
  if(i===undefined)return;
- if(!meineRechte.admin){alert("Nur ein Administrator kann Rechte ändern.");return}
+ if(!meineRechte.admin){appAlert("Nur ein Administrator kann Rechte ändern.");return}
  const id=employeeIds[Number(i)];
  if(!id)return;
 
@@ -317,21 +317,21 @@ document.addEventListener("change",async e=>{
   // weist das ohnehin ab - hier steht der Satz, der sagt WARUM, und der
   // Haken springt zurueck, ohne dass ein Fehler noetig war.
   if(neueRolle!=="admin"&&istLetzterAdmin(id)){
-   alert("Das ist der einzige Administrator dieser Firma.\n\n"
+   appAlert("Das ist der einzige Administrator dieser Firma.\n\n"
     +"Würde der Haken entfernt, könnte niemand mehr Rechte vergeben – auch nicht, "
     +"um ihn zurückzugeben. Bitte zuerst jemand anderen zum Administrator machen.");
    t.checked=true;
    return;
   }
   const {error}=await sb.from("profiles").update({role:neueRolle}).eq("id",id);
-  if(error){alert("Rolle konnte nicht geändert werden: "+error.message);t.checked=!t.checked;return}
+  if(error){appAlert("Rolle konnte nicht geändert werden: "+error.message);t.checked=!t.checked;return}
   const p=allProfiles.find(x=>x.id===id);
   if(p)p.role=neueRolle;
   if(currentProfile&&currentProfile.id===id)currentProfile.role=neueRolle;
  }else{
   const {error}=await sb.from("permission_overrides")
    .upsert(overrideZeilen(Number(i),id),{onConflict:"profile_id,resource"});
-  if(error){alert("Rechte konnten nicht gespeichert werden: "+error.message);return}
+  if(error){appAlert("Rechte konnten nicht gespeichert werden: "+error.message);return}
  }
 
  await ladeRechteTabellen();
@@ -364,7 +364,7 @@ if($("employeeSettings")){
     .eq("id",profil.id).select("id,rate_id");
   if(error||!data||!data.length){
    feld.value=vorher;
-   alert(error?("Die Funktion konnte nicht gespeichert werden: "+error.message)
+   appAlert(error?("Die Funktion konnte nicht gespeichert werden: "+error.message)
               :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
    return;
   }
@@ -407,7 +407,7 @@ if($("employeeSettings")){
   // einmal vertippte Adresse nicht mehr loszuwerden.
   if(wert&&!mailFormatOk(wert)){
    feld.value=vorher;
-   alert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
+   appAlert("Bitte eine gültige E-Mail-Adresse eingeben, oder das Feld leer lassen.");
    return;
   }
   if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Eine E-Mail-Adresse zu hinterlegen")){
@@ -420,7 +420,7 @@ if($("employeeSettings")){
   if(error||!data||!data.length){
    feld.value=vorher;
    const doppelt=error&&(error.code==="23505"||/duplicate key|profiles_email_key/i.test(error.message||""));
-   alert(doppelt
+   appAlert(doppelt
     ?"Diese E-Mail-Adresse ist bereits einem anderen Konto zugeordnet. Jede Adresse kann nur zu EINEM Konto gehören - sonst wäre beim Anmelden nicht entscheidbar, wer gemeint ist."
     :(error?("Die E-Mail-Adresse konnte nicht gespeichert werden: "+error.message)
            :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"));
@@ -462,7 +462,7 @@ if($("employeeSettings")){
     .select("id,profile_id,feature,granted");
   if(error||!data||!data.length){
    feld.checked=!neu;
-   alert(error?("Der Offerte-Zugriff konnte nicht gespeichert werden: "+error.message)
+   appAlert(error?("Der Offerte-Zugriff konnte nicht gespeichert werden: "+error.message)
               :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
    return;
   }
@@ -497,7 +497,7 @@ if($("employeeSettings")){
     .select("id,profile_id,feature,granted");
   if(error||!data||!data.length){
    feld.checked=!neu;
-   alert(error?("Der Lager-Zugriff konnte nicht gespeichert werden: "+error.message)
+   appAlert(error?("Der Lager-Zugriff konnte nicht gespeichert werden: "+error.message)
               :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
    return;
   }

@@ -627,7 +627,7 @@ document.addEventListener("click",async e=>{
      +"Wer und wann reserviert hat, wird dabei gelöscht. Der Verlauf bleibt erhalten."
    : treffer.length+" Position"+(treffer.length===1?"":"en")+" auf „"+name+"\" setzen?\n\n"
      +"Positionen, die schon weiter sind, bleiben unberührt.";
-  if(!confirm(frage))return;
+  if(!await appConfirm(frage))return;
   bulk.disabled=true;
   const erg=await resvBulkStatus(treffer.map(r=>r.id),status);
   if(erg&&!erg.offline&&!erg.fehler){
@@ -640,7 +640,7 @@ document.addEventListener("click",async e=>{
  if(bulkDel){
   const gewaehlt=resvAuswahlZeilen();
   if(!gewaehlt.length)return;
-  if(!confirm(gewaehlt.length+" Bedarfszeile"+(gewaehlt.length===1?"":"n")+" entfernen?\n\n"
+  if(!await appConfirm(gewaehlt.length+" Bedarfszeile"+(gewaehlt.length===1?"":"n")+" entfernen?\n\n"
     +"Die Reservierung wird damit aufgehoben. Der Verlauf bleibt erhalten.\n\n"
     +"„Bedarf übernehmen\" legt sie später wieder aus den Massaufnahmen an."))return;
   bulkDel.disabled=true;
@@ -657,7 +657,7 @@ document.addEventListener("click",async e=>{
  if(aufr){
   const weg=resvAbgeleiteteZeilen();
   if(!weg.length)return;
-  if(!confirm(weg.length+" abgeleitete "+(weg.length===1?"Zeile":"Zeilen")+" entfernen?\n\n"
+  if(!await appConfirm(weg.length+" abgeleitete "+(weg.length===1?"Zeile":"Zeilen")+" entfernen?\n\n"
     +weg.slice(0,6).map(r=>"· "+(r.bezeichnung||"")).join("\n")
     +(weg.length>6?"\n· … und "+(weg.length-6)+" weitere":"")
     +"\n\nDas sind Rechenergebnisse (Abwicklung, Fläche, Stückzahl) – aus dem "
@@ -705,7 +705,7 @@ document.addEventListener("click",async e=>{
      +"Sie stehen danach anderen Projekten zur Verfügung."
    : ids.length+" Reststück"+(ids.length===1?"":"e")+" als verwendet buchen?\n\n"
      +"Sie verschwinden aus dem Lager. Die Projektzuordnung bleibt im Verlauf nachvollziehbar.";
-  if(!confirm(frage))return;
+  if(!await appConfirm(frage))return;
   bulkRest.disabled=true;
   const erg=await resvBulkRest(ids,art);
   if(erg&&!erg.offline&&!erg.fehler){
@@ -732,7 +732,7 @@ document.addEventListener("click",async e=>{
  if(del){
   const id=Number(del.dataset.resvLoeschen);
   const r=(resvListe||[]).find(x=>x.id===id);
-  if(!confirm("Bedarfszeile entfernen?\n\n"+((r&&r.bezeichnung)||"")+"\n\nDie Reservierung wird aufgehoben. Der Verlauf bleibt erhalten."))return;
+  if(!await appConfirm("Bedarfszeile entfernen?\n\n"+((r&&r.bezeichnung)||"")+"\n\nDie Reservierung wird aufgehoben. Der Verlauf bleibt erhalten."))return;
   await resvNachAktion(await resvLoeschen(id),"✓ Bedarfszeile entfernt.");
   return;
  }
@@ -753,7 +753,7 @@ document.addEventListener("click",async e=>{
  }
  const verb=e.target.closest("[data-resv-rest-verbraucht]");
  if(verb){
-  if(!confirm("Reststück als verwendet buchen?\n\nEs verschwindet danach aus dem Lager. Die Projektzuordnung bleibt im Verlauf nachvollziehbar."))return;
+  if(!await appConfirm("Reststück als verwendet buchen?\n\nEs verschwindet danach aus dem Lager. Die Projektzuordnung bleibt im Verlauf nachvollziehbar."))return;
   verb.disabled=true;
   await resvNachAktion(await resvRestVerbraucht(Number(verb.dataset.resvRestVerbraucht)),
    "✓ Reststück als verwendet gebucht.");

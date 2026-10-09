@@ -168,10 +168,10 @@ const RL_CSS=`
 // weil listen:"alle" gesetzt ist; dieselbe Funktion öffnet aber das Fenster
 // und meldet einen blockierten Popup-Blocker wie überall sonst.
 async function rlDrucken(o){
- if(typeof pdfDruckVorbereiten!=="function"){alert("Der Druck ist gerade nicht verfügbar.");return}
+ if(typeof pdfDruckVorbereiten!=="function"){appAlert("Der Druck ist gerade nicht verfügbar.");return}
  const eintraege=rlAufnahmen(o.liste);
  if(!eintraege.length){
-  alert("Für diese Auswahl gibt es nichts zu rüsten – keine Massaufnahme hat einen gespeicherten Zuschnitt.");
+  appAlert("Für diese Auswahl gibt es nichts zu rüsten – keine Massaufnahme hat einen gespeicherten Zuschnitt.");
   return;
  }
  let logoSrc="";

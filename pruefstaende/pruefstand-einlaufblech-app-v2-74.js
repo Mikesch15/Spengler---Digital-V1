@@ -334,7 +334,7 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
  // diese Pruefung blieb der Fehler aus v2.74/v2.75 unentdeckt: ebaBruecke()
  // hat ebPieces beim naechsten Zeichnen wieder mit dem alten Stand
  // ueberschrieben, der Speicher-Payload enthielt danach 0 Stuecke.
- const uebernahme=await page.evaluate(()=>{
+ const uebernahme=await page.evaluate(async()=>{
   const segs=[{laenge:5000,winkel:-90},{laenge:3000,winkel:0}];
   ebRinneCache=[{id:1,title:"Rinne Nord",date:"2026-09-01",data:{segments:segs}}];
   zeigeRinneUebernahmeListe("eb_rinneHint","eb_rinneList",
@@ -344,6 +344,8 @@ const reg=async(page,n)=>{await page.evaluate(k=>ebaSetzeSchritt(k),n);await pag
   const knopf=document.querySelector("[data-pick-eb-rinne]");
   if(!knopf)return {fehlt:true};
   knopf.click();
+  // v3.286: die Rueckfrage ist ein eigener Dialog (await) - erst danach steht das Modell.
+  await new Promise(r=>setTimeout(r,60));
   return {soll:soll.map(x=>x.laenge).join(), modell:ebA.stuecke.map(x=>x.laenge).join(),
           gleich:ebPieces===ebA.stuecke};
  });

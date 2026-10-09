@@ -845,9 +845,9 @@ document.addEventListener("click",async e=>{
  const weg=e.target.closest("[data-abw-weg]");
  if(weg){
   const a=abwGespeichert.find(x=>String(x.id)===String(weg.getAttribute("data-abw-weg")));
-  if(a&&typeof confirm==="function"&&!confirm(`„${a.bezeichnung||"Abwicklung"}“ wirklich löschen?`))return;
+  if(a&&typeof confirm==="function"&&!await appConfirm(`„${a.bezeichnung||"Abwicklung"}“ wirklich löschen?`))return;
   const r=await abwLoeschen(weg.getAttribute("data-abw-weg"));
-  if(!r.ok&&typeof alert==="function")alert(r.meldung);
+  if(!r.ok&&typeof alert==="function")appAlert(r.meldung);
   return;
  }
 });
