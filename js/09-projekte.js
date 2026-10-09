@@ -283,17 +283,30 @@ function renderProjectList(){
   // danach die Hauptaktion ueber die volle Breite und erst darunter die
   // Nebenaktionen. Der Loeschen-Knopf steht nicht mehr neben dem Titel,
   // damit eine lange Adresse ihn nicht verdraengt.
-  return `<div class="project-row${p.archived?" project-row-archiviert":""}">
-<div class="project-row-top"><b>${esc(titel)}</b></div>
-<div class="project-row-status">${projektStatusBadge(p)}${p.archived?'<span class="pstatus pstatus-archiv">🗄 Archiviert</span>':""}${
-   p.wartet?'<span class="pstatus pstatus-wartet">📤 Wartet auf die Übertragung</span>':""}</div>
-<div class="small">${esc(zusatz)}</div>
-${p.wartet?`<div class="small" style="color:var(--muted);margin-top:6px">Massaufnahmen, Ausmasse und Rapporte lassen sich schon jetzt dazu erfassen – sie warten mit. Öffnen, Bearbeiten, Archivieren und Löschen geht erst nach der Übertragung.</div>`
- :`<button class="blue project-row-main" data-open-cockpit="${p.id}">📂 Projekt öffnen</button>
-<div class="project-row-actions">
-<button class="gray" data-edit-project="${p.id}">✏️ Bearbeiten</button>
-<button class="gray" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
-<button class="red" data-del-project="${p.id}">🗑 Löschen</button>
+  // v3.274, Ansage des Anwenders: "bei den projekten unter archiv und filter
+  // ist noch die alte ansicht". Die Karten dieser Liste waren bis v3.273 die
+  // der klassischen Ansicht (Titel, Statusschild, grosser blauer Knopf, drei
+  // Knoepfe darunter). Jetzt dieselbe Zeile wie auf der Projektseite der neuen
+  // Ansicht (a2ProjektZeileHtml, js/70): Titel, Zusatz, Statusmarke, Pfeil -
+  // ein Tipp oeffnet das Projekt. Die Nebenaktionen stehen klein darunter.
+  // GEAENDERT IST NUR DAS AUSSEHEN: die Knoepfe tragen weiter dieselben
+  // data-Attribute, der Klick-Handler weiter unten (data-open-cockpit,
+  // data-edit-project, data-archive-project, data-del-project) ist derselbe.
+  // Der aeussere .project-row bleibt als Marke stehen (Pruefstaende und die
+  // Warteschlange suchen die Zeile darueber).
+  const st=projektStatusInfo(p);
+  const marken=(st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:"")
+   +(p.archived?'<span class="a2-marke a2-m-grau">🗄 Archiviert</span>':"")
+   +(p.wartet?'<span class="a2-marke a2-m-orange">📤 Wartet auf die Übertragung</span>':"");
+  const text=`<span class="a2-zeile-text"><b>${esc(titel)}</b><span>${esc(zusatz)}</span></span>`;
+  return `<div class="project-row a2-pz${p.archived?" project-row-archiviert":""}">
+${p.wartet?`<div class="a2-zeile a2-zeile-still">${text}<span class="a2-pz-marken">${marken}</span></div>
+<div class="small" style="color:var(--muted);margin:0 2px 4px">Massaufnahmen, Ausmasse und Rapporte lassen sich schon jetzt dazu erfassen – sie warten mit. Öffnen, Bearbeiten, Archivieren und Löschen geht erst nach der Übertragung.</div>`
+ :`<button type="button" class="a2-zeile" data-open-cockpit="${p.id}">${text}<span class="a2-pz-marken">${marken}</span><span class="a2-zeile-pfeil">›</span></button>
+<div class="a2-pz-akt">
+<button type="button" class="a2-knopf a2-k-grau a2-knopf-klein" data-edit-project="${p.id}">✏️ Bearbeiten</button>
+<button type="button" class="a2-knopf a2-k-grau a2-knopf-klein" data-archive-project="${p.id}">${p.archived?"↩️ Reaktivieren":"📦 Archivieren"}</button>
+<button type="button" class="a2-knopf a2-k-grau a2-knopf-klein a2-pz-loeschen" data-del-project="${p.id}">🗑 Löschen</button>
 </div>`}
 </div>`;
  }).join("")||`<div class="empty">${projektListeLeerText(sichtbar.length)}</div>`;
