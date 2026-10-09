@@ -585,7 +585,9 @@ let measurementListProjectId=null;
 async function renderMeasurementsOverview(){
  const {data,error}=await sb.from("measurements").select("*").order("created_at",{ascending:false}).limit(recentCount);
  if(error){$("recentMeasurementsList").innerHTML=`<div class="empty">Fehler: ${esc(error.message)}</div>`;return}
- const rows=data||[];
+ // v3.276: archivierte Massaufnahmen stehen nicht in der Uebersicht (sie sind
+ // im Projekt unter "Archivierte anzeigen" erreichbar).
+ const rows=(data||[]).filter(m=>!m.archived);
  measurementsCache=rows;
  const typeLabels=MEAS_TYPE_LABELS;
  $("recentMeasurementsList").innerHTML=rows.length?rows.map(m=>{

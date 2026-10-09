@@ -550,6 +550,45 @@ async function mwAbschliessen(){
  const a=await mwRuf("measurement_abschliessen",{p_id:mwStand.id},"Das Abschliessen");
  if(!a)return;
  mwStandAusAntwort(a); renderMeasWorkflow(); mwNachAenderung();
+ // v3.276, Ansage des Anwenders: "Abgeschlossene massaufnahmen sollen auch
+ // archiviert werden. Gleiche prozedur wie beim projekt." - also dieselbe
+ // Reihenfolge wie bei js/24: der Abschluss gilt in jedem Fall, DANACH kommt
+ // die Rueckfrage.
+ await mwNachAbschlussArchivieren();
+}
+
+// Fragt, ob die gerade abgeschlossene Massaufnahme archiviert werden soll, und
+// tut es dann. archived ist - wie bei den Projekten - ein eigener Wert neben dem
+// Arbeitsstatus; der Workflow-Trigger (schuetze_measurement_workflow) kennt die
+// Spalte nicht und laesst sie durch. Das Ergebnis wird geprueft: RLS meldet ein
+// blockiertes UPDATE nicht als Fehler, es trifft 0 Zeilen.
+async function mwNachAbschlussArchivieren(){
+ if(!mwStand||mwStand.archived)return;
+ const art=(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[mwStand.type])||"Massaufnahme";
+ const titel=(mwStand.title||"").trim();
+ if(!confirm("Die Massaufnahme \u201E"+art+(titel?" \u2013 "+titel:"")+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
+  +"Sie erscheint dann nicht mehr in der Liste des Projekts. Unter \u201EArchivierte anzeigen\u201C "
+  +"bleibt sie auffindbar und l\u00E4sst sich wieder reaktivieren."))return;
+ const ok=await measurementArchivSetzen(mwStand.id,true);
+ if(ok)mwStand.archived=true;
+}
+// Gemeinsame Schreibstelle fuer Archivieren UND Reaktivieren (js/09 nutzt sie
+// ebenfalls): ein Weg, ein Ergebnispruefung, die Zwischenspeicher werden mit
+// nachgefuehrt.
+async function measurementArchivSetzen(id,archiviert){
+ const {data,error}=await sb.from("measurements").update({archived:!!archiviert}).eq("id",id).select("id,archived");
+ if(error||!data||!data.length){
+  alert((archiviert?"Das Archivieren":"Das Reaktivieren")+" hat nicht geklappt: "
+   +(error?error.message:"Fehlt die n\u00F6tige Berechtigung?"));
+  return false;
+ }
+ [typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:null,
+  typeof allMeasurements!=="undefined"?allMeasurements:null].forEach(l=>{
+   if(!Array.isArray(l))return;
+   const z=l.find(x=>x.id===id); if(z)z.archived=!!archiviert;
+  });
+ if(typeof cockpitBereichAktualisieren==="function")await cockpitBereichAktualisieren("meas");
+ return true;
 }
 
 function mwZuweisenOeffnen(){

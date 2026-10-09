@@ -409,18 +409,33 @@ async function loadProjectReports(projectId){
  }).join(""):'<div class="empty">Noch kein Regierapport zu diesem Projekt.</div>';
  return list.length;
 }
+// v3.276: aktive und archivierte Massaufnahmen eines Projekts sind - wie bei den
+// Projekten selbst - zwei getrennte Ansichten. Der Umschalter gilt je Projekt
+// und faellt beim Wechsel des Projekts auf "aktive" zurueck.
+let projectMeasArchivAnzeigen=false, projectMeasArchivFuer=null;
 async function loadProjectMeasurements(projectId){
  const box=$("cockpitMeasBody");
+ if(projectMeasArchivFuer!==projectId){projectMeasArchivAnzeigen=false;projectMeasArchivFuer=projectId}
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
  if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
- const list=data||[];
+ const alle=data||[];
  const typeLabels=MEAS_TYPE_LABELS;
- projectMeasurementsCache=list;
+ // Der Zwischenspeicher haelt ALLE - Material-Bedarf, Zuschnitt, Fotowand und
+ // Ruestliste rechnen ueber ihn, und eine abgeschlossene Arbeit verschwindet
+ // nicht aus der Rechnung, nur weil sie aus der Liste ausgeblendet ist.
+ projectMeasurementsCache=alle;
+ const archivierte=alle.filter(m=>m.archived);
+ // Gibt es keine archivierten mehr, faellt die Ansicht von selbst zurueck.
+ if(!archivierte.length)projectMeasArchivAnzeigen=false;
+ const list=alle.filter(m=>!!m.archived===projectMeasArchivAnzeigen);
+ const umschalter=archivierte.length
+  ?`<div class="bar"><button type="button" class="gray" data-meas-archiv-umschalten>${
+    projectMeasArchivAnzeigen?"📐 Aktive Massaufnahmen anzeigen":"🗄 Archivierte anzeigen ("+archivierte.length+")"}</button></div>`:"";
  // v2.45: Die Projektadresse steht einmal oben im Kopf. Hier ist die
  // Fachart der Massaufnahme der Haupttitel - sie unterscheidet die neun
  // Funktionen voneinander; der bisherige Titel bleibt darunter stehen.
- box.innerHTML=list.length?list.map(m=>{
+ box.innerHTML=umschalter+(list.length?list.map(m=>{
   const art=typeLabels[m.type]||m.type||"Massaufnahme";
   // v2.50: Medien-Hinweis und Medien-Knopf nur, wenn tatsaechlich ein
   // Foto oder eine Skizze gespeichert ist - kein Platzhalter sonst.
@@ -438,12 +453,20 @@ async function loadProjectMeasurements(projectId){
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
    +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`
 <button class="gray" data-kopiere-measurement="${m.id}" title="Als Vorlage für eine neue Massaufnahme">📄 Als Vorlage</button>
-<button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>
+<button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>`
+   // v3.276: Archivieren nur fuer abgeschlossene (dort gehoert es hin), Reaktivieren
+   // fuer archivierte. Dasselbe Paar wie bei den Projekten.
+   +(m.archived?`<button class="gray" data-archive-measurement="${m.id}">↩️ Reaktivieren</button>`
+     :(m.workflow_status==="abgeschlossen"?`<button class="gray" data-archive-measurement="${m.id}">📦 Archivieren</button>`:""))+`
 <button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
 </div>`;
- }).join(""):'<div class="empty">Noch keine Massaufnahme zu diesem Projekt.</div>';
- return list.length;
+ }).join(""):'<div class="empty">'+(projectMeasArchivAnzeigen?"Keine archivierten Massaufnahmen."
+   :(archivierte.length?"Keine aktive Massaufnahme – "+archivierte.length+" archiviert."
+    :"Noch keine Massaufnahme zu diesem Projekt."))+'</div>');
+ // Die Zahl im Kopf und im Arbeitsstand zaehlt die AKTIVEN - auch dann, wenn
+ // gerade die archivierten angezeigt werden.
+ return alle.length-archivierte.length;
 }
 
 // ---- Dateien je Projekt (PDF, Word, Excel, Fotos, …) --------------
@@ -1015,6 +1038,19 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
   const id=Number(printM.dataset.printProjectMeasurement);
   const m=projectMeasurementsCache.find(x=>x.id===id);
   if(m)printMeasurement(m);
+  return;
+ }
+ const archM=e.target.closest("[data-archive-measurement]");
+ if(archM){
+  const id=Number(archM.dataset.archiveMeasurement);
+  const m=projectMeasurementsCache.find(x=>x.id===id);
+  if(m)await measurementArchivSetzen(id,!m.archived);
+  return;
+ }
+ const umM=e.target.closest("[data-meas-archiv-umschalten]");
+ if(umM){
+  projectMeasArchivAnzeigen=!projectMeasArchivAnzeigen;
+  await cockpitBereichAktualisieren("meas");
   return;
  }
  const delM=e.target.closest("[data-del-project-measurement]");
