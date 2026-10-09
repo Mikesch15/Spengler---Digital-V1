@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.286</div>
+<div id="appVersion">Version 3.287</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -408,7 +408,9 @@
 <div class="bar no-print">
 <button id="print" class="blue">🖨️ PDF / Drucken</button>
 <button id="save" class="green">💾 Speichern</button>
-<button id="clear" class="red">Alles löschen</button>
+<button id="clear" class="red" title="Leert nur das Formular - der gespeicherte Rapport bleibt, bis er gespeichert wird">🧹 Eingaben leeren</button>
+<!-- v3.287: den gespeicherten Rapport loeschen (js/24) - nur bei einem gespeicherten -->
+<button type="button" id="reportDelete" class="red" hidden>🗑 Rapport löschen</button>
 <button id="reportEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="backFromReportEdit" class="gray" hidden>↩️ Zurück zum Projekt</button>
 <button id="startFromReportEdit" class="gray">🏠 Start</button>
@@ -1920,6 +1922,8 @@ als links &uuml;bernommen und bleiben frei &auml;nderbar. Eine sp&auml;tere &Aum
 <button type="button" id="measAlsVorlage" class="gray" hidden>📄 Als Vorlage speichern</button>
 <button id="printMeasurementBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelMeasurement" class="gray">Abbrechen</button>
+<!-- v3.287: Massaufnahme loeschen (js/16) - nur bei einer gespeicherten -->
+<button type="button" id="measDelete" class="red" hidden>🗑 Massaufnahme löschen</button>
 <button id="measurementEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromMeasurementEdit" class="gray">🏠 Start</button>
 </div>
@@ -2417,7 +2421,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.286.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.287.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3099,7 +3103,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.286.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.287.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

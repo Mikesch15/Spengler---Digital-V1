@@ -1236,6 +1236,7 @@ $("save").onclick=async()=>{
  }
  $("save").disabled=false;
  if(res.error){appAlert("Fehler beim Speichern: "+res.error.message);return}
+ if(res.data&&typeof reportLoeschenKnopfAktualisieren==="function")setTimeout(reportLoeschenKnopfAktualisieren,0);
  if(res.data){currentReportId=res.data.id;currentReportMeta={created_by:res.data.created_by,created_at:res.data.created_at,updated_by:res.data.updated_by,updated_at:res.data.updated_at};}
  updateVerlaufToggleVisibility($("reportVerlaufToggle"),$("reportVerlaufBody"),currentReportId);
  isDirty=false;

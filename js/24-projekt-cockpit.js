@@ -82,6 +82,31 @@ async function reportZurueck(){
  isDirty=false;
 }
 
+// ---- Regierapport loeschen (v3.287) ---------------------------------------
+// Siehe measLoeschenAusFormular (js/16): der Knopf steht im Formular selbst und
+// nur, wenn der Rapport gespeichert ist. "Eingaben leeren" (#clear) leert nur das
+// Formular - der gespeicherte Rapport bleibt, bis man wieder speichert.
+function reportLoeschenKnopfAktualisieren(){
+ const k=$("reportDelete"); if(!k)return;
+ k.hidden=!currentReportId;
+}
+async function reportLoeschenAusFormular(){
+ const id=currentReportId; if(!id)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Löschen"))return;
+ if(!await appConfirm("Diesen Regierapport wirklich löschen?\n\nDas lässt sich nicht rückgängig machen.",{ok:"Löschen",gefahr:true}))return;
+ const {data,error}=await sb.from("reports").delete().eq("id",id).select("id");
+ if(error){appAlert("Fehler: "+error.message);return}
+ if(!data||!data.length){appAlert("Der Rapport wurde nicht gelöscht – dafür fehlt die Berechtigung.");return}
+ currentReportId=null; isDirty=false;
+ await reportZurueck();
+}
+(function reportLoeschenBinden(){
+ const k=$("reportDelete"), r=$("reportScreen");
+ if(!k||!r)return;
+ k.addEventListener("click",reportLoeschenAusFormular);
+ if(window.MutationObserver)new MutationObserver(reportLoeschenKnopfAktualisieren).observe(r,{attributes:true,attributeFilter:["hidden"]});
+})();
+
 // ---- Stammdaten -------------------------------------------------
 // Aus dem bereits geladenen allProjects, dafür ist keine zusätzliche
 // Abfrage nötig.

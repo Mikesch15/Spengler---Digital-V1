@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.286.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.287.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -816,7 +816,10 @@ Massaufnahme.</p>
 Register ist immer die <b>Kontrolle</b>. Notiz und Speichern sind aus jedem
 Register erreichbar.</p>
 <p>Felder mit einem <b>roten Stern</b> müssen ausgefüllt sein – ohne sie lässt
-sich nicht speichern. Alle übrigen sind freiwillig.</p>`},
+sich nicht speichern. Alle übrigen sind freiwillig.</p>
+<p><b>Löschen:</b> ganz unten steht <b>„🗑 Massaufnahme löschen“</b> – nur bei einer
+gespeicherten Massaufnahme, mit Rückfrage. Abgeschlossene lassen sich stattdessen
+<b>archivieren</b>.</p>`},
 
 "medien":{titel:"Fotos und Skizzen",text:`
 <p>Eine Massaufnahme kann <b>mehrere Fotos und mehrere Skizzen</b> tragen.</p>
@@ -1502,7 +1505,9 @@ sobald es etwas weiß – und behauptet vorher nichts.</div>`},
 "rapport-liste":{titel:"Regierapporte",text:`
 <p>Alle Rapporte der Firma, neueste zuerst. Der CSV-Export enthält Arbeits-
 und Materialzeilen mit ihren Totalen – zur Weiterverarbeitung in der
-Buchhaltung.</p>`},
+Buchhaltung.</p>
+<p><b>Löschen:</b> Rapport öffnen, unten <b>„🗑 Rapport löschen“</b> (steht nur bei einem
+gespeicherten Rapport). <b>„🧹 Eingaben leeren“</b> leert dagegen nur das Formular.</p>`},
 
 // ---- Suche, Feedback, PDF ----------------------------------------------
 "suche":{titel:"Suche",text:`

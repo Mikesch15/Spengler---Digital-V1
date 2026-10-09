@@ -574,6 +574,7 @@ $("saveMeasurement").onclick=async()=>{
   await measBilderAufraeumen(workingId,measSelectedProjectId,bilderVorher,photoUrls.concat(sketchUrls));
   if(typeof mwNachSpeichern==="function")mwNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
   currentMeasurementId=workingId;
+  measLoeschenKnopfAktualisieren();
   currentMeasurementMeta=warNeu
    ?{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null}
    :{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt};
@@ -1827,3 +1828,35 @@ ${pdfFooterHtml(m)}
 }
 
 $("closeMeasurements").onclick=()=>{$("measurementsModal").hidden=true};
+
+// ---- Massaufnahme loeschen (v3.287) --------------------------------------
+// Gefragt: "Wo habe ich die Moeglichkeit, eine Massaufnahme resp. einen
+// Regierapport zu loeschen?" In der neuen Ansicht gab es sie nirgends: das X
+// stand nur in den alten Listen. Jetzt hat das Formular selbst einen Knopf,
+// sichtbar nur bei einer GESPEICHERTEN Massaufnahme. Was die Datenbank
+// ablehnt (RLS meldet ein blockiertes DELETE nicht als Fehler, sondern trifft 0
+// Zeilen), wird nicht als Erfolg gemeldet.
+function measLoeschenKnopfAktualisieren(){
+ const k=$("measDelete"); if(!k)return;
+ k.hidden=!currentMeasurementId;
+}
+async function measLoeschenAusFormular(){
+ const id=currentMeasurementId; if(!id)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Löschen"))return;
+ const frei=(typeof mwStand!=="undefined"&&mwStand&&mwStand.id===id&&mwStand.workflow_status&&mwStand.workflow_status!=="in_bearbeitung");
+ if(!await appConfirm("Diese Massaufnahme wirklich löschen?"
+   +(frei?"\n\nSie ist bereits freigegeben – auch Rüstliste, Zuschnitt und Aufgaben dazu fallen weg.":"")
+   +"\n\nDas lässt sich nicht rückgängig machen.",{ok:"Löschen",gefahr:true}))return;
+ const {data,error}=await sb.from("measurements").delete().eq("id",id).select("id");
+ if(error){appAlert("Fehler: "+error.message);return}
+ if(!data||!data.length){appAlert("Die Massaufnahme wurde nicht gelöscht – dafür fehlt die Berechtigung.");return}
+ isDirty=false; currentMeasurementId=null;
+ $("measurementEditModal").hidden=true;
+ await measEditZurueck();
+}
+(function measLoeschenBinden(){
+ const k=$("measDelete"), m=$("measurementEditModal");
+ if(!k||!m)return;
+ k.addEventListener("click",measLoeschenAusFormular);
+ if(window.MutationObserver)new MutationObserver(measLoeschenKnopfAktualisieren).observe(m,{attributes:true,attributeFilter:["hidden"]});
+})();
