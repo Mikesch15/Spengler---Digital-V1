@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.274.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.275.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -598,8 +598,11 @@ Zustand – Offen, In Arbeit, Abgeschlossen, Storniert. Die App leitet ihn
 nicht aus den Daten ab: ein Projekt mit fünf Massaufnahmen kann geschäftlich
 weiterhin offen sein.</p>
 <p><b>Archiv:</b> aktive und archivierte Projekte sind zwei getrennte
-Ansichten. Es wird nichts automatisch archiviert – ein abgeschlossenes Projekt
-bleibt sichtbar, bis es jemand bewusst archiviert.</p>
+Ansichten. Setzt du ein Projekt auf <b>Abgeschlossen</b>, fragt die App gleich
+danach, ob es archiviert werden soll – es wird <b>nie ohne deine Bestätigung</b>
+archiviert. Wählst du „Abbrechen", bleibt es abgeschlossen und sichtbar, bis es
+jemand bewusst archiviert. Archivierte Projekte findest du unter „Archiv und
+Filter"; dort lassen sie sich auch wieder reaktivieren.</p>
 <p><b>Zugeteilt an</b> (ab 3.160er-Reihe): im Formular „Stammdaten bearbeiten"
 lässt sich ankreuzen, wer an diesem Projekt arbeitet – auch mehrere. Auf der
 <b>Startseite</b> erscheint das Projekt unter „Offene Projekte" dann nur noch

@@ -249,7 +249,36 @@ $("cockpitStatus").addEventListener("change",async e=>{
  // auffrischen, damit sie sofort stimmt. Der bestehende audit_log-Trigger
  // schreibt sie serverseitig als 'status_changed'.
  cockpitAktivitaetLaden().catch(err=>console.error("Aktivität:",err));
+ // v3.275, Ansage des Anwenders: "Wenn ich ein projekt auf abgeschlossen setze,
+ // soll es automatisch archiviert werden mit einer kurzen bestaetigungsanfrage."
+ // Gefragt wird NACH dem Setzen des Status, nicht davor: der Status ist
+ // damit in jedem Fall gesetzt, und wer "Abbrechen" waehlt, behaelt ein
+ // abgeschlossenes, noch aktives Projekt. archived und Status bleiben zwei
+ // unabhaengige Werte (siehe js/09) - es wird nie ohne Rueckfrage archiviert.
+ // Nur beim Wechsel auf "abgeschlossen" und nur, wenn das Projekt nicht schon
+ // archiviert ist.
+ if(neu==="abgeschlossen"&&!data[0].archived)await cockpitNachAbschlussArchivieren(data[0],zeige);
 });
+// Fragt, ob ein gerade abgeschlossenes Projekt gleich archiviert werden soll,
+// und tut es dann - mit derselben Pruefung des Ergebnisses wie der Status
+// (RLS meldet ein blockiertes UPDATE nicht als Fehler, es trifft 0 Zeilen).
+async function cockpitNachAbschlussArchivieren(p,zeige){
+ const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
+ if(!confirm("Das Projekt \u201E"+titel+"\u201C ist abgeschlossen.\n\nJetzt archivieren?\n\n"
+  +"Es erscheint dann nicht mehr in der Projektliste. Unter \u201EArchiv und Filter\u201C "
+  +"bleibt es auffindbar und l\u00E4sst sich wieder reaktivieren."))return;
+ const {data,error}=await sb.from("projects").update({archived:true}).eq("id",p.id).select("*");
+ if(error||!data||!data.length){
+  zeige(error?"Fehler beim Archivieren: "+error.message
+             :"Das Projekt konnte nicht archiviert werden. Fehlt die n\u00F6tige Berechtigung?","var(--red)");
+  return;
+ }
+ const idx=allProjects.findIndex(x=>x.id===p.id);
+ if(idx>=0)allProjects[idx]=data[0];
+ zeige("\u2713 Status auf \u201EAbgeschlossen\u201C gesetzt und das Projekt archiviert.","var(--green)");
+ if(typeof renderProjectList==="function")renderProjectList();
+ if(typeof a2Zeichnen==="function")a2Zeichnen();
+}
 
 // "3 vorhanden" / "Noch keine …" - niemals ein erfundener Status.
 function cockpitAnzahlText(n,leerText){
