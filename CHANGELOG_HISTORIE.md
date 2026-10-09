@@ -33634,3 +33634,22 @@ Prüfstände: `dachfenster-ausfuehrung-v3-270` 80, `dachfenster-schnitt-v3-260`
 56 (Abschnitt I auf Dropdowns umgestellt, neuer Abschnitt J für N/R mit
 Gegenprobe „zu breit → tiefer"). Mutationsproben rot (N/R, Pflicht, Stückliste).
 
+
+### v3.272 — Dachfenster: zwei Standard-Zugaben richtiggestellt
+
+Klarstellung des Anwenders (8.10.2026) zur Annahme aus v3.270:
+- **Seitenteil hinten gefalzt:** die 15 ist der **Umschlag am Aufbug (T)** —
+  Annahme bestätigt (505 = N + R + S + T).
+- **Seitenteil hinten gepunktet:** die 15 ist eine **Standard-Nahtüberlappung**,
+  kein erfasstes Mass (nicht O, wie angenommen) → `DFA_NAHTUEBERLAPPUNG = 15`.
+- **Vorderteil gefalzt:** Breite vorne **+ 10 als Standard-Falzzugabe** (nicht
+  der Umschlag am Anreiff B) → `DFA_FALZZUGABE_VORNE = 10`; Hinterteil bleibt
+  `DFA_FALZZUGABE_HINTEN = 25`. B wirkt dort nur noch in die **Breite**.
+- Seitenteil gefalzt (1225 = C + G + **B**) bleibt unverändert.
+
+Mit Nord Nr.1 ändert sich keine Zahl (O, T, B und die Zugaben sind dort gleich
+gross); der Prüfstand `dachfenster-ausfuehrung-v3-270` (86) verändert deshalb
+jedes Mass einzeln und prüft, dass genau das richtige wirkt (Gegenproben:
+O/T/Anreiff berühren die Länge nicht mehr, Umschlag vorne/Seite auch nicht).
+**Alle offenen Annahmen zu den Abwicklungen sind damit geklärt.**
+
