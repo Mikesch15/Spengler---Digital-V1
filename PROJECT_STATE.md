@@ -3,9 +3,17 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.276`
+- Aktueller Entwicklungsstand: `v3.277`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.277 — Hilfe zum Archivieren von Massaufnahmen
+
+Nachtrag zu v3.276: der Hilfetext unter „Massaufnahmen im Projekt"
+(`cockpit-meas`) fehlte, weil der Anker beim Einfügen nicht passte und der
+Fehler im Befehlsstrang unterging — v3.276 ging ohne ihn hinaus. **Lehre:** ein
+fehlgeschlagener Einfüge-Schritt in einem langen Befehl nicht überlesen; die
+Prüfung am Ende (`grep` nach dem eingefügten Text) hätte ihn gezeigt.
 
 ### v3.276 — abgeschlossene Massaufnahmen archivieren
 
@@ -46,39 +54,6 @@ und `.filter` auf eine fehlende Spalte wären sonst Fehler bzw. leere Listen.
 
 Prüfstand `massaufnahme-archiv-v3-276` (17; drei Mutationsproben rot: ohne
 Rückfrage / ohne Trennung / Cache nur aktive). Datenbank gestubbt.
-
-### v3.275 — abgeschlossen → Rückfrage → archivieren
-
-Ansage (9.10.2026): „Wenn ich ein Projekt auf abgeschlossen setze, soll es
-automatisch archiviert werden mit einer kurzen Bestätigungsanfrage."
-Der Status wird an **einer** Stelle gesetzt (`js/24`, Handler von
-`#cockpitStatus`). Dahinter: `cockpitNachAbschlussArchivieren()` — `confirm()`
-mit dem Projekttitel, bei OK `update({archived:true})` mit Ergebnisprüfung
-(RLS meldet ein blockiertes UPDATE nicht als Fehler, es trifft 0 Zeilen),
-danach `allProjects`, Projektliste und a2-Ansicht nachführen.
-- Gefragt wird **nach** dem Setzen: der Status gilt in jedem Fall; „Abbrechen"
-  lässt ein abgeschlossenes, aktives Projekt.
-- Nur beim **Wechsel auf „abgeschlossen"**, nicht bei offen/in Arbeit/storniert
-  und nicht bei einem schon archivierten Projekt. Nie ohne Bestätigung.
-- Hilfe korrigiert: dort stand „es wird nichts automatisch archiviert".
-Prüfstand `abschluss-archivieren-v3-275` (13; zwei Mutationsproben rot).
-**Hinweis:** `angebote-v3-34` (Abschnitt 14) vergleicht die Arbeitskopie mit
-HEAD und verlangt, dass u. a. `js/24` *unverändert* ist — mit uncommitteter
-Änderung an einer dieser Dateien ist er rot, nach dem Commit grün. Kein Fehler.
-
-**Befund zur Frage „warum ist diese Skizze verwaist?"** (Enggisteinstrasse 4,
-Worb, Massaufnahme 114, `…/sketches/1791188361564_uu5yak.png`): in der
-Datenbank verweist **nichts** auf die Datei (geprüft: alle Text-/jsonb-Spalten
-aller Tabellen). `sketch_paths` der Massaufnahme enthält nur eine **zweite**
-Skizzendatei, 35 s später hochgeladen (08:19:22 vs 08:19:57; 97 378 vs 98 450
-Bytes). Die verwaiste ist also eine **frühere Fassung** derselben Skizze:
-`js/16` lädt beim Speichern jede neue (`data:`) Skizze als **neue Datei**
-hoch und löscht die ersetzte nie. Das ist die übliche Quelle der Waisen
-(nicht ein Verlust an der Massaufnahme). **Nicht verifiziert:** ob beide Bilder
-dasselbe zeigen (die zweite Datei lässt sich nicht ansehen — die Funktion stellt
-nur Links für verwaiste aus). **Offen / Vorschlag:** beim Ersetzen die alte
-Datei entfernen, oder bei „Aufräumen" ausdrücklich nur Dateien älter als N Tage
-anbieten — nicht umgesetzt, Entscheidung des Anwenders.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
