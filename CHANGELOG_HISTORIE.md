@@ -33940,3 +33940,25 @@ Prüfstand `freigeben-liste-v3-283` (11; zwei Mutationsproben rot);
 `ansicht2-projekt-v3-151` auf den neuen Vertrag umgestellt (Zeile öffnet,
 Rüstblatt per Knopf), Hilfe „Rüstblatt" angepasst.
 
+
+### v3.284 — Zurück-Taste des Handys: Seiten der neuen Ansicht
+
+Meldung (9.10.2026): „Der Zurück-Knopf vom Handy funktioniert nicht überall,
+manchmal schliesst sich die ganze App, obwohl es eine vorherige Seite gäbe."
+
+**Ursache 1:** `js/54` legt Platzhalter in der Browser-Verlaufsliste nur für
+**Schirme** (`.modal`, Viewer …) ab. Heute → Projekte → Projekt → Register der
+neuen Ansicht (`a2Zustand`) sind keine Schirme; der Browser sah eine Seite, die
+Taste verliess die App. **Fix:** `js/70 a2Ebene()` (heute 0, andere Tabs 1,
+Projekt 2, Projekt-Register 3; 0 wenn `#startScreen` nicht sichtbar) zählt in
+`zurueckAbgleichen()` mit — Einträge `a2:n` liegen **unten** im Stapel, Dialoge
+darüber gehen zuerst weg. Oberster Eintrag `a2:n` → `a2EbeneZurueck()` (Register →
+Übersicht → Projektliste → Heute, dieselben Wege wie der Kopfzeilen-Zurück).
+`a2Zeichnen()` ruft am Ende `zurueckAbgleichen()`.
+**Ursache 2:** `history.go(-n)` löst **ein** popstate aus, `js/54` überhörte aber `n`
+→ nach `goToStart` o. ä. verpufften die nächsten Zurück-Tasten. Jetzt `zurueckIgnoriere++`.
+**Nicht erfasst:** Unterseiten *innerhalb* eines Schirms (z. B. Tabs im Cockpit) —
+dort bleibt es, wie es war; wer eine konkrete Stelle findet, soll sie nennen.
+Prüfstand `zurueck-seiten-v3-284` (10; zwei Mutationsproben rot);
+`zurueck-oben-v3-175` zählt `a2:`-Stufen nicht als Schirme.
+

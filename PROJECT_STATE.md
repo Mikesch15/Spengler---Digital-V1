@@ -3,9 +3,26 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.286`
+- Aktueller Entwicklungsstand: `v3.287`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.287 — Massaufnahme und Regierapport im Formular löschen
+
+Frage (9.10.2026): „Wo habe ich die Möglichkeit, eine Massaufnahme resp. einen
+Regierapport zu löschen? Wenn es das an keinem offensichtlichen Ort gibt, bitte anpassen."
+**Befund:** das × gab es nur in den alten Listen (`data-del-measurement`, `data-del-report`,
+`data-del-project-measurement`); die neue Ansicht (Register Massaufnahme/Rapport) hatte
+keine Möglichkeit, und „Alles löschen" im Rapport leerte nur das Formular.
+**Neu:** `#measDelete` („🗑 Massaufnahme löschen", js/16 `measLoeschenAusFormular`) und
+`#reportDelete` („🗑 Rapport löschen", js/24 `reportLoeschenAusFormular`) im Formular, sichtbar
+nur bei gespeichertem Eintrag (Beobachter auf `hidden` + Aufruf nach dem Speichern). Rückfrage
+über `appConfirm` (rot „Löschen"; bei freigegebener Massaufnahme mit Hinweis), `delete().select("id")`:
+0 Zeilen (RLS) wird **nicht** als Erfolg gemeldet; offline gesperrt; danach Rückweg wie beim
+Schliessen (`measEditZurueck`/`reportZurueck`). „Alles löschen" heisst „🧹 Eingaben leeren".
+Berechtigung entscheidet weiter die Datenbank (RLS). Hochgeladene Dateien einer gelöschten
+Massaufnahme bleiben als „verwaist" auffindbar (wie beim ×). Hilfe ergänzt.
+Prüfstand `loeschen-formular-v3-287` (11; zwei Mutationsproben rot).
 
 ### v3.286 — Eigene Dialoge statt Browser-Dialoge
 
@@ -46,27 +63,6 @@ Tor 10, ohne Bezeichnung am Ende, dann nach Art). Wirkt in der Projektliste
 (`a2RegAufmass`). `projectMeasurementsCache` bleibt unsortiert (Bedarf, Zuschnitt,
 Rüstliste unberührt). Annahme: „Bezeichnung" = das Feld Titel der Aufnahme.
 Prüfstand `massaufnahmen-sortierung-v3-285` (5; zwei Mutationsproben rot).
-
-### v3.284 — Zurück-Taste des Handys: Seiten der neuen Ansicht
-
-Meldung (9.10.2026): „Der Zurück-Knopf vom Handy funktioniert nicht überall,
-manchmal schliesst sich die ganze App, obwohl es eine vorherige Seite gäbe."
-
-**Ursache 1:** `js/54` legt Platzhalter in der Browser-Verlaufsliste nur für
-**Schirme** (`.modal`, Viewer …) ab. Heute → Projekte → Projekt → Register der
-neuen Ansicht (`a2Zustand`) sind keine Schirme; der Browser sah eine Seite, die
-Taste verliess die App. **Fix:** `js/70 a2Ebene()` (heute 0, andere Tabs 1,
-Projekt 2, Projekt-Register 3; 0 wenn `#startScreen` nicht sichtbar) zählt in
-`zurueckAbgleichen()` mit — Einträge `a2:n` liegen **unten** im Stapel, Dialoge
-darüber gehen zuerst weg. Oberster Eintrag `a2:n` → `a2EbeneZurueck()` (Register →
-Übersicht → Projektliste → Heute, dieselben Wege wie der Kopfzeilen-Zurück).
-`a2Zeichnen()` ruft am Ende `zurueckAbgleichen()`.
-**Ursache 2:** `history.go(-n)` löst **ein** popstate aus, `js/54` überhörte aber `n`
-→ nach `goToStart` o. ä. verpufften die nächsten Zurück-Tasten. Jetzt `zurueckIgnoriere++`.
-**Nicht erfasst:** Unterseiten *innerhalb* eines Schirms (z. B. Tabs im Cockpit) —
-dort bleibt es, wie es war; wer eine konkrete Stelle findet, soll sie nennen.
-Prüfstand `zurueck-seiten-v3-284` (10; zwei Mutationsproben rot);
-`zurueck-oben-v3-175` zählt `a2:`-Stufen nicht als Schirme.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
