@@ -3,9 +3,38 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.285`
+- Aktueller Entwicklungsstand: `v3.286`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.286 — Eigene Dialoge statt Browser-Dialoge
+
+Meldung (9.10.2026, Bildschirmfoto): der Dialog beginne mit „Auf mikesch15.github.io
+wird Folgendes angezeigt:“ — muss das sein? **Nein, aber der Kopf gehört dem Browser**
+und lässt sich bei `alert()/confirm()/prompt()` nicht weglassen. Ansage: „Ja, das
+kannst du alles umsetzen“ (alle ersetzen).
+**Neu:** `js/84-app-dialoge.js` mit `appAlert(text)`, `appConfirm(text,{ok,abbrechen,gefahr})`,
+`appPrompt(text,vorgabe)` (Promise; Reihe, Escape/Enter, Zurück-Taste = Abbrechen über
+`ZURUECK_EXTRA`/`ZURUECK_WEG` in js/54); Markup `#appDialogModal` in `index.html` **vor
+den Skripten** (js/54 sucht den Schirm beim Start), CSS `.app-dialog` in `css/01-basis.css`,
+Eintrag in `sw.js` UND `index.html`.
+**Umbau:** 397 Aufrufe in 38 Dateien mit einem AST-Werkzeug (acorn): `alert(`→`appAlert(`,
+`confirm(`/`prompt(`→`await appConfirm(`/`await appPrompt(`, umgebende Funktionen `async`,
+Aufrufer der so geänderten benannten Funktionen (`a2FormularVerlassen`,
+`einlaufblechZuruecksetzen`, `lfInvMindestAlle`, `lfZuordnenAlleSetzen`) ebenfalls `await`.
+Danach von Hand: `await appAlert` vor `location.href` in `js/69`; drei **echte Folgefehler**,
+die die Regression gefunden hat — js/15/js/14 (Rinnen-/Skizzen-Übernahme) tauschten das Array
+im Handler, und der Wurzel-Handler in js/29/30/31 las es im selben Blubbern **vor** der
+Rückfrage-Antwort → neue Hooks `ebaNachUebernahme`/`ebkaNachUebernahme`/`fpaNachUebernahme`.
+**Prüfstände:** automatisierte Browser (`navigator.webdriver`) behalten die NATIVEN Dialoge
+(sonst müssten ~106 Prüfstände mit `page.on("dialog")` umgebaut werden); `window.__appDialogEcht=true`
+schaltet auf die eigenen. `app-dialoge-v3-286` (22; drei Mutationsproben rot) prüft die eigenen
+Dialoge einschliesslich eines echten Ablaufs und dass im Quelltext kein nativer Aufruf mehr steht.
+Angepasst an „jetzt asynchron“ (nur `await`/Wartezeit, keine Erwartung gelockert): `leiste-ueberall-v3-162`,
+`einlaufblech-app-v2-74`, `einlaufblech-konisch-app-v2-76`, `freies-profil-app-v2-77`, `lieferanten-lager-v3-231`.
+**Nicht live geprüft:** der Anblick auf dem Handy und der Ablauf gegen echte Daten.
+**Dauerregel:** neue Rückfragen/Hinweise nur mit `appConfirm`/`appAlert`/`appPrompt` (der Prüfstand
+schlägt bei einem nativen Aufruf an); wer eine Antwort braucht, schreibt `await` und macht die Funktion `async`.
 
 ### v3.285 — Massaufnahmen im Projekt sortiert
 
@@ -38,25 +67,6 @@ darüber gehen zuerst weg. Oberster Eintrag `a2:n` → `a2EbeneZurueck()` (Regis
 dort bleibt es, wie es war; wer eine konkrete Stelle findet, soll sie nennen.
 Prüfstand `zurueck-seiten-v3-284` (10; zwei Mutationsproben rot);
 `zurueck-oben-v3-175` zählt `a2:`-Stufen nicht als Schirme.
-
-### v3.283 — Massaufnahme im Projekt öffnet sich; Freigeben aus der Liste
-
-Ansage (9.10.2026): „Wenn ich eine Massaufnahme im Projekt anklicke, sollte diese
-sich öffnen und nicht die Rüstliste aufklappen. Ausserdem möchte ich die
-Massaufnahmen freigeben können, ohne diese öffnen zu müssen."
-
-`js/70 a2MessZeileHtml` (nur Register „Massaufnahme" der Projektseite): die Zeile
-trägt `data-a2-meas` (öffnet das Formular); das Rüstblatt klappt ein eigener Knopf
-`data-a2-rb` darunter auf (v3.211-Blatt unverändert, Herstellung nutzt weiter
-`a2RbZeileHtml`). `data-a2-freigeben` erscheint, wenn `mwNaechsterSchritt(m)` sagt,
-dass ICH freigeben bzw. erneut freigeben darf (Aufnehmer; Workflow an).
-`js/44 mwFreigebenAusListe(id)` nimmt die Zeile aus den Zwischenspeichern, setzt
-`mwStand` und ruft dasselbe `mwFreigeben()` (Rückfrage, RPC `measurement_freigeben`,
-Zuweisen-Dialog) – keine zweite Freigabe-Logik. Sprung aus der Suche
-(`A2_TREFFER`, `data-a2-rb`) trifft den Rüstblatt-Knopf, bleibt wirksam.
-Prüfstand `freigeben-liste-v3-283` (11; zwei Mutationsproben rot);
-`ansicht2-projekt-v3-151` auf den neuen Vertrag umgestellt (Zeile öffnet,
-Rüstblatt per Knopf), Hilfe „Rüstblatt" angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

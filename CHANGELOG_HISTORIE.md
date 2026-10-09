@@ -33920,3 +33920,23 @@ Speichern setzt bei freigegebenen Aufnahmen die Freigabe zurück (Workflow-Trigg
 Prüfstand `alt-warnung-v3-282` (10; Mutationsproben je rot);
 `dachfenster-ausfuehrung-v3-270` auf den neuen Vertrag umgestellt, mit Gegenprobe.
 
+
+### v3.283 — Massaufnahme im Projekt öffnet sich; Freigeben aus der Liste
+
+Ansage (9.10.2026): „Wenn ich eine Massaufnahme im Projekt anklicke, sollte diese
+sich öffnen und nicht die Rüstliste aufklappen. Ausserdem möchte ich die
+Massaufnahmen freigeben können, ohne diese öffnen zu müssen."
+
+`js/70 a2MessZeileHtml` (nur Register „Massaufnahme" der Projektseite): die Zeile
+trägt `data-a2-meas` (öffnet das Formular); das Rüstblatt klappt ein eigener Knopf
+`data-a2-rb` darunter auf (v3.211-Blatt unverändert, Herstellung nutzt weiter
+`a2RbZeileHtml`). `data-a2-freigeben` erscheint, wenn `mwNaechsterSchritt(m)` sagt,
+dass ICH freigeben bzw. erneut freigeben darf (Aufnehmer; Workflow an).
+`js/44 mwFreigebenAusListe(id)` nimmt die Zeile aus den Zwischenspeichern, setzt
+`mwStand` und ruft dasselbe `mwFreigeben()` (Rückfrage, RPC `measurement_freigeben`,
+Zuweisen-Dialog) – keine zweite Freigabe-Logik. Sprung aus der Suche
+(`A2_TREFFER`, `data-a2-rb`) trifft den Rüstblatt-Knopf, bleibt wirksam.
+Prüfstand `freigeben-liste-v3-283` (11; zwei Mutationsproben rot);
+`ansicht2-projekt-v3-151` auf den neuen Vertrag umgestellt (Zeile öffnet,
+Rüstblatt per Knopf), Hilfe „Rüstblatt" angepasst.
+
