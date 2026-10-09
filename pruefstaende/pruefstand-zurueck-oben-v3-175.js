@@ -113,7 +113,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   await new Promise(f=>setTimeout(f,300));
   const mitFormular={form:!$("measurementEditModal").hidden,
                      seite:a2Zustand.seite,projekt:a2Zustand.projektId,
-                     nochOffen:zurueckSchirme.slice()};
+  // v3.284: "a2:n" sind die Seitenstufen der Ansicht (js/54), keine Schirme - hier zaehlen nur Schirme.
+                     nochOffen:zurueckSchirme.filter(i=>i.indexOf("a2:")!==0)};
   // Sauber aufraeumen: der erste Tipp ist ueber js/54 durch
   // measEditZurueck() gelaufen, und das holt die Massaufnahme-Liste
   // zurueck. Fuer den zweiten Fall soll wirklich NICHTS mehr offen sein.
@@ -122,7 +123,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   a2Zustand.seite="projekt"; a2Zustand.projektId=1; a2Zustand.bereich=null;
   a2Zeichnen();
   await new Promise(f=>setTimeout(f,250));
-  const leer=zurueckSchirme.slice();
+  const leer=zurueckSchirme.filter(i=>i.indexOf("a2:")!==0);
   const k2=document.querySelector("#a2Kopf [data-a2-zurueck]");
   if(k2)k2.click();
   await new Promise(f=>setTimeout(f,300));

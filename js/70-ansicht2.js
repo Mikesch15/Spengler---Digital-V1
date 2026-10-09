@@ -1052,6 +1052,27 @@ function a2SeiteMehr(){
 // ===========================================================================
 // Zeichnen
 // ===========================================================================
+// v3.284, gemeldet: "Der zurueck knopf vom handy funktioniert nicht ueberall,
+// manchmal schliesst sich die ganze app obwohl es eine vorherige seite gaebe."
+// Ursache: js/54 legt nur fuer Schirme (.modal, Viewer ...) Platzhalter in der
+// Verlaufsliste ab. Der Wechsel zwischen den Seiten der neuen Ansicht -
+// Heute > Projekte > Projekt > Register - ist kein Schirm; fuer den Browser blieb
+// alles EINE Seite, und die Zurueck-Taste verliess die App.
+// a2Ebene() sagt js/54, wie tief die Ansicht gerade steht; a2EbeneZurueck() geht
+// eine Stufe hoch (dieselben Wege wie die Zurueck-Knoepfe der Kopfzeile).
+function a2Ebene(){
+ const sc=$("a2Screen");
+ if(!sc||sc.hidden||(typeof zurueckOffen==="function"&&!zurueckOffen(sc)))return 0;
+ if(a2Zustand.seite==="projekt")return 2+((a2Zustand.reg&&a2Zustand.reg!=="uebersicht")?1:0);
+ return a2Zustand.seite==="heute"?0:1;
+}
+function a2EbeneZurueck(){
+ if(a2Zustand.seite==="projekt"){
+  if(a2Zustand.reg&&a2Zustand.reg!=="uebersicht")a2Zustand.reg="uebersicht";
+  else{ a2Zustand.seite="projekte"; a2Zustand.projektId=null }
+ }else a2Zustand.seite="heute";
+ a2Zeichnen(); window.scrollTo(0,0);
+}
 function a2Zeichnen(){
  if(!a2Aktiv())return;
  const schirm=$("a2Screen");
@@ -1134,6 +1155,7 @@ function a2Zeichnen(){
  // schuetzt sich selbst gegen Mehrfachlauf (a2WerkLaeuft/a2WerkGeladen) -
  // ein Wiederholen beim naechsten Zeichnen kostet deshalb nichts.
  if(a2Zustand.seite==="heute"&&!a2Zustand.bereich)a2HeuteLaden();
+ if(typeof zurueckAbgleichen==="function")zurueckAbgleichen();
 }
 
 // ===========================================================================

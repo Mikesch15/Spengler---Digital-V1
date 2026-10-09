@@ -99,12 +99,21 @@ function zurueckAbgleichen(){
   if(auf&&i<0)zurueckSchirme.push(el.id);
   else if(!auf&&i>=0)zurueckSchirme.splice(i,1);
  });
+ // v3.284: Die Seitentiefe der neuen Ansicht (js/70 a2Ebene) zaehlt wie Schirme.
+ // Ihre Eintraege "a2:n" liegen immer UNTEN im Stapel - eine Seite ist
+ // nie ueber einem Formular, das auf ihr liegt.
+ const ebene=(typeof a2Ebene==="function")?a2Ebene():0;
+ zurueckSchirme=[...Array.from({length:ebene},(_,n)=>"a2:"+(n+1)),
+  ...zurueckSchirme.filter(i=>i.indexOf("a2:")!==0)];
  const diff=zurueckSchirme.length-zurueckTiefe;
  if(diff>0){
   try{for(let i=0;i<diff;i++){zurueckTiefe++;history.pushState({sdZurueck:zurueckTiefe},"");}}
   catch(e){zurueckAn=false;}   // z. B. sehr alte Browser: lieber nichts tun
  }else if(diff<0){
-  zurueckIgnoriere+=-diff;
+  // v3.284: history.go(n) loest GENAU EIN popstate aus, nicht n. Bis v3.283 wurden
+  // -diff Ereignisse ueberhoert; nach goToStart (ein Dutzend Schirme auf einmal zu)
+  // schluckte die App so die naechsten Zurueck-Tasten, und die liefen ins Leere.
+  zurueckIgnoriere++;
   zurueckTiefe=zurueckSchirme.length;
   history.go(diff);
  }
@@ -116,6 +125,12 @@ window.addEventListener("popstate",()=>{
  if(!zurueckSchirme.length)return;   // nichts offen: die Taste darf die Seite verlassen
  zurueckTiefe=Math.max(0,zurueckTiefe-1);
  const id=zurueckSchirme[zurueckSchirme.length-1];
+ // v3.284: oberster Eintrag ist eine Seitenstufe der neuen Ansicht.
+ if(id.indexOf("a2:")===0){
+  if(typeof a2EbeneZurueck==="function")a2EbeneZurueck();
+  setTimeout(zurueckAbgleichen,0);
+  return;
+ }
  // Schliesst der Schirm gleich mehrere mit (goToStart), meldet das der
  // Beobachter und zurueckAbgleichen() gibt die uebrigen Platzhalter zurueck.
  // Schliesst er sich NICHT (z. B. eine Rueckfrage wurde abgebrochen),
