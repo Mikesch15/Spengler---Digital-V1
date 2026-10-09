@@ -33751,3 +33751,44 @@ nur Links für verwaiste aus). **Offen / Vorschlag:** beim Ersetzen die alte
 Datei entfernen, oder bei „Aufräumen" ausdrücklich nur Dateien älter als N Tage
 anbieten — nicht umgesetzt, Entscheidung des Anwenders.
 
+
+### v3.276 — abgeschlossene Massaufnahmen archivieren
+
+Ansage (9.10.2026): „Abgeschlossene Massaufnahmen sollen auch archiviert werden.
+Gleiche Prozedur wie beim Projekt."
+
+**Datenbank (zuerst, einzeln geprüft):** `measurements` hatte **keine**
+Archiv-Spalte. Migration `measurements_archived_spalte` (9.10.2026, über das
+Supabase-Werkzeug angewendet): `archived boolean not null default false`, rein
+additiv. Danach geprüft: 32 Zeilen, 0 archiviert, 0 NULL. Der Workflow-Trigger
+`schuetze_measurement_workflow` prüft die Workflow-Spalten, `data`, `type`,
+`project_id`, Bilder, Stärke, Zuschnittform — `archived` gehört nicht dazu und
+löst weder Fehler noch Freigabeverfall aus. Archiv-Zustand **neben**
+`workflow_status` (wie `projects.archived` neben `projects.status`), nicht als
+achter Workflow-Status: der hat einen CHECK-Constraint und eine Übergangslogik.
+**Reihenfolge-Lehre:** erst die Spalte, dann die App — `update({archived})`
+und `.filter` auf eine fehlende Spalte wären sonst Fehler bzw. leere Listen.
+
+**App:**
+- `js/44 mwAbschliessen()`: nach dem Abschluss `mwNachAbschlussArchivieren()` —
+  `confirm()`, bei OK `measurementArchivSetzen(id,true)`. Abschluss gilt in
+  jedem Fall, dann die Frage (wie `js/24` beim Projekt).
+- `measurementArchivSetzen()` = die **eine** Schreibstelle (Archivieren und
+  Reaktivieren), mit Ergebnisprüfung (RLS: 0 Zeilen statt Fehler), führt die
+  Zwischenspeicher nach und lädt die Projektliste neu.
+- `js/09 loadProjectMeasurements()`: aktive und archivierte getrennt,
+  Umschalter „Archivierte anzeigen (n)", **Archivieren nur an abgeschlossenen**,
+  Reaktivieren an archivierten; Kopfzahl zählt die aktiven.
+- `projectMeasurementsCache` hält **alle**: Bedarf, Zuschnitt, Rüstliste und
+  Fotowand rechnen darüber.
+- `js/16` Übersicht „zuletzt": ohne Archivierte.
+
+**Bewusst nicht angefasst / offen:**
+- Die **20 schon abgeschlossenen** Massaufnahmen wurden **nicht** archiviert
+  (Produktivdaten; Entscheid je Massaufnahme über den Knopf „Archivieren").
+- Suche (`js/04`), „Alle Massaufnahmen" (`js/46`), Ausmass-Auswahl (`js/17`)
+  zeigen weiter alle — dort wurde die Spalte nicht ausgewertet.
+
+Prüfstand `massaufnahme-archiv-v3-276` (17; drei Mutationsproben rot: ohne
+Rückfrage / ohne Trennung / Cache nur aktive). Datenbank gestubbt.
+

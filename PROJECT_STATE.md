@@ -3,9 +3,34 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.277`
+- Aktueller Entwicklungsstand: `v3.278`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.278 — archivierte Massaufnahmen aus der Suche; Entscheide
+
+Antworten des Anwenders (9.10.2026) auf die offenen Fragen aus v3.276:
+- **Suche:** archivierte Massaufnahmen **ausblenden** → `js/04`, beide
+  `measurements`-Abfragen mit `.eq("archived",false)`, **serverseitig vor dem
+  `limit(30)`** (sonst verdrängten Archivierte aktive Treffer). Archivierte
+  *Projekte* bleiben in der Suche (nicht gefragt, nicht geändert).
+- **„Alle Massaufnahmen" (`js/46`) und Ausmass-Auswahl (`js/17`)** zeigen weiter
+  alle — der Anwender hat nur die Suche genannt.
+- **Alte Skizzendatei beim Ersetzen von selbst entfernen: NEIN.** Nichts
+  umgesetzt; das Aufräumen bleibt Handarbeit in der System-Administration.
+- **Dachfenster, vorderes Seitenteil bei „separat": Länge G ist richtig** (die
+  Annahme aus v3.273 ist bestätigt); damit war die angekündigte „kleine
+  Anpassung" bereits die ganze. Dort ist nichts mehr offen.
+
+Prüfstand `suche-archiv-v3-278` (7; Mutationsprobe rot).
+
+**Beleg zur verwaisten Skizze (Massaufnahme 114), jetzt aus dem
+Änderungsprotokoll statt aus der Vermutung:** `audit_log` für 114 zeigt
+08:18:55 *created* → 08:19:24 *updated* (`sketches` 0→1: die erste Skizze wird
+gespeichert, Datei 08:19:22) → 08:19:58 *updated* (`sketches` 1→1: die Skizze
+wird **ersetzt**, Datei 08:19:57) → 08:20:02 *status_changed* (freigegeben).
+Die verwaiste Datei ist die **erste Fassung**, die 34 s später durch eine
+bearbeitete ersetzt wurde. Es ist die einzige verwaiste Datei im Bucket.
 
 ### v3.277 — Hilfe zum Archivieren von Massaufnahmen
 
@@ -14,46 +39,6 @@ Nachtrag zu v3.276: der Hilfetext unter „Massaufnahmen im Projekt"
 Fehler im Befehlsstrang unterging — v3.276 ging ohne ihn hinaus. **Lehre:** ein
 fehlgeschlagener Einfüge-Schritt in einem langen Befehl nicht überlesen; die
 Prüfung am Ende (`grep` nach dem eingefügten Text) hätte ihn gezeigt.
-
-### v3.276 — abgeschlossene Massaufnahmen archivieren
-
-Ansage (9.10.2026): „Abgeschlossene Massaufnahmen sollen auch archiviert werden.
-Gleiche Prozedur wie beim Projekt."
-
-**Datenbank (zuerst, einzeln geprüft):** `measurements` hatte **keine**
-Archiv-Spalte. Migration `measurements_archived_spalte` (9.10.2026, über das
-Supabase-Werkzeug angewendet): `archived boolean not null default false`, rein
-additiv. Danach geprüft: 32 Zeilen, 0 archiviert, 0 NULL. Der Workflow-Trigger
-`schuetze_measurement_workflow` prüft die Workflow-Spalten, `data`, `type`,
-`project_id`, Bilder, Stärke, Zuschnittform — `archived` gehört nicht dazu und
-löst weder Fehler noch Freigabeverfall aus. Archiv-Zustand **neben**
-`workflow_status` (wie `projects.archived` neben `projects.status`), nicht als
-achter Workflow-Status: der hat einen CHECK-Constraint und eine Übergangslogik.
-**Reihenfolge-Lehre:** erst die Spalte, dann die App — `update({archived})`
-und `.filter` auf eine fehlende Spalte wären sonst Fehler bzw. leere Listen.
-
-**App:**
-- `js/44 mwAbschliessen()`: nach dem Abschluss `mwNachAbschlussArchivieren()` —
-  `confirm()`, bei OK `measurementArchivSetzen(id,true)`. Abschluss gilt in
-  jedem Fall, dann die Frage (wie `js/24` beim Projekt).
-- `measurementArchivSetzen()` = die **eine** Schreibstelle (Archivieren und
-  Reaktivieren), mit Ergebnisprüfung (RLS: 0 Zeilen statt Fehler), führt die
-  Zwischenspeicher nach und lädt die Projektliste neu.
-- `js/09 loadProjectMeasurements()`: aktive und archivierte getrennt,
-  Umschalter „Archivierte anzeigen (n)", **Archivieren nur an abgeschlossenen**,
-  Reaktivieren an archivierten; Kopfzahl zählt die aktiven.
-- `projectMeasurementsCache` hält **alle**: Bedarf, Zuschnitt, Rüstliste und
-  Fotowand rechnen darüber.
-- `js/16` Übersicht „zuletzt": ohne Archivierte.
-
-**Bewusst nicht angefasst / offen:**
-- Die **20 schon abgeschlossenen** Massaufnahmen wurden **nicht** archiviert
-  (Produktivdaten; Entscheid je Massaufnahme über den Knopf „Archivieren").
-- Suche (`js/04`), „Alle Massaufnahmen" (`js/46`), Ausmass-Auswahl (`js/17`)
-  zeigen weiter alle — dort wurde die Spalte nicht ausgewertet.
-
-Prüfstand `massaufnahme-archiv-v3-276` (17; drei Mutationsproben rot: ohne
-Rückfrage / ohne Trennung / Cache nur aktive). Datenbank gestubbt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
