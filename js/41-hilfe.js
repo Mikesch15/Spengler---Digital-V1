@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.276.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.277.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -650,7 +650,14 @@ zurück.</p>`},
 Auswahl der zwölf Fachfunktionen.</p>
 <p>Je Eintrag: <b>Öffnen</b> zum Weiterarbeiten, das Druckersymbol erzeugt
 das PDF, das Kreuz löscht. Steht bei einem Eintrag ein Foto-Hinweis, lassen
-sich die Bilder direkt ansehen, ohne die Massaufnahme zu öffnen.</p>`},
+sich die Bilder direkt ansehen, ohne die Massaufnahme zu öffnen.</p>
+<p><b>Archiv:</b> Schliesst du eine Massaufnahme ab, fragt die App gleich danach,
+ob sie archiviert werden soll – wie beim Projekt, nie ohne deine Bestätigung.
+Archivierte stehen nicht mehr in der Liste; <b>🗄 Archivierte anzeigen</b> zeigt
+sie, <b>↩️ Reaktivieren</b> holt eine zurück. An jeder abgeschlossenen Massaufnahme
+steht auch ein Knopf <b>📦 Archivieren</b>. Material-Bedarf, Zuschnitt und
+Rüstliste rechnen weiter mit allen Massaufnahmen des Projekts, auch den
+archivierten.</p>`},
 
 "cockpit-angebote":{titel:"Offerte im Projekt",text:`
 <p>Alle Offerten dieses Projekts. Diese Karte ist nur sichtbar, wenn die
