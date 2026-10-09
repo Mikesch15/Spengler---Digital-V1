@@ -1119,6 +1119,11 @@ function a2Zeichnen(){
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
+ // v3.280: Die Fotos im Register "Dateien" holen ihre Vorschau erst jetzt - vor
+ // dem Einfuegen gaebe es die Bilder noch nicht. Nur Seiten mit Fotos haben
+ // solche Bilder, alle anderen Seiten kostet das nichts.
+ if(typeof medienThumbsAufloesen==="function"&&$("a2Inhalt").querySelector("img[data-signed-src]"))
+  medienThumbsAufloesen($("a2Inhalt"));
  // v3.211: Das Ruestblatt bringt SVG-Zeichnungen mit. Ihr Leerraum wird erst
  // NACH dem Einfuegen weggeschnitten - vorher gibt getBBox nichts her
  // (js/60, dort steht der Grund).
@@ -1290,6 +1295,7 @@ document.addEventListener("click",async e=>{
   const was=tu.getAttribute("data-a2-tu");
   if(was==="hinweisweg"){a2HinweisWeg();return}
   if(was==="aufgabenalle"){a2AufgabenAlleUmschalten();return}
+  if(was==="fotosalle"){a2Zustand.fotosAlle=!a2Zustand.fotosAlle;a2Zeichnen();return}
   // v3.218: "klassisch" gibt es nicht mehr - der Weg zurueck ist weg, weil
   // die Ansicht weg ist.
   // Alle folgenden oeffnen einen BEREICH: den vorhandenen Schirm der App,
@@ -1452,6 +1458,14 @@ function a2ProjRegister(){
  return A2_PROJ_REGISTER.filter(r=>!r.wenn||r.wenn());
 }
 
+// Grossansicht eines Fotos im Register "Dateien": dieselbe wie in der Fotowand
+// des Cockpits (medienGrossOeffnen, js/24) - keine zweite. Delegiert, weil die
+// Kacheln bei jedem Zeichnen neu entstehen.
+document.addEventListener("click",e=>{
+ const k=e.target&&e.target.closest?e.target.closest("#a2Inhalt [data-medien-gross]"):null;
+ if(k&&typeof medienGrossOeffnen==="function")medienGrossOeffnen(k);
+});
+
 let a2ProjLaedt=false;
 let a2ProjFehler="";
 
@@ -1545,7 +1559,7 @@ async function a2ProjektOeffnen(id,treffer){
  // Uebersicht und muesste ihn selbst suchen - genau das, was die Suche
  // einem abnehmen soll.
  const ziel=treffer&&A2_TREFFER[treffer.kind];
- a2Zustand.seite="projekt"; a2Zustand.projektId=id;
+ a2Zustand.seite="projekt"; a2Zustand.projektId=id; a2Zustand.fotosAlle=false;
  a2Zustand.reg=ziel?ziel.reg:"uebersicht";
  window.scrollTo(0,0);
  await a2ProjektLaden(id);
@@ -2035,10 +2049,41 @@ function a2Dateien(){
  return (typeof projectFilesCache!=="undefined"&&Array.isArray(projectFilesCache))
   ?projectFilesCache:[];
 }
+// v3.280, Ansage des Anwenders: "Alle fotos die in einem projekt in
+// verschiedenen massaufnahmen gemacht wurden sollen in den projektfotos zu
+// sehen sein". Die Fotowand "Alle Fotos" gab es schon (v3.142, Cockpit), aber
+// in der neuen Ansicht lag sie hinter dem Knopf "Dateien, Fotos und Verlauf
+// oeffnen" - das Register zeigte nur die hochgeladenen Dateien. Jetzt stehen
+// die Fotos hier selbst.
+//
+// QUELLE ist cockpitFotoListe() (js/24), dieselbe Funktion wie die Fotowand:
+// Fotos UND Skizzen aus Massaufnahmen (auch archivierten), Ausmass, Rapporten,
+// Offerten und Bilddateien, neueste zuerst, jedes mit seiner Herkunft. Eine
+// zweite Sammelregel waere eine zweite Wahrheit darueber, was ein Projektfoto ist.
+// Die Vorschauen holen sich ihre signierte URL nach dem Zeichnen (a2Zeichnen).
+const A2_FOTOS_ZUERST=30;
+function a2FotosHtml(){
+ if(typeof cockpitFotoListe!=="function")return "";
+ const alle=cockpitFotoListe();
+ if(!alle.length)return "";
+ const zeigen=a2Zustand.fotosAlle?alle:alle.slice(0,A2_FOTOS_ZUERST);
+ let html=`<div class="a2-abschnitt">
+  <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(alle.length,"Foto","Fotos"))}</h2></div>
+  <div class="medien-galerie">`
+  +zeigen.map(b=>`<button type="button" class="medien-kachel" data-label="${esc(b.label)}" data-medien-gross>`
+    +`<img data-signed-src="${esc(b.pfad)}" alt="${esc(b.label)}">`
+    +`<span class="medien-label">${esc(b.label)}</span></button>`).join("")
+  +"</div>";
+ if(alle.length>A2_FOTOS_ZUERST){
+  html+=`<div class="a2-knopf-reihe"><button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="fotosalle">${
+   a2Zustand.fotosAlle?"Nur die neuesten "+A2_FOTOS_ZUERST+" zeigen":"Alle "+alle.length+" Fotos zeigen"}</button></div>`;
+ }
+ return html+"</div>";
+}
 function a2RegDateien(p){
  const dat=a2Dateien();
  const groesse=f=>(typeof formatFileSize==="function"&&f.size)?formatFileSize(f.size):"";
- let html=`<div class="a2-abschnitt">
+ let html=a2FotosHtml()+`<div class="a2-abschnitt">
   <div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(dat.length,"Datei","Dateien"))}</h2></div>`;
  // v3.204: Die Dateien stehen hier als ANZEIGE, nicht als Knopf.
  //
@@ -2061,9 +2106,9 @@ function a2RegDateien(p){
  html+=`<div class="a2-knopf-reihe" style="margin:0 0 6px">
    <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="cockpit">
     \ud83d\udcc2 Dateien, Fotos und Verlauf \u00f6ffnen</button></div>
-  <p class="a2-zweck">Dort kann man Dateien hochladen und l\u00f6schen, sieht alle
-   Fotos des Objekts aus Massaufnahmen, Ausmass, Rapporten und Dateien \u2013 mit
-   Ausdruck \u2013 und den Verlauf, wer wann was ge\u00e4ndert hat.</p>`;
+  <p class="a2-zweck">Dort kann man Dateien hochladen und l\u00f6schen, die Fotos
+   nach Herkunft filtern und als Fotodokumentation ausdrucken \u2013 und sieht den
+   Verlauf, wer wann was ge\u00e4ndert hat.</p>`;
  return html;
 }
 
