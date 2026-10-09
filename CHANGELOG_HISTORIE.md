@@ -33792,3 +33792,12 @@ und `.filter` auf eine fehlende Spalte wären sonst Fehler bzw. leere Listen.
 Prüfstand `massaufnahme-archiv-v3-276` (17; drei Mutationsproben rot: ohne
 Rückfrage / ohne Trennung / Cache nur aktive). Datenbank gestubbt.
 
+
+### v3.277 — Hilfe zum Archivieren von Massaufnahmen
+
+Nachtrag zu v3.276: der Hilfetext unter „Massaufnahmen im Projekt"
+(`cockpit-meas`) fehlte, weil der Anker beim Einfügen nicht passte und der
+Fehler im Befehlsstrang unterging — v3.276 ging ohne ihn hinaus. **Lehre:** ein
+fehlgeschlagener Einfüge-Schritt in einem langen Befehl nicht überlesen; die
+Prüfung am Ende (`grep` nach dem eingefügten Text) hätte ihn gezeigt.
+

@@ -3,9 +3,40 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.278`
+- Aktueller Entwicklungsstand: `v3.279`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.279 — ersetzte Bilder löscht die App beim Speichern selbst
+
+Ansage (9.10.2026), nach der Erklärung zur verwaisten Skizze: „Wenn dadurch
+keine Dateien verloren gehen, kann die App die verwaisten Dateien selbstständig
+löschen beim Ersetzen." (Das ist eine **Umkehr** der Antwort „nein, nicht von
+selber" kurz davor — der Anwender hatte die Frage zuerst anders verstanden.)
+
+`js/16`: `measBilderGespeichert(id)` liest **vor** dem UPDATE, was in der Zeile
+steht; `measBilderAufraeumen(id,projekt,vorher,nachher)` löscht **nach** dem
+erfolgreichen UPDATE, was vorher darin stand und nachher nicht mehr (ersetzt
+oder im Formular entfernt). Sicherungen — gelöscht wird nur, wenn alles zutrifft:
+1. die Datei stand vorher in **dieser** Zeile und steht nachher nicht mehr darin;
+2. sie liegt im Ordner `measurements/<Projekt>/<Massaufnahme>/` — ältere flache
+   Pfade, Projektdateien, Logo, andere Massaufnahmen werden nie angefasst
+   (Präfix mit Schrägstrich: 114 ≠ 1140);
+3. keine **andere** Massaufnahme des Projekts verweist darauf;
+4. das Speichern ist gelungen (Aufruf hinter dem UPDATE).
+Im Zweifel (Abfrage- oder Löschfehler) wird **nichts** gelöscht und das
+Speichern bleibt heil; die Datei bleibt dann als Waise wie bisher.
+Das Löschen läuft über die normale Storage-Policy: für Pfade
+`measurements/<Projekt-Nr.>/…` genügt die Firma des Projekts
+(`storage_object_is_own_company`), keine Referenz nötig — kein
+Edge-Function-Umweg.
+**Nicht erfasst (nicht gefragt):** wird eine **ganze Massaufnahme** gelöscht
+(`js/09`), bleiben ihre Dateien liegen; ebenso Ersetzen über den Offline-Weg
+(`js/43`). Beides wäre ein eigener Auftrag.
+Prüfstand `bilder-aufraeumen-v3-279` (21; vier Mutationsproben rot: Ordner-
+Präfix, Verweis-Prüfung, Aufruf entfernt, Abfragefehler) — Datenbank und
+Speicher gestubbt; der **echte** Speichern-Weg ist dabei durchlaufen
+(Hochladen → Lesen → UPDATE → Löschen), gegen die echte Datenbank lief nichts.
 
 ### v3.278 — archivierte Massaufnahmen aus der Suche; Entscheide
 
@@ -31,14 +62,6 @@ gespeichert, Datei 08:19:22) → 08:19:58 *updated* (`sketches` 1→1: die Skizz
 wird **ersetzt**, Datei 08:19:57) → 08:20:02 *status_changed* (freigegeben).
 Die verwaiste Datei ist die **erste Fassung**, die 34 s später durch eine
 bearbeitete ersetzt wurde. Es ist die einzige verwaiste Datei im Bucket.
-
-### v3.277 — Hilfe zum Archivieren von Massaufnahmen
-
-Nachtrag zu v3.276: der Hilfetext unter „Massaufnahmen im Projekt"
-(`cockpit-meas`) fehlte, weil der Anker beim Einfügen nicht passte und der
-Fehler im Befehlsstrang unterging — v3.276 ging ohne ihn hinaus. **Lehre:** ein
-fehlgeschlagener Einfüge-Schritt in einem langen Befehl nicht überlesen; die
-Prüfung am Ende (`grep` nach dem eingefügten Text) hätte ihn gezeigt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
