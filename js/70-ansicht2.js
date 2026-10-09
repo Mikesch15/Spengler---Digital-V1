@@ -1780,7 +1780,7 @@ function a2MessTitel(m){
 
 // ---- Aufmass --------------------------------------------------------------
 function a2RegAufmass(p){
- const liste=a2Mess();
+ const liste=(typeof measSortiert==="function")?measSortiert(a2Mess()):a2Mess();
  let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuemeas">
    ＋ Neue Massaufnahme</button></div>`;

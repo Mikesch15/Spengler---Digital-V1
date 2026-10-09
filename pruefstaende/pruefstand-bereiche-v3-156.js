@@ -471,11 +471,17 @@ const tab=(page,k)=>page.evaluate(k=>{
  await page.waitForTimeout(1500);
  await page.evaluate(()=>{const k=document.querySelector('[data-a2-reg="aufmass"]');if(k)k.click()});
  await page.waitForTimeout(500);
+ // v3.285: Die Massaufnahmen sind jetzt nach Status/Bezeichnung sortiert; die
+ // ERSTE Zeile ist deshalb nicht mehr die mit dem kurzen Schritt-Text, sondern
+ // die mit "Freigeben - <Name>", deren Marke auf dem Handy in eine zweite
+ // Zeile umbricht. Vorher haengte die Zusicherung an der zufaelligen
+ // Reihenfolge der Fixture. Jetzt: es gibt kompakte Zeilen (<=52), und auch die
+ // mit umbrechender Marke bleiben unter 80 - keine ausufernde Zeile.
  const hm=await page.evaluate(()=>{
-  const z=document.querySelector("#a2Inhalt .a2-zeile");
-  return z?Math.round(z.getBoundingClientRect().height):0;
+  const h=[...document.querySelectorAll("#a2Inhalt .a2-zeile")].map(z=>Math.round(z.getBoundingClientRect().height));
+  return {min:h.length?Math.min(...h):0,max:h.length?Math.max(...h):0,n:h.length};
  });
- p(hm>0&&hm<=52,"H2 die Zeilen der einzelnen Massaufnahmen sind kompakt",{zeile:hm});
+ p(hm.n>0&&hm.min<=52&&hm.max<=80,"H2 die Zeilen der einzelnen Massaufnahmen sind kompakt",hm);
  // Gegenprobe zur Verkleinerung: treffbar muss alles bleiben. Unter 30px
  // trifft man auf dem Dach nichts mehr - dann waere aus "kleiner" ein
  // eigener Fehler geworden.

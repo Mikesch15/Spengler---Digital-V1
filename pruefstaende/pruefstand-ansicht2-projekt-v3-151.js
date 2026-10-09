@@ -130,7 +130,7 @@ window.supabase={createClient:()=>({
   text:$("a2Inhalt").textContent.replace(/\s+/g," "),
   blatt:document.querySelectorAll("#a2Inhalt .a2-rb-blatt").length
  }));
- p(JSON.stringify(bb.zeilen)===JSON.stringify(["11","12"])&&JSON.stringify(bb.zeilenMeas)===JSON.stringify(["11","12"]),"B1 beide Massaufnahmen stehen da, die Zeile oeffnet die Massaufnahme",bb);
+ p(JSON.stringify(bb.zeilen)===JSON.stringify(["12","11"])&&JSON.stringify(bb.zeilenMeas)===JSON.stringify(["12","11"]),"B1 beide Massaufnahmen stehen da, nach Bezeichnung sortiert (v3.285: Kamin Ost vor Rinne Nord), die Zeile oeffnet die Massaufnahme",bb);
  p(bb.text.includes("Dachrinne")||bb.text.includes("Rinne"),"B2 die Fachart ist der Haupttitel",bb.text.slice(0,200));
  p(bb.blatt===0,"B2b zugeklappt ist kein Ruestblatt aufgeklappt",bb.blatt);
 

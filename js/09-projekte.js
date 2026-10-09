@@ -413,6 +413,24 @@ async function loadProjectReports(projectId){
 // Projekten selbst - zwei getrennte Ansichten. Der Umschalter gilt je Projekt
 // und faellt beim Wechsel des Projekts auf "aktive" zurueck.
 let projectMeasArchivAnzeigen=false, projectMeasArchivFuer=null;
+// v3.285, Ansage des Anwenders: Massaufnahmen "1. nach Status (abgeschlossene am
+// Ende), 2. nach Bezeichnung (alphabetisch)". Gilt fuer die Liste im Projekt (alt
+// und neue Ansicht). Der Zwischenspeicher selbst bleibt unsortiert: Bedarf,
+// Zuschnitt und Ruestliste rechnen ueber ihn und brauchen keine Reihenfolge.
+// Ohne Bezeichnung steht eine Aufnahme am Ende ihrer Gruppe; dann entscheidet die Art.
+function measSortiert(liste){
+ const art=m=>(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[m.type])||m.type||"";
+ const fertig=m=>m.workflow_status==="abgeschlossen"?1:0;
+ const name=m=>String(m.title||"").trim();
+ return (liste||[]).slice().sort((a,b)=>{
+  if(fertig(a)!==fertig(b))return fertig(a)-fertig(b);
+  const na=name(a),nb=name(b);
+  if(!na!==!nb)return na?-1:1;
+  return na.localeCompare(nb,"de",{numeric:true,sensitivity:"base"})
+   ||art(a).localeCompare(art(b),"de",{sensitivity:"base"});
+ });
+}
+
 async function loadProjectMeasurements(projectId){
  const box=$("cockpitMeasBody");
  if(projectMeasArchivFuer!==projectId){projectMeasArchivAnzeigen=false;projectMeasArchivFuer=projectId}
@@ -428,7 +446,7 @@ async function loadProjectMeasurements(projectId){
  const archivierte=alle.filter(m=>m.archived);
  // Gibt es keine archivierten mehr, faellt die Ansicht von selbst zurueck.
  if(!archivierte.length)projectMeasArchivAnzeigen=false;
- const list=alle.filter(m=>!!m.archived===projectMeasArchivAnzeigen);
+ const list=measSortiert(alle.filter(m=>!!m.archived===projectMeasArchivAnzeigen));
  const umschalter=archivierte.length
   ?`<div class="bar"><button type="button" class="gray" data-meas-archiv-umschalten>${
     projectMeasArchivAnzeigen?"📐 Aktive Massaufnahmen anzeigen":"🗄 Archivierte anzeigen ("+archivierte.length+")"}</button></div>`:"";
