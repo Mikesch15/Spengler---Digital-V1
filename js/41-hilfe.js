@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.282.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.283.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -249,7 +249,10 @@ Zuschnittliste mit den Stücknummern zum Abhaken. Sonst nichts.</p>
 hierher zurück.</p>
 <p>Dasselbe Blatt steht an vier Stellen: in der Werkstatt (nach Projekt und
 nach Material), auf der Seite „Material &amp; Zuschnitt“ und auf der
-Projektseite. In der Liste klappt es unter der Zeile auf; <b>„Gross
+Projektseite. In der Projektseite öffnet ein Tipp auf die Zeile die
+Massaufnahme selbst; das Blatt klappt der Knopf <b>„Rüstblatt“</b> unter der Zeile
+auf. Dort steht auch <b>„Freigeben“</b>, wenn du die Massaufnahme freigeben
+darfst – ohne sie zu öffnen. <b>„Gross
 ansehen“</b> zeigt es bildschirmfüllend – für die Abkantbank.</p>
 <p>Gezeichnet wird aus dem <b>gespeicherten</b> Stand der Massaufnahme, mit
 demselben Zeichner wie der Ausdruck. Hier wird nichts neu gerechnet: was auf

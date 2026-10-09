@@ -534,6 +534,21 @@ async function mwFreigeben(){
  if(!mwStand.ruester_id&&!mwStand.monteur_id&&mwDarfZuweisen(mwStand))mwZuweisenOeffnen();
 }
 
+// v3.283: Freigeben direkt aus der Liste, ohne die Massaufnahme zu oeffnen.
+// Nimmt die Zeile aus den geladenen Listen, setzt sie als mwStand und geht dann
+// denselben Weg wie das Formular (Rueckfrage, measurement_freigeben, Zuweisen).
+async function mwFreigebenAusListe(id){
+ const quellen=[typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:null,
+  typeof allMeasurements!=="undefined"?allMeasurements:null];
+ let z=null;
+ quellen.forEach(q=>{if(!z&&Array.isArray(q))z=q.find(x=>x&&String(x.id)===String(id))||null});
+ if(!z)return;
+ const k=mwSchrittSchluessel(z);
+ if((k!=="freigeben"&&k!=="erneut_freigeben")||!mwSchrittDarfIch(z,k))return;
+ mwStandAusZeile(z);
+ await mwFreigeben();
+}
+
 async function mwGeruestet(){
  if(!mwStand)return;
  if(!confirm("Rüsten bestätigen?\n\nDamit bestätigst du, dass das Material für diese Massaufnahme gerüstet ist."))return;

@@ -1229,6 +1229,11 @@ document.addEventListener("click",async e=>{
   a2Zeichnen();
   return;
  }
+ const frg=e.target.closest("[data-a2-freigeben]");
+ if(frg){
+  if(typeof mwFreigebenAusListe==="function")mwFreigebenAusListe(frg.getAttribute("data-a2-freigeben")).then(()=>a2Zeichnen());
+  return;
+ }
  const meas=e.target.closest("[data-a2-meas]");
  if(meas){ a2Oeffne("meas",meas.getAttribute("data-a2-meas")); return }
  const am=e.target.closest("[data-a2-am]");
@@ -1762,7 +1767,7 @@ function a2RegAufmass(p){
  // v3.211: Der Tipp zeigt das Ruestblatt statt des ganzen Formulars.
  return html+'<div class="a2-liste-zwei">'+liste.map(m=>{
   const badge=(typeof mwBadgeFuerListe==="function")?mwBadgeFuerListe(m):"";
-  return a2RbZeileHtml(m,a2Datum(m.date)||"—",badge);
+  return a2MessZeileHtml(m,a2Datum(m.date)||"—",badge);
  }).join("")+"</div>";
 }
 
@@ -1800,6 +1805,39 @@ function a2RbZeileHtml(m,unten,badge){
    <div class="a2-knopf-reihe">
     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-meas="${esc(id)}">
      ✂️ Im Formular öffnen</button>
+    <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-rb-gross="${esc(id)}" data-rb-zurueck="a2Projekt">
+     ⤢ Gross ansehen</button>
+   </div></div>`:""}
+ </div>`;
+}
+
+// v3.283, Ansage des Anwenders: "Wenn ich eine massaufnahme im projekt anklicke,
+// sollte diese sich oeffnen und nicht die ruestliste aufklappen. Ausserdem moechte
+// ich die massaufnahmen freigeben koennen ohne diese oeffnen zu muessen."
+// Die Zeile im Register Massaufnahme oeffnet also das Formular (data-a2-meas);
+// das Ruestblatt klappt ein eigener Knopf auf, und "Freigeben" steht direkt in
+// der Zeile, wenn ICH den Schritt machen darf (dieselbe Regel wie im Formular:
+// mwNaechsterSchritt). Die Freigabe selbst laeuft ueber mwFreigebenAusListe (js/44).
+function a2MessZeileHtml(m,unten,badge){
+ const id=String(m.id);
+ const offen=a2RbIstOffen(id);
+ const n=(typeof mwNaechsterSchritt==="function"&&typeof mwAktiv==="function"&&mwAktiv())?mwNaechsterSchritt(m):null;
+ const frei=!!(n&&n.ichBinDran&&(n.schluessel==="freigeben"||n.schluessel==="erneut_freigeben"));
+ return `<div class="a2-rb a2-rb-mz${offen?" ist-offen":""}">
+  <button type="button" class="a2-zeile" data-a2-meas="${esc(id)}">
+   <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
+    <span>${esc(unten||"")}</span></span>
+   ${badge?`<span class="a2-badge">${badge}</span>`:""}
+   <span class="a2-zeile-pfeil">›</span></button>
+  <div class="a2-knopf-reihe">
+   ${frei?`<button type="button" class="a2-knopf a2-knopf-klein a2-k-blau" data-a2-freigeben="${esc(id)}">
+    ✔ ${n.schluessel==="erneut_freigeben"?"Erneut freigeben":"Freigeben"}</button>`:""}
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-rb="${esc(id)}" aria-expanded="${offen?"true":"false"}">
+    ${offen?"▾ Rüstblatt zu":"▸ Rüstblatt"}</button>
+  </div>
+  ${offen?`<div class="a2-rb-blatt">
+   ${(typeof rbBlattHtml==="function")?rbBlattHtml(m):""}
+   <div class="a2-knopf-reihe">
     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-rb-gross="${esc(id)}" data-rb-zurueck="a2Projekt">
      ⤢ Gross ansehen</button>
    </div></div>`:""}

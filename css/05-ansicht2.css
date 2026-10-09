@@ -1130,3 +1130,7 @@ html.a2-an .a2-zeile.a2-zeile-still:active{
  border-radius:0 0 12px 12px;padding:10px 12px;background:var(--card)}
 .a2-rb-blatt .werk-skizze svg{max-height:260px}
 .a2-rb-blatt .a2-knopf-reihe{margin-top:8px}
+/* v3.283: Massaufnahme-Zeile mit eigener Knopfreihe darunter - das Blatt haengt an der Reihe, nicht an der Zeile */
+.a2-rb.a2-rb-mz.ist-offen>.a2-zeile{border-bottom-left-radius:inherit;border-bottom-right-radius:inherit}
+.a2-rb-mz>.a2-knopf-reihe{margin:6px 0 0}
+.a2-rb-mz .a2-rb-blatt{border-top:1px solid var(--line);border-radius:12px;margin-top:6px}
