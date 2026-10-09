@@ -3,9 +3,20 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.284`
+- Aktueller Entwicklungsstand: `v3.285`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.285 — Massaufnahmen im Projekt sortiert
+
+Ansage (9.10.2026): „1. nach Status (abgeschlossene am Ende), 2. nach Bezeichnung
+(alphabetisch)." `js/09 measSortiert(liste)`: nicht abgeschlossene vor
+`workflow_status==="abgeschlossen"`, darin nach `title` (de, numerisch: Tor 2 vor
+Tor 10, ohne Bezeichnung am Ende, dann nach Art). Wirkt in der Projektliste
+(`loadProjectMeasurements`) und im Register „Massaufnahme" der neuen Ansicht
+(`a2RegAufmass`). `projectMeasurementsCache` bleibt unsortiert (Bedarf, Zuschnitt,
+Rüstliste unberührt). Annahme: „Bezeichnung" = das Feld Titel der Aufnahme.
+Prüfstand `massaufnahmen-sortierung-v3-285` (5; zwei Mutationsproben rot).
 
 ### v3.284 — Zurück-Taste des Handys: Seiten der neuen Ansicht
 
@@ -46,27 +57,6 @@ Zuweisen-Dialog) – keine zweite Freigabe-Logik. Sprung aus der Suche
 Prüfstand `freigeben-liste-v3-283` (11; zwei Mutationsproben rot);
 `ansicht2-projekt-v3-151` auf den neuen Vertrag umgestellt (Zeile öffnet,
 Rüstblatt per Knopf), Hilfe „Rüstblatt" angepasst.
-
-### v3.282 — Alter Dachfenster-Zuschnitt: Warnung, bewusste Wahl; „Was ist neu" höchstens 5
-
-Ansage (9.10.2026): „Beides machen und bei der Meldung, wenn eine neue Version
-erscheint, nur die letzten 5 Versionen anzeigen."
-
-**(1) Warnung:** `js/66 dfaZuschnittVeraltet(m)` = Dachfenster ohne gespeicherte
-`data.ausfuehrung` (vor v3.270 erfasst; Rüstliste/Werkstatt/Material lesen den
-GESPEICHERTEN Plan, also stehen dort noch die alten Abwicklungen). Eine Stelle
-entscheidet; `dfaVeraltetHinweis(m)` liefert den Text. Angezeigt: Badge
-„⚠️ Alter Zuschnitt" in `mwBadgeFuerListe` (js/44; Massaufnahme-Listen js/09 und
-js/70), Hinweiszeile im Rüstlisten-Block (js/58, wird mitgedruckt) und auf der
-Werkstatt-Karte (js/51). Es wird **nichts** automatisch umgerechnet.
-**(2) Bewusste Wahl:** `dfaFuellen` lässt `ausfuehrung` bei fehlendem/unbekanntem
-Wert **leer** (Pflicht-Dropdown); bisher stillschweigend „gepunktet". Die
-Seitenteil-Art bleibt bei fehlendem Feld „separat" (das war echtes Altverhalten).
-Speichern setzt bei freigegebenen Aufnahmen die Freigabe zurück (Workflow-Trigger).
-**(3)** `js/67 winPruefen` zeigt nach einer Pause höchstens die neuesten
-`WIN_MAX_VERSIONEN`=5 Versionen.
-Prüfstand `alt-warnung-v3-282` (10; Mutationsproben je rot);
-`dachfenster-ausfuehrung-v3-270` auf den neuen Vertrag umgestellt, mit Gegenprobe.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

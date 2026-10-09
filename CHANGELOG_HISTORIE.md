@@ -33898,3 +33898,25 @@ Register; Vorschauen nach dem Zeichnen (`medienThumbsAufloesen` in
 Herkunftsfilter bleiben in der Fotowand.
 Prüfstand `projektfotos-v3-280` (12; zwei Mutationsproben rot).
 
+
+### v3.282 — Alter Dachfenster-Zuschnitt: Warnung, bewusste Wahl; „Was ist neu" höchstens 5
+
+Ansage (9.10.2026): „Beides machen und bei der Meldung, wenn eine neue Version
+erscheint, nur die letzten 5 Versionen anzeigen."
+
+**(1) Warnung:** `js/66 dfaZuschnittVeraltet(m)` = Dachfenster ohne gespeicherte
+`data.ausfuehrung` (vor v3.270 erfasst; Rüstliste/Werkstatt/Material lesen den
+GESPEICHERTEN Plan, also stehen dort noch die alten Abwicklungen). Eine Stelle
+entscheidet; `dfaVeraltetHinweis(m)` liefert den Text. Angezeigt: Badge
+„⚠️ Alter Zuschnitt" in `mwBadgeFuerListe` (js/44; Massaufnahme-Listen js/09 und
+js/70), Hinweiszeile im Rüstlisten-Block (js/58, wird mitgedruckt) und auf der
+Werkstatt-Karte (js/51). Es wird **nichts** automatisch umgerechnet.
+**(2) Bewusste Wahl:** `dfaFuellen` lässt `ausfuehrung` bei fehlendem/unbekanntem
+Wert **leer** (Pflicht-Dropdown); bisher stillschweigend „gepunktet". Die
+Seitenteil-Art bleibt bei fehlendem Feld „separat" (das war echtes Altverhalten).
+Speichern setzt bei freigegebenen Aufnahmen die Freigabe zurück (Workflow-Trigger).
+**(3)** `js/67 winPruefen` zeigt nach einer Pause höchstens die neuesten
+`WIN_MAX_VERSIONEN`=5 Versionen.
+Prüfstand `alt-warnung-v3-282` (10; Mutationsproben je rot);
+`dachfenster-ausfuehrung-v3-270` auf den neuen Vertrag umgestellt, mit Gegenprobe.
+
