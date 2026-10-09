@@ -530,11 +530,18 @@ function renderSysStorageListe(){
   return;
  }
  const summe=sysStorageVerwaist.reduce((s,r)=>s+(Number(r.groesse_bytes)||0),0);
- const zeilen=sysStorageVerwaist.map(r=>`<div class="report-row">
+ // v3.274: jede Zeile hat einen Knopf "Ansehen" - die Liste allein (nur Pfade)
+ // reichte nicht, um zu entscheiden, ob eine Datei weg darf. Die Vorschau
+ // entsteht unter der Zeile; den Link stellt eine eigene, rein lesende Edge
+ // Function aus (system-admin-storage-ansehen), weil die Storage-Policy dem
+ // Client verwaiste Dateien nicht zu lesen erlaubt.
+ const zeilen=sysStorageVerwaist.map((r,i)=>`<div class="report-row" style="flex-wrap:wrap">
   <div class="report-row-info">
    <b>${esc(r.pfad)}</b>
    <span class="small" style="color:var(--muted)">${esc(r.kategorie||"")} · ${sysStorageGroesse(r.groesse_bytes)} · ${r.erstellt?new Date(r.erstellt).toLocaleDateString("de-CH"):"–"}</span>
   </div>
+  <button type="button" class="gray" data-sys-ansehen="${i}">👁 Ansehen</button>
+  <div id="sysStorageVorschau${i}" style="flex-basis:100%" hidden></div>
  </div>`).join("");
  box.innerHTML=`<div class="small" style="margin:8px 0 4px"><b>${sysStorageVerwaist.length}</b> verwaiste Datei${sysStorageVerwaist.length===1?"":"en"} · ${sysStorageGroesse(summe)} belegt</div>
   ${zeilen}
@@ -559,6 +566,50 @@ if($("sysStorageLaden")){
   }
  };
 }
+
+// Ansehen (v3.274): holt einen kurzlebigen Link und zeigt die Datei unter ihrer
+// Zeile. Ein zweiter Klick klappt die Vorschau wieder zu. Bilder erscheinen
+// direkt, alles andere (PDF, Tabellen) als Link zum Oeffnen.
+function sysStorageArt(pfad){
+ const m=/\.([a-z0-9]+)$/i.exec(String(pfad||""));
+ const e=m?m[1].toLowerCase():"";
+ if(["jpg","jpeg","png","gif","webp","bmp","svg"].indexOf(e)>=0)return "bild";
+ if(e==="pdf")return "pdf";
+ return "datei";
+}
+document.addEventListener("click",async e=>{
+ const b=e.target&&e.target.closest?e.target.closest("[data-sys-ansehen]"):null;
+ if(!b)return;
+ const i=Number(b.dataset.sysAnsehen);
+ const r=sysStorageVerwaist[i];
+ const box=$("sysStorageVorschau"+i);
+ if(!r||!box)return;
+ if(!box.hidden){box.hidden=true;box.innerHTML="";b.textContent="👁 Ansehen";return}
+ b.disabled=true;
+ sysStorageHinweis("");
+ try{
+  const {data,error}=await sb.functions.invoke("system-admin-storage-ansehen",{body:{pfad:r.pfad}});
+  if(error){
+   sysStorageHinweis(await edgeFunctionErrorMessage(error,"Die Datei konnte nicht angezeigt werden."),true);
+   return;
+  }
+  if(!data||!data.ok||!data.url){
+   sysStorageHinweis((data&&data.error)||"Die Datei konnte nicht angezeigt werden.",true);
+   return;
+  }
+  const art=sysStorageArt(r.pfad);
+  const hinweis=`<div class="small" style="color:var(--muted);margin-top:4px">Der Link gilt ${Math.round((data.gueltigSekunden||300)/60)} Minuten.</div>`;
+  box.innerHTML=(art==="bild"
+    ?`<img src="${esc(data.url)}" alt="${esc(r.pfad)}" style="max-width:100%;max-height:60vh;display:block;margin-top:6px;border:1px solid var(--line,#ccd)">`
+    :`<a href="${esc(data.url)}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px">${art==="pdf"?"PDF öffnen":"Datei öffnen"} ↗</a>`)+hinweis;
+  box.hidden=false;
+  b.textContent="Schliessen";
+ }catch(err){
+  sysStorageHinweis("Fehler: "+(err&&err.message?err.message:err),true);
+ }finally{
+  b.disabled=false;
+ }
+});
 
 // Der Loesch-Knopf entsteht erst beim Zeichnen der Liste, deshalb delegiert.
 document.addEventListener("click",async e=>{

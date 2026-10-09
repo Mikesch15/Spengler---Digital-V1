@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.273.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.274.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2373,6 +2373,10 @@ kein Ausmass, kein Projekt und keine Firma mehr zeigt.</p>
 <p>Sie sind für <b>niemanden</b> mehr erreichbar – auch nicht für die Firma,
 von der sie ursprünglich stammen – belegen aber weiterhin Speicherplatz. Die
 Liste zeigt sie mit Pfad, Grösse und Datum.</p>
+<p>Mit <b>👁 Ansehen</b> öffnet sich die Datei unter ihrer Zeile – Bilder
+direkt, PDF und Tabellen als Link. Der Link gilt fünf Minuten und lässt sich nur
+für eine Datei ausstellen, die der Server selbst als verwaist kennt; so lässt
+sich vor dem Löschen prüfen, was weg soll.</p>
 <p>Es wird nichts automatisch gelöscht. Beim Löschen prüft der Server die
 Liste nochmals selbst: eine Datei, auf die noch etwas zeigt, kann darüber
 nicht entfernt werden.</p>`},

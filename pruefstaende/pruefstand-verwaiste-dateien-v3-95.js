@@ -97,6 +97,63 @@ const VERWAIST=[
  p(z.loeschKnopf,"der Loeschknopf erscheint mit der Liste",z);
  p(/2/.test(z.anzahlImText),"die Anzahl steht im Text",z);
 
+ // ---- A2 · Ansehen (v3.274) ---------------------------------------------------
+ // Ansage des Anwenders (9.10.2026): "Ich moechte die verwaisten Dateien
+ // anschauen koennen". Die Liste zeigte nur Pfade. Jetzt hat jede Zeile einen
+ // Knopf, der ueber die EIGENE, rein lesende Edge Function
+ // system-admin-storage-ansehen einen kurzlebigen Link holt - die Storage-Policy
+ // laesst den Client verwaiste Dateien nicht selbst lesen. Geprueft wird die
+ // Oberflaeche; die Edge Function selbst ist von hier aus nicht erreichbar.
+ console.log("\nA2 · Ansehen");
+ await page.evaluate(()=>{
+  window.__invoke.length=0;
+  window.__invokeAntwort={data:{ok:true,url:"https://x.test/storage/v1/object/sign/measurements/a.jpg?token=t",gueltigSekunden:300},error:null};
+ });
+ const knoepfe=await page.evaluate(()=>document.querySelectorAll("#sysStorageListe [data-sys-ansehen]").length);
+ p(knoepfe===2,"jede Zeile hat einen Knopf \"Ansehen\"",knoepfe);
+ await page.click('[data-sys-ansehen="0"]');
+ await page.waitForTimeout(150);
+ z=await page.evaluate(()=>{
+  const box=document.querySelector("#sysStorageVorschau0");
+  return {aufgerufen:window.__invoke.map(x=>[x.name,JSON.stringify(x.body)]),
+   hidden:box.hidden,bild:!!box.querySelector("img"),src:(box.querySelector("img")||{}).src||"",
+   knopf:document.querySelector('[data-sys-ansehen="0"]').textContent.trim(),
+   zweiteVorschauZu:document.querySelector("#sysStorageVorschau1").hidden,
+   loeschenNichtAufgerufen:!window.__invoke.some(x=>x.name==="system-admin-storage-aufraeumen")};
+ });
+ p(z.aufgerufen.length===1&&z.aufgerufen[0][0]==="system-admin-storage-ansehen"
+   &&JSON.parse(z.aufgerufen[0][1]).pfad===VERWAIST[0].pfad,
+   "der Klick ruft die LESENDE Funktion mit genau diesem Pfad auf",z.aufgerufen);
+ p(!z.hidden&&z.bild&&/token=t/.test(z.src),"ein Bild erscheint direkt unter der Zeile",z);
+ p(z.knopf==="Schliessen"&&z.zweiteVorschauZu,"der Knopf wird zu \"Schliessen\", die andere Zeile bleibt zu",z);
+ p(z.loeschenNichtAufgerufen,"Gegenprobe: Ansehen ruft nie die Loeschfunktion auf",z);
+ await page.click('[data-sys-ansehen="0"]');
+ z=await page.evaluate(()=>({hidden:document.querySelector("#sysStorageVorschau0").hidden,
+   leer:document.querySelector("#sysStorageVorschau0").innerHTML===""}));
+ p(z.hidden&&z.leer,"ein zweiter Klick klappt die Vorschau wieder zu",z);
+ // Nicht-Bilder bekommen einen Link statt eines Bildes.
+ await page.evaluate(()=>{
+  window.__verwaist=[{pfad:"firma-a/p/plan.pdf",kategorie:"project-files",groesse_bytes:5000,erstellt:"2026-08-01T08:00:00Z"}];
+ });
+ await page.click("#sysStorageLaden"); await page.waitForTimeout(150);
+ await page.click('[data-sys-ansehen="0"]'); await page.waitForTimeout(150);
+ z=await page.evaluate(()=>{const b=document.querySelector("#sysStorageVorschau0");
+  return {bild:!!b.querySelector("img"),link:(b.querySelector("a")||{}).textContent||"",ziel:(b.querySelector("a")||{}).target||""}});
+ p(!z.bild&&/PDF öffnen/.test(z.link)&&z.ziel==="_blank","ein PDF bekommt einen Link \"PDF oeffnen\" (neuer Tab), kein Bild",z);
+ // Fehler werden gezeigt, nicht verschluckt. (Die PDF-Vorschau ist noch offen;
+ // ein Klick schliesst sie, erst der naechste fragt die Funktion neu.)
+ await page.click('[data-sys-ansehen="0"]'); await page.waitForTimeout(100);
+ await page.evaluate(()=>{
+  window.__invokeAntwort={data:{ok:false,error:"Diese Datei ist nicht (mehr) als verwaist bekannt."},error:null};
+ });
+ await page.click('[data-sys-ansehen="0"]'); await page.waitForTimeout(150);
+ z=await page.evaluate(()=>({hinweis:document.querySelector("#sysStorageHinweis").textContent,
+   zu:document.querySelector("#sysStorageVorschau0").hidden}));
+ p(/nicht \(mehr\) als verwaist/.test(z.hinweis)&&z.zu,"ein Fehler der Funktion wird angezeigt, die Vorschau bleibt zu",z);
+ await page.evaluate((v)=>{window.__verwaist=v;window.__invoke.length=0;
+   window.__invokeAntwort={data:{ok:true,geloescht:2,pfade:[],uebergangen:[]},error:null}},VERWAIST);
+ await page.click("#sysStorageLaden"); await page.waitForTimeout(150);
+
  console.log("\nB · Loeschen ruft die Edge Function mit genau diesen Pfaden auf");
  await page.evaluate(()=>{window.__invoke.length=0});
  await page.click("#sysStorageLoeschen");
