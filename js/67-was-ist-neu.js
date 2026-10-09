@@ -385,6 +385,7 @@ const WIN_CHANGELOG={
   "<b>Einscannen und Ausscannen sind jetzt die grossen Knöpfe</b>, allein in einer Zeile ganz oben. Alles andere – neues Material anlegen, Archiv, Alle anzeigen – ist eine graue Nebenzeile darunter. Erreichbar ist unverändert alles, nur die Gewichtung folgt jetzt dem, was täglich gebraucht wird."],
  "3.224":["<b>Behoben: Positionen ohne Produkt im Lager.</b> Gemeldet: in der Lagerverwaltung standen einzelne Positionen mit „kein Produkt erfasst“, ohne dass je jemand etwas daran gemacht hatte. Beim Umstieg auf Position→Produkt hatte eine einmalige Migration jeder damals vorhandenen Position ein Standard-Produkt gegeben – daraus wurde aber nie eine dauerhafte Regel. Alles, was danach dazukam (Katalog-Import, von Hand angelegt), blieb ohne. Jetzt sorgt die Datenbank selbst dafür, egal über welchen Weg eine Position entsteht. Die bestehenden Fälle sind nachgezogen; Bestände wurden dabei nicht angefasst.",
   "<b>Neue Kontrolle „Position ohne Produkt im Lager“.</b> Es gibt einen zweiten Weg in denselben Zustand: wer das letzte Produkt löscht und die Position behält. Das ist gewollt und wird deshalb <i>nicht</i> automatisch rückgängig gemacht – aber es steht jetzt in den Kontrollen, statt still dazustehen. Gewollt? Abhaken, dann meldet es sich nicht mehr."],
+ "3.282":["<b>Alte Dachfenster-Aufnahmen werden markiert.</b> Dachfenster, die vor der Wahl \u201Egepunktet / gefalzt\u201C erfasst wurden, tragen in den Listen, in der R\u00fcstliste und in der Werkstatt den Hinweis \u201EAlter Zuschnitt\u201C \u2013 ihre gespeicherten Abwicklungen stimmen nicht mehr. Beim \u00d6ffnen ist die Ausf\u00fchrung jetzt nicht mehr still vorgew\u00e4hlt: bitte w\u00e4hlen und speichern (eine erteilte Freigabe verf\u00e4llt dabei).","<b>Diese Meldung zeigt nur noch die letzten 5 Versionen</b>, auch wenn die App l\u00e4nger nicht ge\u00f6ffnet wurde."],
  "3.281":["<b>Behoben: der Text unter \u201EDateien, Fotos und Verlauf \u00f6ffnen\u0022 nannte die Fotowand nicht mehr.</b> Beim Umbau von 3.280 hatte ich den Satz so umformuliert, dass die Fotowand \u201EAlle Fotos\u0022 darin nicht mehr vorkam \u2013 ein Pr\u00fcfstand hat es bemerkt. Jetzt steht sie wieder dort, mit dem, was man in ihr tun kann (nach Herkunft filtern, als Fotodokumentation ausdrucken). An den Fotos im Register selbst \u00e4ndert sich nichts."],
  "3.280":["<b>Alle Fotos eines Projekts stehen jetzt im Register \u201EDateien\u0022.</b> Deine Ansage: Fotos aus verschiedenen Massaufnahmen sollen in den Projektfotos zu sehen sein. Die Fotowand \u201EAlle Fotos\u0022 gab es schon, aber in der neuen Ansicht lag sie hinter dem Knopf \u201EDateien, Fotos und Verlauf \u00f6ffnen\u0022 \u2013 das Register zeigte nur hochgeladene Dateien. Jetzt stehen die Fotos oben im Register selbst, neueste zuerst, mit der Angabe, aus welcher Massaufnahme sie stammen; ein Tipp vergr\u00f6ssert. Es sind dieselben Bilder wie in der Fotowand: Fotos und Skizzen aus Massaufnahmen (auch archivierten), Ausmass, Rapporten, Offerten und Bilddateien. Bei mehr als 30 stehen zuerst die neuesten, ein Knopf zeigt alle.",
   "Falls du etwas anderes gemeint hast \u2013 zum Beispiel, dass in der Fotowand selbst Bilder fehlen \u2013 sag mir, welche, dann suche ich das."],
@@ -566,6 +567,9 @@ const WIN_CHANGELOG={
   "<b>Nur für ein persönliches Gerät.</b> Wer das entsperrte Gerät in der Hand hat, kommt damit ins Konto – auf einem geteilten Werkstatt-Tablet also ausgeschaltet lassen. Ehrlich dazugesagt: der Fingerabdruck ist ein <i>Schloss</i> vor dem Zugang, den die App für den Kontowechsel ohnehin schon auf dem Gerät speichert, keine Verschlüsselung. Er macht die Anmeldung damit sicherer als vorher, nicht unsicherer – vorher stand vor diesem Zugang gar nichts."],
 };
 
+// v3.282: hoechstens die neuesten 5 Versionen anzeigen, auch wenn mehr dazwischen liegen.
+const WIN_MAX_VERSIONEN=5;
+
 function winVersionVergleich(a,b){
  const pa=String(a).split(".").map(Number),pb=String(b).split(".").map(Number);
  for(let i=0;i<Math.max(pa.length,pb.length);i++){
@@ -599,7 +603,8 @@ function winPruefen(){
  if(gesehen===aktuell)return;
  const versionen=Object.keys(WIN_CHANGELOG)
   .filter(v=>winVersionVergleich(v,gesehen)>0&&winVersionVergleich(v,aktuell)<=0)
-  .sort(winVersionVergleich);
+  .sort(winVersionVergleich)
+  .slice(-WIN_MAX_VERSIONEN);
  try{localStorage.setItem(WIN_LETZTE_VERSION,aktuell)}catch(e){}
  if(versionen.length)winAnzeigen(versionen);
 }
