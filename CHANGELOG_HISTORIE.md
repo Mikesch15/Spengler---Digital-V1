@@ -33680,3 +33680,40 @@ einzeln verändert, Gegenproben; Mutation „separat wie Knick" → 12 rot),
 `dachfenster-schnitt-v3-260` 57 (separat wieder acht; die Zwischenfassung
 „Summe als ein Stück" steht als Gegenprobe).
 
+
+### v3.274 — verwaiste Dateien ansehen, „Archiv und Filter" in der neuen Ansicht
+
+**1. Verwaiste Dateien ansehen** (Ansage 9.10.2026). Die Liste in der
+System-Administration zeigte nur Pfade. Jetzt hat jede Zeile **👁 Ansehen**
+(`js/22`): Bild inline, PDF/Tabelle als Link, zweiter Klick schliesst.
+Die Storage-Policy `tenant read own storage files` verlangt eine Referenz der
+eigenen Firma — der Client kann verwaiste Dateien also nicht selbst lesen. Darum
+eine **neue, rein lesende Edge Function `system-admin-storage-ansehen`**
+(repo: `supabase/functions/…`, im Projekt **v1 bereitgestellt**): prüft den
+Aufrufer gegen `system_admins`, prüft den Pfad gegen
+`system_admin_verwaiste_storage()` (mit dem Nutzer-JWT), stellt einen
+Signed-URL-Link (300 s) aus. Bewusst **nicht** in die Löschfunktion eingebaut.
+**Nicht live getestet** (Sandbox ohne Verbindung zu Supabase): geprüft ist die
+Oberfläche mit gestubbter Antwort; die Funktion selbst ist nur bereitgestellt.
+
+**Fund:** die Datei `system-admin-storage-aufraeumen/index.ts` im **Repo** ruft
+noch das alte, nicht existierende `POST /object/remove/{bucket}` auf; die im
+Projekt **bereitgestellte v3** nutzt das richtige `DELETE /object/{bucket}`
+(seit v3.95). Das Repo hinkt nach. Nicht angefasst (das Ändern der Löschfunktion
+wurde in dieser Sitzung blockiert und war für das Ansehen nicht nötig) — beim
+nächsten Mal das Repo auf den bereitgestellten Stand ziehen, nicht umgekehrt
+deployen.
+
+**2. „Archiv und Filter"** (Ansage 9.10.2026: „noch die alte Ansicht"). Der
+Schirm ist derselbe (v3.156), seine Karten waren die klassischen. Jetzt
+dieselbe Zeile wie auf der Projektseite (`js/09 renderProjectList`): Titel,
+Zusatz, Statusmarke, Pfeil; Nebenaktionen klein darunter. **Nur das Aussehen:**
+gleiche `data-open-cockpit` / `data-edit-project` / `data-archive-project` /
+`data-del-project`, derselbe Handler; `.project-row` bleibt als Marke
+(Warteschlangen-Prüfstand). CSS in `css/05` unter `.a2-nur-liste` (Suchfeld,
+Filter in je einer wischbaren Zeile, Erklärsatz weg), Archiv-Knopf trägt die
+Klassen `a2-knopf a2-k-grau a2-k-voll` (`index.html`).
+
+Prüfstände: `archiv-ansicht-v3-274` (neu, 15), `verwaiste-dateien-v3-95` 21
+(vorher 11: Ansehen, PDF-Link, Fehler, Gegenprobe „ruft nie die Löschfunktion").
+

@@ -3,9 +3,49 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.275`
+- Aktueller Entwicklungsstand: `v3.276`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.276 — abgeschlossene Massaufnahmen archivieren
+
+Ansage (9.10.2026): „Abgeschlossene Massaufnahmen sollen auch archiviert werden.
+Gleiche Prozedur wie beim Projekt."
+
+**Datenbank (zuerst, einzeln geprüft):** `measurements` hatte **keine**
+Archiv-Spalte. Migration `measurements_archived_spalte` (9.10.2026, über das
+Supabase-Werkzeug angewendet): `archived boolean not null default false`, rein
+additiv. Danach geprüft: 32 Zeilen, 0 archiviert, 0 NULL. Der Workflow-Trigger
+`schuetze_measurement_workflow` prüft die Workflow-Spalten, `data`, `type`,
+`project_id`, Bilder, Stärke, Zuschnittform — `archived` gehört nicht dazu und
+löst weder Fehler noch Freigabeverfall aus. Archiv-Zustand **neben**
+`workflow_status` (wie `projects.archived` neben `projects.status`), nicht als
+achter Workflow-Status: der hat einen CHECK-Constraint und eine Übergangslogik.
+**Reihenfolge-Lehre:** erst die Spalte, dann die App — `update({archived})`
+und `.filter` auf eine fehlende Spalte wären sonst Fehler bzw. leere Listen.
+
+**App:**
+- `js/44 mwAbschliessen()`: nach dem Abschluss `mwNachAbschlussArchivieren()` —
+  `confirm()`, bei OK `measurementArchivSetzen(id,true)`. Abschluss gilt in
+  jedem Fall, dann die Frage (wie `js/24` beim Projekt).
+- `measurementArchivSetzen()` = die **eine** Schreibstelle (Archivieren und
+  Reaktivieren), mit Ergebnisprüfung (RLS: 0 Zeilen statt Fehler), führt die
+  Zwischenspeicher nach und lädt die Projektliste neu.
+- `js/09 loadProjectMeasurements()`: aktive und archivierte getrennt,
+  Umschalter „Archivierte anzeigen (n)", **Archivieren nur an abgeschlossenen**,
+  Reaktivieren an archivierten; Kopfzahl zählt die aktiven.
+- `projectMeasurementsCache` hält **alle**: Bedarf, Zuschnitt, Rüstliste und
+  Fotowand rechnen darüber.
+- `js/16` Übersicht „zuletzt": ohne Archivierte.
+
+**Bewusst nicht angefasst / offen:**
+- Die **20 schon abgeschlossenen** Massaufnahmen wurden **nicht** archiviert
+  (Produktivdaten; Entscheid je Massaufnahme über den Knopf „Archivieren").
+- Suche (`js/04`), „Alle Massaufnahmen" (`js/46`), Ausmass-Auswahl (`js/17`)
+  zeigen weiter alle — dort wurde die Spalte nicht ausgewertet.
+
+Prüfstand `massaufnahme-archiv-v3-276` (17; drei Mutationsproben rot: ohne
+Rückfrage / ohne Trennung / Cache nur aktive). Datenbank gestubbt.
 
 ### v3.275 — abgeschlossen → Rückfrage → archivieren
 
@@ -39,42 +79,6 @@ dasselbe zeigen (die zweite Datei lässt sich nicht ansehen — die Funktion ste
 nur Links für verwaiste aus). **Offen / Vorschlag:** beim Ersetzen die alte
 Datei entfernen, oder bei „Aufräumen" ausdrücklich nur Dateien älter als N Tage
 anbieten — nicht umgesetzt, Entscheidung des Anwenders.
-
-### v3.274 — verwaiste Dateien ansehen, „Archiv und Filter" in der neuen Ansicht
-
-**1. Verwaiste Dateien ansehen** (Ansage 9.10.2026). Die Liste in der
-System-Administration zeigte nur Pfade. Jetzt hat jede Zeile **👁 Ansehen**
-(`js/22`): Bild inline, PDF/Tabelle als Link, zweiter Klick schliesst.
-Die Storage-Policy `tenant read own storage files` verlangt eine Referenz der
-eigenen Firma — der Client kann verwaiste Dateien also nicht selbst lesen. Darum
-eine **neue, rein lesende Edge Function `system-admin-storage-ansehen`**
-(repo: `supabase/functions/…`, im Projekt **v1 bereitgestellt**): prüft den
-Aufrufer gegen `system_admins`, prüft den Pfad gegen
-`system_admin_verwaiste_storage()` (mit dem Nutzer-JWT), stellt einen
-Signed-URL-Link (300 s) aus. Bewusst **nicht** in die Löschfunktion eingebaut.
-**Nicht live getestet** (Sandbox ohne Verbindung zu Supabase): geprüft ist die
-Oberfläche mit gestubbter Antwort; die Funktion selbst ist nur bereitgestellt.
-
-**Fund:** die Datei `system-admin-storage-aufraeumen/index.ts` im **Repo** ruft
-noch das alte, nicht existierende `POST /object/remove/{bucket}` auf; die im
-Projekt **bereitgestellte v3** nutzt das richtige `DELETE /object/{bucket}`
-(seit v3.95). Das Repo hinkt nach. Nicht angefasst (das Ändern der Löschfunktion
-wurde in dieser Sitzung blockiert und war für das Ansehen nicht nötig) — beim
-nächsten Mal das Repo auf den bereitgestellten Stand ziehen, nicht umgekehrt
-deployen.
-
-**2. „Archiv und Filter"** (Ansage 9.10.2026: „noch die alte Ansicht"). Der
-Schirm ist derselbe (v3.156), seine Karten waren die klassischen. Jetzt
-dieselbe Zeile wie auf der Projektseite (`js/09 renderProjectList`): Titel,
-Zusatz, Statusmarke, Pfeil; Nebenaktionen klein darunter. **Nur das Aussehen:**
-gleiche `data-open-cockpit` / `data-edit-project` / `data-archive-project` /
-`data-del-project`, derselbe Handler; `.project-row` bleibt als Marke
-(Warteschlangen-Prüfstand). CSS in `css/05` unter `.a2-nur-liste` (Suchfeld,
-Filter in je einer wischbaren Zeile, Erklärsatz weg), Archiv-Knopf trägt die
-Klassen `a2-knopf a2-k-grau a2-k-voll` (`index.html`).
-
-Prüfstände: `archiv-ansicht-v3-274` (neu, 15), `verwaiste-dateien-v3-95` 21
-(vorher 11: Ansehen, PDF-Link, Fehler, Gegenprobe „ruft nie die Löschfunktion").
 
 ## DAUERHAFT GÜLTIGE REGELN
 
