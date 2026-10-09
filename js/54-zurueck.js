@@ -40,7 +40,7 @@ const ZURUECK_NICHT=["authScreen","companyLockedScreen","faSperrScreen","appRoot
 // Dieselbe Luecke erklaert, warum auch der Zurueck-Knopf oben links dort
 // nicht griff: der fragt ueber a2SchirmDarueber() (js/70) denselben Stapel
 // und sah das Overlay nicht - er schloss den Bereich DARUNTER.
-const ZURUECK_EXTRA=["reportScreen","barcodeScanOverlay"];
+const ZURUECK_EXTRA=["reportScreen","barcodeScanOverlay","appDialogModal"];
 
 // Sonderwege: diese Schirme haben einen eigenen Rueckweg, der zusaetzlich
 // die richtige Liste wiederherstellt. Ohne sie wuerde ein blosses
@@ -59,7 +59,10 @@ const ZURUECK_WEG={
  // liesse die Kamera weiterlaufen (Stream, ZXing und der eingebaute Leser
  // haengen nicht am hidden-Attribut) - ein laufendes Kamerabild hinter
  // einer unsichtbaren Seite ist genau das, was man nicht will.
- barcodeScanOverlay:  ()=>barcodeScanSchliessen()
+ barcodeScanOverlay:  ()=>barcodeScanSchliessen(),
+ // v3.286: die eigenen Dialoge (js/84): Zurueck = Abbrechen. Blosses Ausblenden
+ // liesse das Versprechen offen und die Reihe haengen.
+ appDialogModal:      ()=>appDialogBeenden(false)
 };
 
 let zurueckSchirme=[];   // ids in der Reihenfolge, in der sie geoeffnet wurden
