@@ -3,9 +3,42 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.274`
+- Aktueller Entwicklungsstand: `v3.275`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.275 — abgeschlossen → Rückfrage → archivieren
+
+Ansage (9.10.2026): „Wenn ich ein Projekt auf abgeschlossen setze, soll es
+automatisch archiviert werden mit einer kurzen Bestätigungsanfrage."
+Der Status wird an **einer** Stelle gesetzt (`js/24`, Handler von
+`#cockpitStatus`). Dahinter: `cockpitNachAbschlussArchivieren()` — `confirm()`
+mit dem Projekttitel, bei OK `update({archived:true})` mit Ergebnisprüfung
+(RLS meldet ein blockiertes UPDATE nicht als Fehler, es trifft 0 Zeilen),
+danach `allProjects`, Projektliste und a2-Ansicht nachführen.
+- Gefragt wird **nach** dem Setzen: der Status gilt in jedem Fall; „Abbrechen"
+  lässt ein abgeschlossenes, aktives Projekt.
+- Nur beim **Wechsel auf „abgeschlossen"**, nicht bei offen/in Arbeit/storniert
+  und nicht bei einem schon archivierten Projekt. Nie ohne Bestätigung.
+- Hilfe korrigiert: dort stand „es wird nichts automatisch archiviert".
+Prüfstand `abschluss-archivieren-v3-275` (13; zwei Mutationsproben rot).
+**Hinweis:** `angebote-v3-34` (Abschnitt 14) vergleicht die Arbeitskopie mit
+HEAD und verlangt, dass u. a. `js/24` *unverändert* ist — mit uncommitteter
+Änderung an einer dieser Dateien ist er rot, nach dem Commit grün. Kein Fehler.
+
+**Befund zur Frage „warum ist diese Skizze verwaist?"** (Enggisteinstrasse 4,
+Worb, Massaufnahme 114, `…/sketches/1791188361564_uu5yak.png`): in der
+Datenbank verweist **nichts** auf die Datei (geprüft: alle Text-/jsonb-Spalten
+aller Tabellen). `sketch_paths` der Massaufnahme enthält nur eine **zweite**
+Skizzendatei, 35 s später hochgeladen (08:19:22 vs 08:19:57; 97 378 vs 98 450
+Bytes). Die verwaiste ist also eine **frühere Fassung** derselben Skizze:
+`js/16` lädt beim Speichern jede neue (`data:`) Skizze als **neue Datei**
+hoch und löscht die ersetzte nie. Das ist die übliche Quelle der Waisen
+(nicht ein Verlust an der Massaufnahme). **Nicht verifiziert:** ob beide Bilder
+dasselbe zeigen (die zweite Datei lässt sich nicht ansehen — die Funktion stellt
+nur Links für verwaiste aus). **Offen / Vorschlag:** beim Ersetzen die alte
+Datei entfernen, oder bei „Aufräumen" ausdrücklich nur Dateien älter als N Tage
+anbieten — nicht umgesetzt, Entscheidung des Anwenders.
 
 ### v3.274 — verwaiste Dateien ansehen, „Archiv und Filter" in der neuen Ansicht
 
@@ -42,32 +75,6 @@ Klassen `a2-knopf a2-k-grau a2-k-voll` (`index.html`).
 
 Prüfstände: `archiv-ansicht-v3-274` (neu, 15), `verwaiste-dateien-v3-95` 21
 (vorher 11: Ansehen, PDF-Link, Fehler, Gegenprobe „ruft nie die Löschfunktion").
-
-### v3.273 — Dachfenster „separat": zwei Seitenteile je Seite
-
-Ansage (8.10.2026): „Es braucht bei separat zwei Seitenteile. Das mittlere ist
-einfach Mass I, und das vordere Seitenteil wird gerechnet wie jetzt. Alles
-andere bleibt gleich." Dazu: das „+10" beim Seitenteil gefalzt **bleibt B**.
-
-**Korrektur an v3.270:** dort hatte ich „bei zwei separaten Teilen wird auch so
-gerechnet" falsch gelesen — beide Bauarten rechneten *ein* Seitenteil mit
-G + I − H. Nun: **Knick** = sechs Zuschnitte wie bisher; **separat** = acht
-(je Seite *Seitenteil vorne*, *Seitenteil Mitte*, *Seitenteil hinten*).
-- vorne: Länge **G** (gefalzt C + G + B), Breite wie das durchgehende (190);
-- Mitte: Länge **I**, gleiche Breite;
-- H (Überlappung) steckt in G und I und ändert keines der Teile;
-- Vorderteil, Hinterteil, Seitenteil hinten unverändert; Bleilappen rechnen
-  weiter mit der Gesamtlänge (G + I − H).
-
-**ANNAHME:** „wie jetzt" = Regel des durchgehenden Seitenteils, aber mit **G**
-(nicht der Summe) als Länge — sonst wäre I doppelt gezählt. Falls der Anwender
-das vordere Seitenteil über die Summe meint, ist es eine Zeile in
-`dfaZuschnitte` (`dfaSeite("b")` → `dfaLaenge`).
-
-Prüfstand `dachfenster-ausfuehrung-v3-270` 101 (separat: acht Zuschnitte, G/I/H
-einzeln verändert, Gegenproben; Mutation „separat wie Knick" → 12 rot),
-`dachfenster-schnitt-v3-260` 57 (separat wieder acht; die Zwischenfassung
-„Summe als ein Stück" steht als Gegenprobe).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

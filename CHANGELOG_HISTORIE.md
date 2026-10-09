@@ -33653,3 +33653,30 @@ jedes Mass einzeln und prüft, dass genau das richtige wirkt (Gegenproben:
 O/T/Anreiff berühren die Länge nicht mehr, Umschlag vorne/Seite auch nicht).
 **Alle offenen Annahmen zu den Abwicklungen sind damit geklärt.**
 
+
+### v3.273 — Dachfenster „separat": zwei Seitenteile je Seite
+
+Ansage (8.10.2026): „Es braucht bei separat zwei Seitenteile. Das mittlere ist
+einfach Mass I, und das vordere Seitenteil wird gerechnet wie jetzt. Alles
+andere bleibt gleich." Dazu: das „+10" beim Seitenteil gefalzt **bleibt B**.
+
+**Korrektur an v3.270:** dort hatte ich „bei zwei separaten Teilen wird auch so
+gerechnet" falsch gelesen — beide Bauarten rechneten *ein* Seitenteil mit
+G + I − H. Nun: **Knick** = sechs Zuschnitte wie bisher; **separat** = acht
+(je Seite *Seitenteil vorne*, *Seitenteil Mitte*, *Seitenteil hinten*).
+- vorne: Länge **G** (gefalzt C + G + B), Breite wie das durchgehende (190);
+- Mitte: Länge **I**, gleiche Breite;
+- H (Überlappung) steckt in G und I und ändert keines der Teile;
+- Vorderteil, Hinterteil, Seitenteil hinten unverändert; Bleilappen rechnen
+  weiter mit der Gesamtlänge (G + I − H).
+
+**ANNAHME:** „wie jetzt" = Regel des durchgehenden Seitenteils, aber mit **G**
+(nicht der Summe) als Länge — sonst wäre I doppelt gezählt. Falls der Anwender
+das vordere Seitenteil über die Summe meint, ist es eine Zeile in
+`dfaZuschnitte` (`dfaSeite("b")` → `dfaLaenge`).
+
+Prüfstand `dachfenster-ausfuehrung-v3-270` 101 (separat: acht Zuschnitte, G/I/H
+einzeln verändert, Gegenproben; Mutation „separat wie Knick" → 12 rot),
+`dachfenster-schnitt-v3-260` 57 (separat wieder acht; die Zwischenfassung
+„Summe als ein Stück" steht als Gegenprobe).
+
