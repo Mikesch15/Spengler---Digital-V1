@@ -15,7 +15,10 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  const like=`%${q}%`;
  const [repRes,measRes,amRes]=await Promise.all([
   sb.from("reports").select("*").or(`customer.ilike.${like},object.ilike.${like},order_no.ilike.${like}`).order("date",{ascending:false}).limit(30),
-  sb.from("measurements").select("*").ilike("title",like).order("date",{ascending:false}).limit(30),
+  // v3.278: archivierte Massaufnahmen erscheinen nicht in der Suche (Ansage des
+  // Anwenders). Serverseitig gefiltert, nicht nach dem limit(30) - sonst
+  // verdraengten Archivierte die Treffer, und weniger als 30 kaemen an.
+  sb.from("measurements").select("*").ilike("title",like).eq("archived",false).order("date",{ascending:false}).limit(30),
   sb.from("ausmass").select("*").ilike("title",like).order("date",{ascending:false}).limit(30),
  ]);
  const qLower=q.toLowerCase();
@@ -33,7 +36,7 @@ const debouncedGlobalSearch=debounce(async(q)=>{
  if(projIds.size){
   const [r2,m2,a2]=await Promise.all([
    sb.from("reports").select("*").in("project_id",[...projIds]).order("date",{ascending:false}).limit(30),
-   sb.from("measurements").select("*").in("project_id",[...projIds]).order("date",{ascending:false}).limit(30),
+   sb.from("measurements").select("*").in("project_id",[...projIds]).eq("archived",false).order("date",{ascending:false}).limit(30),
    sb.from("ausmass").select("*").in("project_id",[...projIds]).order("date",{ascending:false}).limit(30),
   ]);
   const mergeById=(a,b)=>{const seen=new Set(a.map(x=>x.id));return a.concat((b||[]).filter(x=>!seen.has(x.id)))};
