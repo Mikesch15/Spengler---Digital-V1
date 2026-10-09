@@ -3,9 +3,28 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.282`
+- Aktueller Entwicklungsstand: `v3.283`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.283 — Massaufnahme im Projekt öffnet sich; Freigeben aus der Liste
+
+Ansage (9.10.2026): „Wenn ich eine Massaufnahme im Projekt anklicke, sollte diese
+sich öffnen und nicht die Rüstliste aufklappen. Ausserdem möchte ich die
+Massaufnahmen freigeben können, ohne diese öffnen zu müssen."
+
+`js/70 a2MessZeileHtml` (nur Register „Massaufnahme" der Projektseite): die Zeile
+trägt `data-a2-meas` (öffnet das Formular); das Rüstblatt klappt ein eigener Knopf
+`data-a2-rb` darunter auf (v3.211-Blatt unverändert, Herstellung nutzt weiter
+`a2RbZeileHtml`). `data-a2-freigeben` erscheint, wenn `mwNaechsterSchritt(m)` sagt,
+dass ICH freigeben bzw. erneut freigeben darf (Aufnehmer; Workflow an).
+`js/44 mwFreigebenAusListe(id)` nimmt die Zeile aus den Zwischenspeichern, setzt
+`mwStand` und ruft dasselbe `mwFreigeben()` (Rückfrage, RPC `measurement_freigeben`,
+Zuweisen-Dialog) – keine zweite Freigabe-Logik. Sprung aus der Suche
+(`A2_TREFFER`, `data-a2-rb`) trifft den Rüstblatt-Knopf, bleibt wirksam.
+Prüfstand `freigeben-liste-v3-283` (11; zwei Mutationsproben rot);
+`ansicht2-projekt-v3-151` auf den neuen Vertrag umgestellt (Zeile öffnet,
+Rüstblatt per Knopf), Hilfe „Rüstblatt" angepasst.
 
 ### v3.282 — Alter Dachfenster-Zuschnitt: Warnung, bewusste Wahl; „Was ist neu" höchstens 5
 
@@ -27,44 +46,6 @@ Speichern setzt bei freigegebenen Aufnahmen die Freigabe zurück (Workflow-Trigg
 `WIN_MAX_VERSIONEN`=5 Versionen.
 Prüfstand `alt-warnung-v3-282` (10; Mutationsproben je rot);
 `dachfenster-ausfuehrung-v3-270` auf den neuen Vertrag umgestellt, mit Gegenprobe.
-
-### v3.281 — Korrektur an v3.280: Satz zur Fotowand
-
-v3.280 ging **rot** hinaus: `navigation-v3-203` (Abschnitt C) verlangt, dass das
-Dateien-Register die Fotowand „Alle Fotos" beschriftet nennt. Ich hatte den Satz
-unter dem Knopf umformuliert und das Wort gestrichen. Die Fotowand ist weiter
-erreichbar, nur der Hinweis fehlte — der Prüfstand hat recht, nicht angepasst.
-Behoben, indem der Satz sie wieder nennt.
-
-**Warum ich es erst im Lauf nach dem Push sah:** die Schnellprüfung hatte ich
-**nach Namen** zusammengesucht (`ansicht|a2|aufgaben|projekt|…`) — `navigation`
-fehlte darin. Genau der Fall, vor dem `CLAUDE.md` bei `js/70` warnt („ein Name ist
-keine Abhängigkeit"). Für Änderungen an `js/70`/`js/45` künftig **alle**
-Prüfstände mit `ansicht`, `a2`, `navigation`, `start`, `aufgaben`, `leiste`,
-`bereiche`, `projekt` **und** `register`/`mehr` mitnehmen.
-
-### v3.280 — Projektfotos im Register „Dateien"
-
-Ansage (9.10.2026): „Alle Fotos, die in einem Projekt in verschiedenen
-Massaufnahmen gemacht wurden, sollen in den Projektfotos zu sehen sein."
-
-**Befund:** die Fotowand „📷 Alle Fotos" (`js/24 cockpitFotoListe()`, seit
-v3.142) sammelte schon Fotos **und** Skizzen aus allen Massaufnahmen (auch
-archivierten — `projectMeasurementsCache` hält alle), Ausmass, Rapporten,
-Offerten, Bilddateien. In der **neuen Ansicht** lag sie aber hinter dem Knopf
-„Dateien, Fotos und Verlauf öffnen"; das Register „Dateien" (`js/70
-a2RegDateien`) zeigte nur `projectFilesCache`. **Annahme:** „Projektfotos"
-meint dieses Register. Ein Fehler in der Sammlung selbst wurde **nicht**
-gefunden (sie ist eine reine Funktion der Spalten); wer meint, dort fehlten
-Bilder, muss sagen, welche.
-**Umsetzung:** `a2FotosHtml()` baut aus **derselben** `cockpitFotoListe()` die
-Kacheln (Klassen `medien-galerie`/`medien-kachel` wie die Fotowand), oben im
-Register; Vorschauen nach dem Zeichnen (`medienThumbsAufloesen` in
-`a2Zeichnen`, nur wenn solche Bilder da sind); Grossansicht über
-`medienGrossOeffnen` (delegierter Klick); erst die 30 neuesten, Knopf
-`data-a2-tu="fotosalle"` zeigt alle; ohne Bilder kein Abschnitt. Druck und
-Herkunftsfilter bleiben in der Fotowand.
-Prüfstand `projektfotos-v3-280` (12; zwei Mutationsproben rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

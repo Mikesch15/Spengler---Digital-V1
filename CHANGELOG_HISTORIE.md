@@ -33859,3 +33859,42 @@ Präfix, Verweis-Prüfung, Aufruf entfernt, Abfragefehler) — Datenbank und
 Speicher gestubbt; der **echte** Speichern-Weg ist dabei durchlaufen
 (Hochladen → Lesen → UPDATE → Löschen), gegen die echte Datenbank lief nichts.
 
+
+### v3.281 — Korrektur an v3.280: Satz zur Fotowand
+
+v3.280 ging **rot** hinaus: `navigation-v3-203` (Abschnitt C) verlangt, dass das
+Dateien-Register die Fotowand „Alle Fotos" beschriftet nennt. Ich hatte den Satz
+unter dem Knopf umformuliert und das Wort gestrichen. Die Fotowand ist weiter
+erreichbar, nur der Hinweis fehlte — der Prüfstand hat recht, nicht angepasst.
+Behoben, indem der Satz sie wieder nennt.
+
+**Warum ich es erst im Lauf nach dem Push sah:** die Schnellprüfung hatte ich
+**nach Namen** zusammengesucht (`ansicht|a2|aufgaben|projekt|…`) — `navigation`
+fehlte darin. Genau der Fall, vor dem `CLAUDE.md` bei `js/70` warnt („ein Name ist
+keine Abhängigkeit"). Für Änderungen an `js/70`/`js/45` künftig **alle**
+Prüfstände mit `ansicht`, `a2`, `navigation`, `start`, `aufgaben`, `leiste`,
+`bereiche`, `projekt` **und** `register`/`mehr` mitnehmen.
+
+### v3.280 — Projektfotos im Register „Dateien"
+
+Ansage (9.10.2026): „Alle Fotos, die in einem Projekt in verschiedenen
+Massaufnahmen gemacht wurden, sollen in den Projektfotos zu sehen sein."
+
+**Befund:** die Fotowand „📷 Alle Fotos" (`js/24 cockpitFotoListe()`, seit
+v3.142) sammelte schon Fotos **und** Skizzen aus allen Massaufnahmen (auch
+archivierten — `projectMeasurementsCache` hält alle), Ausmass, Rapporten,
+Offerten, Bilddateien. In der **neuen Ansicht** lag sie aber hinter dem Knopf
+„Dateien, Fotos und Verlauf öffnen"; das Register „Dateien" (`js/70
+a2RegDateien`) zeigte nur `projectFilesCache`. **Annahme:** „Projektfotos"
+meint dieses Register. Ein Fehler in der Sammlung selbst wurde **nicht**
+gefunden (sie ist eine reine Funktion der Spalten); wer meint, dort fehlten
+Bilder, muss sagen, welche.
+**Umsetzung:** `a2FotosHtml()` baut aus **derselben** `cockpitFotoListe()` die
+Kacheln (Klassen `medien-galerie`/`medien-kachel` wie die Fotowand), oben im
+Register; Vorschauen nach dem Zeichnen (`medienThumbsAufloesen` in
+`a2Zeichnen`, nur wenn solche Bilder da sind); Grossansicht über
+`medienGrossOeffnen` (delegierter Klick); erst die 30 neuesten, Knopf
+`data-a2-tu="fotosalle"` zeigt alle; ohne Bilder kein Abschnitt. Druck und
+Herkunftsfilter bleiben in der Fotowand.
+Prüfstand `projektfotos-v3-280` (12; zwei Mutationsproben rot).
+
