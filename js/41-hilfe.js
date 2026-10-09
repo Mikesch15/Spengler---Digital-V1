@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.278.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.279.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2387,7 +2387,12 @@ Liste zeigt sie mit Pfad, Grösse und Datum.</p>
 direkt, PDF und Tabellen als Link. Der Link gilt fünf Minuten und lässt sich nur
 für eine Datei ausstellen, die der Server selbst als verwaist kennt; so lässt
 sich vor dem Löschen prüfen, was weg soll.</p>
-<p>Es wird nichts automatisch gelöscht. Beim Löschen prüft der Server die
+<p><b>Neue Verwaiste entstehen kaum noch:</b> speicherst du eine Massaufnahme,
+deren Skizze oder Foto du ersetzt oder entfernt hast, löscht die App die ersetzte
+Datei selbst – aber nur nach erfolgreichem Speichern, nur im eigenen Ordner dieser
+Massaufnahme und nie eine Datei, auf die eine andere Massaufnahme noch zeigt. Was
+vor diesem Stand liegen blieb, steht weiterhin in dieser Liste.</p>
+<p>Alles andere wird nicht automatisch gelöscht. Beim Löschen prüft der Server die
 Liste nochmals selbst: eine Datei, auf die noch etwas zeigt, kann darüber
 nicht entfernt werden.</p>`},
 "warteschlange":{titel:"Wartet auf die Übertragung",text:`

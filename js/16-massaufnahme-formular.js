@@ -558,12 +558,20 @@ $("saveMeasurement").onclick=async()=>{
    updated_by:currentProfile?currentProfile.id:null,
    updated_at:jetzt
   };
+  // v3.279: Was ist VOR diesem Speichern in der Datenbank abgelegt? Daraus ergibt
+  // sich nach dem Speichern, welche Bilder ersetzt oder entfernt wurden (siehe
+  // measBilderAufraeumen). Gelesen wird die Zeile selbst, nicht der Zustand des
+  // Formulars: nur sie sagt, was wirklich im Speicher haengt.
+  const bilderVorher=workingId&&!warNeu?await measBilderGespeichert(workingId):[];
   // v3.06: Der Workflow-Trigger kann beim Speichern die Freigabe verfallen
   // lassen. Das steht nur in der zurueckgelesenen Zeile - deshalb .select().
   const {data:gespeichert,error}=workingId
    ?await sb.from("measurements").update(payload).eq("id",workingId).select("id,workflow_status,freigabe_verfallen")
    :await sb.from("measurements").insert({...payload,created_by:currentProfile?currentProfile.id:null,created_at:jetzt}).select("id,workflow_status,freigabe_verfallen");
   if(error)throw error;
+  // v3.279: erst NACH dem erfolgreichen Speichern - ein gescheiterter Versuch
+  // darf nie eine Datei kosten, auf die die gespeicherte Zeile noch zeigt.
+  await measBilderAufraeumen(workingId,measSelectedProjectId,bilderVorher,photoUrls.concat(sketchUrls));
   if(typeof mwNachSpeichern==="function")mwNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
   currentMeasurementId=workingId;
   currentMeasurementMeta=warNeu
@@ -580,6 +588,57 @@ $("saveMeasurement").onclick=async()=>{
  }
  $("saveMeasurement").disabled=false;
 };
+
+// ---- Ersetzte Bilder aufraeumen (v3.279) -----------------------------------
+// Ansage des Anwenders (9.10.2026): die App soll verwaiste Dateien beim
+// Ersetzen selbst loeschen. Vorher lud jedes erneute Speichern einer bearbeiteten
+// Skizze eine NEUE Datei hoch und liess die alte im Speicher liegen (belegt am
+// Beispiel Massaufnahme 114: erste Fassung 08:19:22, ersetzt 08:19:57).
+//
+// Sicherungen - geloescht wird nur, wenn ALLES davon zutrifft:
+//   1. Die Datei stand VOR dem Speichern in dieser Massaufnahme (gelesen aus der
+//      Zeile, nicht aus dem Formular) und steht NACH dem Speichern nicht mehr
+//      darin: sie wurde ersetzt oder entfernt.
+//   2. Sie liegt im EIGENEN Ordner dieser Massaufnahme
+//      "measurements/<Projekt>/<Massaufnahme>/". Aeltere flache Pfade, Dateien
+//      anderer Massaufnahmen oder Projekte werden nie angefasst.
+//   3. Keine andere Massaufnahme des Projekts verweist darauf.
+//   4. Das Speichern selbst ist gelungen (der Aufruf steht hinter dem UPDATE).
+// Scheitert das Loeschen, ist das kein Fehler des Speicherns: die Datei bleibt
+// dann als verwaiste liegen und taucht wie bisher in der System-Administration auf.
+function measBildPfade(z){
+ if(!z)return [];
+ const l=[];
+ [z.photo_path,z.sketch_path].forEach(x=>{if(x)l.push(x)});
+ [z.photo_paths,z.sketch_paths].forEach(a=>{if(Array.isArray(a))a.forEach(x=>{if(x)l.push(x)})});
+ return [...new Set(l)];
+}
+async function measBilderGespeichert(id){
+ try{
+  const {data,error}=await sb.from("measurements").select("photo_path,sketch_path,photo_paths,sketch_paths").eq("id",id).maybeSingle();
+  if(error||!data)return [];
+  return measBildPfade(data);
+ }catch(e){return []}
+}
+async function measBilderAufraeumen(id,projektId,vorher,nachher){
+ try{
+  const bleibt=new Set(nachher||[]);
+  const praefix=`measurements/${projektId}/${id}/`;
+  let weg=(vorher||[]).filter(pf=>typeof pf==="string"&&!bleibt.has(pf)&&pf.startsWith(praefix));
+  if(!weg.length)return 0;
+  // 3. Verweist eine ANDERE Massaufnahme des Projekts darauf, bleibt die Datei.
+  const {data:andere,error}=await sb.from("measurements")
+   .select("id,photo_path,sketch_path,photo_paths,sketch_paths").eq("project_id",projektId).neq("id",id);
+  if(error)return 0;                       // im Zweifel nichts loeschen
+  const belegt=new Set();
+  (andere||[]).forEach(z=>measBildPfade(z).forEach(x=>belegt.add(x)));
+  weg=weg.filter(pf=>!belegt.has(pf));
+  if(!weg.length)return 0;
+  const {error:eDel}=await sb.storage.from("measurements").remove(weg);
+  if(eDel){console.error("Ersetzte Bilder nicht entfernt:",eDel);return 0}
+  return weg.length;
+ }catch(e){console.error("Aufraeumen ersetzter Bilder:",e);return 0}
+}
 
 let measurementListProjectId=null;
 async function renderMeasurementsOverview(){
