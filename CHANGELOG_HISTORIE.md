@@ -33974,3 +33974,33 @@ Tor 10, ohne Bezeichnung am Ende, dann nach Art). Wirkt in der Projektliste
 Rüstliste unberührt). Annahme: „Bezeichnung" = das Feld Titel der Aufnahme.
 Prüfstand `massaufnahmen-sortierung-v3-285` (5; zwei Mutationsproben rot).
 
+
+### v3.286 — Eigene Dialoge statt Browser-Dialoge
+
+Meldung (9.10.2026, Bildschirmfoto): der Dialog beginne mit „Auf mikesch15.github.io
+wird Folgendes angezeigt:“ — muss das sein? **Nein, aber der Kopf gehört dem Browser**
+und lässt sich bei `alert()/confirm()/prompt()` nicht weglassen. Ansage: „Ja, das
+kannst du alles umsetzen“ (alle ersetzen).
+**Neu:** `js/84-app-dialoge.js` mit `appAlert(text)`, `appConfirm(text,{ok,abbrechen,gefahr})`,
+`appPrompt(text,vorgabe)` (Promise; Reihe, Escape/Enter, Zurück-Taste = Abbrechen über
+`ZURUECK_EXTRA`/`ZURUECK_WEG` in js/54); Markup `#appDialogModal` in `index.html` **vor
+den Skripten** (js/54 sucht den Schirm beim Start), CSS `.app-dialog` in `css/01-basis.css`,
+Eintrag in `sw.js` UND `index.html`.
+**Umbau:** 397 Aufrufe in 38 Dateien mit einem AST-Werkzeug (acorn): `alert(`→`appAlert(`,
+`confirm(`/`prompt(`→`await appConfirm(`/`await appPrompt(`, umgebende Funktionen `async`,
+Aufrufer der so geänderten benannten Funktionen (`a2FormularVerlassen`,
+`einlaufblechZuruecksetzen`, `lfInvMindestAlle`, `lfZuordnenAlleSetzen`) ebenfalls `await`.
+Danach von Hand: `await appAlert` vor `location.href` in `js/69`; drei **echte Folgefehler**,
+die die Regression gefunden hat — js/15/js/14 (Rinnen-/Skizzen-Übernahme) tauschten das Array
+im Handler, und der Wurzel-Handler in js/29/30/31 las es im selben Blubbern **vor** der
+Rückfrage-Antwort → neue Hooks `ebaNachUebernahme`/`ebkaNachUebernahme`/`fpaNachUebernahme`.
+**Prüfstände:** automatisierte Browser (`navigator.webdriver`) behalten die NATIVEN Dialoge
+(sonst müssten ~106 Prüfstände mit `page.on("dialog")` umgebaut werden); `window.__appDialogEcht=true`
+schaltet auf die eigenen. `app-dialoge-v3-286` (22; drei Mutationsproben rot) prüft die eigenen
+Dialoge einschliesslich eines echten Ablaufs und dass im Quelltext kein nativer Aufruf mehr steht.
+Angepasst an „jetzt asynchron“ (nur `await`/Wartezeit, keine Erwartung gelockert): `leiste-ueberall-v3-162`,
+`einlaufblech-app-v2-74`, `einlaufblech-konisch-app-v2-76`, `freies-profil-app-v2-77`, `lieferanten-lager-v3-231`.
+**Nicht live geprüft:** der Anblick auf dem Handy und der Ablauf gegen echte Daten.
+**Dauerregel:** neue Rückfragen/Hinweise nur mit `appConfirm`/`appAlert`/`appPrompt` (der Prüfstand
+schlägt bei einem nativen Aufruf an); wer eine Antwort braucht, schreibt `await` und macht die Funktion `async`.
+

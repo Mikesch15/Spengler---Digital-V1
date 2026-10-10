@@ -3,9 +3,29 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.288`
+- Aktueller Entwicklungsstand: `v3.289`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.289 — Übersichtlichkeit: Projektliste und Projekt-Übersicht (Branch `ui/uebersichtlichkeit-cockpit`, NICHT auf main)
+
+Auftrag (10.10.2026, Datei „Auftrag_Claude_Spengler-DIGITAL_Uebersichtlichkeit"): Oberfläche
+gezielt vereinfachen, ohne Abläufe zu beschädigen; zuerst nur Projektübersicht und Cockpit;
+Entwicklung auf Feature-Branch, nicht auf main (Auftrag überstimmt hier die Regel „immer main").
+**Befund (Code):** `a2SeiteProjekte` (js/70) war schon schlank (Suche, Liste, Neues Projekt,
+Archiv und Filter) — nur die Zeile war knapp. `a2RegUebersicht` (js/70) zeigte oben den grossen
+Ablauf, erst danach den Nächsten Schritt; Kennzahlen als grosse bunte Kacheln; Stammdaten mit
+vollbreitem Bearbeiten-Knopf; „Material & Zuschnitt" als vollbreiter Knopf. Die Kopfzeile trägt die
+Projektidentität bereits (Adresse, Name, Auftrag) — unverändert.
+**Umgesetzt (nur Markup/CSS, keine Fachlogik, keine IDs/Data-Attribute entfernt):** Reihenfolge
+Nächster Schritt → Hinweise (nur wenn vorhanden, Zeilenumbruch-Lücke behoben) → Ablauf (leise,
+kleinere Marken) mit kleinem Schnellzugriff „Material & Zuschnitt" → Stand (kleine Kennzahlen) →
+Stammdaten (kompakt, „Stammdaten bearbeiten" klein rechts, ≥ 40 px). Projektliste: Klasse
+`a2-zeile-projekt` (≥ 50 px, 15 px Titel, Umbruch langer Namen). Neue CSS-Regeln am Ende von
+`css/05-ansicht2.css` mit vorhandenen Variablen. Nicht angefasst: Navigation, Heute-Seite, Cockpit-
+Rückkehrlogik (js/24), Formulare, Druck, RLS.
+Prüfstand `uebersichtlichkeit-v3-289` (21; Reihenfolge-Mutation rot) — misst Reihenfolge, Vollständigkeit,
+kein seitliches Scrollen und Touch-Höhen bei 360/412/768 px (Chromium kopflos, **kein echtes Gerät**).
 
 ### v3.288 — Ausmass, Offerten und Dateien ohne Umweg löschen
 
@@ -37,35 +57,6 @@ Schliessen (`measEditZurueck`/`reportZurueck`). „Alles löschen" heisst „�
 Berechtigung entscheidet weiter die Datenbank (RLS). Hochgeladene Dateien einer gelöschten
 Massaufnahme bleiben als „verwaist" auffindbar (wie beim ×). Hilfe ergänzt.
 Prüfstand `loeschen-formular-v3-287` (11; zwei Mutationsproben rot).
-
-### v3.286 — Eigene Dialoge statt Browser-Dialoge
-
-Meldung (9.10.2026, Bildschirmfoto): der Dialog beginne mit „Auf mikesch15.github.io
-wird Folgendes angezeigt:“ — muss das sein? **Nein, aber der Kopf gehört dem Browser**
-und lässt sich bei `alert()/confirm()/prompt()` nicht weglassen. Ansage: „Ja, das
-kannst du alles umsetzen“ (alle ersetzen).
-**Neu:** `js/84-app-dialoge.js` mit `appAlert(text)`, `appConfirm(text,{ok,abbrechen,gefahr})`,
-`appPrompt(text,vorgabe)` (Promise; Reihe, Escape/Enter, Zurück-Taste = Abbrechen über
-`ZURUECK_EXTRA`/`ZURUECK_WEG` in js/54); Markup `#appDialogModal` in `index.html` **vor
-den Skripten** (js/54 sucht den Schirm beim Start), CSS `.app-dialog` in `css/01-basis.css`,
-Eintrag in `sw.js` UND `index.html`.
-**Umbau:** 397 Aufrufe in 38 Dateien mit einem AST-Werkzeug (acorn): `alert(`→`appAlert(`,
-`confirm(`/`prompt(`→`await appConfirm(`/`await appPrompt(`, umgebende Funktionen `async`,
-Aufrufer der so geänderten benannten Funktionen (`a2FormularVerlassen`,
-`einlaufblechZuruecksetzen`, `lfInvMindestAlle`, `lfZuordnenAlleSetzen`) ebenfalls `await`.
-Danach von Hand: `await appAlert` vor `location.href` in `js/69`; drei **echte Folgefehler**,
-die die Regression gefunden hat — js/15/js/14 (Rinnen-/Skizzen-Übernahme) tauschten das Array
-im Handler, und der Wurzel-Handler in js/29/30/31 las es im selben Blubbern **vor** der
-Rückfrage-Antwort → neue Hooks `ebaNachUebernahme`/`ebkaNachUebernahme`/`fpaNachUebernahme`.
-**Prüfstände:** automatisierte Browser (`navigator.webdriver`) behalten die NATIVEN Dialoge
-(sonst müssten ~106 Prüfstände mit `page.on("dialog")` umgebaut werden); `window.__appDialogEcht=true`
-schaltet auf die eigenen. `app-dialoge-v3-286` (22; drei Mutationsproben rot) prüft die eigenen
-Dialoge einschliesslich eines echten Ablaufs und dass im Quelltext kein nativer Aufruf mehr steht.
-Angepasst an „jetzt asynchron“ (nur `await`/Wartezeit, keine Erwartung gelockert): `leiste-ueberall-v3-162`,
-`einlaufblech-app-v2-74`, `einlaufblech-konisch-app-v2-76`, `freies-profil-app-v2-77`, `lieferanten-lager-v3-231`.
-**Nicht live geprüft:** der Anblick auf dem Handy und der Ablauf gegen echte Daten.
-**Dauerregel:** neue Rückfragen/Hinweise nur mit `appConfirm`/`appAlert`/`appPrompt` (der Prüfstand
-schlägt bei einem nativen Aufruf an); wer eine Antwort braucht, schreibt `await` und macht die Funktion `async`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
