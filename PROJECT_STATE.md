@@ -3,9 +3,22 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.293`
+- Aktueller Entwicklungsstand: `v3.294`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.294 — Rüstblatt: bei Dachfenster und Kamin nur die kurze Auswahl
+
+Ansage (10.10.2026): „Jetzt steht mir zu viel dort, z. B. beim Dachfenster. Es reicht, wenn die Breite
+vorne und hinten sowie der Lattenabstand, die Gesamtzahl Bleilappen, die Eindeckart und das Material
+da steht und ob gefalzt oder nicht; die restlichen Infos stehen zum Teil doppelt da.“
+`js/80 RB_ANGABEN` + `rbKurzeAngabenHtml`: für `dachfenstereinfassung` (Deckungsmaterial, Material,
+Ausführung, Breite vorne / hinten, Lattenabstand + „Bleilappen gesamt“ aus `data.bleilappen.gesamt`) und
+`kamineinfassung` (dasselbe ohne Ausführung, **zusätzlich Kaminlänge längs Dach** — Annahme: sie steht
+nicht in der Zeichnung) nur diese Zellen, gelesen aus dem PDF-Aufbau; Stückliste und Bleilappen-Tabelle
+entfallen (Zuschnittliste und Zeichnung bleiben). Alle übrigen Arten behalten den vollen Block (v3.293);
+ob die auch gekürzt werden sollen, ist offen. Prüfstand `ruestblatt-masse-v3-293` um Abschnitt D erweitert
+(keine weiteren Angaben, ein Block, Gesamtzahl stimmt mit dem Datensatz; Mutation rot).
 
 ### v3.293 — Rüstblatt: alle Produktionsmasse ohne Klick
 
@@ -48,23 +61,6 @@ Prüfstand `ruesten-montage-v3-292` (24; vier Mutationsproben rot); `startseite-
 `workflow-v3-05`, `aufgaben-je-projekt-v3-257` auf den neuen Vertrag umgestellt (mit Gegenprobe:
 Freigeben/Zuweisen öffnen weiter das Formular). **Nicht live gegen Supabase geprüft.**
 **Nächste Priorität:** laut Roadmap nicht feststellbar (Dokument liegt nicht im Repo).
-
-### v3.291 — Aufgabenliste „Heute“ zuverlässiger (Auftrag Aufgaben-/Benachrichtigungszentrale)
-
-Auftrag (10.10.2026, direkt auf main): vorhandene Zentrale vervollständigen, nichts doppelt bauen.
-**Bestand (Code):** js/45 leitet die persönlichen Aufgaben aus `measurements` ab (Aufnehmer →
-freigeben/zuweisen/gerüstet-Monteur/abschliessen, Rüster → zu_ruesten, Monteur → zu_montieren), kein
-zweites System, RLS/Mandant unverändert, Klick führt zur Massaufnahme, Liste lädt nach jeder
-Statusaktion nach (`mwNachAenderung`), Admin-Gesamtübersicht getrennt, Stellvertretungsfreigabe v3.290
-unverändert (die persönliche Liste bleibt bewusst „meine“). **Belegte Lücken, jetzt geschlossen:**
-(A) archivierte Massaufnahmen / Massaufnahmen in archivierten Projekten erschienen als offene Aufgaben
-(`archived=false` in allen drei Abfragen, Projektfilter über `allProjects`); (B) ein gescheiterter Abruf oder
-Offline-Zustand hielt die Liste still auf altem Stand (jetzt Hinweis „… Stand von HH:MM Uhr“,
-`aufgabenStandHinweis`, Anzeige in `a2SeiteHeute`); (C) kein Nachladen beim Zurückkehren in die App
-(`visibilitychange`/`online`, ab 60 s Alter, `aufgabenBeiRueckkehr`). Keine Migration, keine neue Tabelle.
-Prüfstand `aufgaben-zuverlaessig-v3-291` (15; vier Mutationsproben rot). Nicht live gegen Supabase geprüft.
-**Bewusst nicht gebaut:** Push-Benachrichtigungen, „Änderungen seit letztem Besuch“ (kein Nachweis, dass
-sie zuverlässig aus dem Verlauf herleitbar sind), Glocke/Zähler.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

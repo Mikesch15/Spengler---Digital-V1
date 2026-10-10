@@ -34078,3 +34078,21 @@ frei", `mwStellvertretungText` bei „Freigegeben von"; Liste/Als Nächstes folg
 `freigabe-stellvertretung-v3-290` (9; zwei Mutationsproben rot), `workflow-v3-05` umgestellt.
 Zusammenfassung: `Zusammenfassung_v3.290_Freigabe_Stellvertretung.txt`.
 
+
+### v3.291 — Aufgabenliste „Heute“ zuverlässiger (Auftrag Aufgaben-/Benachrichtigungszentrale)
+
+Auftrag (10.10.2026, direkt auf main): vorhandene Zentrale vervollständigen, nichts doppelt bauen.
+**Bestand (Code):** js/45 leitet die persönlichen Aufgaben aus `measurements` ab (Aufnehmer →
+freigeben/zuweisen/gerüstet-Monteur/abschliessen, Rüster → zu_ruesten, Monteur → zu_montieren), kein
+zweites System, RLS/Mandant unverändert, Klick führt zur Massaufnahme, Liste lädt nach jeder
+Statusaktion nach (`mwNachAenderung`), Admin-Gesamtübersicht getrennt, Stellvertretungsfreigabe v3.290
+unverändert (die persönliche Liste bleibt bewusst „meine“). **Belegte Lücken, jetzt geschlossen:**
+(A) archivierte Massaufnahmen / Massaufnahmen in archivierten Projekten erschienen als offene Aufgaben
+(`archived=false` in allen drei Abfragen, Projektfilter über `allProjects`); (B) ein gescheiterter Abruf oder
+Offline-Zustand hielt die Liste still auf altem Stand (jetzt Hinweis „… Stand von HH:MM Uhr“,
+`aufgabenStandHinweis`, Anzeige in `a2SeiteHeute`); (C) kein Nachladen beim Zurückkehren in die App
+(`visibilitychange`/`online`, ab 60 s Alter, `aufgabenBeiRueckkehr`). Keine Migration, keine neue Tabelle.
+Prüfstand `aufgaben-zuverlaessig-v3-291` (15; vier Mutationsproben rot). Nicht live gegen Supabase geprüft.
+**Bewusst nicht gebaut:** Push-Benachrichtigungen, „Änderungen seit letztem Besuch“ (kein Nachweis, dass
+sie zuverlässig aus dem Verlauf herleitbar sind), Glocke/Zähler.
+
