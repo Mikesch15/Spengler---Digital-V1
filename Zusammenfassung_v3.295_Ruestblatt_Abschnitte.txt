@@ -1,0 +1,23 @@
+SPENGLER-DIGITAL – ZUSAMMENFASSUNG v3.295 (10.10.2026)
+Rüstblatt: welches Stück aus welchem Abschnitt
+
+WUNSCH
+Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle abgeschnitten werden, muss man wissen, welche
+Stücke aus welchen Abschnitten geschnitten werden – auch im Rüstblatt.
+
+UMGESETZT
+- Unter der Zuschnittliste steht neu der Block «Welches Stück aus welchem Abschnitt»
+  (bei Stangen: «aus welcher Stange», bei Tafeln: «aus welcher Tafel»).
+- Je Abschnitt/Streifen sind die Stück-Nummern mit Länge aufgeführt, z. B.
+  «Abschnitt 1 · Streifen 1: ① 1'200  ② 1'300».
+- Der Block erscheint nur, wenn es mehr als einen Streifen (bzw. mehr als eine Stange) gibt.
+- Es wird der gespeicherte Zuschnittplan verwendet, nichts neu berechnet.
+- Die Belegung auf der Material-Seite bleibt unverändert.
+
+GEÄNDERT
+js/33-zuschnitt.js, js/80-ruestblatt.js, css/01-basis.css, neuer Prüfstand
+ruestblatt-abschnitte-v3-295 (9 Prüfungen), Version/Was-ist-neu/Anleitung 3.295. Keine Datenbankänderung.
+
+OFFEN
+- Sollen die übrigen Massaufnahme-Arten ihre Rüstblatt-Angaben auch kürzen (bisher nur Dachfenster/Kamin)?
+- Nicht auf echtem Gerät und nicht live gegen Supabase geprüft.
