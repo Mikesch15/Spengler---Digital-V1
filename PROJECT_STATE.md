@@ -3,9 +3,28 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.289`
+- Aktueller Entwicklungsstand: `v3.290`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.290 — Freigabe: Admin darf stellvertretend freigeben
+
+Auftrag (Massaufnahme-Workflow) + Ansage 10.10.2026: „Ja, Admin darf stellvertretend freigeben."
+**Bestandsaufnahme:** Der Workflow war vollständig vorhanden (sieben Status, getrennte Rollen,
+Freigeber/Zeit, Verlauf über `audit_log` und `measurement_versionen`, Aufgaben aus dem Status,
+Admin-Übersicht, serverseitige RPCs). Einzige echte Lücke: `measurement_freigeben` liess nur den
+Aufnehmer zu.
+**Datenbank (live eingespielt, Migration `v3290_freigabe_stellvertretung_admin`, Datei
+`supabase/migrations/…`):** nur `measurement_freigeben()` — Berechtigung „Aufnehmer ODER
+`is_admin()`", NACH `mw_firma_ok` (Mandantengrenze). Policies/RLS unverändert. Serverseitig mit vier
+Fällen getestet (Rollback, keine Datenänderung: Zeile war abgeschlossen → Abbruch vor jeder
+Änderung): fremder MA abgewiesen, Admin gleiche Firma Berechtigung ok, Admin fremde Firma „nicht
+gefunden", Aufnehmer ok. **Nicht live geprüft:** eine echte Freigabe durch den Admin.
+**Client:** `js/44 mwSchrittDarfIch` (Aufnehmer || Admin), Rückfrage „Du gibst stellvertretend für X
+frei", `mwStellvertretungText` bei „Freigegeben von"; Liste/Als Nächstes folgen automatisch.
+`freigegeben_von` = Admin ≠ `created_by` → im Verlauf erkennbar. Prüfstand
+`freigabe-stellvertretung-v3-290` (9; zwei Mutationsproben rot), `workflow-v3-05` umgestellt.
+Zusammenfassung: `Zusammenfassung_v3.290_Freigabe_Stellvertretung.txt`.
 
 ### v3.289 — Übersichtlichkeit: Projektliste und Projekt-Übersicht (Branch `ui/uebersichtlichkeit-cockpit`, NICHT auf main)
 
@@ -40,23 +59,6 @@ gespeichertem Eintrag (`loeschKnopfBinden`: `hidden`-Beobachter + Klick im Formu
 `js/09 projektDateiLoeschen(id)` (Eintrag + Datei im Speicher) für Cockpit UND die neue Ansicht;
 Papierkorb-Knopf `data-a2-datei-weg` je Datei im Register Dateien. Die Berechtigung entscheidet die
 Datenbank (RLS). Prüfstand `loeschen-weitere-v3-288` (20; drei Mutationsproben rot).
-
-### v3.287 — Massaufnahme und Regierapport im Formular löschen
-
-Frage (9.10.2026): „Wo habe ich die Möglichkeit, eine Massaufnahme resp. einen
-Regierapport zu löschen? Wenn es das an keinem offensichtlichen Ort gibt, bitte anpassen."
-**Befund:** das × gab es nur in den alten Listen (`data-del-measurement`, `data-del-report`,
-`data-del-project-measurement`); die neue Ansicht (Register Massaufnahme/Rapport) hatte
-keine Möglichkeit, und „Alles löschen" im Rapport leerte nur das Formular.
-**Neu:** `#measDelete` („🗑 Massaufnahme löschen", js/16 `measLoeschenAusFormular`) und
-`#reportDelete` („🗑 Rapport löschen", js/24 `reportLoeschenAusFormular`) im Formular, sichtbar
-nur bei gespeichertem Eintrag (Beobachter auf `hidden` + Aufruf nach dem Speichern). Rückfrage
-über `appConfirm` (rot „Löschen"; bei freigegebener Massaufnahme mit Hinweis), `delete().select("id")`:
-0 Zeilen (RLS) wird **nicht** als Erfolg gemeldet; offline gesperrt; danach Rückweg wie beim
-Schliessen (`measEditZurueck`/`reportZurueck`). „Alles löschen" heisst „🧹 Eingaben leeren".
-Berechtigung entscheidet weiter die Datenbank (RLS). Hochgeladene Dateien einer gelöschten
-Massaufnahme bleiben als „verwaist" auffindbar (wie beim ×). Hilfe ergänzt.
-Prüfstand `loeschen-formular-v3-287` (11; zwei Mutationsproben rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

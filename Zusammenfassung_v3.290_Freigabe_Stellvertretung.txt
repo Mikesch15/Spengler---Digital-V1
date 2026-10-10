@@ -1,0 +1,42 @@
+ZUSAMMENFASSUNG v3.290 - Freigabe: Admin darf stellvertretend freigeben
+Stand: 10.10.2026
+
+WAS NEU IST
+- Ein Firmen-Administrator darf jede Massaufnahme seiner Firma freigeben (und
+  erneut freigeben), auch wenn er sie nicht selbst aufgenommen hat.
+- Ein anderer Mitarbeiter darf weiterhin NICHT freigeben.
+- Der Knopf "Freigeben" erscheint fuer den Admin im Formular, in der Liste der
+  Massaufnahmen im Projekt und bei "Als Naechstes".
+- Die Rueckfrage sagt es: "Du gibst stellvertretend fuer <Name> frei." Der Wortlaut
+  fuer den Aufnehmer selbst ist unveraendert.
+- Im Formular steht bei "Freigegeben von": "<Admin> (stellvertretend fuer <Aufnehmer>)".
+- Im Verlauf steht wie bisher, WER freigegeben hat (der Admin) - er weicht vom
+  Aufnehmer ab, so ist die Stellvertretung nachvollziehbar.
+
+WAS GLEICH BLEIBT
+- Aufnehmer, Ruester und Monteur sind weiter getrennte Rollen.
+- Nach der Freigabe sind Ruester und Monteur wie bisher standardmaessig der
+  Aufnehmer (nicht der Admin), solange noch niemand eingeteilt ist.
+- Freigeber, Datum und Uhrzeit werden gespeichert; eine Aenderung nach der
+  Freigabe laesst sie weiter verfallen.
+
+DATENBANK (schon eingespielt, Produktion)
+- Migration "v3290_freigabe_stellvertretung_admin": nur die Funktion
+  measurement_freigeben(). Einzige Aenderung: Berechtigung = Aufnehmer ODER Admin.
+- Die Firmenpruefung steht davor: ein Admin einer ANDEREN Firma wird mit
+  "Massaufnahme nicht gefunden." abgewiesen. RLS und Policies sind unveraendert.
+- Datei im Repo: supabase/migrations/v3290_freigabe_stellvertretung_admin.sql
+  (mit Hinweis zum Rueckfall).
+
+GEPRUEFT
+- Server (vier Faelle, ohne Daten zu veraendern - jede Zeile war schon abgeschlossen,
+  der Aufruf brach vor jeder Aenderung ab; die Transaktion wurde verworfen):
+  fremder Mitarbeiter -> abgewiesen; Admin gleiche Firma -> Berechtigung ok;
+  Admin fremde Firma -> abgewiesen; Aufnehmer -> Berechtigung ok.
+- Client: neuer Pruefstand "freigabe-stellvertretung-v3-290" (9 Pruefungen),
+  "workflow-v3-05" auf die neue Regel umgestellt.
+NICHT GEPRUEFT
+- Eine ECHTE Freigabe durch den Admin an einer echten, noch nicht freigegebenen
+  Massaufnahme. Es gibt keine Test-Firma; ich habe keine Produktivdaten veraendert.
+  Bitte einmal selbst ausprobieren (Massaufnahme eines anderen Mitarbeiters, die noch
+  "In Bearbeitung" ist) und im Verlauf nachsehen.

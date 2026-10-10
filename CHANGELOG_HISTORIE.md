@@ -34004,3 +34004,21 @@ Angepasst an „jetzt asynchron“ (nur `await`/Wartezeit, keine Erwartung geloc
 **Dauerregel:** neue Rückfragen/Hinweise nur mit `appConfirm`/`appAlert`/`appPrompt` (der Prüfstand
 schlägt bei einem nativen Aufruf an); wer eine Antwort braucht, schreibt `await` und macht die Funktion `async`.
 
+
+### v3.287 — Massaufnahme und Regierapport im Formular löschen
+
+Frage (9.10.2026): „Wo habe ich die Möglichkeit, eine Massaufnahme resp. einen
+Regierapport zu löschen? Wenn es das an keinem offensichtlichen Ort gibt, bitte anpassen."
+**Befund:** das × gab es nur in den alten Listen (`data-del-measurement`, `data-del-report`,
+`data-del-project-measurement`); die neue Ansicht (Register Massaufnahme/Rapport) hatte
+keine Möglichkeit, und „Alles löschen" im Rapport leerte nur das Formular.
+**Neu:** `#measDelete` („🗑 Massaufnahme löschen", js/16 `measLoeschenAusFormular`) und
+`#reportDelete` („🗑 Rapport löschen", js/24 `reportLoeschenAusFormular`) im Formular, sichtbar
+nur bei gespeichertem Eintrag (Beobachter auf `hidden` + Aufruf nach dem Speichern). Rückfrage
+über `appConfirm` (rot „Löschen"; bei freigegebener Massaufnahme mit Hinweis), `delete().select("id")`:
+0 Zeilen (RLS) wird **nicht** als Erfolg gemeldet; offline gesperrt; danach Rückweg wie beim
+Schliessen (`measEditZurueck`/`reportZurueck`). „Alles löschen" heisst „🧹 Eingaben leeren".
+Berechtigung entscheidet weiter die Datenbank (RLS). Hochgeladene Dateien einer gelöschten
+Massaufnahme bleiben als „verwaist" auffindbar (wie beim ×). Hilfe ergänzt.
+Prüfstand `loeschen-formular-v3-287` (11; zwei Mutationsproben rot).
+
