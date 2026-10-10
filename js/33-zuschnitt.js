@@ -677,6 +677,57 @@ function zuPlatzHtml(titel,stuecke,breite,einheit,belegt,rest){
 ${zuPlatzStueckeHtml(stuecke,breite,einheit)}
 </div>`;
 }
+// v3.295: Der Name eines Streifens - "Abschnitt 2 · Streifen 1" bzw. nur "Streifen 3" - EINMAL
+// hier, damit Belegung (Material & Zuschnitt) und Ruestblatt dieselbe Zuordnung zeigen.
+// Unveraendert gegenueber der Regel, die bis v3.294 in zuBelegungHtml stand.
+function zuStreifenTitel(g,p){
+ const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
+ // v3.83: die Anzahl Abschnitte entscheidet ueber "Abschnitt N · Streifen M" vs. nur
+ // "Streifen N" - direkt aus g.abschnitte, nicht aus zuAbschnitte().
+ const mehrereAbschnitte=zuZahl(g.abschnitte)>1;
+ let letzterAbschnitt=null, indexImAbschnitt=0;
+ return (g.streifen||[]).map((s,i)=>{
+  // v3.83: bei mehreren Abschnittlaengen traegt jeder Streifen seine eigene Abschnittnummer.
+  if(s.abschnittNr!==undefined){
+   if(s.abschnittNr!==letzterAbschnitt){letzterAbschnitt=s.abschnittNr;indexImAbschnitt=0}
+   indexImAbschnitt++;
+   return zuWort(p).abschnitt+" "+s.abschnittNr+" · Streifen "+indexImAbschnitt;
+  }
+  // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
+  return mehrereAbschnitte
+   ?zuWort(p).abschnitt+" "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
+   :"Streifen "+(i+1);
+ });
+}
+// v3.295, Ansage des Anwenders: "Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle
+// abgeschnitten werden, muss ich wissen, welche Stuecke aus welchen Abschnitten geschnitten
+// werden, das muss auch im Ruestblatt stehen." Die kurze Fassung der Belegung: eine Zeile je
+// Streifen (bzw. Stange) mit den Stuecknummern und -laengen. Nur wenn es MEHR ALS EINEN gibt -
+// bei einem einzigen Streifen waere die Zuordnung selbstverstaendlich und nur Rauschen.
+function zuBelegungKurzHtml(p){
+ if(!p)return "";
+ const teilTxt=x=>x.tafelTeil?" (Teil "+x.tafelTeil.teil+"/"+x.tafelTeil.teile+")":"";
+ const stueckeTxt=l=>(l||[]).map(x=>`<span class="zu-bel-st"><span class="zu-nr">${esc(x.nr===undefined||x.nr===null?"?":x.nr)}</span> ${esc(zuMm(x.laenge))}${esc(teilTxt(x))}</span>`).join("");
+ const zeile=(titel,stuecke)=>(stuecke&&stuecke.length)
+  ?`<div class="zu-bel-zeile"><b>${esc(titel)}</b><span class="zu-bel-liste">${stueckeTxt(stuecke)}</span></div>`:"";
+ let zeilen="";
+ if(p.art==="stange"){
+  const st=p.stangen||[];
+  if(st.length<2)return "";
+  zeilen=st.map((s,i)=>zeile("Stange "+(i+1)+" · "+zuMm(s.laenge)+" mm",s.stuecke)).join("");
+ }else{
+  const gruppen=p.gruppen||[];
+  if(gruppen.reduce((a,g)=>a+(g.streifen||[]).length,0)<2)return "";
+  zeilen=gruppen.map(g=>{
+   const titel=zuStreifenTitel(g,p);
+   return (gruppen.length>1?`<div class="zu-bel-gruppe">Streifenbreite ${esc(zuMm(g.breite))} mm</div>`:"")
+    +(g.streifen||[]).map((s,i)=>zeile(titel[i],s.stuecke)).join("");
+  }).join("");
+ }
+ if(!zeilen)return "";
+ return `<div class="zu-belegung-kurz"><div class="zu-bel-kopf">Welches Stück aus ${p.art==="stange"?"welcher Stange":(zuIstTafel(p)?"welcher Tafel":"welchem Abschnitt")}</div>${zeilen}</div>`;
+}
+
 function zuBelegungHtml(p){
  const e=p.einheit||"Stück";
  const wort=e==="Segment"?"Segmente":(e==="Schar"?"Scharen":"Stücke");
@@ -702,28 +753,12 @@ function zuBelegungHtml(p){
    // vs. nur "Streifen N" - direkt aus g.abschnitte, nicht aus zuAbschnitte():
    // bei mehreren unterschiedlichen Abschnittlaengen (teile) liefert
    // zuAbschnitte() dafuer bewusst kein einzelnes n (siehe dort).
-   const mehrereAbschnitte=zuZahl(g.abschnitte)>1;
-   let letzterAbschnitt=null, indexImAbschnitt=0;
+   const titel_=zuStreifenTitel(g,p);
    return `${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
 · ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
-    let titel;
-    // v3.83: bei mehreren Abschnittlaengen (ebaPackeMehrereAbschnitte, js/29)
-    // traegt jeder Streifen seine eigene Abschnittnummer - die alte Regel
-    // "Streifen 1..je gehoeren zum ersten Abschnitt" geht davon aus, dass
-    // jeder Abschnitt gleich viele Streifen hat, was hier nicht mehr gilt
-    // (ein Abschnitt mit weniger passenden Stuecken hat weniger Streifen).
-    if(s.abschnittNr!==undefined){
-     if(s.abschnittNr!==letzterAbschnitt){letzterAbschnitt=s.abschnittNr;indexImAbschnitt=0}
-     indexImAbschnitt++;
-     titel=zuWort(p).abschnitt+" "+s.abschnittNr+" · Streifen "+indexImAbschnitt;
-    }else{
-     // Streifen 1..je gehoeren zum ersten Abschnitt, je+1..2je zum zweiten.
-     titel=mehrereAbschnitte
-      ?zuWort(p).abschnitt+" "+(Math.floor(i/je)+1)+" · Streifen "+(i%je+1)
-      :"Streifen "+(i+1);
-    }
+    const titel=titel_[i];
     // v3.83: s.rest kann legitim 0 sein (Streifen exakt ausgenutzt) - das
     // waere mit "||" faelschlich als 0 verworfen und durch L-belegt ersetzt,
     // was bei mehreren Abschnittlaengen NICHT mehr automatisch 0 waere.

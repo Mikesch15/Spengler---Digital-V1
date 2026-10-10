@@ -1842,3 +1842,13 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .rb-masse .eb-cutlist th{font-size:10.5px;text-align:left;color:var(--muted);padding:4px 6px 4px 0;overflow-wrap:anywhere}
 .rb-masse .eb-cutlist td{padding:5px 6px 5px 0;border-top:1px solid var(--card-line);overflow-wrap:anywhere}
 .rb-masse .note{font-size:14px}
+
+/* ---- v3.295: Welches Stueck aus welchem Abschnitt (js/33 zuBelegungKurzHtml) ---- */
+.zu-belegung-kurz{margin:8px 0 0;padding:8px 10px;border:1px solid var(--card-line);border-radius:10px;background:var(--card-bg)}
+.zu-bel-kopf{font-size:11px;font-weight:900;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin:0 0 4px}
+.zu-bel-gruppe{font-size:12px;font-weight:800;color:var(--muted);margin:6px 0 2px}
+.zu-bel-zeile{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:4px 0;border-top:1px solid var(--card-line)}
+.zu-bel-zeile:first-of-type{border-top:0}
+.zu-bel-zeile>b{font-size:13px;flex:0 0 auto}
+.zu-bel-liste{display:flex;flex-wrap:wrap;gap:2px 10px;font-size:13px}
+.zu-bel-st{white-space:nowrap}

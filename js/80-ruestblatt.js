@@ -231,6 +231,8 @@ function rbBlattHtml(m,opt){
  if(o.ausfuehrung==="montieren")return h+"</div>";
  h+=plan
   ? ((typeof zuListeHtml==="function")?zuListeHtml(plan):"")
+    // v3.295: werden mehrere Streifen/Stangen geschnitten, steht dabei, welches Stueck woraus kommt.
+    +((typeof zuBelegungKurzHtml==="function")?zuBelegungKurzHtml(plan):"")
   : '<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>';
  return h+"</div>";
 }
