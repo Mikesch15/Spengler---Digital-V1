@@ -34058,3 +34058,23 @@ Rückkehrlogik (js/24), Formulare, Druck, RLS.
 Prüfstand `uebersichtlichkeit-v3-289` (21; Reihenfolge-Mutation rot) — misst Reihenfolge, Vollständigkeit,
 kein seitliches Scrollen und Touch-Höhen bei 360/412/768 px (Chromium kopflos, **kein echtes Gerät**).
 
+
+### v3.290 — Freigabe: Admin darf stellvertretend freigeben
+
+Auftrag (Massaufnahme-Workflow) + Ansage 10.10.2026: „Ja, Admin darf stellvertretend freigeben."
+**Bestandsaufnahme:** Der Workflow war vollständig vorhanden (sieben Status, getrennte Rollen,
+Freigeber/Zeit, Verlauf über `audit_log` und `measurement_versionen`, Aufgaben aus dem Status,
+Admin-Übersicht, serverseitige RPCs). Einzige echte Lücke: `measurement_freigeben` liess nur den
+Aufnehmer zu.
+**Datenbank (live eingespielt, Migration `v3290_freigabe_stellvertretung_admin`, Datei
+`supabase/migrations/…`):** nur `measurement_freigeben()` — Berechtigung „Aufnehmer ODER
+`is_admin()`", NACH `mw_firma_ok` (Mandantengrenze). Policies/RLS unverändert. Serverseitig mit vier
+Fällen getestet (Rollback, keine Datenänderung: Zeile war abgeschlossen → Abbruch vor jeder
+Änderung): fremder MA abgewiesen, Admin gleiche Firma Berechtigung ok, Admin fremde Firma „nicht
+gefunden", Aufnehmer ok. **Nicht live geprüft:** eine echte Freigabe durch den Admin.
+**Client:** `js/44 mwSchrittDarfIch` (Aufnehmer || Admin), Rückfrage „Du gibst stellvertretend für X
+frei", `mwStellvertretungText` bei „Freigegeben von"; Liste/Als Nächstes folgen automatisch.
+`freigegeben_von` = Admin ≠ `created_by` → im Verlauf erkennbar. Prüfstand
+`freigabe-stellvertretung-v3-290` (9; zwei Mutationsproben rot), `workflow-v3-05` umgestellt.
+Zusammenfassung: `Zusammenfassung_v3.290_Freigabe_Stellvertretung.txt`.
+

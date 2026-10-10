@@ -3,9 +3,28 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.292`
+- Aktueller Entwicklungsstand: `v3.293`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.293 — Rüstblatt: alle Produktionsmasse ohne Klick
+
+Ansage (10.10.2026): „Auf dem Rüstblatt müssen wirklich alle für die Produktion nötigen Masse vorhanden
+sein, es darf kein zusätzlicher Klick brauchen.“ **Befund:** das Blatt (js/80) zeigte nur Zeichnungen und
+Zuschnittliste; die Angaben (Abwicklung, Gesamtlänge, Winkel, Montage, Mass A, Segmente, Stücke mit
+Gehrung, Bleilappen, Normlängen …) standen nur im Formular und im PDF. Mit abgeschaltetem Block fielen
+im neuen Prüfstand 28 von 48 Prüfungen (z. B. Kamineinfassung: Lattenabstand, Umschläge, f/g; Kehle: nh, nl,
+gl, Abwicklung; Einlaufblech: Abwicklung, Gesamtlänge).
+**Umsetzung (eine Quelle, kein zweiter Zusammenbau):** `js/16 measPdfAufbau(m,ctx)` — der synchrone
+Druckkörper aus `printMeasurement` herausgezogen (das PDF druckt unverändert denselben Aufbau).
+`js/80 rbMasseHtml(m)` zerlegt ihn mit `pdfAbschnitteZerlegen` (js/35) und nimmt die Kategorien
+masse/zusammenfassung/stückliste/Normlängen; Zeichnungen (kommen schon aus `rbSkizzenHtml`), der
+abhakbare Zuschnitt, Ausmass, Material, Kontrolle und Bilder entfallen. Eingebaut in `rbBlattHtml` →
+wirkt überall (Werkstatt, Projektseite, Ausführungsansicht, gross). Bildschirm-CSS `.rb-masse` am Ende von
+`css/05-ansicht2.css` (Tabellen scrollen seitlich). Hilfe „Rüstblatt“ angepasst.
+Prüfstand `ruestblatt-masse-v3-293` (48): dieselbe Regel wie `blatt-vollstaendig-v3-262` am Rüstblatt —
+jedes gespeicherte Mass jeder Art steht im Blatt (gleiche Ausnahmen mit Grund), alle PDF-Angaben stehen
+im Blatt ohne Knopf, das PDF druckt weiter genau den Aufbau. **Nicht auf echtem Gerät geprüft.**
 
 ### v3.292 — Rüsten und Montage: Aufgabe führt in die Ausführungsansicht (Roadmap-Priorität 3)
 
@@ -46,25 +65,6 @@ Offline-Zustand hielt die Liste still auf altem Stand (jetzt Hinweis „… Stan
 Prüfstand `aufgaben-zuverlaessig-v3-291` (15; vier Mutationsproben rot). Nicht live gegen Supabase geprüft.
 **Bewusst nicht gebaut:** Push-Benachrichtigungen, „Änderungen seit letztem Besuch“ (kein Nachweis, dass
 sie zuverlässig aus dem Verlauf herleitbar sind), Glocke/Zähler.
-
-### v3.290 — Freigabe: Admin darf stellvertretend freigeben
-
-Auftrag (Massaufnahme-Workflow) + Ansage 10.10.2026: „Ja, Admin darf stellvertretend freigeben."
-**Bestandsaufnahme:** Der Workflow war vollständig vorhanden (sieben Status, getrennte Rollen,
-Freigeber/Zeit, Verlauf über `audit_log` und `measurement_versionen`, Aufgaben aus dem Status,
-Admin-Übersicht, serverseitige RPCs). Einzige echte Lücke: `measurement_freigeben` liess nur den
-Aufnehmer zu.
-**Datenbank (live eingespielt, Migration `v3290_freigabe_stellvertretung_admin`, Datei
-`supabase/migrations/…`):** nur `measurement_freigeben()` — Berechtigung „Aufnehmer ODER
-`is_admin()`", NACH `mw_firma_ok` (Mandantengrenze). Policies/RLS unverändert. Serverseitig mit vier
-Fällen getestet (Rollback, keine Datenänderung: Zeile war abgeschlossen → Abbruch vor jeder
-Änderung): fremder MA abgewiesen, Admin gleiche Firma Berechtigung ok, Admin fremde Firma „nicht
-gefunden", Aufnehmer ok. **Nicht live geprüft:** eine echte Freigabe durch den Admin.
-**Client:** `js/44 mwSchrittDarfIch` (Aufnehmer || Admin), Rückfrage „Du gibst stellvertretend für X
-frei", `mwStellvertretungText` bei „Freigegeben von"; Liste/Als Nächstes folgen automatisch.
-`freigegeben_von` = Admin ≠ `created_by` → im Verlauf erkennbar. Prüfstand
-`freigabe-stellvertretung-v3-290` (9; zwei Mutationsproben rot), `workflow-v3-05` umgestellt.
-Zusammenfassung: `Zusammenfassung_v3.290_Freigabe_Stellvertretung.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
