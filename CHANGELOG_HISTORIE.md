@@ -34119,3 +34119,22 @@ Prüfstand `ruesten-montage-v3-292` (24; vier Mutationsproben rot); `startseite-
 `workflow-v3-05`, `aufgaben-je-projekt-v3-257` auf den neuen Vertrag umgestellt (mit Gegenprobe:
 Freigeben/Zuweisen öffnen weiter das Formular). **Nicht live gegen Supabase geprüft.**
 **Nächste Priorität:** laut Roadmap nicht feststellbar (Dokument liegt nicht im Repo).
+
+### v3.293 — Rüstblatt: alle Produktionsmasse ohne Klick
+
+Ansage (10.10.2026): „Auf dem Rüstblatt müssen wirklich alle für die Produktion nötigen Masse vorhanden
+sein, es darf kein zusätzlicher Klick brauchen.“ **Befund:** das Blatt (js/80) zeigte nur Zeichnungen und
+Zuschnittliste; die Angaben (Abwicklung, Gesamtlänge, Winkel, Montage, Mass A, Segmente, Stücke mit
+Gehrung, Bleilappen, Normlängen …) standen nur im Formular und im PDF. Mit abgeschaltetem Block fielen
+im neuen Prüfstand 28 von 48 Prüfungen (z. B. Kamineinfassung: Lattenabstand, Umschläge, f/g; Kehle: nh, nl,
+gl, Abwicklung; Einlaufblech: Abwicklung, Gesamtlänge).
+**Umsetzung (eine Quelle, kein zweiter Zusammenbau):** `js/16 measPdfAufbau(m,ctx)` — der synchrone
+Druckkörper aus `printMeasurement` herausgezogen (das PDF druckt unverändert denselben Aufbau).
+`js/80 rbMasseHtml(m)` zerlegt ihn mit `pdfAbschnitteZerlegen` (js/35) und nimmt die Kategorien
+masse/zusammenfassung/stückliste/Normlängen; Zeichnungen (kommen schon aus `rbSkizzenHtml`), der
+abhakbare Zuschnitt, Ausmass, Material, Kontrolle und Bilder entfallen. Eingebaut in `rbBlattHtml` →
+wirkt überall (Werkstatt, Projektseite, Ausführungsansicht, gross). Bildschirm-CSS `.rb-masse` am Ende von
+`css/05-ansicht2.css` (Tabellen scrollen seitlich). Hilfe „Rüstblatt“ angepasst.
+Prüfstand `ruestblatt-masse-v3-293` (48): dieselbe Regel wie `blatt-vollstaendig-v3-262` am Rüstblatt —
+jedes gespeicherte Mass jeder Art steht im Blatt (gleiche Ausnahmen mit Grund), alle PDF-Angaben stehen
+im Blatt ohne Knopf, das PDF druckt weiter genau den Aufbau. **Nicht auf echtem Gerät geprüft.**

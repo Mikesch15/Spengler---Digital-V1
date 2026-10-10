@@ -3,9 +3,20 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.295`
+- Aktueller Entwicklungsstand: `v3.296`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.296 — Rüstblatt: keine Masse doppelt
+
+Ansage (10.10.2026), auf die Frage nach den übrigen Arten: „Ja, alle Angaben kürzen, so dass nirgends Masse
+doppelt stehen.“ `js/80 rbDoppeltesEntfernen`: ein Wert in den Angaben/Stückzeilen entfällt, wenn jede
+Zahl darin (ab 10 oder mit Nachkommastelle) schon im Text der Zeichnung oder der Zuschnittliste desselben
+Blattes steht; der Wert bleibt dort sichtbar, nichts geht verloren. Worte, kleine Zahlen und Werte, die sonst
+nirgends stehen (z. B. Gesamtlänge, Montage), bleiben. Der Monteur sieht keine Zuschnittliste → dort bleibt
+alles. Dachfenster/Kamin behalten ihre feste Kurzauswahl (v3.294). Verträge angepasst, mit Gegenproben:
+`ruestblatt-masse-v3-293` (Beschriftung darf fehlen, wenn der Wert anderswo steht),
+`werkstatt-liste-v3-30`. Neuer Prüfstand `ruestblatt-doppelt-v3-296` (6; Mutation rot).
 
 ### v3.295 — Rüstblatt: welches Stück aus welchem Abschnitt / welcher Stange
 
@@ -30,25 +41,6 @@ nicht in der Zeichnung) nur diese Zellen, gelesen aus dem PDF-Aufbau; Stücklist
 entfallen (Zuschnittliste und Zeichnung bleiben). Alle übrigen Arten behalten den vollen Block (v3.293);
 ob die auch gekürzt werden sollen, ist offen. Prüfstand `ruestblatt-masse-v3-293` um Abschnitt D erweitert
 (keine weiteren Angaben, ein Block, Gesamtzahl stimmt mit dem Datensatz; Mutation rot).
-
-### v3.293 — Rüstblatt: alle Produktionsmasse ohne Klick
-
-Ansage (10.10.2026): „Auf dem Rüstblatt müssen wirklich alle für die Produktion nötigen Masse vorhanden
-sein, es darf kein zusätzlicher Klick brauchen.“ **Befund:** das Blatt (js/80) zeigte nur Zeichnungen und
-Zuschnittliste; die Angaben (Abwicklung, Gesamtlänge, Winkel, Montage, Mass A, Segmente, Stücke mit
-Gehrung, Bleilappen, Normlängen …) standen nur im Formular und im PDF. Mit abgeschaltetem Block fielen
-im neuen Prüfstand 28 von 48 Prüfungen (z. B. Kamineinfassung: Lattenabstand, Umschläge, f/g; Kehle: nh, nl,
-gl, Abwicklung; Einlaufblech: Abwicklung, Gesamtlänge).
-**Umsetzung (eine Quelle, kein zweiter Zusammenbau):** `js/16 measPdfAufbau(m,ctx)` — der synchrone
-Druckkörper aus `printMeasurement` herausgezogen (das PDF druckt unverändert denselben Aufbau).
-`js/80 rbMasseHtml(m)` zerlegt ihn mit `pdfAbschnitteZerlegen` (js/35) und nimmt die Kategorien
-masse/zusammenfassung/stückliste/Normlängen; Zeichnungen (kommen schon aus `rbSkizzenHtml`), der
-abhakbare Zuschnitt, Ausmass, Material, Kontrolle und Bilder entfallen. Eingebaut in `rbBlattHtml` →
-wirkt überall (Werkstatt, Projektseite, Ausführungsansicht, gross). Bildschirm-CSS `.rb-masse` am Ende von
-`css/05-ansicht2.css` (Tabellen scrollen seitlich). Hilfe „Rüstblatt“ angepasst.
-Prüfstand `ruestblatt-masse-v3-293` (48): dieselbe Regel wie `blatt-vollstaendig-v3-262` am Rüstblatt —
-jedes gespeicherte Mass jeder Art steht im Blatt (gleiche Ausnahmen mit Grund), alle PDF-Angaben stehen
-im Blatt ohne Knopf, das PDF druckt weiter genau den Aufbau. **Nicht auf echtem Gerät geprüft.**
 
 ## DAUERHAFT GÜLTIGE REGELN
 
