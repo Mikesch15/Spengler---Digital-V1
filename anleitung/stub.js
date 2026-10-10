@@ -88,7 +88,8 @@ window.__demo={
 function filtere(tabelle,filter){
  let rows=(window.__demo[tabelle]||[]).slice();
  filter.forEach(f=>{
-  if(f.art==="eq")rows=rows.filter(r=>String(r[f.feld])===String(f.wert));
+  // v3.291: measurements.archived ist NOT NULL DEFAULT false - fehlt es in einer Beispielzeile, gilt false.
+  if(f.art==="eq")rows=rows.filter(r=>String(f.feld==="archived"&&r[f.feld]===undefined?false:r[f.feld])===String(f.wert));
   if(f.art==="in")rows=rows.filter(r=>f.wert.map(String).indexOf(String(r[f.feld]))>=0);
   if(f.art==="ilike"){const m=String(f.wert).replace(/%/g,"").toLowerCase();
    rows=rows.filter(r=>String(r[f.feld]||"").toLowerCase().indexOf(m)>=0)}

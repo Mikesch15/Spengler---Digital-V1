@@ -681,6 +681,9 @@ function a2SeiteHeute(){
   // der klassischen Ansicht. Sie steht UEBER der Liste, damit "nichts offen"
   // nicht danebensteht, waehrend etwas wartet.
   html+=a2TerminZeile();
+  // v3.291: Ist der Stand nicht frisch (Abruf gescheitert oder offline), steht es da.
+  {const sh=(typeof aufgabenStandHinweis==="function")?aufgabenStandHinweis():"";
+   if(sh)html+=`<div class="a2-hinweis a2-h-warnung">${esc(sh)}</div>`;}
   html+=auf.length
    ? gruppen.map(a2AufgabenGruppeHtml).join("")
    : (a2TerminZeile()

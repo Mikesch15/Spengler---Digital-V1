@@ -18,6 +18,11 @@
 const AUFGABEN_LIMIT=25;   // Startseite, nicht Arbeitsliste
 let aufgabenListe=[];
 let aufgabenLauf=0;
+// v3.291: Wie frisch ist die Liste? zeit = letzter ERFOLGREICHER Abruf, problem =
+// "fehler" (Abfrage gescheitert) oder "offline". Die Liste bleibt dann auf dem alten
+// Stand stehen (besser als falsch "nichts offen") - aber sie sagt es jetzt.
+let aufgabenStand={zeit:0,problem:""};
+const AUFGABEN_AUFFRISCHEN_NACH_MS=60000;
 // Der Klick gilt fuer jetzt, die Einstellung fuer den Start (js/01-basis.js).
 
 // Firmenweiter Schalter. Fehlt der Wert (noch nicht geladen), gilt "ein" -
@@ -197,12 +202,12 @@ async function aufgabenLaden(){
   // v3.10: "geruestet" (Monteur fehlt) und "montiert" (Abschluss fehlt)
   // waren bis v3.09 nicht dabei - beide Zustaende sagten deshalb niemandem,
   // dass sie liegen bleiben.
-  sb.from("measurements").select(felder).eq("created_by",ich)
+  sb.from("measurements").select(felder).eq("created_by",ich).eq("archived",false)
     .in("workflow_status",["in_bearbeitung","freigegeben","geruestet","montiert"])
     .order("updated_at",{ascending:false}).limit(AUFGABEN_LIMIT),
-  sb.from("measurements").select(felder).eq("ruester_id",ich).eq("workflow_status","zu_ruesten")
+  sb.from("measurements").select(felder).eq("ruester_id",ich).eq("workflow_status","zu_ruesten").eq("archived",false)
     .order("updated_at",{ascending:false}).limit(AUFGABEN_LIMIT),
-  sb.from("measurements").select(felder).eq("monteur_id",ich).eq("workflow_status","zu_montieren")
+  sb.from("measurements").select(felder).eq("monteur_id",ich).eq("workflow_status","zu_montieren").eq("archived",false)
     .order("updated_at",{ascending:false}).limit(AUFGABEN_LIMIT)
  ]);
  if(eigene.error||ruest.error||mont.error){
@@ -210,11 +215,19 @@ async function aufgabenLaden(){
   return null;
  }
  const liste=[];
+ // v3.291: Eine Massaufnahme in einem ARCHIVIERTEN Projekt ist keine offene Aufgabe
+ // (die Massaufnahme selbst filtert schon die Abfrage: archived=false). Das Projekt
+ // kommt aus der bereits geladenen Projektliste; ist es dort nicht bekannt, bleibt die
+ // Aufgabe stehen - lieber eine zu viel als eine verschluckte.
+ const projektOffen=m=>{
+  const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects.find(x=>x.id===m.project_id):null;
+  return !(p&&p.archived);
+ };
  (eigene.data||[]).forEach(m=>{
   // Eine Massaufnahme ohne Projekt kann nicht freigegeben werden (sie gehoert
   // zu keinem Projekt und damit zu keiner Firmengrenze) - sie erscheint
   // deshalb gar nicht erst als Aufgabe.
-  if(!m.project_id)return;
+  if(!m.project_id||!projektOffen(m))return;
   // v3.06: Eine verfallene Freigabe ist etwas anderes als eine noch nie
   // freigegebene - sie blockiert bereits eingeteilte Leute.
   // Der Schluessel kommt aus der gemeinsamen Quelle - hier wird nicht ein
@@ -225,8 +238,8 @@ async function aufgabenLaden(){
   if(k==="zuweisen"&&(m.ruester_id||m.monteur_id))return;
   if(AUFGABEN_TITEL[k])liste.push({art:k,m});
  });
- (ruest.data||[]).forEach(m=>{if(m.project_id)liste.push({art:"ruesten",m})});
- (mont.data||[]).forEach(m=>{if(m.project_id)liste.push({art:"montieren",m})});
+ (ruest.data||[]).forEach(m=>{if(m.project_id&&projektOffen(m))liste.push({art:"ruesten",m})});
+ (mont.data||[]).forEach(m=>{if(m.project_id&&projektOffen(m))liste.push({art:"montieren",m})});
  // Rot zuerst, danach nach Datum.
  const rang={erneut_freigeben:0,ruesten:1,freigeben:2,zuweisen:3,monteur:4,montieren:5,abschliessen:6};
  liste.sort((a,b)=>(rang[a.art]-rang[b.art])||String(b.m.date||"").localeCompare(String(a.m.date||"")));
@@ -340,16 +353,45 @@ async function aufgabenNeuLaden(){
  if(!currentProfile||!aufgabenAktiv()){aufgabenListe=[];renderAufgaben();return}
  // Ohne Verbindung wird die Liste nicht geleert - sie bleibt auf dem zuletzt
  // geladenen Stand stehen, statt faelschlich "nichts offen" zu behaupten.
- if(typeof offlineIstOffline==="function"&&offlineIstOffline())return;
+ if(typeof offlineIstOffline==="function"&&offlineIstOffline()){
+  if(aufgabenListe.length||aufgabenStand.zeit){aufgabenStand.problem="offline";renderAufgaben()}
+  return;
+ }
  const lauf=++aufgabenLauf;
  // v3.185: Termine zusammen mit den Aufgaben laden. Zwei getrennte Aufrufe
  // koennten sonst verschiedene Staende zeigen.
  const [liste]=await Promise.all([aufgabenLaden(),aufgabenTermineLaden()]);
  if(lauf!==aufgabenLauf)return;          // eine neuere Aktualisierung laeuft
- if(liste===null)return;                 // Fehler: alten Stand stehen lassen
+ if(liste===null){                      // Fehler: alten Stand stehen lassen - und es sagen
+  aufgabenStand.problem="fehler"; renderAufgaben(); return;
+ }
  aufgabenListe=liste;
+ aufgabenStand={zeit:Date.now(),problem:""};
  renderAufgaben();
 }
+
+// v3.291: Der Hinweis ueber der Liste, wenn der Stand nicht frisch ist - sonst leer.
+function aufgabenStandHinweis(){
+ if(!aufgabenStand.problem)return "";
+ const t=aufgabenStand.zeit?new Date(aufgabenStand.zeit):null;
+ const uhr=t?(String(t.getHours()).padStart(2,"0")+":"+String(t.getMinutes()).padStart(2,"0")):"";
+ const stand=uhr?" Stand von "+uhr+" Uhr.":"";
+ return aufgabenStand.problem==="offline"
+  ? "Keine Verbindung – die Liste zeigt den letzten bekannten Stand."+stand
+  : "Die Aufgaben konnten nicht aktualisiert werden – die Liste zeigt den letzten bekannten Stand."+stand;
+}
+
+// v3.291: Kommt die App aus dem Hintergrund zurueck (Handy entsperrt, Tab gewechselt),
+// ist die Liste womoeglich Stunden alt - eine Zuweisung oder Freigabe von jemand anderem
+// stand dann nirgends. Ab einer Minute Alter wird nachgeladen; die Verbindung zurueck
+// laedt ebenfalls. Gar nichts, solange niemand angemeldet ist.
+function aufgabenBeiRueckkehr(){
+ if(!currentProfile||!aufgabenAktiv())return;
+ if(Date.now()-aufgabenStand.zeit<AUFGABEN_AUFFRISCHEN_NACH_MS&&!aufgabenStand.problem)return;
+ aufgabenNeuLaden();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")aufgabenBeiRueckkehr()});
+window.addEventListener("online",()=>aufgabenBeiRueckkehr());
 
 // Die Massaufnahme zu einer Aufgabe oeffnen. Geladen wird die echte Zeile -
 // RLS entscheidet, ob sie herausgegeben wird; eine manipulierte ID oeffnet

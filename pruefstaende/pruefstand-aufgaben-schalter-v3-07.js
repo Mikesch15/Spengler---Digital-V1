@@ -46,7 +46,7 @@ window.supabase={createClient:()=>({
        // es betrifft still 0 Zeilen (CLAUDE.md 24.1).
        return Promise.resolve({data:window.__updateErlaubt===false?[]:window.__appSettings,error:null}).then(r)}
      let d=(window.__zeilen||[]).slice();
-     Object.keys(f._eq).forEach(s=>{d=d.filter(z=>String(z[s])===String(f._eq[s]))});
+     Object.keys(f._eq).forEach(s=>{d=d.filter(z=>String(s==="archived"&&z[s]===undefined?false:z[s])===String(f._eq[s]))});
      if(f._in)d=d.filter(z=>f._in.v.indexOf(z[f._in.s])>=0);
      if(f._t!=="measurements")d=[];
      return Promise.resolve({data:d,error:null}).then(r)};
