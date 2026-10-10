@@ -34022,3 +34022,18 @@ Berechtigung entscheidet weiter die Datenbank (RLS). Hochgeladene Dateien einer 
 Massaufnahme bleiben als „verwaist" auffindbar (wie beim ×). Hilfe ergänzt.
 Prüfstand `loeschen-formular-v3-287` (11; zwei Mutationsproben rot).
 
+
+### v3.288 — Ausmass, Offerten und Dateien ohne Umweg löschen
+
+Frage (10.10.2026): „Wie kann ich Dateien, Offerten und Ausmasse löschen?"
+**Befund:** Ausmass und beide Offerten-Arten (`offerten` selbst erstellt, `angebote`
+importiert) hatten in der neuen Ansicht **keine** Löschmöglichkeit (nur das × in den
+alten Cockpit-Listen); Dateien liessen sich nur hinter „Dateien, Fotos und Verlauf öffnen" löschen.
+**Neu:** `js/24 eintragLoeschen(tabelle,id,frage)` ist die EINE Stelle (Offline-Sperre, `appConfirm`
+rot, `delete().select("id")`, 0 Zeilen/RLS ≠ Erfolg); Knöpfe `#amDelete`, `#offDelete`, `#angDelete`
+(wie `#measDelete`/`#reportDelete` aus v3.287, jetzt ebenfalls über `eintragLoeschen`), sichtbar nur bei
+gespeichertem Eintrag (`loeschKnopfBinden`: `hidden`-Beobachter + Klick im Formular). Dateien:
+`js/09 projektDateiLoeschen(id)` (Eintrag + Datei im Speicher) für Cockpit UND die neue Ansicht;
+Papierkorb-Knopf `data-a2-datei-weg` je Datei im Register Dateien. Die Berechtigung entscheidet die
+Datenbank (RLS). Prüfstand `loeschen-weitere-v3-288` (20; drei Mutationsproben rot).
+

@@ -3,9 +3,26 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.290`
+- Aktueller Entwicklungsstand: `v3.291`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.291 — Aufgabenliste „Heute“ zuverlässiger (Auftrag Aufgaben-/Benachrichtigungszentrale)
+
+Auftrag (10.10.2026, direkt auf main): vorhandene Zentrale vervollständigen, nichts doppelt bauen.
+**Bestand (Code):** js/45 leitet die persönlichen Aufgaben aus `measurements` ab (Aufnehmer →
+freigeben/zuweisen/gerüstet-Monteur/abschliessen, Rüster → zu_ruesten, Monteur → zu_montieren), kein
+zweites System, RLS/Mandant unverändert, Klick führt zur Massaufnahme, Liste lädt nach jeder
+Statusaktion nach (`mwNachAenderung`), Admin-Gesamtübersicht getrennt, Stellvertretungsfreigabe v3.290
+unverändert (die persönliche Liste bleibt bewusst „meine“). **Belegte Lücken, jetzt geschlossen:**
+(A) archivierte Massaufnahmen / Massaufnahmen in archivierten Projekten erschienen als offene Aufgaben
+(`archived=false` in allen drei Abfragen, Projektfilter über `allProjects`); (B) ein gescheiterter Abruf oder
+Offline-Zustand hielt die Liste still auf altem Stand (jetzt Hinweis „… Stand von HH:MM Uhr“,
+`aufgabenStandHinweis`, Anzeige in `a2SeiteHeute`); (C) kein Nachladen beim Zurückkehren in die App
+(`visibilitychange`/`online`, ab 60 s Alter, `aufgabenBeiRueckkehr`). Keine Migration, keine neue Tabelle.
+Prüfstand `aufgaben-zuverlaessig-v3-291` (15; vier Mutationsproben rot). Nicht live gegen Supabase geprüft.
+**Bewusst nicht gebaut:** Push-Benachrichtigungen, „Änderungen seit letztem Besuch“ (kein Nachweis, dass
+sie zuverlässig aus dem Verlauf herleitbar sind), Glocke/Zähler.
 
 ### v3.290 — Freigabe: Admin darf stellvertretend freigeben
 
@@ -45,20 +62,6 @@ Stammdaten (kompakt, „Stammdaten bearbeiten" klein rechts, ≥ 40 px). Projekt
 Rückkehrlogik (js/24), Formulare, Druck, RLS.
 Prüfstand `uebersichtlichkeit-v3-289` (21; Reihenfolge-Mutation rot) — misst Reihenfolge, Vollständigkeit,
 kein seitliches Scrollen und Touch-Höhen bei 360/412/768 px (Chromium kopflos, **kein echtes Gerät**).
-
-### v3.288 — Ausmass, Offerten und Dateien ohne Umweg löschen
-
-Frage (10.10.2026): „Wie kann ich Dateien, Offerten und Ausmasse löschen?"
-**Befund:** Ausmass und beide Offerten-Arten (`offerten` selbst erstellt, `angebote`
-importiert) hatten in der neuen Ansicht **keine** Löschmöglichkeit (nur das × in den
-alten Cockpit-Listen); Dateien liessen sich nur hinter „Dateien, Fotos und Verlauf öffnen" löschen.
-**Neu:** `js/24 eintragLoeschen(tabelle,id,frage)` ist die EINE Stelle (Offline-Sperre, `appConfirm`
-rot, `delete().select("id")`, 0 Zeilen/RLS ≠ Erfolg); Knöpfe `#amDelete`, `#offDelete`, `#angDelete`
-(wie `#measDelete`/`#reportDelete` aus v3.287, jetzt ebenfalls über `eintragLoeschen`), sichtbar nur bei
-gespeichertem Eintrag (`loeschKnopfBinden`: `hidden`-Beobachter + Klick im Formular). Dateien:
-`js/09 projektDateiLoeschen(id)` (Eintrag + Datei im Speicher) für Cockpit UND die neue Ansicht;
-Papierkorb-Knopf `data-a2-datei-weg` je Datei im Register Dateien. Die Berechtigung entscheidet die
-Datenbank (RLS). Prüfstand `loeschen-weitere-v3-288` (20; drei Mutationsproben rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
