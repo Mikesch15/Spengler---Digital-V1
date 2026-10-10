@@ -41,6 +41,15 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   // gleiche Laenge aus zwei Streifen: EINE Zeile "2 ×", zwei Herkunftszeilen
   o.G=blatt({abwicklung:300,abschnitte:1,abschnittLaenge:2000,jeAbschnitt:2,optimal:true,streifen:[{rest:0,stuecke:[{nr:1,laenge:2000}]},{rest:0,stuecke:[{nr:2,laenge:2000}]}]});
   o.C=blatt({abwicklung:300,abschnitte:1,abschnittLaenge:2500,jeAbschnitt:1,optimal:true,streifen:[{rest:0,stuecke:[{nr:1,laenge:1200},{nr:2,laenge:1300}]}]});
+  // H: der Fall vom Handy - vier Streifenbreiten, zwei Abschnitte (1215 und 595 ab Rolle):
+  // 250er (Nr 3,5) fahren im 1215er, 244er (Nr 4,6) fahren dort mit; 507er (Nr 2) ist der 595er,
+  // 325er (Nr 1) faehrt dort mit. Jede Gruppe zaehlt ihre eigenen "Abschnitte" - das war falsch.
+  o.H=blatt({abwicklung:250,optimal:true,streifen:[],
+   gruppen:[
+    {breite:250,abschnitte:1,abschnittLaenge:1215,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:3,laenge:1215}]},{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:5,laenge:1215}]}]},
+    {breite:507,abschnitte:1,abschnittLaenge:595,jeAbschnitt:1,streifen:[{rest:0,stuecke:[{nr:2,laenge:595}]}]},
+    {breite:325,abschnitte:0,abschnittLaenge:564,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:595,mischungsGast:true,rest:31,stuecke:[{nr:1,laenge:564}]}]},
+    {breite:244,abschnitte:0,abschnittLaenge:510,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:4,laenge:510}]},{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:6,laenge:510}]}]}]});
   const stange=(n)=>({art:"stange",einheit:"Stück",breite:0,stangen:n,zuLang:[],optimal:true,erledigtFuer:1});
   const st2=stange([{laenge:6000,rest:0,stuecke:[{nr:1,laenge:3000},{nr:2,laenge:3000}]},{laenge:5000,rest:500,stuecke:[{nr:3,laenge:4500}]}]);
   const d=document.createElement("div"); d.innerHTML=zuListeHtml(st2,{herkunft:true}); o.D=lies(d);
@@ -61,6 +70,8 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(kv(r.B.z)===JSON.stringify([["Abschnitt 1 · Streifen 1",["1"]],["Abschnitt 2 · Streifen 1",["2"]],["Abschnitt 2 · Streifen 1",["3"]],["Abschnitt 2 · Streifen 2",["4"]]]),
    "B mehrere Abschnittlängen: die Abschnittnummer des Streifens gilt",r.B.z);
  p(kv(r.G.z)===JSON.stringify([["Streifen 1",["1"]],["Streifen 2",["2"]]]),"G gleich lange Stücke aus zwei Streifen: je Streifen eine Herkunft",r.G.z);
+ p(kv(r.H.z)===JSON.stringify([["Abschnitt 595 mm",["1"]],["Abschnitt 595 mm",["2"]],["Abschnitt 1’215 mm",["3","5"]],["Abschnitt 1’215 mm",["4","6"]]]),
+   "H mehrere Streifenbreiten: der Abschnitt ist der echte (1'215 bzw. 595 ab Rolle), auch für mitfahrende Gruppen - nicht je Gruppe 'Abschnitt 1'",r.H.z);
  p(r.C.z.length===0&&r.C.ohne>0,"Gegenprobe: bei nur EINEM Streifen keine Herkunft, die normale Nummernreihe bleibt",r.C);
  p(kv(r.D)===JSON.stringify([["Stange 1 · 6000 mm",["1","2"]],["Stange 2 · 5000 mm",["3"]]])||/Stange 1 · 6.?000 mm/.test(r.D[0].k)&&r.D.length===2&&r.D[0].nr.join()==="1,2"&&/Stange 2/.test(r.D[1].k),"D zwei Stangen: Stück → Stange, abhakbar",r.D);
  p(r.D1.length===0,"Gegenprobe: eine einzige Stange = keine Herkunft");

@@ -317,11 +317,23 @@ function zuAlleStuecke(p){
    liste.push(Object.assign({},x,{breite:p.breite,platz:si+1,herkunft:"Stange "+(si+1)+" · "+zuMm(s.laenge)+" mm"}))));
  }else{
   // v3.297: woher das Stueck kommt (Abschnitt/Streifen) reist mit - die abhakbare Liste zeigt es.
-  (p.gruppen||[]).forEach(g=>{
+  // Bei MEHREREN Streifenbreiten zaehlt jede Gruppe ihre Abschnitte fuer sich ("Abschnitt 1" kaeme
+  // mehrfach vor), und eine mitfahrende Gruppe (Trittbrett-Mischung, js/29) hat gar keinen eigenen -
+  // sie liegt im Abschnitt einer anderen. Da ist die Laenge des Abschnitts ab Rolle das, was
+  // stimmt und mit der Fusszeile ("1 × 1'215 mm + 1 × 595 mm ab Rolle") uebereinstimmt.
+  const gruppen=p.gruppen||[];
+  const mehrere=gruppen.length>1;
+  const gemischt=gruppen.some(g=>(g.streifen||[]).some(s=>s.mischungsGast));
+  gruppen.forEach(g=>{
    const titel=zuStreifenTitel(g,p);
-   (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
+   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
+   (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>{
+    const eigen=zuZahl(s.abschnittLaenge);
+    const L=eigen>0?eigen:(gemischt?Math.max(0,gL-zuZahl(s.rest)):gL);
     liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,
-     herkunft:((p.gruppen||[]).length>1?zuMm(g.breite)+" mm · ":"")+titel[si]}))));
+     herkunft:(mehrere&&L>0&&!zuIstTafel(p))?zuWort(p).abschnitt+" "+zuMm(L)+" mm"
+      :(mehrere?zuMm(g.breite)+" mm · ":"")+titel[si]}));
+   }));
   });
  }
  // Stuecke, die aus einem vorhandenen Rest geschnitten werden. Sie stehen
