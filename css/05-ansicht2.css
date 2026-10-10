@@ -1136,3 +1136,36 @@ html.a2-an .a2-zeile.a2-zeile-still:active{
 .a2-rb-mz .a2-rb-blatt{border-top:1px solid var(--line);border-radius:12px;margin-top:6px}
 /* v3.288: Loeschen-Knopf in der Dateizeile (Register Dateien) */
 .a2-zeile-still .a2-knopf{flex:none;margin:0;min-width:44px}
+
+/* ---- v3.289: Uebersichtlichkeit (Projektliste und Projekt-Uebersicht) ------
+   Nur Anordnung und Gewicht, keine neue Farbe und keine neue Schrift: es gelten
+   die vorhandenen Variablen. Reihenfolge der Uebersicht: Naechster Schritt,
+   Hinweise, Ablauf (leise), Stand (leise), Stammdaten (kompakt). */
+.a2-abschnitt-leise{margin-bottom:16px}
+.a2-karte-leise{padding:8px 10px;box-shadow:none}
+.a2-karte-leise .a2-ablauf{margin:0;padding:0}
+.a2-karte-leise .a2-ablauf-marke{width:22px;height:22px;font-size:11px;margin-bottom:3px}
+.a2-karte-leise .a2-ablauf-st::before{top:10px}
+.a2-karte-leise .a2-ablauf-text{font-size:10px}
+.a2-schnellzugriff{margin:8px 0 0}
+.a2-schnellzugriff .a2-knopf{min-height:40px}
+/* Kennzahlen: Nachschlagewerk, nicht Hauptsache - klein, ohne Schatten, gleiche Farben */
+.a2-zahlen.a2-zahlen-leise{grid-template-columns:repeat(3,1fr);gap:6px;margin:0}
+.a2-zahlen-leise .a2-zahl{padding:7px 6px;border-radius:10px;box-shadow:none}
+.a2-zahlen-leise .a2-zahl b{font-size:18px}
+.a2-zahlen-leise .a2-zahl span{font-size:11px}
+/* Stammdaten: dichter und gut scannbar, Bearbeiten klein und rechts */
+.a2-karte-kompakt{padding:10px 12px}
+.a2-daten.a2-daten-kompakt{gap:4px 12px}
+.a2-daten-kompakt dt{font-size:10.5px}
+.a2-daten-kompakt dd{font-size:14px;font-weight:600;overflow-wrap:anywhere}
+.a2-rechts{justify-content:flex-end}
+.a2-karte-kompakt .a2-knopf-klein{min-height:40px}
+/* Projektliste: gut lesbar und mit dem Finger sicher zu treffen */
+.a2-zeile-projekt{min-height:52px;padding:9px 12px}
+.a2-zeile-projekt .a2-zeile-text b{font-size:15px;line-height:1.25;overflow-wrap:anywhere}
+.a2-zeile-projekt .a2-zeile-text span{overflow-wrap:anywhere}
+@media(min-width:700px){
+ .a2-zahlen.a2-zahlen-leise{grid-template-columns:repeat(3,1fr);max-width:520px}
+}
+.a2-knopf-reihe.a2-rechts .a2-knopf,.a2-schnellzugriff .a2-knopf{flex:0 0 auto}

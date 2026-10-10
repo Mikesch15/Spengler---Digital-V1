@@ -958,7 +958,7 @@ function a2ProjektZeileHtml(p){
  const s=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
  const unten=[p.name&&p.name!==titel?p.name:"",p.order_no?"Auftrag "+p.order_no:""]
   .filter(Boolean).join(" · ");
- return `<button type="button" class="a2-zeile" data-a2-projekt="${esc(p.id)}">
+ return `<button type="button" class="a2-zeile a2-zeile-projekt" data-a2-projekt="${esc(p.id)}">
   <span class="a2-zeile-text"><b>${esc(titel)}</b>
    <span>${esc(unten||"—")}</span></span>
   ${s?`<span class="a2-marke a2-m-grau">${esc(s.icon+" "+s.label)}</span>`:""}
@@ -1707,24 +1707,31 @@ function a2RegUebersicht(p){
  // erst das Register Produktion oeffnen muesste - der haeufigste Weg des
  // Tages waere durch die neue Ansicht einen Griff teurer geworden.
  const schnell=a2Modul("material")
-  ? `<div class="a2-knopf-reihe" style="margin:0 0 12px">
-      <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="matzu">
+  ? `<div class="a2-knopf-reihe a2-schnellzugriff">
+      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="matzu">
        🧱 Material &amp; Zuschnitt</button></div>`
   : "";
  // v3.160: Die freie Notiz zum Projekt - direkt unter dem Ablauf, damit
  // sie gelesen wird, bevor jemand losfaehrt. Gibt es keine, steht hier
  // nichts: ein leerer Kasten "Hinweise" waere schlechter als gar keiner.
  const hinweis=(p.hinweis&&String(p.hinweis).trim())
-  ? `<div class="a2-hinweis a2-h-merk"><b>📌 Wichtige Hinweise</b>
-     ${esc(String(p.hinweis).trim())}</div>`
+  ? `<div class="a2-hinweis a2-h-merk"><b>📌 Wichtige Hinweise</b>${esc(String(p.hinweis).trim())}</div>`
   : "";
- return `<div class="a2-karte">${ablauf}</div>
-  ${schritt}
+ // v3.289 (Auftrag Uebersichtlichkeit): Reihenfolge nach Wichtigkeit. Die
+ // Projektidentitaet steht schon in der Kopfzeile (Adresse, Name, Auftrag).
+ // Darunter zuerst, was jetzt zu tun ist (Naechster Schritt) und was man vor dem
+ // Losfahren wissen muss (Hinweise, nur wenn es welche gibt). Der Ablauf ist
+ // Orientierung und deshalb leiser; Kennzahlen und Stammdaten sind Nachschlagewerk.
+ return `${schritt}
   ${hinweis}
-  ${schnell}
-  <div class="a2-abschnitt">
+  <div class="a2-abschnitt a2-abschnitt-leise">
+   <div class="a2-abschnitt-kopf"><h2>Ablauf</h2></div>
+   <div class="a2-karte a2-karte-leise">${ablauf}</div>
+   ${schnell}
+  </div>
+  <div class="a2-abschnitt a2-abschnitt-leise">
    <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
-   <div class="a2-zahlen">
+   <div class="a2-zahlen a2-zahlen-leise">
     <div class="a2-zahl a2-z-blau"><b>${a2Mess().length}</b><span>Massaufnahmen</span></div>
     <div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>
     <div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>
@@ -1732,10 +1739,10 @@ function a2RegUebersicht(p){
   </div>
   <div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Stammdaten</h2></div>
-   <div class="a2-karte"><dl class="a2-daten">${zeilen.map(([k,v])=>
+   <div class="a2-karte a2-karte-kompakt"><dl class="a2-daten a2-daten-kompakt">${zeilen.map(([k,v])=>
      `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
-    <div class="a2-knopf-reihe">
-     <button type="button" class="a2-knopf a2-k-grau a2-k-voll" data-a2-tu="stammdaten">
+    <div class="a2-knopf-reihe a2-rechts">
+     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
       ✏️ Stammdaten bearbeiten</button></div>
    </div>
   </div>`;
