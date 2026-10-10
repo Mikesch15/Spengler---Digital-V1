@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.287</div>
+<div id="appVersion">Version 3.288</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2083,6 +2083,8 @@ einer wirkt nicht auf die anderen.</div>
 <button id="saveAusmass" class="green">💾 Speichern</button>
 <button id="printAusmassBtn" class="gray" hidden>🖨️ Als PDF</button>
 <button id="cancelAusmass" class="gray">Abbrechen</button>
+<!-- v3.288: Ausmass loeschen (js/24) - nur bei einem gespeicherten -->
+<button type="button" id="amDelete" class="red" hidden>🗑 Ausmass löschen</button>
 <button id="ausmassEditSettingsShortcut" class="gray">⚙️ Einstellungen</button>
 <button id="startFromAusmassEdit" class="gray">🏠 Start</button>
 </div>
@@ -2236,6 +2238,8 @@ einer wirkt nicht auf die anderen.</div>
 <div class="bar" style="margin-top:10px">
 <button type="button" id="saveOfferte" class="green">💾 Offerte speichern</button>
 <button type="button" id="cancelOfferte" class="gray">Abbrechen</button>
+<!-- v3.288: Offerte loeschen (js/24) - nur bei einer gespeicherten -->
+<button type="button" id="offDelete" class="red" hidden>🗑 Offerte löschen</button>
 </div>
 </div>
 </div>
@@ -2347,6 +2351,8 @@ einer wirkt nicht auf die anderen.</div>
 <div class="bar">
 <button id="saveAngebot" class="green">💾 Speichern</button>
 <button id="cancelAngebot" class="gray">Abbrechen</button>
+<!-- v3.288: Offerte loeschen (js/24) - nur bei einer gespeicherten -->
+<button type="button" id="angDelete" class="red" hidden>🗑 Offerte löschen</button>
 <button id="startFromAngebotEdit" class="gray">🏠 Start</button>
 </div>
 </div>
@@ -2421,7 +2427,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.287.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.288.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3103,7 +3109,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.287.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.288.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

@@ -82,29 +82,69 @@ async function reportZurueck(){
  isDirty=false;
 }
 
-// ---- Regierapport loeschen (v3.287) ---------------------------------------
-// Siehe measLoeschenAusFormular (js/16): der Knopf steht im Formular selbst und
-// nur, wenn der Rapport gespeichert ist. "Eingaben leeren" (#clear) leert nur das
-// Formular - der gespeicherte Rapport bleibt, bis man wieder speichert.
+// ---- Eintrag im Formular loeschen (v3.287/v3.288) ---------------------------
+// EINE Stelle fuer Massaufnahme, Regierapport, Ausmass und beide Offerten-Arten.
+// Gefragt: "Wo habe ich die Moeglichkeit ... zu loeschen?" - das X stand nur in den
+// alten Listen. Jetzt hat jedes Formular einen Knopf, sichtbar nur bei einem
+// GESPEICHERTEN Eintrag. RLS meldet ein blockiertes DELETE nicht als Fehler,
+// sondern trifft 0 Zeilen - das wird nicht als Erfolg gemeldet.
+// Rueckgabe: true, wenn geloescht wurde.
+async function eintragLoeschen(tabelle,id,frage){
+ if(!id)return false;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Löschen"))return false;
+ if(!await appConfirm(frage+"\n\nDas lässt sich nicht rückgängig machen.",{ok:"Löschen",gefahr:true}))return false;
+ const {data,error}=await sb.from(tabelle).delete().eq("id",id).select("id");
+ if(error){appAlert("Fehler: "+error.message);return false}
+ if(!data||!data.length){appAlert("Der Eintrag wurde nicht gelöscht – dafür fehlt die Berechtigung.");return false}
+ return true;
+}
+// Knopf nur bei gespeichertem Eintrag zeigen: beim Oeffnen/Schliessen des Formulars
+// (hidden), nach jedem Klick darin (z. B. Speichern) - die Id steht dann schon.
+function loeschKnopfBinden(modalId,knopfId,holeId,aktion){
+ const m=$(modalId), k=$(knopfId);
+ if(!m||!k)return;
+ const auf=()=>{k.hidden=!holeId()};
+ k.addEventListener("click",aktion);
+ if(window.MutationObserver)new MutationObserver(auf).observe(m,{attributes:true,attributeFilter:["hidden"]});
+ m.addEventListener("click",()=>setTimeout(auf,0));
+ return auf;
+}
 function reportLoeschenKnopfAktualisieren(){
- const k=$("reportDelete"); if(!k)return;
- k.hidden=!currentReportId;
+ const k=$("reportDelete"); if(k)k.hidden=!currentReportId;
 }
 async function reportLoeschenAusFormular(){
- const id=currentReportId; if(!id)return;
- if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Löschen"))return;
- if(!await appConfirm("Diesen Regierapport wirklich löschen?\n\nDas lässt sich nicht rückgängig machen.",{ok:"Löschen",gefahr:true}))return;
- const {data,error}=await sb.from("reports").delete().eq("id",id).select("id");
- if(error){appAlert("Fehler: "+error.message);return}
- if(!data||!data.length){appAlert("Der Rapport wurde nicht gelöscht – dafür fehlt die Berechtigung.");return}
+ const id=currentReportId;
+ if(!await eintragLoeschen("reports",id,"Diesen Regierapport wirklich löschen?"))return;
  currentReportId=null; isDirty=false;
  await reportZurueck();
 }
-(function reportLoeschenBinden(){
- const k=$("reportDelete"), r=$("reportScreen");
- if(!k||!r)return;
- k.addEventListener("click",reportLoeschenAusFormular);
- if(window.MutationObserver)new MutationObserver(reportLoeschenKnopfAktualisieren).observe(r,{attributes:true,attributeFilter:["hidden"]});
+async function ausmassLoeschenAusFormular(){
+ const id=currentAusmassId;
+ if(!await eintragLoeschen("ausmass",id,"Dieses Ausmass wirklich löschen?"))return;
+ currentAusmassId=null; isDirty=false;
+ $("ausmassEditModal").hidden=true;
+ await amEditZurueck();
+}
+async function offerteLoeschenAusFormular(){
+ const id=currentOfferteId;
+ if(!await eintragLoeschen("offerten",id,"Diese Offerte wirklich löschen?"))return;
+ currentOfferteId=null; isDirty=false;
+ if(typeof offPdfVorschauFreigeben==="function")offPdfVorschauFreigeben();
+ $("offerteEditModal").hidden=true;
+ await offEditZurueck();
+}
+async function angebotLoeschenAusFormular(){
+ const id=currentAngebotId;
+ if(!await eintragLoeschen("angebote",id,"Diese Offerte wirklich löschen?"))return;
+ currentAngebotId=null; isDirty=false;
+ $("angebotEditModal").hidden=true;
+ await angEditZurueck();
+}
+(function loeschKnoepfeBinden(){
+ loeschKnopfBinden("reportScreen","reportDelete",()=>currentReportId,reportLoeschenAusFormular);
+ loeschKnopfBinden("ausmassEditModal","amDelete",()=>currentAusmassId,ausmassLoeschenAusFormular);
+ loeschKnopfBinden("offerteEditModal","offDelete",()=>currentOfferteId,offerteLoeschenAusFormular);
+ loeschKnopfBinden("angebotEditModal","angDelete",()=>currentAngebotId,angebotLoeschenAusFormular);
 })();
 
 // ---- Stammdaten -------------------------------------------------

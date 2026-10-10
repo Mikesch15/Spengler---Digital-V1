@@ -1842,14 +1842,9 @@ function measLoeschenKnopfAktualisieren(){
 }
 async function measLoeschenAusFormular(){
  const id=currentMeasurementId; if(!id)return;
- if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Löschen"))return;
  const frei=(typeof mwStand!=="undefined"&&mwStand&&mwStand.id===id&&mwStand.workflow_status&&mwStand.workflow_status!=="in_bearbeitung");
- if(!await appConfirm("Diese Massaufnahme wirklich löschen?"
-   +(frei?"\n\nSie ist bereits freigegeben – auch Rüstliste, Zuschnitt und Aufgaben dazu fallen weg.":"")
-   +"\n\nDas lässt sich nicht rückgängig machen.",{ok:"Löschen",gefahr:true}))return;
- const {data,error}=await sb.from("measurements").delete().eq("id",id).select("id");
- if(error){appAlert("Fehler: "+error.message);return}
- if(!data||!data.length){appAlert("Die Massaufnahme wurde nicht gelöscht – dafür fehlt die Berechtigung.");return}
+ if(!await eintragLoeschen("measurements",id,"Diese Massaufnahme wirklich löschen?"
+   +(frei?"\n\nSie ist bereits freigegeben – auch Rüstliste, Zuschnitt und Aufgaben dazu fallen weg.":"")))return;
  isDirty=false; currentMeasurementId=null;
  $("measurementEditModal").hidden=true;
  await measEditZurueck();

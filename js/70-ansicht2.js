@@ -1251,6 +1251,12 @@ document.addEventListener("click",async e=>{
   a2Zeichnen();
   return;
  }
+ // v3.288: Datei loeschen (Register Dateien) - dieselbe Funktion wie im Cockpit.
+ const dw=e.target.closest("[data-a2-datei-weg]");
+ if(dw){
+  if(typeof projektDateiLoeschen==="function"&&await projektDateiLoeschen(Number(dw.getAttribute("data-a2-datei-weg"))))await a2ProjektNeuLaden();
+  return;
+ }
  const frg=e.target.closest("[data-a2-freigeben]");
  if(frg){
   if(typeof mwFreigebenAusListe==="function")mwFreigebenAusListe(frg.getAttribute("data-a2-freigeben")).then(()=>a2Zeichnen());
@@ -2159,7 +2165,8 @@ function a2RegDateien(p){
      return `<div class="a2-zeile a2-zeile-still">
       <span class="a2-zeile-nr">\ud83d\udcc4</span>
       <span class="a2-zeile-text"><b>${esc(f.name||"Ohne Namen")}</b>
-       <span>${esc(zusatz||"\u2014")}</span></span></div>`;
+       <span>${esc(zusatz||"\u2014")}</span></span>
+      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-datei-weg="${esc(f.id)}" title="Datei löschen" aria-label="Datei löschen">\ud83d\uddd1</button></div>`;
     }).join("")
   : '<div class="a2-leer">Noch keine Datei zu diesem Projekt.</div>';
  html+="</div>";

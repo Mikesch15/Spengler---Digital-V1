@@ -1134,3 +1134,5 @@ html.a2-an .a2-zeile.a2-zeile-still:active{
 .a2-rb.a2-rb-mz.ist-offen>.a2-zeile{border-bottom-left-radius:inherit;border-bottom-right-radius:inherit}
 .a2-rb-mz>.a2-knopf-reihe{margin:6px 0 0}
 .a2-rb-mz .a2-rb-blatt{border-top:1px solid var(--line);border-radius:12px;margin-top:6px}
+/* v3.288: Loeschen-Knopf in der Dateizeile (Register Dateien) */
+.a2-zeile-still .a2-knopf{flex:none;margin:0;min-width:44px}

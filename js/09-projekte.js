@@ -431,6 +431,20 @@ function measSortiert(liste){
  });
 }
 
+// v3.288: Eine Datei loeschen - fuer die Liste im Cockpit UND die neue Ansicht.
+// Ein von RLS blockiertes DELETE meldet keinen Fehler, es betrifft still 0 Zeilen
+// (siehe CLAUDE.md 24.1) - deshalb das Ergebnis pruefen, statt Erfolg anzunehmen.
+// Rueckgabe: true, wenn geloescht wurde.
+async function projektDateiLoeschen(id){
+ const f=projectFilesCache.find(x=>x.id===id);
+ if(!await appConfirm(`Datei „${f?f.name:"?"}" wirklich löschen?`,{ok:"Löschen",gefahr:true}))return false;
+ const {data:weg,error}=await sb.from("project_files").delete().eq("id",id).select("id");
+ if(error){appAlert("Fehler beim Löschen: "+dateiFehlerText(error));return false}
+ if(!weg||!weg.length){appAlert("Die Datei konnte nicht gelöscht werden. Fehlt die nötige Berechtigung?");return false}
+ if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
+ return true;
+}
+
 async function loadProjectMeasurements(projectId){
  const box=$("cockpitMeasBody");
  if(projectMeasArchivFuer!==projectId){projectMeasArchivAnzeigen=false;projectMeasArchivFuer=projectId}
@@ -1001,17 +1015,7 @@ $("cockpitWorkArea").addEventListener("click",async e=>{
  }
  const delF=e.target.closest("[data-del-project-file]");
  if(delF){
-  const id=Number(delF.dataset.delProjectFile);
-  const f=projectFilesCache.find(x=>x.id===id);
-  if(!await appConfirm(`Datei „${f?f.name:"?"}" wirklich löschen?`))return;
-  // Ein von RLS blockiertes DELETE meldet keinen Fehler, es betrifft
-  // still 0 Zeilen (siehe CLAUDE.md 24.1) - deshalb das Ergebnis prüfen,
-  // statt Erfolg anzunehmen und die Datei danach trotzdem anzuzeigen.
-  const {data:weg,error}=await sb.from("project_files").delete().eq("id",id).select("id");
-  if(error){appAlert("Fehler beim Löschen: "+dateiFehlerText(error));return}
-  if(!weg||!weg.length){appAlert("Die Datei konnte nicht gelöscht werden. Fehlt die nötige Berechtigung?");return}
-  if(f&&f.file_path)await sb.storage.from("measurements").remove([f.file_path]);
-  await cockpitBereichAktualisieren("files");
+  if(await projektDateiLoeschen(Number(delF.dataset.delProjectFile)))await cockpitBereichAktualisieren("files");
   return;
  }
  const open=e.target.closest("[data-open-report]");
