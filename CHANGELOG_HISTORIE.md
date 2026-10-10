@@ -34096,3 +34096,26 @@ Prüfstand `aufgaben-zuverlaessig-v3-291` (15; vier Mutationsproben rot). Nicht 
 **Bewusst nicht gebaut:** Push-Benachrichtigungen, „Änderungen seit letztem Besuch“ (kein Nachweis, dass
 sie zuverlässig aus dem Verlauf herleitbar sind), Glocke/Zähler.
 
+
+### v3.292 — Rüsten und Montage: Aufgabe führt in die Ausführungsansicht (Roadmap-Priorität 3)
+
+Auftrag (10.10.2026, direkt auf main). **Bestand (Code):** Statuskette, Zuweisung
+(`measurement_zuweisen`), `measurement_geruestet`/`_montiert` (Berechtigung zugewiesene Person oder
+Admin, serverseitig), Audit-Log, Aufgaben (js/45), Werkstatt-Karte mit Rüstblatt + „Rüsten bestätigen“,
+„Material & Zuschnitt“ — alles vorhanden. **Belegte Lücke:** Die Aufgabe „Zu rüsten“/„Zu montieren“
+auf Heute öffnete das VOLLE Formular (`aufgabeOeffnen`), der blaue Knopf bestätigte ohne dass man
+etwas gesehen hatte; das Rüstblatt (`rbGross`) zeigte weder Baustelle, Hinweise, Fotos, Status noch
+Zuständige und hatte keinen Bestätigen-Knopf.
+**Umsetzung (bestehende Ansicht erweitert, kein neuer Schirm):** `js/45 aufgabeAusfuehrungOeffnen`
+lädt die volle Zeile und öffnet `rbGross(id,"startScreen",{ausfuehrung})`. `js/80`: `rbInfoHtml`
+(Projekt/Auftrag, Status, Aufgenommen von/Rüster/Monteur, Projekthinweis, Notiz, „Freigabe
+verfallen“, „Alter Zuschnitt“ (Dachfenster, v3.282), Foto-/Skizzen-Kacheln), Monteur ohne
+Zuschnittliste, fehlender Zuschnitt wie bisher gekennzeichnet; `rbAktionZeichnen`: Knopf
+„Rüsten/Montage bestätigen“ (Marke `data-aufgabe`, also dieselbe Rückfrage und derselbe RPC wie
+Werkstatt) nur für zugewiesene Person/Admin und passenden Status, sonst „Bestätigen kann <Name>“.
+Erfolg schliesst die Ansicht und lädt Liste/Werkstatt neu; Fehler: Meldung, Ansicht bleibt.
+`js/70 a2AufgabeHtml`: Zeile → `ausfuehrung_ruesten|montieren`. Keine Migration, keine neue Statuslogik.
+Prüfstand `ruesten-montage-v3-292` (24; vier Mutationsproben rot); `startseite-v3-158`,
+`workflow-v3-05`, `aufgaben-je-projekt-v3-257` auf den neuen Vertrag umgestellt (mit Gegenprobe:
+Freigeben/Zuweisen öffnen weiter das Formular). **Nicht live gegen Supabase geprüft.**
+**Nächste Priorität:** laut Roadmap nicht feststellbar (Dokument liegt nicht im Repo).

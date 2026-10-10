@@ -3,9 +3,20 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.294`
+- Aktueller Entwicklungsstand: `v3.295`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.295 — Rüstblatt: welches Stück aus welchem Abschnitt / welcher Stange
+
+Ansage (10.10.2026): „Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle abgeschnitten werden, muss
+ich wissen, welche Stücke aus welchen Abschnitten geschnitten werden – das muss auch im Rüstblatt stehen.“
+`js/33`: `zuStreifenTitel(g,p)` (Titel aus `zuBelegungHtml` herausgelöst, unverändert) und
+`zuBelegungKurzHtml(p)` (je Streifen die Stücknummern mit Länge und Teil x/y; bei Stangen „aus welcher
+Stange“, bei Tafeln „aus welcher Tafel“). `js/80 rbBlattHtml` hängt den Block unter die Zuschnittliste.
+Erscheint nur bei mehr als einem Streifen (bzw. mehr als einer Stange); sonst nichts. Datenquelle ist der
+gespeicherte Plan (`zuPlanAusGespeichert`), nichts wird neu berechnet. Prüfstand
+`ruestblatt-abschnitte-v3-295` (9; Mutation rot). Offen: ob die übrigen Arten ihre Angaben auch kürzen sollen.
 
 ### v3.294 — Rüstblatt: bei Dachfenster und Kamin nur die kurze Auswahl
 
@@ -38,29 +49,6 @@ wirkt überall (Werkstatt, Projektseite, Ausführungsansicht, gross). Bildschirm
 Prüfstand `ruestblatt-masse-v3-293` (48): dieselbe Regel wie `blatt-vollstaendig-v3-262` am Rüstblatt —
 jedes gespeicherte Mass jeder Art steht im Blatt (gleiche Ausnahmen mit Grund), alle PDF-Angaben stehen
 im Blatt ohne Knopf, das PDF druckt weiter genau den Aufbau. **Nicht auf echtem Gerät geprüft.**
-
-### v3.292 — Rüsten und Montage: Aufgabe führt in die Ausführungsansicht (Roadmap-Priorität 3)
-
-Auftrag (10.10.2026, direkt auf main). **Bestand (Code):** Statuskette, Zuweisung
-(`measurement_zuweisen`), `measurement_geruestet`/`_montiert` (Berechtigung zugewiesene Person oder
-Admin, serverseitig), Audit-Log, Aufgaben (js/45), Werkstatt-Karte mit Rüstblatt + „Rüsten bestätigen“,
-„Material & Zuschnitt“ — alles vorhanden. **Belegte Lücke:** Die Aufgabe „Zu rüsten“/„Zu montieren“
-auf Heute öffnete das VOLLE Formular (`aufgabeOeffnen`), der blaue Knopf bestätigte ohne dass man
-etwas gesehen hatte; das Rüstblatt (`rbGross`) zeigte weder Baustelle, Hinweise, Fotos, Status noch
-Zuständige und hatte keinen Bestätigen-Knopf.
-**Umsetzung (bestehende Ansicht erweitert, kein neuer Schirm):** `js/45 aufgabeAusfuehrungOeffnen`
-lädt die volle Zeile und öffnet `rbGross(id,"startScreen",{ausfuehrung})`. `js/80`: `rbInfoHtml`
-(Projekt/Auftrag, Status, Aufgenommen von/Rüster/Monteur, Projekthinweis, Notiz, „Freigabe
-verfallen“, „Alter Zuschnitt“ (Dachfenster, v3.282), Foto-/Skizzen-Kacheln), Monteur ohne
-Zuschnittliste, fehlender Zuschnitt wie bisher gekennzeichnet; `rbAktionZeichnen`: Knopf
-„Rüsten/Montage bestätigen“ (Marke `data-aufgabe`, also dieselbe Rückfrage und derselbe RPC wie
-Werkstatt) nur für zugewiesene Person/Admin und passenden Status, sonst „Bestätigen kann <Name>“.
-Erfolg schliesst die Ansicht und lädt Liste/Werkstatt neu; Fehler: Meldung, Ansicht bleibt.
-`js/70 a2AufgabeHtml`: Zeile → `ausfuehrung_ruesten|montieren`. Keine Migration, keine neue Statuslogik.
-Prüfstand `ruesten-montage-v3-292` (24; vier Mutationsproben rot); `startseite-v3-158`,
-`workflow-v3-05`, `aufgaben-je-projekt-v3-257` auf den neuen Vertrag umgestellt (mit Gegenprobe:
-Freigeben/Zuweisen öffnen weiter das Formular). **Nicht live gegen Supabase geprüft.**
-**Nächste Priorität:** laut Roadmap nicht feststellbar (Dokument liegt nicht im Repo).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
