@@ -3,9 +3,21 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.297`
+- Aktueller Entwicklungsstand: `v3.298`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.298 — Rüstblatt: bei mehreren Streifenbreiten der echte Abschnitt
+
+Rückmeldung (10.10.2026, Handy-Screenshot): bei vier Streifenbreiten stand überall „Abschnitt 1“, beim Hinterteil
+(507 mm) gar keiner, obwohl die Fusszeile „1 × 1'215 + 1 × 595 mm ab Rolle“ zwei Abschnitte nennt. Ursache:
+`zuStreifenTitel` (js/33) zählt die Abschnitte **je Streifenbreite-Gruppe**; eine mitfahrende Gruppe
+(Trittbrett-Mischung, js/29) hat keinen eigenen. Das Rüstblatt zeigt bei mehreren Gruppen jetzt
+**„Abschnitt 1'215 mm“ / „Abschnitt 595 mm“** (`st.abschnittLaenge`, sonst Gruppenlänge, bei Mischung
+Länge − Rest) – das stimmt mit der Fusszeile überein. Eine Gruppe allein und Tafeln bleiben wie bisher; die
+Material-Seite (`zuBelegungHtml`) ist unverändert und zählt weiter je Gruppe (**offen:** dort derselbe Effekt).
+Grenze: zwei gleich lange Abschnitte in einer Mischung erscheinen unter derselben Überschrift (gespeichert ist
+keine Abschnitts-ID). Prüfstand `ruestblatt-abschnitte-v3-297` um Fall H (der Handyfall) erweitert, 13; Mutation rot.
 
 ### v3.297 — Rüstblatt: Herkunft direkt in der abhakbaren Liste
 
@@ -29,17 +41,6 @@ nirgends stehen (z. B. Gesamtlänge, Montage), bleiben. Der Monteur sieht keine 
 alles. Dachfenster/Kamin behalten ihre feste Kurzauswahl (v3.294). Verträge angepasst, mit Gegenproben:
 `ruestblatt-masse-v3-293` (Beschriftung darf fehlen, wenn der Wert anderswo steht),
 `werkstatt-liste-v3-30`. Neuer Prüfstand `ruestblatt-doppelt-v3-296` (6; Mutation rot).
-
-### v3.295 — Rüstblatt: welches Stück aus welchem Abschnitt / welcher Stange
-
-Ansage (10.10.2026): „Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle abgeschnitten werden, muss
-ich wissen, welche Stücke aus welchen Abschnitten geschnitten werden – das muss auch im Rüstblatt stehen.“
-`js/33`: `zuStreifenTitel(g,p)` (Titel aus `zuBelegungHtml` herausgelöst, unverändert) und
-`zuBelegungKurzHtml(p)` (je Streifen die Stücknummern mit Länge und Teil x/y; bei Stangen „aus welcher
-Stange“, bei Tafeln „aus welcher Tafel“). `js/80 rbBlattHtml` hängt den Block unter die Zuschnittliste.
-Erscheint nur bei mehr als einem Streifen (bzw. mehr als einer Stange); sonst nichts. Datenquelle ist der
-gespeicherte Plan (`zuPlanAusGespeichert`), nichts wird neu berechnet. Prüfstand
-`ruestblatt-abschnitte-v3-295` (9; Mutation rot). Offen: ob die übrigen Arten ihre Angaben auch kürzen sollen.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

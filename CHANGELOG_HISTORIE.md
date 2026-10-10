@@ -34151,3 +34151,14 @@ nicht in der Zeichnung) nur diese Zellen, gelesen aus dem PDF-Aufbau; Stücklist
 entfallen (Zuschnittliste und Zeichnung bleiben). Alle übrigen Arten behalten den vollen Block (v3.293);
 ob die auch gekürzt werden sollen, ist offen. Prüfstand `ruestblatt-masse-v3-293` um Abschnitt D erweitert
 (keine weiteren Angaben, ein Block, Gesamtzahl stimmt mit dem Datensatz; Mutation rot).
+
+### v3.295 — Rüstblatt: welches Stück aus welchem Abschnitt / welcher Stange
+
+Ansage (10.10.2026): „Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle abgeschnitten werden, muss
+ich wissen, welche Stücke aus welchen Abschnitten geschnitten werden – das muss auch im Rüstblatt stehen.“
+`js/33`: `zuStreifenTitel(g,p)` (Titel aus `zuBelegungHtml` herausgelöst, unverändert) und
+`zuBelegungKurzHtml(p)` (je Streifen die Stücknummern mit Länge und Teil x/y; bei Stangen „aus welcher
+Stange“, bei Tafeln „aus welcher Tafel“). `js/80 rbBlattHtml` hängt den Block unter die Zuschnittliste.
+Erscheint nur bei mehr als einem Streifen (bzw. mehr als einer Stange); sonst nichts. Datenquelle ist der
+gespeicherte Plan (`zuPlanAusGespeichert`), nichts wird neu berechnet. Prüfstand
+`ruestblatt-abschnitte-v3-295` (9; Mutation rot). Offen: ob die übrigen Arten ihre Angaben auch kürzen sollen.
