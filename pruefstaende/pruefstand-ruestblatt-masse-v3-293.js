@@ -3,6 +3,13 @@
 // dieselbe Regel wie pruefstand-blatt-vollstaendig-v3-262 (PDF), jetzt am RUESTBLATT -
 // jedes gespeicherte Mass jeder Art steht im fertigen Blatt (rbBlattHtml), ohne Klick.
 // Die Ausnahmen sind dieselben wie dort, jede mit Grund.
+//
+// v3.294 (Ansage: "Jetzt steht mir zu viel dort, z. B. beim Dachfenster ... die restlichen Infos
+// stehen zum Teil doppelt da"): Dachfenster- und Kamineinfassung zeigen eine KURZE Auswahl
+// (RB_ANGABEN in js/80); ihre uebrigen Masse stehen in der Zeichnung und der Zuschnittliste.
+// Fuer diese zwei Arten prueft Abschnitt D die Auswahl statt "jedes Mass", A und B gelten fuer
+// alle uebrigen Arten unveraendert.
+const KURZ=["dachfenstereinfassung","kamineinfassung"];
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
@@ -80,9 +87,10 @@ const NICHT_FLACH=["zuschnitte","bleilappen","ausmass","kontrolle","rollen","pie
  aus.forEach(z=>{
   p(z.blatt,z.name+": es wird ein Rüstblatt erzeugt");
   const echt=[...new Set(z.fehlt.filter(f=>!erlaubt(z.type,f)))];
+  if(KURZ.includes(z.type)){p(z.blatt,z.name+": kurze Auswahl statt aller Masse (siehe D)");return}
   p(echt.length===0,z.name+": jedes gespeicherte Mass steht auf dem Rüstblatt ("+z.geprueft+" geprueft)",echt);
  });
- p(aus.filter(z=>z.type!=="skizze_foto").every(z=>z.masseBlock),
+ p(aus.filter(z=>z.type!=="skizze_foto"&&z.type!=="").every(z=>z.masseBlock),
    "Alle Fachaarten haben den Block 'Masse und Angaben' auf dem Blatt",aus.filter(z=>!z.masseBlock).map(z=>z.type));
 
  console.log("\nB · Der Block kommt aus dem PDF-Aufbau - kein Klick, keine zweite Zusammenstellung");
@@ -101,7 +109,37 @@ const NICHT_FLACH=["zuschnitte","bleilappen","ausmass","kontrolle","rollen","pie
   }
   return raus;
  },FAELLE);
- b2.forEach(z=>p(z.fehlt.length===0&&z.klickKnoepfe===0,z.type+": alle "+z.n+" Beschriftungen der PDF-Angaben stehen im Rüstblatt, ohne Knopf",z));
+ b2.filter(z=>!KURZ.includes(z.type)).forEach(z=>p(z.fehlt.length===0&&z.klickKnoepfe===0,z.type+": alle "+z.n+" Beschriftungen der PDF-Angaben stehen im Rüstblatt, ohne Knopf",z));
+
+ console.log("\nD · Dachfenster und Kamin: nur die Auswahl, nichts doppelt");
+ const kurz=await page.evaluate(async ([faelle,KURZ])=>{
+  measurementMaterials=[{id:2,name:"Titanzink"},{id:3,name:"Kupfer"}];
+  const raus=[];
+  for(const [name,type,data0] of faelle){
+   if(!KURZ.includes(type))continue;
+   const data=JSON.parse(JSON.stringify(data0));
+   if(type==="dachfenstereinfassung"&&!data.ausfuehrung)data.ausfuehrung="gefalzt";
+   const box=document.createElement("div"); box.innerHTML=rbBlattHtml({id:1,type,data,title:name,note:""},{kopf:true});
+   const zellen={}; box.querySelectorAll(".rb-masse td").forEach(td=>{const l=td.querySelector("label"),v=td.querySelector(".val"); if(l&&v)zellen[l.textContent.trim()]=v.textContent.trim()});
+   raus.push({name,type,zellen,sektionen:[...box.querySelectorAll(".rb-masse .eb-section-head")].map(h=>h.textContent.trim()),
+     bleilappen:data.bleilappen&&data.bleilappen.gesamt,lattenabstand:data.lattenabstand,
+     tabellen:box.querySelectorAll(".rb-masse table").length});
+  }
+  return raus;
+ },[FAELLE,KURZ]);
+ const erlaubtDF=["Deckungsmaterial","Material","Ausführung","Breite vorne / hinten","Lattenabstand","Bleilappen gesamt"];
+ const erlaubtKA=["Deckungsmaterial","Material","Breite vorne / hinten","Kaminlänge längs Dach","Lattenabstand","Bleilappen gesamt"];
+ kurz.forEach(z=>{
+  const erl=z.type==="dachfenstereinfassung"?erlaubtDF:erlaubtKA;
+  const extra=Object.keys(z.zellen).filter(k=>erl.indexOf(k)<0);
+  p(extra.length===0,z.name+": keine weiteren Angaben (nichts doppelt)",extra);
+  p(z.sektionen.length===1&&z.tabellen===1,z.name+": genau ein Block 'Angaben' - keine Stückliste, keine Bleilappen-Tabelle",z.sektionen);
+  p(z.zellen["Material"]&&z.zellen["Deckungsmaterial"]&&/\d/.test(z.zellen["Breite vorne / hinten"]||"")&&/\d/.test(z.zellen["Lattenabstand"]||""),
+    z.name+": Material, Eindeckart, Breite vorne/hinten und Lattenabstand stehen da",z.zellen);
+  p(z.bleilappen>0?z.zellen["Bleilappen gesamt"]===z.bleilappen+" Stück":!("Bleilappen gesamt" in z.zellen),
+    z.name+": Gesamtzahl Bleilappen stimmt mit dem Datensatz ueberein (oder fehlt ehrlich)",{z:z.zellen["Bleilappen gesamt"],d:z.bleilappen});
+  if(z.type==="dachfenstereinfassung")p(/gefalzt|gepunktet/.test(z.zellen["Ausführung"]||""),z.name+": 'gefalzt oder nicht' steht da",z.zellen);
+ });
 
  console.log("\nC · Gegenprobe: das PDF bleibt unveraendert zusammengesetzt");
  const pdf=await page.evaluate(async faelle=>{

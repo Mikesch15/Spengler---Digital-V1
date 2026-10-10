@@ -145,6 +145,40 @@ function rbInfoHtml(m){
 // Zeichnungen (rbSkizzenHtml), abhakbarer Zuschnitt (zuListeHtml), Ausmass, Material,
 // Notiz/Kontrolle (Notiz steht in rbInfoHtml), Bilder. Es wird nichts gerechnet, nichts
 // zweimal zusammengestellt - ein Fehler beim Aufbau laesst das Blatt wie bisher.
+// v3.294, Ansage des Anwenders: "Jetzt steht mir zu viel dort, z. B. beim Dachfenster. Es reicht,
+// wenn die Breite vorne und hinten sowie der Lattenabstand, die Gesamtzahl Bleilappen, die
+// Eindeckart und das Material da steht und ob gefalzt oder nicht - die restlichen Infos stehen
+// zum Teil doppelt da." Alles andere steht in der Zeichnung (M, H, G, I ...) bzw. in der
+// Zuschnittliste. Fuer diese Arten gilt deshalb eine kurze Auswahl; jede andere Art behaelt
+// den vollen Block. Die Zellen werden aus dem PDF-Aufbau gelesen (gleiche Beschriftung, gleicher
+// Wert), nicht neu formuliert. Kamineinfassung: dieselbe Idee, zusaetzlich die Kaminlaenge -
+// sie steht nicht in der Zeichnung (Annahme, bei Bedarf streichen).
+const RB_ANGABEN={
+ dachfenstereinfassung:/^(Deckungsmaterial|Material|Ausführung|Breite vorne \/ hinten|Lattenabstand)$/,
+ kamineinfassung:/^(Deckungsmaterial|Material|Breite vorne \/ hinten|Kaminlänge längs Dach|Lattenabstand)$/
+};
+function rbKurzeAngabenHtml(m,teile){
+ const wahl=RB_ANGABEN[m.type];
+ const angaben=teile.find(t=>/^angaben$/i.test(t.titel));
+ const zellen=[];
+ if(angaben){
+  const box=document.createElement("div"); box.innerHTML=angaben.html;
+  box.querySelectorAll("td").forEach(td=>{
+   const l=td.querySelector("label"), v=td.querySelector(".val");
+   if(l&&v&&wahl.test(l.textContent.trim()))zellen.push([l.textContent.trim(),v.textContent.trim()]);
+  });
+ }
+ const bl=m.data&&m.data.bleilappen&&Number(m.data.bleilappen.gesamt);
+ if(bl>0)zellen.push(["Bleilappen gesamt",bl+" Stück"]);
+ if(!zellen.length)return "";
+ let h='<div class="eb-section-head">Angaben</div><table class="eb-info-table">';
+ for(let i=0;i<zellen.length;i+=2){
+  const z=c=>c?`<td><label>${esc(c[0])}</label><div class="val">${esc(c[1])}</div></td>`:"<td></td>";
+  h+="<tr>"+z(zellen[i])+z(zellen[i+1])+"</tr>";
+ }
+ return h+"</table>";
+}
+
 function rbMasseHtml(m){
  if(typeof measPdfAufbau!=="function"||typeof pdfAbschnitteZerlegen!=="function")return "";
  let teile;
@@ -152,6 +186,10 @@ function rbMasseHtml(m){
   const r=measPdfAufbau(m,{logoSrc:"",medienHtml:"",photoSrcs:[],sketchSrcs:[],ohneKopf:true});
   teile=pdfAbschnitteZerlegen(r.koerper,"eb-section-head").teile;
  }catch(e){ console.error("Rüstblatt Masse",e); return "" }
+ if(RB_ANGABEN[m.type]){
+  const k=rbKurzeAngabenHtml(m,teile);
+  return k?`<div class="rb-masse">${k}</div>`:"";
+ }
  const gewollt=new Set(["masse","zusammenfassung","stueckliste","rollenblech"]);
  let h="";
  teile.forEach(t=>{
