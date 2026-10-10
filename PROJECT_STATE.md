@@ -3,9 +3,32 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.291`
+- Aktueller Entwicklungsstand: `v3.292`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.292 — Rüsten und Montage: Aufgabe führt in die Ausführungsansicht (Roadmap-Priorität 3)
+
+Auftrag (10.10.2026, direkt auf main). **Bestand (Code):** Statuskette, Zuweisung
+(`measurement_zuweisen`), `measurement_geruestet`/`_montiert` (Berechtigung zugewiesene Person oder
+Admin, serverseitig), Audit-Log, Aufgaben (js/45), Werkstatt-Karte mit Rüstblatt + „Rüsten bestätigen“,
+„Material & Zuschnitt“ — alles vorhanden. **Belegte Lücke:** Die Aufgabe „Zu rüsten“/„Zu montieren“
+auf Heute öffnete das VOLLE Formular (`aufgabeOeffnen`), der blaue Knopf bestätigte ohne dass man
+etwas gesehen hatte; das Rüstblatt (`rbGross`) zeigte weder Baustelle, Hinweise, Fotos, Status noch
+Zuständige und hatte keinen Bestätigen-Knopf.
+**Umsetzung (bestehende Ansicht erweitert, kein neuer Schirm):** `js/45 aufgabeAusfuehrungOeffnen`
+lädt die volle Zeile und öffnet `rbGross(id,"startScreen",{ausfuehrung})`. `js/80`: `rbInfoHtml`
+(Projekt/Auftrag, Status, Aufgenommen von/Rüster/Monteur, Projekthinweis, Notiz, „Freigabe
+verfallen“, „Alter Zuschnitt“ (Dachfenster, v3.282), Foto-/Skizzen-Kacheln), Monteur ohne
+Zuschnittliste, fehlender Zuschnitt wie bisher gekennzeichnet; `rbAktionZeichnen`: Knopf
+„Rüsten/Montage bestätigen“ (Marke `data-aufgabe`, also dieselbe Rückfrage und derselbe RPC wie
+Werkstatt) nur für zugewiesene Person/Admin und passenden Status, sonst „Bestätigen kann <Name>“.
+Erfolg schliesst die Ansicht und lädt Liste/Werkstatt neu; Fehler: Meldung, Ansicht bleibt.
+`js/70 a2AufgabeHtml`: Zeile → `ausfuehrung_ruesten|montieren`. Keine Migration, keine neue Statuslogik.
+Prüfstand `ruesten-montage-v3-292` (24; vier Mutationsproben rot); `startseite-v3-158`,
+`workflow-v3-05`, `aufgaben-je-projekt-v3-257` auf den neuen Vertrag umgestellt (mit Gegenprobe:
+Freigeben/Zuweisen öffnen weiter das Formular). **Nicht live gegen Supabase geprüft.**
+**Nächste Priorität:** laut Roadmap nicht feststellbar (Dokument liegt nicht im Repo).
 
 ### v3.291 — Aufgabenliste „Heute“ zuverlässiger (Auftrag Aufgaben-/Benachrichtigungszentrale)
 
@@ -42,26 +65,6 @@ frei", `mwStellvertretungText` bei „Freigegeben von"; Liste/Als Nächstes folg
 `freigegeben_von` = Admin ≠ `created_by` → im Verlauf erkennbar. Prüfstand
 `freigabe-stellvertretung-v3-290` (9; zwei Mutationsproben rot), `workflow-v3-05` umgestellt.
 Zusammenfassung: `Zusammenfassung_v3.290_Freigabe_Stellvertretung.txt`.
-
-### v3.289 — Übersichtlichkeit: Projektliste und Projekt-Übersicht (Branch `ui/uebersichtlichkeit-cockpit`, NICHT auf main)
-
-Auftrag (10.10.2026, Datei „Auftrag_Claude_Spengler-DIGITAL_Uebersichtlichkeit"): Oberfläche
-gezielt vereinfachen, ohne Abläufe zu beschädigen; zuerst nur Projektübersicht und Cockpit;
-Entwicklung auf Feature-Branch, nicht auf main (Auftrag überstimmt hier die Regel „immer main").
-**Befund (Code):** `a2SeiteProjekte` (js/70) war schon schlank (Suche, Liste, Neues Projekt,
-Archiv und Filter) — nur die Zeile war knapp. `a2RegUebersicht` (js/70) zeigte oben den grossen
-Ablauf, erst danach den Nächsten Schritt; Kennzahlen als grosse bunte Kacheln; Stammdaten mit
-vollbreitem Bearbeiten-Knopf; „Material & Zuschnitt" als vollbreiter Knopf. Die Kopfzeile trägt die
-Projektidentität bereits (Adresse, Name, Auftrag) — unverändert.
-**Umgesetzt (nur Markup/CSS, keine Fachlogik, keine IDs/Data-Attribute entfernt):** Reihenfolge
-Nächster Schritt → Hinweise (nur wenn vorhanden, Zeilenumbruch-Lücke behoben) → Ablauf (leise,
-kleinere Marken) mit kleinem Schnellzugriff „Material & Zuschnitt" → Stand (kleine Kennzahlen) →
-Stammdaten (kompakt, „Stammdaten bearbeiten" klein rechts, ≥ 40 px). Projektliste: Klasse
-`a2-zeile-projekt` (≥ 50 px, 15 px Titel, Umbruch langer Namen). Neue CSS-Regeln am Ende von
-`css/05-ansicht2.css` mit vorhandenen Variablen. Nicht angefasst: Navigation, Heute-Seite, Cockpit-
-Rückkehrlogik (js/24), Formulare, Druck, RLS.
-Prüfstand `uebersichtlichkeit-v3-289` (21; Reihenfolge-Mutation rot) — misst Reihenfolge, Vollständigkeit,
-kein seitliches Scrollen und Touch-Höhen bei 360/412/768 px (Chromium kopflos, **kein echtes Gerät**).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

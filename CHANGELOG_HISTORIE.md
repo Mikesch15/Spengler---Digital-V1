@@ -34037,3 +34037,24 @@ gespeichertem Eintrag (`loeschKnopfBinden`: `hidden`-Beobachter + Klick im Formu
 Papierkorb-Knopf `data-a2-datei-weg` je Datei im Register Dateien. Die Berechtigung entscheidet die
 Datenbank (RLS). Prüfstand `loeschen-weitere-v3-288` (20; drei Mutationsproben rot).
 
+
+### v3.289 — Übersichtlichkeit: Projektliste und Projekt-Übersicht (Branch `ui/uebersichtlichkeit-cockpit`, NICHT auf main)
+
+Auftrag (10.10.2026, Datei „Auftrag_Claude_Spengler-DIGITAL_Uebersichtlichkeit"): Oberfläche
+gezielt vereinfachen, ohne Abläufe zu beschädigen; zuerst nur Projektübersicht und Cockpit;
+Entwicklung auf Feature-Branch, nicht auf main (Auftrag überstimmt hier die Regel „immer main").
+**Befund (Code):** `a2SeiteProjekte` (js/70) war schon schlank (Suche, Liste, Neues Projekt,
+Archiv und Filter) — nur die Zeile war knapp. `a2RegUebersicht` (js/70) zeigte oben den grossen
+Ablauf, erst danach den Nächsten Schritt; Kennzahlen als grosse bunte Kacheln; Stammdaten mit
+vollbreitem Bearbeiten-Knopf; „Material & Zuschnitt" als vollbreiter Knopf. Die Kopfzeile trägt die
+Projektidentität bereits (Adresse, Name, Auftrag) — unverändert.
+**Umgesetzt (nur Markup/CSS, keine Fachlogik, keine IDs/Data-Attribute entfernt):** Reihenfolge
+Nächster Schritt → Hinweise (nur wenn vorhanden, Zeilenumbruch-Lücke behoben) → Ablauf (leise,
+kleinere Marken) mit kleinem Schnellzugriff „Material & Zuschnitt" → Stand (kleine Kennzahlen) →
+Stammdaten (kompakt, „Stammdaten bearbeiten" klein rechts, ≥ 40 px). Projektliste: Klasse
+`a2-zeile-projekt` (≥ 50 px, 15 px Titel, Umbruch langer Namen). Neue CSS-Regeln am Ende von
+`css/05-ansicht2.css` mit vorhandenen Variablen. Nicht angefasst: Navigation, Heute-Seite, Cockpit-
+Rückkehrlogik (js/24), Formulare, Druck, RLS.
+Prüfstand `uebersichtlichkeit-v3-289` (21; Reihenfolge-Mutation rot) — misst Reihenfolge, Vollständigkeit,
+kein seitliches Scrollen und Touch-Höhen bei 360/412/768 px (Chromium kopflos, **kein echtes Gerät**).
+
