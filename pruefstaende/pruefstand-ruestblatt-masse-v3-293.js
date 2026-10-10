@@ -102,9 +102,14 @@ const NICHT_FLACH=["zuschnitte","bleilappen","ausmass","kontrolle","rollen","pie
    const blatt=document.createElement("div"); blatt.innerHTML=rbBlattHtml(m,{kopf:true});
    // Jede Beschriftung der Angaben-Tabelle des PDF steht auch im Rüstblatt
    const box=document.createElement("div"); box.innerHTML=r.koerper;
-   const angaben=[...box.querySelectorAll(".eb-info-table label")].map(l=>l.textContent.trim());
+   // v3.296: eine Angabe darf fehlen, wenn ihr Wert (alle Zahlen ab 10) schon in der Zeichnung oder der
+   // Zuschnittliste desselben Blattes steht - sie steht dann nur noch dort, nicht doppelt.
+   const bekannt=rbBekannteZahlen(blatt.innerHTML);
+   const zellen=[...box.querySelectorAll(".eb-info-table td")].map(td=>({l:td.querySelector("label"),v:td.querySelector(".val")})).filter(z=>z.l&&z.v).map(z=>({l:z.l.textContent.trim(),v:z.v.textContent.trim()}));
+   const angaben=zellen.map(z=>z.l);
    const imBlatt=[...blatt.querySelectorAll(".rb-masse label")].map(l=>l.textContent.trim());
-   raus.push({type,fehlt:angaben.filter(a=>imBlatt.indexOf(a)<0),n:angaben.length,
+   const nurWert=new Set(zellen.filter(z=>imBlatt.indexOf(z.l)<0&&rbDoppelt(z.v,bekannt)).map(z=>z.l));
+   raus.push({type,fehlt:angaben.filter(a=>imBlatt.indexOf(a)<0&&!nurWert.has(a)),n:angaben.length,
      klickKnoepfe:blatt.querySelectorAll(".rb-masse button,.rb-masse [data-rb-gross]").length});
   }
   return raus;

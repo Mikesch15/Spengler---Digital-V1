@@ -232,7 +232,10 @@ const werkstattAuf=async page=>{
   // sein, es darf kein zusätzlicher Klick brauchen"): die Produktionsmasse (Angaben: Mass A, Dachneigung,
   // Montage ...) stehen jetzt DA - bis v3.292 war das hier ausdruecklich umgekehrt. Weiter nicht da:
   // Notiz, Eingabefelder, Fotos (siehe die Zeilen darueber/darunter).
-  p(/Mass A/i.test(c.txt)&&/Dachneigung/i.test(c.txt)&&/Montage/i.test(c.txt),"die Produktionsmasse (Angaben) stehen da",c.txt.slice(0,400));
+  // v3.296 (Ansage: "Alle Angaben kürzen, so dass nirgends Masse doppelt stehen"): Mass A (120) und die
+  // Dachneigung (30°) stehen in der Zeichnung - die Angaben wiederholen sie nicht mehr. Montage und
+  // Gesamtlaenge, die nirgends sonst stehen, bleiben. Gegenprobe: die Werte sind weiter auf dem Blatt.
+  p(/A = 120/.test(c.txt)&&/30°/.test(c.txt)&&/Montage/i.test(c.txt)&&!/Mass A/i.test(c.txt)&&!/Dachneigung/i.test(c.txt),"die Produktionsmasse stehen da, ohne Wiederholung",c.txt.slice(0,400));
   p(c.bilder===0,"keine Fotos",c.bilder);
   p(/Zuschnittliste|1'200|1’200/.test(c.txt),"die Zuschnittliste steht da",c.txt.slice(0,300));
  }

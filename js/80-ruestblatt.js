@@ -179,7 +179,46 @@ function rbKurzeAngabenHtml(m,teile){
  return h+"</table>";
 }
 
-function rbMasseHtml(m){
+// v3.296, Ansage des Anwenders: "Alle Angaben kürzen, so dass nirgends Masse doppelt stehen."
+// Ein Wert gilt als doppelt, wenn JEDE Zahl darin (ab 10 oder mit Nachkommastelle - kleine
+// Ganzzahlen wie Nummern und Stueckzahlen zaehlen nicht) schon im Text der Zeichnung oder der
+// Zuschnittliste auf demselben Blatt steht. Dann bleibt er dort stehen und faellt hier weg:
+// kein Mass geht verloren, es steht nur noch einmal da. Zellen/Zeilen ohne solche Zahl
+// (Worte, Winkel unter 10, kleine Zahlen) bleiben immer.
+function rbZahlen(t){
+ return (String(t||"").match(/\d+(?:[.,]\d+)?/g)||[]).map(x=>x.replace(",",".")).map(x=>String(parseFloat(x)));
+}
+function rbBekannteZahlen(html){
+ const box=document.createElement("div"); box.innerHTML=html||"";
+ const t=[...box.querySelectorAll("svg text")].map(x=>x.textContent).join(" ")+" "+box.textContent.replace(/(\d)[’']+(\d)/g,"$1$2");
+ return new Set(rbZahlen(t.replace(/(\d)[’']+(\d)/g,"$1$2")));
+}
+function rbDoppelt(text,bekannt){
+ const z=rbZahlen(String(text||"").replace(/(\d)[’']+(\d)/g,"$1$2")).filter(x=>parseFloat(x)>=10||x.includes("."));
+ return z.length>0&&z.every(x=>bekannt.has(x));
+}
+function rbDoppeltesEntfernen(box,bekannt){
+ box.querySelectorAll("table.eb-info-table").forEach(t=>{       // Angaben: Zelle fuer Zelle
+  t.querySelectorAll("td").forEach(td=>{
+   const v=td.querySelector(".val");
+   if(td.querySelector("label")&&v&&rbDoppelt(v.textContent,bekannt)){ td.innerHTML="" }
+  });
+  t.querySelectorAll("tr").forEach(tr=>{
+   if([...tr.children].every(c=>!c.textContent.trim()))tr.remove();
+  });
+ });
+ box.querySelectorAll("table:not(.eb-info-table)").forEach(t=>{ // Listen: nur ganze Zeilen
+  const zeilen=[...t.querySelectorAll("tbody tr")];
+  zeilen.forEach(tr=>{
+   const tds=[...tr.querySelectorAll("td")];
+   const mitZahl=tds.filter(c=>rbZahlen(c.textContent).some(x=>parseFloat(x)>=10||x.includes(".")));
+   if(mitZahl.length&&tds.every(c=>!c.textContent.trim()||rbDoppelt(c.textContent,bekannt)||!rbZahlen(c.textContent).some(x=>parseFloat(x)>=10||x.includes("."))))tr.remove();
+  });
+  if(zeilen.length&&!t.querySelector("tbody tr"))t.remove();
+ });
+}
+
+function rbMasseHtml(m,bekanntHtml){
  if(typeof measPdfAufbau!=="function"||typeof pdfAbschnitteZerlegen!=="function")return "";
  let teile;
  try{
@@ -190,6 +229,7 @@ function rbMasseHtml(m){
   const k=rbKurzeAngabenHtml(m,teile);
   return k?`<div class="rb-masse">${k}</div>`:"";
  }
+ const bekannt=bekanntHtml?rbBekannteZahlen(bekanntHtml):null;
  const gewollt=new Set(["masse","zusammenfassung","stueckliste","rollenblech"]);
  let h="";
  teile.forEach(t=>{
@@ -200,6 +240,7 @@ function rbMasseHtml(m){
   box.querySelectorAll(".eb-diagram-title").forEach(x=>x.remove());
   box.querySelectorAll("svg").forEach(x=>x.remove());
   box.querySelectorAll(".eb-diagram,.eb-diagram-row,.pdf-bild").forEach(x=>{if(!x.textContent.trim()&&!x.querySelector("table,img"))x.remove()});
+  if(bekannt)rbDoppeltesEntfernen(box,bekannt);
   const kopf=box.querySelector(".eb-section-head");
   const rest=(box.textContent||"").replace((kopf&&kopf.textContent)||"","").trim();
   if(!rest&&!box.querySelector("table"))return;             // war nur eine Zeichnung
@@ -226,11 +267,14 @@ function rbBlattHtml(m,opt){
  // v3.292: Ausfuehrungsansicht (Aufgabe "Zu rüsten"/"Zu montieren") - zuerst die Angaben
  // zur Baustelle, dann die Zeichnung; der Monteur braucht die Zuschnittliste nicht.
  if(o.ausfuehrung)h+=rbInfoHtml(m);
- h+=rbSkizzenHtml(m);
- h+=rbMasseHtml(m);
+ const skizzen=rbSkizzenHtml(m);
+ const liste=plan&&(typeof zuListeHtml==="function")?zuListeHtml(plan):"";
+ h+=skizzen;
+ // v3.296: was Zeichnung oder Zuschnittliste schon zeigen, steht nicht noch einmal in den Angaben.
+ h+=rbMasseHtml(m,skizzen+" "+(o.ausfuehrung==="montieren"?"":liste));   // der Monteur sieht die Zuschnittliste nicht
  if(o.ausfuehrung==="montieren")return h+"</div>";
  h+=plan
-  ? ((typeof zuListeHtml==="function")?zuListeHtml(plan):"")
+  ? liste
     // v3.295: werden mehrere Streifen/Stangen geschnitten, steht dabei, welches Stueck woraus kommt.
     +((typeof zuBelegungKurzHtml==="function")?zuBelegungKurzHtml(plan):"")
   : '<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>';
