@@ -3,9 +3,21 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.296`
+- Aktueller Entwicklungsstand: `v3.297`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.297 — Rüstblatt: Herkunft direkt in der abhakbaren Liste
+
+Ansage (10.10.2026): „Welches Stück aus welchem Abschnitt ist so noch nicht ideal, das sollte auch in der
+abhakbaren Liste stehen und nicht in einer separaten Liste.“ Der Block aus v3.295 (`zuBelegungKurzHtml`,
+CSS `.zu-belegung-kurz`) ist **entfernt**. Stattdessen trägt jedes Stück in `zuAlleStuecke` (js/33) seine
+`herkunft` („Abschnitt 1 · Streifen 2“, „Stange 1 · 6'000 mm“; Titel aus `zuStreifenTitel`), und
+`zuListeHtml(p,{herkunft:true})` zeigt in jeder Zeile je Herkunft eine Nummernreihe mit den weiterhin
+antippbaren Haken. Nur auf dem Rüstblatt (`rbBlattHtml`) und nur bei mehr als einem Streifen/einer Stange
+(`zuHerkunftNoetig`); Material-Seite, Werkstatt-Liste und Register bleiben unverändert. Prüfstand
+`ruestblatt-abschnitte-v3-297` (aus `-v3-295` umgebaut, 12; Mutation rot). Die Regel «Breite quer zur Rolle,
+Länge längs» gilt im Plan bereits (`ebaStreifenJeAbschnitt`), nichts geändert.
 
 ### v3.296 — Rüstblatt: keine Masse doppelt
 
@@ -28,19 +40,6 @@ Stange“, bei Tafeln „aus welcher Tafel“). `js/80 rbBlattHtml` hängt den B
 Erscheint nur bei mehr als einem Streifen (bzw. mehr als einer Stange); sonst nichts. Datenquelle ist der
 gespeicherte Plan (`zuPlanAusGespeichert`), nichts wird neu berechnet. Prüfstand
 `ruestblatt-abschnitte-v3-295` (9; Mutation rot). Offen: ob die übrigen Arten ihre Angaben auch kürzen sollen.
-
-### v3.294 — Rüstblatt: bei Dachfenster und Kamin nur die kurze Auswahl
-
-Ansage (10.10.2026): „Jetzt steht mir zu viel dort, z. B. beim Dachfenster. Es reicht, wenn die Breite
-vorne und hinten sowie der Lattenabstand, die Gesamtzahl Bleilappen, die Eindeckart und das Material
-da steht und ob gefalzt oder nicht; die restlichen Infos stehen zum Teil doppelt da.“
-`js/80 RB_ANGABEN` + `rbKurzeAngabenHtml`: für `dachfenstereinfassung` (Deckungsmaterial, Material,
-Ausführung, Breite vorne / hinten, Lattenabstand + „Bleilappen gesamt“ aus `data.bleilappen.gesamt`) und
-`kamineinfassung` (dasselbe ohne Ausführung, **zusätzlich Kaminlänge längs Dach** — Annahme: sie steht
-nicht in der Zeichnung) nur diese Zellen, gelesen aus dem PDF-Aufbau; Stückliste und Bleilappen-Tabelle
-entfallen (Zuschnittliste und Zeichnung bleiben). Alle übrigen Arten behalten den vollen Block (v3.293);
-ob die auch gekürzt werden sollen, ist offen. Prüfstand `ruestblatt-masse-v3-293` um Abschnitt D erweitert
-(keine weiteren Angaben, ein Block, Gesamtzahl stimmt mit dem Datensatz; Mutation rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

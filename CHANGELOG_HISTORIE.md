@@ -34138,3 +34138,16 @@ wirkt überall (Werkstatt, Projektseite, Ausführungsansicht, gross). Bildschirm
 Prüfstand `ruestblatt-masse-v3-293` (48): dieselbe Regel wie `blatt-vollstaendig-v3-262` am Rüstblatt —
 jedes gespeicherte Mass jeder Art steht im Blatt (gleiche Ausnahmen mit Grund), alle PDF-Angaben stehen
 im Blatt ohne Knopf, das PDF druckt weiter genau den Aufbau. **Nicht auf echtem Gerät geprüft.**
+
+### v3.294 — Rüstblatt: bei Dachfenster und Kamin nur die kurze Auswahl
+
+Ansage (10.10.2026): „Jetzt steht mir zu viel dort, z. B. beim Dachfenster. Es reicht, wenn die Breite
+vorne und hinten sowie der Lattenabstand, die Gesamtzahl Bleilappen, die Eindeckart und das Material
+da steht und ob gefalzt oder nicht; die restlichen Infos stehen zum Teil doppelt da.“
+`js/80 RB_ANGABEN` + `rbKurzeAngabenHtml`: für `dachfenstereinfassung` (Deckungsmaterial, Material,
+Ausführung, Breite vorne / hinten, Lattenabstand + „Bleilappen gesamt“ aus `data.bleilappen.gesamt`) und
+`kamineinfassung` (dasselbe ohne Ausführung, **zusätzlich Kaminlänge längs Dach** — Annahme: sie steht
+nicht in der Zeichnung) nur diese Zellen, gelesen aus dem PDF-Aufbau; Stückliste und Bleilappen-Tabelle
+entfallen (Zuschnittliste und Zeichnung bleiben). Alle übrigen Arten behalten den vollen Block (v3.293);
+ob die auch gekürzt werden sollen, ist offen. Prüfstand `ruestblatt-masse-v3-293` um Abschnitt D erweitert
+(keine weiteren Angaben, ein Block, Gesamtzahl stimmt mit dem Datensatz; Mutation rot).
