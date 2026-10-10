@@ -300,7 +300,7 @@ const box=(page)=>page.evaluate(()=>{
     karten:zeilen.map(k=>{
       const t=k.querySelector(".a2-zeile-text");
       const tat=k.querySelector(".a2-zeile-tat");
-      const zeile=k.querySelector('[data-a2-aufgabe="oeffnen"]');
+      const zeile=k.querySelector('[data-a2-aufgabe="oeffnen"],[data-a2-aufgabe^="ausfuehrung_"]');
       return {
        art:t&&t.querySelector("b")?t.querySelector("b").innerText.trim():"",
        titel:t&&t.querySelector("span")?t.querySelector("span").innerText.trim():"",
@@ -354,9 +354,19 @@ const box=(page)=>page.evaluate(()=>{
  await aufgaben(B);
  await page.evaluate(()=>{window.__ruf=[];window.__geoeffnet=null;
    const alt=window.openMeasurement; window.openMeasurement=(m)=>{window.__geoeffnet=m.id;alt(m)}});
- await page.click('#a2Inhalt [data-a2-aufgabe="oeffnen"]'); await page.waitForTimeout(250);
- const off=await page.evaluate(()=>({id:window.__geoeffnet,modal:!$("measurementEditModal").hidden,start:$("startScreen").hidden}));
- p(off.id===13&&off.modal,"oeffnet genau die Massaufnahme der Aufgabe",off);
+ // v3.292: Die Aufgabe "Zu ruesten" fuehrt in die Ausfuehrungsansicht (Ruestblatt, js/80), nicht
+ // mehr ins volle Formular; der Weg ins Formular steht darin ("Im Formular oeffnen").
+ await page.click('#a2Inhalt [data-a2-aufgabe="ausfuehrung_ruesten"]'); await page.waitForTimeout(350);
+ const off=await page.evaluate(()=>({id:rbOffenId,rb:!$("ruestblattModal").hidden,formular:!$("measurementEditModal").hidden}));
+ p(off.id===13&&off.rb&&!off.formular,"oeffnet genau die Massaufnahme der Aufgabe (Ausfuehrungsansicht, nicht das Formular)",off);
+ await page.evaluate(()=>{rbZu()});
+ // Gegenprobe: ein Weg ins Formular bleibt - aus der Ausfuehrungsansicht
+ await page.evaluate(()=>{window.__geoeffnet=null});
+ await page.click('#a2Inhalt [data-a2-aufgabe="ausfuehrung_ruesten"]'); await page.waitForTimeout(300);
+ await page.evaluate(()=>$("ruestblattFormular").click()); await page.waitForTimeout(250);
+ const off2=await page.evaluate(()=>({id:window.__geoeffnet,modal:!$("measurementEditModal").hidden}));
+ p(off2.id===13&&off2.modal,"und aus der Ausfuehrungsansicht kommt man mit einem Tipp ins Formular",off2);
+ await page.evaluate(()=>{$("measurementEditModal").hidden=true;rbZu();$("startScreen").hidden=false});
 
  await aufgaben(B);
  await page.evaluate(()=>{window.__ruf=[];window.__rpcAntwort={measurement_geruestet:{data:{workflow_status:"geruestet"}}}});

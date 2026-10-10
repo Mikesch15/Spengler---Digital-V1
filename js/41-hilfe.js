@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.291.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.292.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -65,6 +65,12 @@ und nicht oben.</p>`},
 <p>Hier steht, was <b>du persönlich</b> noch erledigen musst. Die Liste ist
 keine eigene Aufgabenverwaltung – sie entsteht direkt aus den Massaufnahmen
 und ihren Zuweisungen.</p>
+<p><b>Zu rüsten / Zu montieren</b> (ab 3.292): Ein Tipp auf die Aufgabe öffnet
+die <b>Ausführungsansicht</b> – Baustelle, Status, wer zuständig ist, Hinweise,
+Fotos und Zeichnung, beim Rüsten auch die Zuschnittliste. Unten steht
+<b>„Rüsten bestätigen“</b> bzw. <b>„Montage bestätigen“</b> (nur für die
+eingeteilte Person und Administratoren). Das volle Formular ist von dort einen
+Tipp entfernt: <b>„Im Formular öffnen“</b>.</p>
 <p><b>Nach Projekt zusammengefasst</b> (ab 3.257): Was zum selben Objekt
 gehört, steht beieinander. Die Liste startet <b>zugeklappt</b> – du siehst je
 Projekt eine Zeile mit dem Namen, wie vielen Aufgaben dort offen sind und ob

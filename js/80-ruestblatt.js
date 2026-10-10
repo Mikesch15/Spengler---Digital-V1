@@ -35,8 +35,15 @@
 // bzw. werkZeilen seit v3.21), und ohne data gaebe es keine Zeichnung.
 // Nicht gefunden heisst: fuer diesen Benutzer gibt es die Zeile nicht (RLS) -
 // dann passiert nichts, statt eine Id weiterzureichen, die nirgends aufgeht.
+// v3.292: Eine Aufgabe auf "Heute" kennt nur wenige Spalten der Massaufnahme. Fuer die
+// Ausfuehrungsansicht wird die VOLLE Zeile geladen (js/45 aufgabeAusfuehrungOeffnen) und
+// hier abgelegt - rbFinde() findet sie dann wie jede andere. Keine zweite Datenquelle.
+const rbExtern={};
+function rbExternMerken(zeile){ if(zeile&&zeile.id!==undefined)rbExtern[String(zeile.id)]=zeile }
+
 function rbFinde(id){
  const gleich=x=>x&&String(x.id)===String(id);
+ if(rbExtern[String(id)])return rbExtern[String(id)];
  const quellen=[
   (typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache:[],
   (typeof werkZeilen!=="undefined"&&Array.isArray(werkZeilen))?werkZeilen:[]
@@ -93,6 +100,40 @@ function rbSkizzenHtml(m){
    `<figure class="werk-skizze"><figcaption>${esc(s.titel)}</figcaption>${s.svg}</figure>`).join("")+"</div>";
 }
 
+// v3.292: Was ein Ruester oder Monteur ausser Skizze und Zuschnitt wissen muss: wo
+// (Projekt/Baustelle), wo es steht (Status, wer ist zustaendig), Hinweise, Fotos.
+// Alles aus bereits vorhandenen Feldern - es wird nichts erfunden: fehlt eine Angabe,
+// steht die Zeile nicht da (ausser Zustaendigkeit: "niemand" ist dort eine Auskunft).
+function rbInfoHtml(m){
+ const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects.find(x=>x.id===m.project_id):null;
+ const wo=p?[(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||""),
+   p.name&&p.object&&p.name!==p.object?p.name:"",p.order_no?"Auftrag "+p.order_no:""].filter(Boolean).join(" · "):"";
+ const person=id=>id?((typeof mwPerson==="function")?mwPerson(id):"?"):"niemand";
+ const status=(typeof mwStatusText==="function")?mwStatusText(m.workflow_status):String(m.workflow_status||"");
+ const zeilen=[];
+ if(wo)zeilen.push(["Projekt",wo]);
+ zeilen.push(["Status",status]);
+ zeilen.push(["Aufgenommen von",person(m.created_by)]);
+ zeilen.push(["Rüster",person(m.ruester_id)]);
+ zeilen.push(["Monteur",person(m.monteur_id)]);
+ let h='<dl class="rb-info a2-daten a2-daten-kompakt">'+zeilen.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")+"</dl>";
+ const hinweise=[];
+ if(p&&p.hinweis&&String(p.hinweis).trim())hinweise.push(["📌 Hinweis zum Projekt",String(p.hinweis).trim()]);
+ if(m.note&&String(m.note).trim())hinweise.push(["📝 Notiz zur Massaufnahme",String(m.note).trim()]);
+ hinweise.forEach(([t,x])=>{h+=`<div class="a2-hinweis a2-h-merk"><b>${esc(t)}</b>${esc(x)}</div>`});
+ if(m.freigabe_verfallen)h+='<div class="a2-hinweis a2-h-warnung"><b>Nach der Freigabe geändert</b>Die Freigabe ist verfallen – sie muss erneut erteilt werden, bevor daran weitergearbeitet wird.</div>';
+ const alt=(typeof dfaVeraltetHinweis==="function")?dfaVeraltetHinweis(m):"";
+ if(alt)h+=`<div class="a2-hinweis a2-h-warnung"><b>⚠️ Alter Zuschnitt</b>${esc(alt.replace(/^Alter Zuschnitt:\s*/,""))}</div>`;
+ const med=(typeof measMedienPfade==="function")?measMedienPfade(m):{fotos:[],skizzen:[]};
+ const kachel=(pfad,label)=>`<button type="button" class="medien-kachel" data-label="${esc(label)}" data-medien-gross>`
+  +`<img data-signed-src="${esc(pfad)}" alt="${esc(label)}"><span class="medien-label">${esc(label)}</span></button>`;
+ const bilder=[];
+ med.fotos.forEach((f,i)=>bilder.push(kachel(f,med.fotos.length>1?"Foto "+(i+1):"Foto")));
+ med.skizzen.forEach((s,i)=>bilder.push(kachel(s,med.skizzen.length>1?"Skizze "+(i+1):"Skizze")));
+ if(bilder.length)h+=`<div class="rb-bilder"><div class="small" style="color:var(--muted)">Fotos und Skizzen der Aufnahme</div><div class="medien-galerie">${bilder.join("")}</div></div>`;
+ return h;
+}
+
 // Das Blatt selbst. kopf:true stellt Art, Titel, Material und Stand darueber -
 // auf dem grossen Schirm noetig, in einer Liste steht das schon in der Zeile.
 function rbBlattHtml(m,opt){
@@ -108,7 +149,11 @@ function rbBlattHtml(m,opt){
    +(plan?`<span class="small rb-stand">${esc(rbStandText(stand))}</span>`:"")
    +`</div>`;
  }
+ // v3.292: Ausfuehrungsansicht (Aufgabe "Zu rüsten"/"Zu montieren") - zuerst die Angaben
+ // zur Baustelle, dann die Zeichnung; der Monteur braucht die Zuschnittliste nicht.
+ if(o.ausfuehrung)h+=rbInfoHtml(m);
  h+=rbSkizzenHtml(m);
+ if(o.ausfuehrung==="montieren")return h+"</div>";
  h+=plan
   ? ((typeof zuListeHtml==="function")?zuListeHtml(plan):"")
   : '<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>';
@@ -129,21 +174,49 @@ function rbGrossKnopfHtml(id,zurueck){
 // etwas aendern will, kommt mit einem Tipp hin und danach wieder zurueck.
 let rbOffenId=null;
 let rbZurueck="";          // wohin measEditZurueck() spaeter zurueckfuehrt
-function rbGross(id,zurueck){
+function rbGross(id,zurueck,opt){
  const m=rbFinde(id);
  if(!m)return false;
  const schirm=$("ruestblattModal"), koerper=$("ruestblattBody");
  if(!schirm||!koerper)return false;
  rbOffenId=m.id;
  rbZurueck=zurueck||"";
- koerper.innerHTML=rbBlattHtml(m,{kopf:true});
+ const ausf=(opt&&opt.ausfuehrung)||"";
+ koerper.innerHTML=rbBlattHtml(m,{kopf:true,ausfuehrung:ausf});
+ rbAktionZeichnen(m,ausf);
  schirm.hidden=false;
  window.scrollTo(0,0);
  // Der Leerraum der festen viewBox wird erst NACH dem Einfuegen
  // weggeschnitten - vorher gibt getBBox nichts her (js/60).
  if(typeof rsZuschneiden==="function")rsZuschneiden(koerper);
+ if(typeof medienThumbsAufloesen==="function")medienThumbsAufloesen(koerper);
  return true;
 }
+// v3.292: Der Bestaetigen-Knopf der Ausfuehrungsansicht. Er traegt dieselbe Marke wie in
+// der Werkstatt (data-aufgabe -> aufgabeAusfuehren, js/45): dieselbe Rueckfrage, derselbe
+// serverseitige Aufruf. Hier wird nur entschieden, OB er da steht - dieselbe Regel wie
+// die Datenbank (zugewiesene Person oder Administrator, passender Status).
+function rbAktionZeichnen(m,ausf){
+ const box=$("ruestblattAktion"); if(!box)return;
+ box.innerHTML="";
+ if(!ausf)return;
+ const ich=(typeof currentProfile!=="undefined"&&currentProfile)?currentProfile.id:null;
+ const admin=(typeof isAdmin==="function")&&isAdmin();
+ const regeln={ruesten:{status:"zu_ruesten",wer:m.ruester_id,knopf:"✓ Rüsten bestätigen",rolle:"der eingeteilte Rüster"},
+               montieren:{status:"zu_montieren",wer:m.monteur_id,knopf:"🏠 Montage bestätigen",rolle:"der eingeteilte Monteur"}};
+ const r=regeln[ausf]; if(!r)return;
+ if(m.workflow_status!==r.status){
+  box.innerHTML='<div class="small" style="color:var(--muted)">Dieser Schritt steht nicht (mehr) an.</div>';
+  return;
+ }
+ if(!(admin||(r.wer&&r.wer===ich))){
+  const name=r.wer&&typeof profileName==="function"?profileName(r.wer):"";
+  box.innerHTML=`<div class="small" style="color:var(--muted)">Bestätigen kann ${esc(name||r.rolle)}.</div>`;
+  return;
+ }
+ box.innerHTML=`<button type="button" class="blue" data-aufgabe="${esc(ausf)}" data-aufgabe-id="${esc(m.id)}">${esc(r.knopf)}</button>`;
+}
+
 function rbZu(){
  const schirm=$("ruestblattModal");
  if(schirm)schirm.hidden=true;
@@ -162,6 +235,8 @@ function rbStandAuffrischen(){
 }
 
 document.addEventListener("click",e=>{
+ const bild=e.target.closest("#ruestblattBody [data-medien-gross]");
+ if(bild){ if(typeof medienGrossOeffnen==="function")medienGrossOeffnen(bild); return }
  const gross=e.target.closest("[data-rb-gross]");
  if(gross){
   rbGross(gross.getAttribute("data-rb-gross"),gross.getAttribute("data-rb-zurueck")||"");

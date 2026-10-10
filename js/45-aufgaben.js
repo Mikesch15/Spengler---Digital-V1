@@ -404,7 +404,25 @@ async function aufgabeOeffnen(id){
  openMeasurement(data);
 }
 
+// v3.292: Eine Aufgabe "Zu rüsten"/"Zu montieren" fuehrt in die AUSFUEHRUNGSANSICHT (das
+// grosse Ruestblatt, js/80) statt ins volle Formular: Baustelle, Hinweise, Fotos, Zeichnung,
+// beim Ruesten die Zuschnittliste - und dort der Bestaetigen-Knopf. Das Formular bleibt
+// dort einen Tipp entfernt ("Im Formular öffnen"). Geladen wird die echte Zeile; RLS
+// entscheidet, ob es sie gibt.
+async function aufgabeAusfuehrungOeffnen(id,art){
+ const {data,error}=await sb.from("measurements").select("*").eq("id",id).maybeSingle();
+ if(error||!data){appAlert("Diese Massaufnahme ist nicht mehr verfügbar.");aufgabenNeuLaden();return false}
+ if(typeof rbExternMerken==="function")rbExternMerken(data);
+ if(typeof rbGross==="function"&&rbGross(data.id,"startScreen",{ausfuehrung:art}))return true;
+ await aufgabeOeffnen(id);          // Rueckfall: das bisherige Verhalten
+ return true;
+}
+
 async function aufgabeAusfuehren(art,id){
+ if(art==="ausfuehrung_ruesten"||art==="ausfuehrung_montieren"){
+  await aufgabeAusfuehrungOeffnen(id,art.slice("ausfuehrung_".length));
+  return;
+ }
  if(art==="oeffnen"||art==="freigeben"||art==="erneut_freigeben"||art==="zuweisen"||art==="monteur"){
   await aufgabeOeffnen(id);
   // Zuweisen und Freigeben passieren in der Workflow-Karte des Formulars -
@@ -435,6 +453,8 @@ async function aufgabeAusfuehren(art,id){
  if(error){
   console.error("Aufgabe",art,error);
   appAlert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+ }else if(typeof rbZu==="function"){
+  rbZu();      // v3.292: war es die Ausfuehrungsansicht, ist der Schritt erledigt und sie geht zu
  }
  aufgabenNeuLaden();
  // v3.09: derselbe Schritt kann aus der Werkstattansicht kommen - eine

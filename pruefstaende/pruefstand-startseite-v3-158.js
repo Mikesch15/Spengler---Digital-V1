@@ -138,8 +138,10 @@ const koepfe=page=>page.evaluate(()=>
    tatArt:r.querySelector(".a2-zeile-tat")?r.querySelector(".a2-zeile-tat").getAttribute("data-a2-aufgabe"):""
   }));
  });
- p(auf.length>0&&auf.every(a=>a.art==="oeffnen"),
-   "D1 ein Tipp auf die Zeile oeffnet die Massaufnahme",auf);
+ // v3.292: Rüsten/Montieren führen in die Ausführungsansicht (Rüstblatt mit Bestätigen),
+ // alle anderen Aufgaben wie bisher ins Formular.
+ p(auf.length>0&&auf.every(a=>a.art===((a.tatArt==="ruesten"||a.tatArt==="montieren")?"ausfuehrung_"+a.tatArt:"oeffnen")),
+   "D1 ein Tipp auf die Zeile oeffnet die Massaufnahme (Ruesten/Montieren: die Ausfuehrungsansicht)",auf);
  const ruesten=auf.find(a=>/rüsten|rusten/i.test(a.titel));
  p(!ruesten||(ruesten.tat&&ruesten.tatArt==="ruesten"),
    "D2 wo es einen eigenen Schritt gibt, steht er als Knopf daneben",ruesten);

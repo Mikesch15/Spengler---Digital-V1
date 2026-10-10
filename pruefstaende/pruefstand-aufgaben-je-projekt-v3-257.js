@@ -92,9 +92,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
      unter:(k.querySelector(".a2-zeile-text span")||{}).textContent||"",
      offen:k.getAttribute("aria-expanded")==="true",
      // Die Aufgaben DIESER Gruppe - nur die, die wirklich darunter haengen.
-     aufgaben:[...k.parentNode.querySelectorAll("[data-a2-aufgabe='oeffnen']")]
+     aufgaben:[...k.parentNode.querySelectorAll("[data-a2-aufgabe='oeffnen'],[data-a2-aufgabe^='ausfuehrung_']")]
        .map(x=>x.getAttribute("data-a2-id"))})),
-   alleAufgaben:[...document.querySelectorAll("[data-a2-aufgabe='oeffnen']")]
+   alleAufgaben:[...document.querySelectorAll("[data-a2-aufgabe='oeffnen'],[data-a2-aufgabe^='ausfuehrung_']")]
      .map(x=>x.getAttribute("data-a2-id")),
    marke:(document.querySelector(".a2-marke.a2-m-blau")||{}).textContent||"",
    sammelknopf:(()=>{const k=document.querySelector("[data-a2-tu='aufgabenalle']");

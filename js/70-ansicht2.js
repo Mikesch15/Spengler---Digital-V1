@@ -905,7 +905,7 @@ function a2AufgabeHtml(a){
  const zeichen=A2_AUFGABE_ZEICHEN[a.art]||"•";
  const eigenerSchritt=(a.art!=="freigeben"&&a.art!=="erneut_freigeben");
  return `<div class="a2-zeile-reihe">
-  <button type="button" class="a2-zeile" data-a2-aufgabe="oeffnen" data-a2-id="${esc(a.m.id)}">
+  <button type="button" class="a2-zeile" data-a2-aufgabe="${(a.art==="ruesten"||a.art==="montieren")?"ausfuehrung_"+a.art:"oeffnen"}" data-a2-id="${esc(a.m.id)}">
    <span class="a2-zeile-nr${dringend?" ist-rot":""}">${zeichen}</span>
    <span class="a2-zeile-text"><b>${esc(art.titel)}</b>
     <span>${esc([b.adresse,b.zusatz].filter(Boolean).join(" · "))}${dringend?" · dringend":""}</span></span>
