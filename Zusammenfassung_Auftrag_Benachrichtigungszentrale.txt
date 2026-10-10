@@ -1,0 +1,66 @@
+ZUSAMMENFASSUNG AUFTRAG "PERSOENLICHE AUFGABEN- UND BENACHRICHTIGUNGSZENTRALE"
+Stand: 10.10.2026 - direkt auf main, Version 3.291 (Commits a6ae5f1, 6779dcd)
+Ausgangsstand: Version 3.290, main bei 55f1778
+
+ERGEBNIS IN EINEM SATZ
+Die Zentrale gab es schon (js/45 und "Heute"); es wurde keine neue Liste gebaut, sondern
+drei belegte Luecken in der bestehenden geschlossen.
+
+1. WAS SCHON VORHANDEN WAR
+   - Persoenliche Aufgaben entstehen aus den echten Daten der Massaufnahmen
+     (kein zweites Aufgabensystem, keine eigene Tabelle):
+       Aufnehmer: freigeben / erneut freigeben / zuweisen / Monteur zuweisen / abschliessen
+       Ruester:   zu ruesten      Monteur: zu montieren
+   - Klick fuehrt zur Massaufnahme; nach jeder Statusaktion laedt die Liste neu.
+   - Firmen-/Admin-Gesamtuebersicht ist getrennt; die persoenliche Liste zeigt nur "meine".
+   - Firmengrenze und Rechte erzwingt weiter die Datenbank (RLS, serverseitige Funktionen).
+   - Admin darf stellvertretend freigeben (v3.290) - unveraendert; die persoenliche Liste
+     bleibt bewusst auf die eigenen Aufgaben beschraenkt.
+
+2. DIE DREI GESCHLOSSENEN LUECKEN (im Code belegt)
+   A  Archivierte Vorgaenge: Archivierte Massaufnahmen und Massaufnahmen in archivierten
+      Projekten konnten als offene Aufgabe erscheinen.
+      Jetzt: die Abfragen verlangen archived=false; Massaufnahmen archivierter Projekte
+      werden ausgelassen. Ist ein Projekt nicht bekannt, bleibt die Aufgabe stehen
+      (lieber eine zu viel als eine verschluckte).
+   B  Stiller alter Stand: Scheiterte das Aktualisieren oder fehlte die Verbindung, blieb die
+      Liste still auf altem Stand.
+      Jetzt: ein Hinweis ueber der Liste ("... Stand von HH:MM Uhr"); die Liste bleibt
+      stehen (keine falsche Leere) und der Hinweis verschwindet nach dem naechsten Erfolg.
+   C  Kein Nachladen: Kam die App aus dem Hintergrund zurueck, lud sie nichts nach; neue
+      Zuweisungen oder Freigaben anderer erschienen nicht von selbst.
+      Jetzt: beim Zurueckkehren (und wenn die Verbindung zurueckkommt) wird ab einer Minute
+      Alter nachgeladen; ohne Anmeldung und bei frischem Stand passiert nichts.
+
+3. GEAENDERTE DATEIEN
+   js/45-aufgaben.js, js/70-ansicht2.js (Hinweisblock auf "Heute"), Version/Anleitung/
+   "Was ist neu"/Projektstand. Keine Migration, keine neue Tabelle, keine Policy geaendert.
+   Neuer Pruefstand: aufgaben-zuverlaessig-v3-291 (15 Pruefungen, 4 Mutationsproben rot).
+   Angepasst (nur Testdaten, keine Erwartung gelockert): aufgaben-schalter-v3-07,
+   naechster-schritt-v3-10, workflow-v3-05 und das Beispiel-Stub anleitung/stub.js
+   kennen die Spalte "archived" nicht; sie gilt jetzt als false wenn sie fehlt - so ist
+   die echte Spalte (NOT NULL, Standard false).
+
+4. TESTS
+   Bestanden:
+   - Neuer Pruefstand (15) und die Pruefstaende zu Aufgaben, Workflow, naechster Schritt,
+     Startseite, Zuteilung, Verlauf, Navigation, Zurueck-Taste.
+   - Volle Regression: 154 von 154. GitHub "Pruefstaende" und Deploy: success.
+   Nicht ausgefuehrt:
+   - Test gegen die echte Datenbank (kein Test-Mandant, keine Produktivdaten veraendert).
+     Die Rechte (Ruester/Monteur, Firmentrennung) sind durch bestehende Pruefstaende und die
+     unveraenderte Datenbank abgedeckt, aber nicht live nachgemessen.
+   - Handy/Tablet-Darstellung auf einem echten Geraet (der Hinweis nutzt vorhandene Klassen).
+
+5. SICHERHEIT / RUECKWAERTSVERTRAEGLICHKEIT
+   - Keine Policy gelockert, keine Berechtigung im Client neu erfunden, keine Datenbank-
+     aenderung. Die Spalte archived ist NOT NULL (Standard false): der neue Filter
+     verliert keine Zeilen.
+
+6. BEWUSST NICHT GEBAUT / OFFEN
+   - Push-Benachrichtigungen und "Aenderungen seit letztem Besuch": nicht belegt, dass sie
+     zuverlaessig aus dem Verlauf herleitbar sind; eine zweite Historie waere falsch.
+   - Glocke/Zaehler ohne Funktion.
+   - Naechster sinnvoller Auftrag: Roadmap-Abschnitte 11, 13, 25, 26 und das Fachkonzept
+     (Abschnitte 1, 8-16, 19) liegen nicht im Repo - bitte als Datei geben, dann waehle ich
+     den naechsten Punkt nach deiner Reihenfolge.
