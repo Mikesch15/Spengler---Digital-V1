@@ -268,15 +268,13 @@ function rbBlattHtml(m,opt){
  // zur Baustelle, dann die Zeichnung; der Monteur braucht die Zuschnittliste nicht.
  if(o.ausfuehrung)h+=rbInfoHtml(m);
  const skizzen=rbSkizzenHtml(m);
- const liste=plan&&(typeof zuListeHtml==="function")?zuListeHtml(plan):"";
+ const liste=plan&&(typeof zuListeHtml==="function")?zuListeHtml(plan,{herkunft:true}):"";
  h+=skizzen;
  // v3.296: was Zeichnung oder Zuschnittliste schon zeigen, steht nicht noch einmal in den Angaben.
  h+=rbMasseHtml(m,skizzen+" "+(o.ausfuehrung==="montieren"?"":liste));   // der Monteur sieht die Zuschnittliste nicht
  if(o.ausfuehrung==="montieren")return h+"</div>";
  h+=plan
   ? liste
-    // v3.295: werden mehrere Streifen/Stangen geschnitten, steht dabei, welches Stueck woraus kommt.
-    +((typeof zuBelegungKurzHtml==="function")?zuBelegungKurzHtml(plan):"")
   : '<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>';
  return h+"</div>";
 }

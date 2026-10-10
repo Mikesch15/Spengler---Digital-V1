@@ -314,10 +314,15 @@ function zuAlleStuecke(p){
  if(!p)return liste;
  if(p.art==="stange"){
   (p.stangen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
-   liste.push(Object.assign({},x,{breite:p.breite,platz:si+1}))));
+   liste.push(Object.assign({},x,{breite:p.breite,platz:si+1,herkunft:"Stange "+(si+1)+" · "+zuMm(s.laenge)+" mm"}))));
  }else{
-  (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
-   liste.push(Object.assign({},x,{breite:g.breite,platz:si+1})))));
+  // v3.297: woher das Stueck kommt (Abschnitt/Streifen) reist mit - die abhakbare Liste zeigt es.
+  (p.gruppen||[]).forEach(g=>{
+   const titel=zuStreifenTitel(g,p);
+   (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
+    liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,
+     herkunft:((p.gruppen||[]).length>1?zuMm(g.breite)+" mm · ":"")+titel[si]}))));
+  });
  }
  // Stuecke, die aus einem vorhandenen Rest geschnitten werden. Sie stehen
  // NICHT in den Gruppen - die Rolle wurde ohne sie gerechnet. Sie gehoeren
@@ -371,7 +376,15 @@ function zuErledigtFuer(p){
  if(p&&p.erledigtFuer!==undefined)return p.erledigtFuer;
  return (typeof zeOffeneMassaufnahme==="function")?zeOffeneMassaufnahme():null;
 }
-function zuGruppenZeileHtml(g,einheit,p){
+// v3.297, Ansage des Anwenders: "Welches Stueck aus welchem Abschnitt sollte auch in der abhakbaren
+// Liste stehen und nicht in einer separaten Liste." Nur wenn es mehr als einen Streifen bzw. eine
+// Stange gibt (sonst waere es Rauschen) und nur wo der Aufrufer es verlangt (opt.herkunft).
+function zuHerkunftNoetig(p){
+ if(!p)return false;
+ if(p.art==="stange")return (p.stangen||[]).length>=2;
+ return (p.gruppen||[]).reduce((a,g)=>a+(g.streifen||[]).length,0)>=2;
+}
+function zuGruppenZeileHtml(g,einheit,p,opt){
  const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);
  const hinweise=[];
  g.stuecke.forEach(x=>{if(x.hinweis&&hinweise.indexOf(x.hinweis)<0)hinweise.push(x.hinweis)});
@@ -395,6 +408,18 @@ function zuGruppenZeileHtml(g,einheit,p){
    +` data-ze-m="${esc(g.merkmal||"")}"`
    +` title="Stück ${esc(n)} als zugeschnitten abhaken">${esc(n)}</button>`;
  };
+ // Eine Zeile je Herkunft: "Abschnitt 1 · Streifen 1 [1] [2]" - die Nummern bleiben antippbar.
+ const herkunftHtml=()=>{
+  const nach=new Map();
+  g.stuecke.forEach(x=>{
+   if(x.nr===undefined||x.nr===null)return;
+   const k=x.herkunft||"aus Rest";
+   if(!nach.has(k))nach.set(k,[]);
+   nach.get(k).push(x.nr);
+  });
+  return Array.from(nach.entries()).map(([k,nrs])=>`<span class="zu-pos zu-pos-herkunft"><span class="zu-pos-marke">${esc(k)}</span>${
+   nrs.map(n=>nrHtml(n)).join("")}</span>`).join("");
+ };
  const stand=(mid===null||mid===undefined)?"":
   `<span class="ze-stand" data-ze-stand="1">–</span>`
   +(nummern.length>1?`<button type="button" class="ze-alle" data-ze-alle="${esc(mid)}"`
@@ -402,8 +427,10 @@ function zuGruppenZeileHtml(g,einheit,p){
  return `<div class="zu-zeile"${mid!==null&&mid!==undefined?' data-ze-zeile="1"':""}>
 <span class="zu-anzahl">${g.stuecke.length} ×</span>
 <span class="zu-mass">${esc(zuMm(g.laenge))}${g.breite>0?" × "+esc(zuMm(g.breite)):""}<span class="zu-einheit"> mm</span></span>
-${nummern.length?`<span class="zu-pos"><span class="zu-pos-marke">${esc(e)}</span>${
-  nummern.map(n=>nrHtml(n)).join("")}</span>`:""}
+${nummern.length?((opt&&opt.herkunft&&zuHerkunftNoetig(p)&&g.stuecke.some(x=>x.herkunft))
+  ?herkunftHtml()
+  :`<span class="zu-pos"><span class="zu-pos-marke">${esc(e)}</span>${
+  nummern.map(n=>nrHtml(n)).join("")}</span>`):""}
 ${stand}
 ${zusatz.length?`<span class="zu-zusatz">${zusatz.join(" · ")}</span>`:""}
 </div>`;
@@ -425,7 +452,7 @@ function zuAbhakenHinweis(p){
  if(!eine)return "";
  return zeAbhakenHinweisHtml();
 }
-function zuListeHtml(p){
+function zuListeHtml(p,opt){
  const gruppen=zuGruppen(p);
  if(!gruppen.length)return "";
  const bestes=(p.moeglich||[])[0];
@@ -445,7 +472,7 @@ function zuListeHtml(p){
  }
  return `<div class="zu-liste">
 <div class="zu-liste-kopf">${esc(kopf)}</div>
-${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p)).join("")}
+${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p,opt)).join("")}
 ${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
 ${zuAbhakenHinweis(p)}
 </div>`;
@@ -699,35 +726,6 @@ function zuStreifenTitel(g,p){
    :"Streifen "+(i+1);
  });
 }
-// v3.295, Ansage des Anwenders: "Wenn bei einem Zuschnitt mehrere Streifen ab der Rolle
-// abgeschnitten werden, muss ich wissen, welche Stuecke aus welchen Abschnitten geschnitten
-// werden, das muss auch im Ruestblatt stehen." Die kurze Fassung der Belegung: eine Zeile je
-// Streifen (bzw. Stange) mit den Stuecknummern und -laengen. Nur wenn es MEHR ALS EINEN gibt -
-// bei einem einzigen Streifen waere die Zuordnung selbstverstaendlich und nur Rauschen.
-function zuBelegungKurzHtml(p){
- if(!p)return "";
- const teilTxt=x=>x.tafelTeil?" (Teil "+x.tafelTeil.teil+"/"+x.tafelTeil.teile+")":"";
- const stueckeTxt=l=>(l||[]).map(x=>`<span class="zu-bel-st"><span class="zu-nr">${esc(x.nr===undefined||x.nr===null?"?":x.nr)}</span> ${esc(zuMm(x.laenge))}${esc(teilTxt(x))}</span>`).join("");
- const zeile=(titel,stuecke)=>(stuecke&&stuecke.length)
-  ?`<div class="zu-bel-zeile"><b>${esc(titel)}</b><span class="zu-bel-liste">${stueckeTxt(stuecke)}</span></div>`:"";
- let zeilen="";
- if(p.art==="stange"){
-  const st=p.stangen||[];
-  if(st.length<2)return "";
-  zeilen=st.map((s,i)=>zeile("Stange "+(i+1)+" · "+zuMm(s.laenge)+" mm",s.stuecke)).join("");
- }else{
-  const gruppen=p.gruppen||[];
-  if(gruppen.reduce((a,g)=>a+(g.streifen||[]).length,0)<2)return "";
-  zeilen=gruppen.map(g=>{
-   const titel=zuStreifenTitel(g,p);
-   return (gruppen.length>1?`<div class="zu-bel-gruppe">Streifenbreite ${esc(zuMm(g.breite))} mm</div>`:"")
-    +(g.streifen||[]).map((s,i)=>zeile(titel[i],s.stuecke)).join("");
-  }).join("");
- }
- if(!zeilen)return "";
- return `<div class="zu-belegung-kurz"><div class="zu-bel-kopf">Welches Stück aus ${p.art==="stange"?"welcher Stange":(zuIstTafel(p)?"welcher Tafel":"welchem Abschnitt")}</div>${zeilen}</div>`;
-}
-
 function zuBelegungHtml(p){
  const e=p.einheit||"Stück";
  const wort=e==="Segment"?"Segmente":(e==="Schar"?"Scharen":"Stücke");
