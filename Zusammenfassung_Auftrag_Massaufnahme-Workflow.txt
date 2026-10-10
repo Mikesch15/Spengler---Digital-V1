@@ -1,0 +1,67 @@
+ZUSAMMENFASSUNG AUFTRAG "MASSAUFNAHME-WORKFLOW, FREIGABE UND ZUSTAENDIGKEITEN"
+Stand: 10.10.2026 - Repository main, Version 3.290 (Commit 72a26d9)
+
+ERGEBNIS IN EINEM SATZ
+Der Workflow war schon vollstaendig vorhanden; es fehlte nur die Freigabe durch den
+Administrator. Diese ist jetzt umgesetzt (v3.290). Sonst wurde nichts doppelt gebaut.
+
+1. BESTANDSAUFNAHME (Code und Datenbank gelesen, nichts veraendert)
+   Anforderung                                         Stand
+   - Sieben Status, getrennt gefuehrt                  VORHANDEN  (workflow_status, js/44)
+   - Aufnehmer / Ruester / Monteur unabhaengig         VORHANDEN  (created_by, ruester_id, monteur_id)
+   - Freigabe nur durch Aufnehmer + Bestaetigungstext  VORHANDEN  (measurement_freigeben, mwFreigeben)
+   - Freigeber, Datum, Uhrzeit gespeichert             VORHANDEN  (freigegeben_von/_am; ebenso Gerüstet, Montiert)
+   - Freigabe im Aenderungsverlauf                     VORHANDEN  (audit_log, measurement_versionen, js/23)
+   - Unzulaessige Freigabe aendert nichts              VORHANDEN  (Funktion bricht vor jeder Aenderung ab)
+   - Aenderung nach Freigabe                           VORHANDEN  (Freigabe "verfaellt", keine pauschale Sperre)
+   - Mandant, RLS, serverseitige Rechte                VORHANDEN  (mw_firma_ok, Workflow-Spalten nur ueber Funktionen)
+   - Aufgaben aus dem Workflow, persoenlich            VORHANDEN  (js/45, Heute, Werkstatt)
+   - Gesamtuebersicht fuer Admin                       VORHANDEN  (Firmenadmin-Uebersicht)
+   - Freigabe stellvertretend durch Admin              FEHLTE     -> jetzt umgesetzt (v3.290)
+   - Benachrichtigungszentrale                         FEHLT, bewusst (erst muessen die Daten stimmen)
+   - Prioritaetenliste der Roadmap (Abschnitt 25)      NICHT FESTSTELLBAR (Dokument nicht im Repo)
+   Datenbefund (nur Zaehlungen): 31 Massaufnahmen, alle mit Freigeber und Freigabezeit;
+   alle im Status "Zu ruesten" haben eine Person; 168 Statuswechsel im Verlauf.
+   Eine abgeschlossene Massaufnahme hat kein "Gerüstet von / Montiert von" (wohl direkt
+   abgeschlossen) - nur zur Kenntnis, kein Fehler.
+
+2. UMGESETZT: ADMIN DARF STELLVERTRETEND FREIGEBEN (v3.290)
+   - Datenbank (live eingespielt): Funktion measurement_freigeben - Berechtigung jetzt
+     "Aufnehmer ODER Administrator". Die Firmenpruefung steht davor: ein Admin einer
+     anderen Firma wird abgewiesen. Policies/RLS unveraendert.
+     Datei im Repo: supabase/migrations/v3290_freigabe_stellvertretung_admin.sql
+   - Oberflaeche: Knopf "Freigeben" auch fuer den Admin (Formular, Liste, "Als Naechstes");
+     Rueckfrage "Du gibst stellvertretend fuer <Name> frei"; bei "Freigegeben von" steht
+     "(stellvertretend fuer ...)". Im Verlauf steht, WER freigegeben hat (der Admin).
+   - Ein anderer Mitarbeiter darf weiterhin nicht freigeben.
+   - Nach der Freigabe sind Ruester und Monteur wie bisher der Aufnehmer, solange
+     niemand eingeteilt ist.
+
+3. TESTS
+   Bestanden:
+   - Server, vier Faelle auf der echten Datenbank ohne Datenaenderung (jede Zeile war
+     schon abgeschlossen, der Aufruf brach vor jeder Aenderung ab): fremder Mitarbeiter
+     abgewiesen; Admin gleiche Firma Berechtigung ok; Admin fremde Firma abgewiesen;
+     Aufnehmer Berechtigung ok.
+   - Client: neuer Pruefstand freigabe-stellvertretung-v3-290 (9 Pruefungen, Mutationsproben
+     rot); workflow-v3-05 auf die neue Regel umgestellt; volle Regression 153/153;
+     GitHub "Pruefstaende" und Deploy: success.
+   Nicht ausgefuehrt:
+   - Eine ECHTE Freigabe durch den Admin an einer noch nicht freigegebenen Massaufnahme.
+     Es gibt keine Test-Firma, und ich habe keine Produktivdaten veraendert.
+   - Browsertest gegen die echte Datenbank.
+
+4. SICHERHEIT / RUECKWAERTSVERTRAEGLICHKEIT
+   - Keine Policy gelockert, keine neue Spalte, kein zweites Statusfeld, kein zweiter Verlauf.
+   - Bestehende Daten unveraendert; die Funktion behaelt Name und Signatur.
+   - Rueckfall: Funktion mit der alten Pruefung (nur Aufnehmer) wieder einsetzen - im
+     Kopf der Migrationsdatei beschrieben.
+
+5. OFFEN / NAECHSTER SINNVOLLER SCHRITT
+   - Roadmap-Abschnitt 25 und das Fachkonzept als Datei geben, dann waehle ich den
+     naechsten Punkt nach deiner Reihenfolge.
+   - Eine echte Freigabe als Admin einmal selbst ausprobieren (Massaufnahme eines anderen
+     Mitarbeiters, Status "In Bearbeitung") und im Verlauf nachsehen.
+
+Branch/Commit: direkt auf main (die Datenbank-Aenderung war schon live, die Oberflaeche
+sollte nachziehen). Commits 312a777 und 72a26d9.
