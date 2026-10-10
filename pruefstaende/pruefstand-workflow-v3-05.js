@@ -115,11 +115,13 @@ const box=(page)=>page.evaluate(()=>{
  p(!s.knoepfe.includes("mwFreigeben"),"ein anderer Mitarbeiter sieht den Freigabe-Knopf NICHT",s.knoepfe);
  p(/Anna Aufnehmer muss die Massaufnahme freigeben/.test(s.text),"und erfaehrt, warum",s.text.slice(0,160));
 
- // Auch ein Administrator darf nicht freigeben - das ist Sache des Aufnehmers.
+ // v3.290 (Ansage: "Admin darf stellvertretend freigeben"): ein Firmen-Administrator
+ // sieht den Freigabe-Knopf jetzt ebenfalls - serverseitig prueft measurement_freigeben()
+ // "Aufnehmer ODER Admin". Gegenprobe oben: ein anderer MITARBEITER sieht ihn weiter nicht.
  await anmelden(page,D,"admin");
  await oeffne(page,M({}));
  s=await box(page);
- p(!s.knoepfe.includes("mwFreigeben"),"selbst ein Administrator sieht den Freigabe-Knopf nicht",s.knoepfe);
+ p(s.knoepfe.includes("mwFreigeben"),"ein Administrator sieht den Freigabe-Knopf (Stellvertretung)",s.knoepfe);
 
  // Der echte Klick: Rueckfrage mit dem geforderten Wortlaut, dann der Aufruf.
  await anmelden(page,A,"employee");

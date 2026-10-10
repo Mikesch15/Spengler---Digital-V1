@@ -87,6 +87,12 @@ function mwWann(iso){
  if(!iso)return "";
  return typeof formatDatumZeit==="function"?formatDatumZeit(iso):String(iso);
 }
+// v3.290: Hat jemand anderes als der Aufnehmer freigegeben, steht das da - sonst
+// sah eine Freigabe durch den Administrator aus wie eine des Aufnehmers.
+function mwStellvertretungText(w){
+ return (w&&w.freigegeben_von&&w.created_by&&w.freigegeben_von!==w.created_by)
+  ?" (stellvertretend für "+mwPerson(w.created_by)+")":"";
+}
 function mwPerson(id){
  if(!id)return "–";
  const n=typeof profileName==="function"?profileName(id):"";
@@ -163,7 +169,9 @@ function mwSchrittWer(w,k){
 // Datenbank noch einmal - das hier ist reine Fuehrung.
 function mwSchrittDarfIch(w,k){
  if(!w||k==="fertig")return false;
- if(k==="freigeben"||k==="erneut_freigeben")return mwIstAufnehmer(w);
+ // v3.290: auch ein Firmen-Administrator darf stellvertretend freigeben - dieselbe Regel
+ // prueft measurement_freigeben() serverseitig (Aufnehmer ODER Admin, nach der Mandantenpruefung).
+ if(k==="freigeben"||k==="erneut_freigeben")return mwIstAufnehmer(w)||isAdmin();
  if(k==="zuweisen"||k==="monteur")return mwDarfZuweisen(w);
  if(k==="ruesten")return mwIstRuester(w)||isAdmin();
  if(k==="montieren")return mwIstMonteur(w)||isAdmin();
@@ -423,7 +431,7 @@ function renderMeasWorkflow(){
  // Wer was gemacht hat - ausschliesslich echte, gespeicherte Angaben.
  const zeilen=[
   mwZeile("Aufgenommen von",mwPerson(w.created_by),w.created_at),
-  mwZeile("Freigegeben von",w.freigegeben_von?mwPerson(w.freigegeben_von):"",w.freigegeben_am),
+  mwZeile("Freigegeben von",w.freigegeben_von?(mwPerson(w.freigegeben_von)+mwStellvertretungText(w)):"",w.freigegeben_am),
   mwZeile("Rüsten",w.ruester_id?mwPerson(w.ruester_id):"",w.ruester_zugewiesen_am),
   mwZeile("Gerüstet von",w.geruestet_von?mwPerson(w.geruestet_von):"",w.geruestet_am),
   mwZeile("Montage",w.monteur_id?mwPerson(w.monteur_id):"",w.monteur_zugewiesen_am),
@@ -508,9 +516,12 @@ async function mwRuf(name,args,wasOffline){
 
 async function mwFreigeben(){
  if(!mwStand)return;
- const frage=mwStand.freigabe_verfallen
+ // v3.290: gibt der Administrator fuer eine andere Person frei, sagt die Rueckfrage es.
+ const stellv=(mwStand.created_by&&mwStand.created_by!==mwIchBin())
+  ? "\n\nDu gibst stellvertretend für "+mwPerson(mwStand.created_by)+" frei." : "";
+ const frage=(mwStand.freigabe_verfallen
   ? "Massaufnahme erneut freigeben?\n\nSie wurde nach der letzten Freigabe geändert. Mit der erneuten Freigabe bestätigst du, dass der jetzige Stand vollständig aufgenommen und kontrolliert ist."
-  : "Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde.";
+  : "Massaufnahme freigeben?\n\nMit der Freigabe bestätigst du, dass die Massaufnahme vollständig aufgenommen und kontrolliert wurde.")+stellv;
  if(!await appConfirm(frage))return;
  const vorR=mwStand.ruester_id, vorM=mwStand.monteur_id;
  const a=await mwRuf("measurement_freigeben",{p_id:mwStand.id},"Die Freigabe");
