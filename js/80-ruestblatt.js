@@ -134,6 +134,42 @@ function rbInfoHtml(m){
  return h;
 }
 
+// v3.293, Ansage des Anwenders: "Auf dem Rüstblatt müssen wirklich alle für die Produktion
+// nötigen Masse vorhanden sein, es darf kein zusätzlicher Klick brauchen." Bis v3.292 zeigte
+// das Blatt nur die Zeichnung (mit ihren eingetragenen Massen) und die Zuschnittliste - die
+// Angaben (Abwicklung, Gesamtlänge, Winkel, Montage, Mass A ...), die Segmente, Stücke mit
+// Gehrung, Bleilappen, Normlängen und Verschnitt standen nur im Formular und im PDF.
+// Jetzt kommen sie aus DERSELBEN Quelle wie das PDF (measPdfAufbau, js/16) und werden
+// nach denselben Kategorien (js/35) ausgewaehlt: Masse/Angaben, Zusammenfassung, Stueckliste
+// und Normlaengen/Verschnitt. Nicht gezeigt, weil schon da oder nicht fuer die Produktion:
+// Zeichnungen (rbSkizzenHtml), abhakbarer Zuschnitt (zuListeHtml), Ausmass, Material,
+// Notiz/Kontrolle (Notiz steht in rbInfoHtml), Bilder. Es wird nichts gerechnet, nichts
+// zweimal zusammengestellt - ein Fehler beim Aufbau laesst das Blatt wie bisher.
+function rbMasseHtml(m){
+ if(typeof measPdfAufbau!=="function"||typeof pdfAbschnitteZerlegen!=="function")return "";
+ let teile;
+ try{
+  const r=measPdfAufbau(m,{logoSrc:"",medienHtml:"",photoSrcs:[],sketchSrcs:[],ohneKopf:true});
+  teile=pdfAbschnitteZerlegen(r.koerper,"eb-section-head").teile;
+ }catch(e){ console.error("Rüstblatt Masse",e); return "" }
+ const gewollt=new Set(["masse","zusammenfassung","stueckliste","rollenblech"]);
+ let h="";
+ teile.forEach(t=>{
+  if(!gewollt.has(t.key))return;
+  if(/^zuschnitt aus rollenblech/i.test(t.titel))return;       // steht als abhakbare Liste darunter
+  const box=document.createElement("div");
+  box.innerHTML=t.html;
+  box.querySelectorAll(".eb-diagram-title").forEach(x=>x.remove());
+  box.querySelectorAll("svg").forEach(x=>x.remove());
+  box.querySelectorAll(".eb-diagram,.eb-diagram-row,.pdf-bild").forEach(x=>{if(!x.textContent.trim()&&!x.querySelector("table,img"))x.remove()});
+  const kopf=box.querySelector(".eb-section-head");
+  const rest=(box.textContent||"").replace((kopf&&kopf.textContent)||"","").trim();
+  if(!rest&&!box.querySelector("table"))return;             // war nur eine Zeichnung
+  h+=box.innerHTML;
+ });
+ return h?`<div class="rb-masse">${h}</div>`:"";
+}
+
 // Das Blatt selbst. kopf:true stellt Art, Titel, Material und Stand darueber -
 // auf dem grossen Schirm noetig, in einer Liste steht das schon in der Zeile.
 function rbBlattHtml(m,opt){
@@ -153,6 +189,7 @@ function rbBlattHtml(m,opt){
  // zur Baustelle, dann die Zeichnung; der Monteur braucht die Zuschnittliste nicht.
  if(o.ausfuehrung)h+=rbInfoHtml(m);
  h+=rbSkizzenHtml(m);
+ h+=rbMasseHtml(m);
  if(o.ausfuehrung==="montieren")return h+"</div>";
  h+=plan
   ? ((typeof zuListeHtml==="function")?zuListeHtml(plan):"")

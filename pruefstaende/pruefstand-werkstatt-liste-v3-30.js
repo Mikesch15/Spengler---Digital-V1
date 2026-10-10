@@ -228,7 +228,11 @@ const werkstattAuf=async page=>{
     bilder:k.querySelectorAll("img").length};
   });
   p(!/GEHEIMNOTIZ/.test(c.txt),"die Notiz der Massaufnahme steht NICHT da");
-  p(!/Mass A|Dachneigung|Montage/i.test(c.txt),"die Eingabemasse stehen NICHT da",c.txt.slice(0,300));
+  // v3.293 (Ansage: "Auf dem Rüstblatt müssen wirklich alle für die Produktion nötigen Masse vorhanden
+  // sein, es darf kein zusätzlicher Klick brauchen"): die Produktionsmasse (Angaben: Mass A, Dachneigung,
+  // Montage ...) stehen jetzt DA - bis v3.292 war das hier ausdruecklich umgekehrt. Weiter nicht da:
+  // Notiz, Eingabefelder, Fotos (siehe die Zeilen darueber/darunter).
+  p(/Mass A/i.test(c.txt)&&/Dachneigung/i.test(c.txt)&&/Montage/i.test(c.txt),"die Produktionsmasse (Angaben) stehen da",c.txt.slice(0,400));
   p(c.bilder===0,"keine Fotos",c.bilder);
   p(/Zuschnittliste|1'200|1’200/.test(c.txt),"die Zuschnittliste steht da",c.txt.slice(0,300));
  }

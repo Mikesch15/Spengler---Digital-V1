@@ -1826,3 +1826,19 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .app-dialog-box input{margin-bottom:14px}
 .app-dialog-knoepfe{display:flex;gap:10px;justify-content:flex-end}
 .app-dialog-knoepfe button{min-width:96px;min-height:44px}
+
+/* ---- v3.293: Masse und Angaben auf dem Ruestblatt (js/80 rbMasseHtml) - hier statt in css/05, weil das Ruestblatt auch in der klassischen Werkstatt steht --
+   Der Inhalt stammt aus dem PDF-Aufbau (js/16) und bringt dessen Klassen mit; sie sind
+   sonst nur im Druckfenster gestaltet. Hier die Bildschirmfassung mit den vorhandenen
+   Variablen - Tabellen scrollen seitlich, statt die Seite zu verbreitern. */
+.rb-masse{margin:10px 0 0}
+.rb-masse .eb-section-head{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+.rb-masse table{width:100%;min-width:0;table-layout:auto;border-collapse:collapse;font-size:14px}  /* hebt table{min-width:1000px;table-layout:fixed} auf */
+.rb-masse .eb-info-table{table-layout:fixed}
+.rb-masse .eb-info-table td{width:50%;overflow-wrap:anywhere;padding:5px 8px 5px 0;vertical-align:top;border-bottom:1px solid var(--card-line)}
+.rb-masse .eb-info-table label{display:block;overflow-wrap:anywhere;font-size:10.5px;font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:0}
+.rb-masse .eb-info-table .val{font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.rb-masse .eb-cutlist{font-size:13px}
+.rb-masse .eb-cutlist th{font-size:10.5px;text-align:left;color:var(--muted);padding:4px 6px 4px 0;overflow-wrap:anywhere}
+.rb-masse .eb-cutlist td{padding:5px 6px 5px 0;border-top:1px solid var(--card-line);overflow-wrap:anywhere}
+.rb-masse .note{font-size:14px}

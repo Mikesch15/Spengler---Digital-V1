@@ -290,7 +290,8 @@ async function klick(page,sel){
  // keine faellt in den Notnagel "masse".
  const titel=await page.evaluate(()=>{
   const raus=[];
-  const quellen=[printMeasurement.toString(),printAusmass.toString(),zuDruckHtml.toString()];
+  // v3.293: der Druckkoerper steht in measPdfAufbau (aus printMeasurement herausgezogen).
+  const quellen=[measPdfAufbau.toString(),printMeasurement.toString(),printAusmass.toString(),zuDruckHtml.toString()];
   quellen.forEach(q=>{
    const re=/(?:eb|am)-section-head[^>]*">([^<$]*)</g; let m;
    while((m=re.exec(q))!==null){

@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.292.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.293.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -248,8 +248,11 @@ Knopf im Projekt und nicht in der allgemeinen Übersicht.
 `},
 "ruestblatt":{titel:"Rüstblatt",text:`
 <p>Das <b>Wichtigste einer Massaufnahme auf einen Blick</b>: das vermasste
-Profil, der Grundriss (wenn die Art einen hat), Material und Stärke, und die
-Zuschnittliste mit den Stücknummern zum Abhaken. Sonst nichts.</p>
+Profil, der Grundriss (wenn die Art einen hat), Material und Stärke, <b>alle
+Masse und Angaben für die Produktion</b> (dieselben wie auf dem PDF: Abwicklung,
+Gesamtlänge, Winkel, Segmente, Stücke, Bleilappen …) und die Zuschnittliste mit
+den Stücknummern zum Abhaken – ohne dass man dafür etwas antippen muss
+(ab 3.293).</p>
 <p>Es ist <b>kein Formular</b> – es gibt nichts zu tippen. Wer wirklich etwas
 ändern will, tippt auf <b>„Im Formular öffnen“</b> und kommt danach wieder
 hierher zurück.</p>

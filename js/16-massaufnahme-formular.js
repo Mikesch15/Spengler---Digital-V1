@@ -1010,29 +1010,17 @@ function pdfKontrolleHtml(m){
 <div class="note" style="font-size:7.5pt">Stand beim Speichern dieser Massaufnahme.</div>`;
 }
 
-async function printMeasurement(m,opt){
+// v3.293: Der SYNCHRONE Aufbau des Druckkoerpers - aus printMeasurement herausgezogen,
+// damit das Ruestblatt (js/80) dieselben Masse zeigen kann wie das PDF, ohne eine zweite
+// Zusammenstellung je Art. Gedruckt wird unveraendert dasselbe: printMeasurement ruft
+// diese Funktion und haengt nur Fenster und Druck daran. Kein await darin.
+//   ctx: {logoSrc, medienHtml, photoSrcs, sketchSrcs}  (fuers Ruestblatt leer)
+//   Rueckgabe: {bodyHtml (wie bisher gedruckt), kopfHtml, koerper (Fachteil OHNE Kopf,
+//   Materialliste, Kontrolle, Bilder)}
+function measPdfAufbau(m,ctx){
  const proj=allProjects.find(p=>p.id===m.project_id);
  const typeLabels=MEAS_TYPE_LABELS;
- // Das Druckfenster wird erst NACH der Listenauswahl geöffnet - im
- // Klick-Handler von "PDF erstellen" (js/35). Das ist eine frische
- // Benutzeraktion, der Browser blockiert es deshalb nicht.
- // Bucket ist privat: Firmenlogo sowie Foto/Skizzen (nur beim Typ
- // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
- const logoSrc=await storageSignedUrl(logoUrl);
- // Seit v2.70 kann JEDE Art Fotos und Skizzen haben.
- // Aeltere Aufnahmen haben nur photo_path - sie drucken genau dieses eine
- // Foto, es wird keines erfunden.
- const photoQuellen=(m.photo_paths&&m.photo_paths.length)?m.photo_paths:(m.photo_path?[m.photo_path]:[]);
- const photoSrcs=(await Promise.all(photoQuellen.map(storageSignedUrl))).filter(Boolean);
- const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
- const sketchSrcs=(await Promise.all(sketchQuellen.map(storageSignedUrl))).filter(Boolean);
- // Gemeinsamer Anhang fuer alle Fach-Arten: Fotos im Fluss, jede Skizze auf
- // einer eigenen Seite - dieselbe Darstellung wie bei "Skizze / Foto".
- const medienHtml=(photoSrcs.length||sketchSrcs.length)?`
-${photoSrcs.map((f,i)=>`<div class="eb-section-head">Foto${photoSrcs.length>1?` ${i+1} von ${photoSrcs.length}`:""}</div>
-<div class="pdf-bild"><img class="photo" src="${esc(f)}"></div>`).join("")}
-${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${sketchSrcs.length>1?` ${i+1} von ${sketchSrcs.length}`:""}</div>
-<div class="pdf-bild"><img class="sketch" src="${esc(s2)}"></div></div>`).join("")}`:"";
+ const {logoSrc,medienHtml,photoSrcs,sketchSrcs}=ctx;
  const sachbearbeiter=esc(currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"–");
  const cell2=(label,val)=>`<td><label>${esc(label)}</label><div class="val">${val}</div></td>`;
  // Exakt derselbe zentrale Kopf wie beim jeweils anderen Dokumenttyp
@@ -1056,7 +1044,8 @@ ${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">
   if(roh&&typeof zuWort==="function")t.push(zuWort({form:roh.form}).kopf);
   return t.join(" · ");
  })();
- const kopfHtml=pdfKopfHtml({
+ // v3.293: fuers Ruestblatt (ctx.ohneKopf) wird kein Kopf gebaut - er wuerde nur wieder abgeschnitten.
+ const kopfHtml=ctx.ohneKopf?"":pdfKopfHtml({
   datensatz:m,projekt:proj,bezeichnung:m.title,
   dokumenttyp:"Massaufnahme",unterart:typeLabels[m.type]||m.type,
   datum:m.date||"",
@@ -1800,6 +1789,7 @@ ${matName?`<div class="eb-section-head">Angaben</div>
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
  }
+ const koerperRoh=bodyHtml;
  // Materialliste und Kontrolle - zentral fuer JEDE Art (v3.04). Damit sind
  // die beiden Kategorien im Auswahldialog nicht mehr dauerhaft ausgegraut.
  // Beides kommt aus dem GESPEICHERTEN Datensatz, es wird nichts neu
@@ -1811,6 +1801,34 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 
  // Gemeinsame Listenauswahl: nur ausgewählte UND vorhandene Abschnitte
  // werden erzeugt - nichts wird per CSS versteckt.
+ return {bodyHtml,kopfHtml,koerper:koerperRoh.indexOf(kopfHtml)===0?koerperRoh.slice(kopfHtml.length):koerperRoh};
+}
+
+async function printMeasurement(m,opt){
+ const proj=allProjects.find(p=>p.id===m.project_id);
+ const typeLabels=MEAS_TYPE_LABELS;
+ // Das Druckfenster wird erst NACH der Listenauswahl geöffnet - im
+ // Klick-Handler von "PDF erstellen" (js/35). Das ist eine frische
+ // Benutzeraktion, der Browser blockiert es deshalb nicht.
+ // Bucket ist privat: Firmenlogo sowie Foto/Skizzen (nur beim Typ
+ // "skizze_foto") brauchen eine signierte URL statt des gespeicherten Pfads.
+ const logoSrc=await storageSignedUrl(logoUrl);
+ // Seit v2.70 kann JEDE Art Fotos und Skizzen haben.
+ // Aeltere Aufnahmen haben nur photo_path - sie drucken genau dieses eine
+ // Foto, es wird keines erfunden.
+ const photoQuellen=(m.photo_paths&&m.photo_paths.length)?m.photo_paths:(m.photo_path?[m.photo_path]:[]);
+ const photoSrcs=(await Promise.all(photoQuellen.map(storageSignedUrl))).filter(Boolean);
+ const sketchQuellen=(m.sketch_paths&&m.sketch_paths.length)?m.sketch_paths:(m.sketch_path?[m.sketch_path]:[]);
+ const sketchSrcs=(await Promise.all(sketchQuellen.map(storageSignedUrl))).filter(Boolean);
+ // Gemeinsamer Anhang fuer alle Fach-Arten: Fotos im Fluss, jede Skizze auf
+ // einer eigenen Seite - dieselbe Darstellung wie bei "Skizze / Foto".
+ const medienHtml=(photoSrcs.length||sketchSrcs.length)?`
+${photoSrcs.map((f,i)=>`<div class="eb-section-head">Foto${photoSrcs.length>1?` ${i+1} von ${photoSrcs.length}`:""}</div>
+<div class="pdf-bild"><img class="photo" src="${esc(f)}"></div>`).join("")}
+${sketchSrcs.map((s2,i)=>`<div class="sketch-page"><div class="eb-section-head">Skizze${sketchSrcs.length>1?` ${i+1} von ${sketchSrcs.length}`:""}</div>
+<div class="pdf-bild"><img class="sketch" src="${esc(s2)}"></div></div>`).join("")}`:"";
+ const {bodyHtml}=measPdfAufbau(m,{logoSrc,medienHtml,photoSrcs,sketchSrcs});
+
  const vor=await pdfDruckVorbereiten(bodyHtml,"eb-section-head",opt);
  if(!vor)return;                       // abgebrochen
  const win=vor.win;

@@ -105,7 +105,9 @@ const seite=(page)=>page.evaluate(()=>{
      // v3.25: Die Karte traegt jetzt die Zuschnittliste - der erste Knopf
      // waere eine Positionsnummer. Gelesen werden deshalb ALLE Knoepfe.
      knopf:[...k.querySelectorAll("button")].map(x=>x.textContent).join(" | ")})),
-   tabellenImHaupt:$("matZuBody").querySelectorAll("table").length,
+   // v3.293: Tabellen INNERHALB des Ruestblatt-Blocks "Masse und Angaben" (.rb-masse) sind Teil der
+   // Karte, nicht die Hauptansicht - gezaehlt werden alle uebrigen.
+   tabellenImHaupt:[...$("matZuBody").querySelectorAll("table")].filter(t=>!t.closest(".rb-masse")).length,
    details:[...m.querySelectorAll("details.mz-details")].map(d=>({id:d.id,hidden:d.hidden,offen:d.open}))};
 });
 
