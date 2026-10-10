@@ -3,9 +3,23 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.287`
+- Aktueller Entwicklungsstand: `v3.288`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.288 — Ausmass, Offerten und Dateien ohne Umweg löschen
+
+Frage (10.10.2026): „Wie kann ich Dateien, Offerten und Ausmasse löschen?"
+**Befund:** Ausmass und beide Offerten-Arten (`offerten` selbst erstellt, `angebote`
+importiert) hatten in der neuen Ansicht **keine** Löschmöglichkeit (nur das × in den
+alten Cockpit-Listen); Dateien liessen sich nur hinter „Dateien, Fotos und Verlauf öffnen" löschen.
+**Neu:** `js/24 eintragLoeschen(tabelle,id,frage)` ist die EINE Stelle (Offline-Sperre, `appConfirm`
+rot, `delete().select("id")`, 0 Zeilen/RLS ≠ Erfolg); Knöpfe `#amDelete`, `#offDelete`, `#angDelete`
+(wie `#measDelete`/`#reportDelete` aus v3.287, jetzt ebenfalls über `eintragLoeschen`), sichtbar nur bei
+gespeichertem Eintrag (`loeschKnopfBinden`: `hidden`-Beobachter + Klick im Formular). Dateien:
+`js/09 projektDateiLoeschen(id)` (Eintrag + Datei im Speicher) für Cockpit UND die neue Ansicht;
+Papierkorb-Knopf `data-a2-datei-weg` je Datei im Register Dateien. Die Berechtigung entscheidet die
+Datenbank (RLS). Prüfstand `loeschen-weitere-v3-288` (20; drei Mutationsproben rot).
 
 ### v3.287 — Massaufnahme und Regierapport im Formular löschen
 
@@ -52,17 +66,6 @@ Angepasst an „jetzt asynchron“ (nur `await`/Wartezeit, keine Erwartung geloc
 **Nicht live geprüft:** der Anblick auf dem Handy und der Ablauf gegen echte Daten.
 **Dauerregel:** neue Rückfragen/Hinweise nur mit `appConfirm`/`appAlert`/`appPrompt` (der Prüfstand
 schlägt bei einem nativen Aufruf an); wer eine Antwort braucht, schreibt `await` und macht die Funktion `async`.
-
-### v3.285 — Massaufnahmen im Projekt sortiert
-
-Ansage (9.10.2026): „1. nach Status (abgeschlossene am Ende), 2. nach Bezeichnung
-(alphabetisch)." `js/09 measSortiert(liste)`: nicht abgeschlossene vor
-`workflow_status==="abgeschlossen"`, darin nach `title` (de, numerisch: Tor 2 vor
-Tor 10, ohne Bezeichnung am Ende, dann nach Art). Wirkt in der Projektliste
-(`loadProjectMeasurements`) und im Register „Massaufnahme" der neuen Ansicht
-(`a2RegAufmass`). `projectMeasurementsCache` bleibt unsortiert (Bedarf, Zuschnitt,
-Rüstliste unberührt). Annahme: „Bezeichnung" = das Feld Titel der Aufnahme.
-Prüfstand `massaufnahmen-sortierung-v3-285` (5; zwei Mutationsproben rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

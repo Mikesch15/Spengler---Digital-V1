@@ -33962,3 +33962,15 @@ dort bleibt es, wie es war; wer eine konkrete Stelle findet, soll sie nennen.
 Prüfstand `zurueck-seiten-v3-284` (10; zwei Mutationsproben rot);
 `zurueck-oben-v3-175` zählt `a2:`-Stufen nicht als Schirme.
 
+
+### v3.285 — Massaufnahmen im Projekt sortiert
+
+Ansage (9.10.2026): „1. nach Status (abgeschlossene am Ende), 2. nach Bezeichnung
+(alphabetisch)." `js/09 measSortiert(liste)`: nicht abgeschlossene vor
+`workflow_status==="abgeschlossen"`, darin nach `title` (de, numerisch: Tor 2 vor
+Tor 10, ohne Bezeichnung am Ende, dann nach Art). Wirkt in der Projektliste
+(`loadProjectMeasurements`) und im Register „Massaufnahme" der neuen Ansicht
+(`a2RegAufmass`). `projectMeasurementsCache` bleibt unsortiert (Bedarf, Zuschnitt,
+Rüstliste unberührt). Annahme: „Bezeichnung" = das Feld Titel der Aufnahme.
+Prüfstand `massaufnahmen-sortierung-v3-285` (5; zwei Mutationsproben rot).
+
