@@ -200,7 +200,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return kette;
  };
  return {
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:window.__session||null}}),onAuthStateChange:()=>{}},
   from:tabelle,
   storage:{from:()=>({
    upload:(pfad,datei,opt)=>{
@@ -249,6 +249,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.waitForFunction(()=>typeof checkOfferteZugriff==="function"
   &&typeof newAngebot==="function"&&typeof recognizePhoto==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}}); // v3.307: die Erkennung braucht eine angemeldete Sitzung
 
  await page.evaluate(()=>{
   window.__lese={angebote:[],feature_access:[{profile_id:"u1",feature:"angebote",granted:true}],audit_log:[]};

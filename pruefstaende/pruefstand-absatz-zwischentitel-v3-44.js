@@ -226,7 +226,7 @@ function p(bedingung, beschreibung, wert) {
 window.supabase = {
   createClient: () => ({
     auth: {
-      getSession: async () => ({ data: { session: { user: { id: "test-user" } } }, error: null }),
+      getSession: async () => ({ data: { session: { user: { id: "test-user" }, access_token: "test-benutzer-jwt" } }, error: null }),
       onAuthStateChange: () => ({ data: { subscription: { unsubscribe(){} } } }),
       signOut: async () => ({ error: null }),
     },

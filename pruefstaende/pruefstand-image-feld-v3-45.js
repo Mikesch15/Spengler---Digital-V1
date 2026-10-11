@@ -183,7 +183,7 @@ const ATTRAPPE=`window.supabase={createClient:function(){
  }
  return {
   from:tabelle,
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:window.__session||null}}),onAuthStateChange:()=>{}},
   storage:{from:function(){return {upload:async()=>({data:{path:"x"},error:null}),createSignedUrl:async()=>({data:{signedUrl:"https://beispiel.test/signiert.pdf"},error:null})}}},
   rpc:function(){return Promise.resolve({data:null,error:null})},
   functions:{invoke:function(){return Promise.resolve({data:{ok:true},error:null})}}
@@ -222,6 +222,7 @@ const ATTRAPPE=`window.supabase={createClient:function(){
  await page.goto("file://"+repo+"/index.html");
  await page.waitForFunction(()=>typeof checkOfferteZugriff==="function"&&typeof newAngebot==="function"&&typeof recognizePhoto==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}}); // v3.307: die Erkennung braucht eine angemeldete Sitzung
 
  await page.evaluate(()=>{
   window.__lese={angebote:[],feature_access:[{profile_id:"u1",feature:"angebote",granted:true}],audit_log:[]};
