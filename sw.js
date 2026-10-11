@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.314";
+const CACHE = "spengler-digital-3.315";
 
 const SHELL = [
   "./",
@@ -23,8 +23,8 @@ const SHELL = [
   // index.html) einfach weiterzaehlen. Auf iOS greift das nicht - dort
   // wird ein einmal zum Home-Bildschirm hinzugefuegtes Icon nie neu
   // geladen, das lässt sich von der App-Seite aus nicht beeinflussen.
-  "./icon-192.png?v=1",
-  "./icon-512.png?v=1",
+  "./icon-192.png?v=2",
+  "./icon-512.png?v=2",
   "./css/01-basis.css",
   "./css/02-responsive.css",
   "./css/03-druck.css",

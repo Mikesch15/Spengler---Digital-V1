@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.314`
+- Aktueller Entwicklungsstand: `v3.315`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.315 — App-Symbol wieder „SD“
+
+Auftraggeber: Logo wieder auf das blaue „SD“-Symbol (Bildschirmfoto Handy-Ordner). `icon-192.png`/`icon-512.png` = Stand Commit `3bf9d3a` (flaches Blau, weisses SD) statt Dach-Logo (v3.146); Cache-Parameter `?v=1` → `?v=2` in `index.html`, `manifest.json`, `sw.js`. Das Dach-Logo bleibt in der Git-Historie (`aeb63e1`). Das Symbol auf dem Handy aktualisiert Android nicht sofort – App vom Startbildschirm entfernen und neu hinzufügen. Datei dem Auftraggeber als Bild geschickt.
 
 ### v3.314 — register-company: Zugangsdaten-Mail über Gmail
 
