@@ -34424,3 +34424,7 @@ Rückmeldung zu v3.313: Reset-Mail kommt an (im Spam), Link funktioniert → Gma
 - `register-company` (Plattform-Version 11, `verify_jwt=false`, beabsichtigt): `zugangsdatenMailen()` bevorzugt Gmail-SMTP (gleiche Secrets, dynamischer Import in try/catch), Rückfall auf Resend; Firmenname/E-Mail/Passwort im Mail-HTML jetzt maskiert (`htmlEsc`). Rest der Funktion unverändert (Zugang nur System-Admin oder Einladungstoken). Live: Aufruf ohne Anmeldung → 403 (Funktion bootet), **Mailversand nicht live geprüft** (würde eine echte Firma anlegen).
 - `system-admin-storage-cron` unverändert auf Resend (Empfänger = Resend-Kontoadresse, funktioniert); Geheimnis im Code weiter offen (Audit v3.310).
 - Die Plattform-Version springt bei Secret-Änderungen im Dashboard (register-company 8 → 11 ohne Code-Deployment durch uns).
+
+### v3.315 — App-Symbol wieder „SD“
+
+Auftraggeber: Logo wieder auf das blaue „SD“-Symbol (Bildschirmfoto Handy-Ordner). `icon-192.png`/`icon-512.png` = Stand Commit `3bf9d3a` (flaches Blau, weisses SD) statt Dach-Logo (v3.146); Cache-Parameter `?v=1` → `?v=2` in `index.html`, `manifest.json`, `sw.js`. Das Dach-Logo bleibt in der Git-Historie (`aeb63e1`). Das Symbol auf dem Handy aktualisiert Android nicht sofort – App vom Startbildschirm entfernen und neu hinzufügen. Datei dem Auftraggeber als Bild geschickt.
