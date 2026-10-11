@@ -19,3 +19,7 @@ Schlüssel nur in `detail`. `verify_jwt` bleibt `true`. **Unverändert:** Prompt
 Antwortformat, CORS.
 
 Prüfstand: `pruefstaende/pruefstand-profil-erkennung-sicherheit-v3-308.js` (Funktionsdatei mit Attrappen + Client).
+
+**Live geprüft (11.10.2026, `pg_net` aus der Datenbank, leerer Body, keine Gemini-Kosten, Version 6, `verify_jwt` true):**
+ohne Authorization → 401 (Gateway); erfundenes Token → 401 (Gateway, Invalid JWT); öffentlicher App-Schlüssel als Bearer →
+401 mit dem deutschen Satz aus der Funktion. **Nicht live geprüft:** Erfolgsfall mit dem Token einer echten Person.

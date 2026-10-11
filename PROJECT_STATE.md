@@ -23,7 +23,7 @@ Mail), prüft den Aufrufer selbst sauber (angemeldet + Administrator + aktive Fi
 liegt nicht im Repo und wurde **nicht** gelesen; öffentlich (`verify_jwt=false`) sind bewusst `register-company`,
 `resolve-login-email`, `password-reset`, `system-admin-storage-cron`. **Folgeauftrag (nicht angefasst):** die öffentlichen Funktionen
 auf Missbrauch (E-Mail-Versand, Registrierung) ansehen. **Lokal belegt:** `profil-erkennung-sicherheit-v3-308` (22; ohne Prüfung
-7 rot, mit altem Bearer 1 rot); Wächter-Prüfstände grün. **Live:** siehe Abschlussbericht; Erfolgsfall mit echter Sitzung am
+7 rot, mit altem Bearer 1 rot); Wächter-Prüfstände grün. **Live (11.10.2026, pg_net, Version 6, verify_jwt true):** ohne Header → 401 Gateway; erfundenes Token → 401 Gateway; öffentlicher Schlüssel als Bearer → 401 aus der Funktion; extract-offer-positions (v26) mit Schlüssel → 401 unverändert; Erfolgsfall mit echter Sitzung am
 Endpunkt **nicht** durchgeführt (kein Benutzer-Token verfügbar), nur die Voraussetzung in der Datenbank (aktive Person bekommt
 über `my_company_id()` eine Firma). **Offen:** manueller Test in der App (Freies Profil: Skizze erkennen, angemeldet und mit
 abgelaufener Sitzung), kein Limit je Benutzer.
