@@ -59,7 +59,7 @@ if($("pwVergessenSenden"))$("pwVergessenSenden").onclick=async()=>{
  // Die Antwort ist absichtlich IMMER dieselbe (siehe Edge Function
  // password-reset, Kopfkommentar) - kein Unterschied zwischen "Konto
  // gefunden" und "Konto nicht gefunden", auch nicht bei einem Netzfehler.
- try{ await sb.functions.invoke("password-reset",{body:{action:"request",login}}); }
+ try{ await sb.functions.invoke("password-reset",{body:{action:"request",login,app_url:location.origin+location.pathname}}); }
  catch(e){ /* siehe oben */ }
  status.textContent="Falls zu diesem Konto eine E-Mail-Adresse hinterlegt ist, wurde soeben ein Link verschickt.";
  status.style.color="var(--muted)";

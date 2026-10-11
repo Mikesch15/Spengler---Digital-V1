@@ -35,6 +35,8 @@
 //     FENSTER_MINUTEN - sonst liess sich ein Postfach (und das Resend-
 //     Kontingent) beliebig mit Mails fluten. Weitere Anfragen werden still
 //     ignoriert und antworten wie immer {ok:true}.
+//  4) v3.312: Der Link lautete https://mikesch15.github.io/?reset=... (ohne den Projektpfad der App) und fuehrte ins
+//     Leere. Jetzt schickt der Client seine Adresse (app_url); der Host bleibt fest (siehe appUrl()).
 //  3) CORS (v3.311): "Access-Control-Allow-Headers" enthielt nur "authorization, content-type". supabase-js schickt aber
 //     immer auch "apikey" und "x-client-info" - der Browser-Preflight scheiterte daher und die POST-Anfrage ging NIE los
 //     (in den Logs: OPTIONS ohne POST). Das Formular zeigte trotzdem "Falls ein Konto existiert ...". Ergebnis (aus Code
@@ -52,8 +54,10 @@ const VON = "Spengler-DIGITAL <onboarding@resend.dev>";
 const TOKEN_GUELTIG_MINUTEN = 30;
 const FENSTER_MINUTEN = 15;
 const MAX_TOKEN_PRO_FENSTER = 3;
-// Eigene Adressen der App (nur diese duerfen im Reset-Link stehen).
-const ERLAUBTE_ORIGINS = ["https://mikesch15.github.io"];
+// Eigene Adresse der App. Der Reset-Link darf NUR hierhin zeigen (Host fest). Der Pfad kommt vom Client (app_url), weil
+// die App auf GitHub Pages unter einem Projektpfad liegt (v3.312: der Link ohne Pfad fuehrte ins Leere).
+const APP_HOST_PRAEFIX = "https://mikesch15.github.io/";
+const APP_STANDARD_URL = "https://mikesch15.github.io/Spengler---Digital-V1/";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -71,8 +75,14 @@ function zufallsToken(): string {
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 }
-function sichererOrigin(angefragt: string): string {
-  return ERLAUBTE_ORIGINS.includes(angefragt) ? angefragt : ERLAUBTE_ORIGINS[0];
+// Basis-URL fuer den Link: die vom Client gemeldete App-Adresse, aber nur wenn sie mit dem festen Praefix beginnt und
+// nur unauffaellige Zeichen enthaelt; sonst die Standardadresse. Ein fremder Host ist so nie moeglich.
+function appUrl(angefragt: unknown): string {
+  if (typeof angefragt !== "string") return APP_STANDARD_URL;
+  let u = angefragt.trim().replace(/[?#].*$/, "").replace(/index\.html$/, "");
+  if (!u.startsWith(APP_HOST_PRAEFIX) || u.length > 200 || !/^[A-Za-z0-9\-._~\/:]+$/.test(u)) return APP_STANDARD_URL;
+  if (u.includes("//", 8) || u.includes("..")) return APP_STANDARD_URL;
+  return u.endsWith("/") ? u : u + "/";
 }
 
 async function profilMitEmail(email: string): Promise<{ id: string } | null> {
@@ -94,7 +104,7 @@ async function zuvieleAnfragen(userId: string): Promise<boolean> {
   return !Array.isArray(rows) || rows.length >= MAX_TOKEN_PRO_FENSTER;
 }
 
-async function verarbeiteRequest(login: string, origin: string) {
+async function verarbeiteRequest(login: string, appAdresse: unknown) {
   const eingabe = String(login ?? "").trim().toLowerCase();
   // Ohne "@" ist es ein reiner Benutzername ohne hinterlegte E-Mail -
   // fuer diesen Fall gibt es bewusst keinen Selfservice-Reset (siehe
@@ -115,7 +125,7 @@ async function verarbeiteRequest(login: string, origin: string) {
   if (!ins.ok) { console.error("password-reset: Token konnte nicht gespeichert werden", await ins.text()); return; }
 
   if (!RESEND_API_KEY) { console.error("password-reset: RESEND_API_KEY fehlt - kein Versand moeglich"); return; }
-  const link = `${sichererOrigin(origin)}/?reset=${token}`;
+  const link = `${appUrl(appAdresse)}?reset=${token}`;
   const html = `
     <p>Für dein Spengler-DIGITAL-Konto wurde ein neues Passwort angefordert.</p>
     <p><a href="${link}">Neues Passwort setzen</a></p>
@@ -162,13 +172,12 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return antwort({ ok: false, error: "Method not allowed" }, 405);
 
-  let body: { action?: string; login?: string; token?: string; password?: string };
+  let body: { action?: string; login?: string; token?: string; password?: string; app_url?: unknown };
   try { body = await req.json(); } catch { return antwort({ ok: false, error: "Ungültige Anfrage." }, 400); }
 
   try {
     if (body.action === "request") {
-      const origin = req.headers.get("origin") || "";
-      await verarbeiteRequest(String(body.login ?? ""), origin);
+      await verarbeiteRequest(String(body.login ?? ""), body.app_url);
       return antwort({ ok: true });
     }
     if (body.action === "confirm") {

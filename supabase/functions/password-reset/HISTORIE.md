@@ -12,3 +12,8 @@ Selfservice-Reset per Mail (request/confirm), Token 30 Min, einmalig.
 Preflight erlaubte nur `authorization, content-type`; supabase-js schickt zusätzlich `apikey` und `x-client-info` → der Browser
 blockierte die POST-Anfrage (Logs: OPTIONS ohne POST), es ging nie eine Reset-Mail raus. Jetzt wie die anderen Funktionen.
 Offen: ob Resend an beliebige Empfänger sendet (Testabsender `onboarding@resend.dev`), und der Link ohne App-Pfad.
+
+## Fassung 4 (11.10.2026, App v3.312, Plattform-Version 4) – Link mit App-Pfad
+Link war `https://mikesch15.github.io/?reset=…` (ohne Projektpfad). Neu: Client schickt `app_url`; Host fest (Präfix `https://mikesch15.github.io/`), nur
+unauffällige Zeichen, sonst Standardadresse. Origin-Header wird nicht mehr verwendet.
+Belegt: Resend-Testabsender sendet nur an die Kontoadresse (403 im Funktionslog) – für andere Empfänger ist eine verifizierte Domain nötig.

@@ -1,4 +1,4 @@
-// Prueft v3.310 (Audit oeffentliche Edge Functions): password-reset baut den Link nur noch aus EIGENEN Adressen und
+// Prueft v3.310/v3.312 (Audit oeffentliche Edge Functions): password-reset baut den Link nur noch auf die EIGENE App (fester Host, Pfad vom Client) und
 // begrenzt Reset-Mails je Konto. Vorher: Link aus dem frei setzbaren Origin-Header der Anfrage (Token-Diebstahl per
 // gefaelschtem Origin) und keine Begrenzung (Postfach-Flut).
 // Geprueft wird die ECHTE Datei supabase/functions/password-reset/index.ts (Supabase/Resend als Attrappe, ohne Deno).
@@ -17,7 +17,7 @@ const JS=quelle
  .replace(/let body: \{[^}]*\};/,"let body;")
  .replace(/(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY)!/g,"$1");
 async function lauf(o){
- o=Object.assign({login:"person@firma.ch",origin:"https://mikesch15.github.io",profil:true,bisher:0,bisherStatus:200,mail:true},o||{});
+ o=Object.assign({login:"person@firma.ch",app_url:undefined,origin:"https://mikesch15.github.io",profil:true,bisher:0,bisherStatus:200,mail:true},o||{});
  let handler=null; const mails=[],tokens=[];
  const sb={
   Deno:{serve:h=>{handler=h},env:{get:k=>({SUPABASE_URL:"https://t.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"SRV",RESEND_API_KEY:"RS"})[k]}},
@@ -33,23 +33,26 @@ async function lauf(o){
  };
  vm.runInNewContext(JS,sb);
  const kopf=o.origin===null?{}:{origin:o.origin};
- const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({action:"request",login:o.login})});
+ const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({action:"request",login:o.login,app_url:o.app_url})});
  return {status:res.status,body:JSON.parse(await res.text()),mails,tokens};
 }
 const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:""};
 (async()=>{
- console.log("\nA · Link nur aus eigenen Adressen");
- let r=await lauf();
+ console.log("\nA · Link nur auf die eigene App (Host fest, Pfad vom Client)");
+ const APP="https://mikesch15.github.io/Spengler---Digital-V1/";
+ let r=await lauf({app_url:APP});
  p(r.status===200&&r.body.ok===true&&r.mails.length===1,"normaler Aufruf der App: Mail geht raus, Antwort ok:true",r);
- p(linkVon(r)===`https://mikesch15.github.io/?reset=${r.tokens[0].token}`,"Link zeigt auf die eigene Adresse (unveraendert zu bisher)",linkVon(r));
- r=await lauf({origin:"https://fremd.example"});
- p(r.mails.length===1&&linkVon(r).startsWith("https://mikesch15.github.io/?reset=")&&linkVon(r).indexOf("fremd")<0,"gefaelschter Origin: Link bleibt eigen, KEIN fremder Link in der Mail",linkVon(r));
- r=await lauf({origin:"https://mikesch15.github.io.fremd.example"});
- p(linkVon(r).startsWith("https://mikesch15.github.io/?reset=")&&linkVon(r).indexOf("fremd")<0,"aehnlich aussehender Origin (Unterdomain-Trick): abgewiesen",linkVon(r));
- r=await lauf({origin:null});
- p(r.mails.length===1&&linkVon(r).startsWith("https://mikesch15.github.io/?reset="),"ohne Origin: Link eigen, Mail geht raus",linkVon(r));
- r=await lauf({origin:"https://fremd.example\"><script>"});
- p(linkVon(r).indexOf("script")<0&&linkVon(r).indexOf("fremd")<0,"Origin mit Anfuehrungszeichen/HTML: kein Einschleusen in die Mail",linkVon(r));
+ p(linkVon(r)===`${APP}?reset=${r.tokens[0].token}`,"Link zeigt auf die App MIT Projektpfad",linkVon(r));
+ r=await lauf({app_url:APP+"index.html?x=1#y"});
+ p(linkVon(r)===`${APP}?reset=${r.tokens[0].token}`,"index.html, Query und Anker der Seitenadresse werden entfernt",linkVon(r));
+ r=await lauf({});
+ p(linkVon(r)===`${APP}?reset=${r.tokens[0].token}`,"ohne app_url (alte App): Standardadresse MIT Pfad",linkVon(r));
+ for(const [name,u] of [["fremder Host","https://fremd.example/Spengler---Digital-V1/"],["Unterdomain-Trick","https://mikesch15.github.io.fremd.example/x/"],["Benutzerinfo-Trick","https://mikesch15.github.io@fremd.example/"],["javascript:","javascript:alert(1)"],["Anfuehrungszeichen/HTML","https://mikesch15.github.io/a\"><script>"],["zu lang","https://mikesch15.github.io/"+"a".repeat(300)+"/"],["Doppel-Slash","https://mikesch15.github.io//fremd.example/"],["Zahl","12345"]]){
+  r=await lauf({app_url:u});
+  p(r.mails.length===1&&linkVon(r)===`${APP}?reset=${r.tokens[0].token}`,"app_url \u201E"+name+"\u201C: Standardadresse, nichts Fremdes in der Mail",linkVon(r));
+ }
+ r=await lauf({app_url:"https://mikesch15.github.io/anderer-pfad/",origin:"https://fremd.example"});
+ p(linkVon(r)===`https://mikesch15.github.io/anderer-pfad/?reset=${r.tokens[0].token}`&&linkVon(r).indexOf("fremd")<0,"eigener Host mit anderem Pfad bleibt moeglich; ein gefaelschter Origin-Header spielt keine Rolle mehr",linkVon(r));
 
  console.log("\nB · Begrenzung je Konto");
  r=await lauf({bisher:2});

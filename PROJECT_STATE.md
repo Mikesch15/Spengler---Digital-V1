@@ -3,9 +3,16 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.311`
+- Aktueller Entwicklungsstand: `v3.312`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.312 — Passwort-vergessen-Link zeigt in die App; Resend-Grenze belegt
+
+Gemeldet (11.10.2026): E-Mail-Login klappt, Offerten-Erkennung klappt; die Reset-Mail kam an (an die eigene Adresse), der Link ging nicht; an die Adresse der Testfirma kam nichts.
+- **Link:** `https://mikesch15.github.io/?reset=…` ohne Projektpfad der App → ins Leere. Jetzt schickt der Client `app_url` (`location.origin+location.pathname`, `js/69`); `password-reset` (Version 4) nimmt sie nur an, wenn sie mit `https://mikesch15.github.io/` beginnt und nur unauffällige Zeichen enthält (kein fremder Host, kein `//`, kein `..`), sonst Standard `https://mikesch15.github.io/Spengler---Digital-V1/` (Repo-Name angenommen, nicht geprüft – die App meldet ihren echten Pfad). Der Origin-Header wird nicht mehr benutzt.
+- **Mail an andere Adressen (belegt, Funktionslog 11.10. 18:24/18:26):** Resend antwortet 403 „You can only send testing emails to your own email address (mik.ledermann@gmail.com) … verify a domain“. Solange keine eigene Domain bei Resend bestätigt und `VON` darauf umgestellt ist, kommen Reset-Mails (und Zugangsdaten-Mails von `register-company`) nur bei der Resend-Kontoadresse an. **Das kann der Code nicht lösen** – braucht Domain + DNS-Einträge durch den Auftraggeber.
+- Tests: `pruefstand-passwort-reset-sicherheit-v3-310.js` 20 Prüfungen (u. a. fremder Host, Unterdomain-/Benutzerinfo-Trick, `javascript:`, Anführungszeichen, zu lang, Doppel-Slash). Deployt: `password-reset` Version 4 (`verify_jwt=false`). **Nicht geprüft:** Klick auf einen echten Link nach dem Update, Passwort setzen per Link.
 
 ### v3.311 — Sicherer Login mit Benutzername UND E-Mail (resolve-login-email neu) + Passwort-vergessen-Mail (CORS)
 
