@@ -46,15 +46,6 @@ Rückmeldung zu v3.313: Reset-Mail kommt an (im Spam), Link funktioniert → Gma
 - `system-admin-storage-cron` unverändert auf Resend (Empfänger = Resend-Kontoadresse, funktioniert); Geheimnis im Code weiter offen (Audit v3.310).
 - Die Plattform-Version springt bei Secret-Änderungen im Dashboard (register-company 8 → 11 ohne Code-Deployment durch uns).
 
-### v3.313 — Reset-Mails über Gmail (SMTP) statt Resend-Testabsender
-
-Weg 2 aus der Rückfrage (keine eigene Domain): Auftraggeber hat das Konto `spenglerdigital1@gmail.com` angelegt, ein App-Passwort erstellt und die Edge-Secrets `GMAIL_USER` + `GMAIL_APP_PASSWORD` im Supabase-Dashboard gesetzt (Wert nie im Chat/Repo).
-- `password-reset` (Plattform-Version 7, `verify_jwt=false`): neue `mailSenden()` – bevorzugt Gmail-SMTP (`denomailer@1.6.0`, `smtp.gmail.com:465` TLS, dynamischer Import in try/catch), bei fehlenden Secrets oder Fehler Rückfall auf Resend. Fehlerlog ohne Passwort. Absender = `GMAIL_USER`.
-- **Live (pg_net):** Reset-Anfrage für die Adresse der Testfirma → `200 {ok:true}`, Token angelegt, im Funktionslog KEIN Fehler (weder Gmail noch Resend) – das spricht für einen erfolgreichen Versand, **ist aber kein Zustellbeleg**; der Empfang muss der Auftraggeber bestätigen (Spam-Ordner prüfen).
-- **Grenzen:** Gmail ~500 Mails/Tag; Mails einer Privatadresse landen eher im Spam; Betrieb hängt am Google-Konto (Passwortwechsel/Löschen des App-Passworts stoppt den Versand). Die Plattform-Version sprang von 4 auf 7 (zwischenzeitliche Deployments ausserhalb dieser Session, z. B. durch Dashboard-Aktionen; Inhalt jetzt = Repo).
-- **Noch auf Resend (offen):** `register-company` (Zugangsdaten-Mail an neue Firmenadmins – genau die Testfirmen-Adresse betrifft das) und `system-admin-storage-cron` (geht an die Resend-Kontoadresse, funktioniert). Umstellung von `register-company` ist der nächste Schritt, sobald der Empfang bestätigt ist.
-- Tests: `pruefstand-passwort-reset-sicherheit-v3-310.js` 24 Prüfungen (neu: Rückfall auf Resend wenn Gmail scheitert, Passwort nirgends in Log/Antwort/Mail). **Nicht lokal testbar:** der echte SMTP-Versand.
-
 ## DAUERHAFT GÜLTIGE REGELN
 
 Alles hier gilt weiter – es ist keine Historie und gehört deshalb nicht ins
