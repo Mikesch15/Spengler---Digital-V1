@@ -120,17 +120,37 @@ async function einladungEingeloest(id: number, companyId: string) {
     body: JSON.stringify({ used_at: new Date().toISOString(), used_by_company_id: companyId }),
   });
 }
+// v3.314: Versand bevorzugt ueber Gmail (SMTP, Secrets GMAIL_USER + GMAIL_APP_PASSWORD), weil der Resend-Testabsender nur
+// an die Adresse des Resend-Kontos senden darf (403) - genau die Zugangsdaten-Mail an neue Firmenadmins scheiterte daran.
+// Ohne Gmail-Secrets oder bei einem Fehler geht es wie bisher ueber Resend.
+function htmlEsc(t: string) { return t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 async function zugangsdatenMailen(email: string, companyName: string, password: string) {
-  if (!RESEND_API_KEY) { console.error("register-company: RESEND_API_KEY fehlt - keine Zugangsdaten-Mail moeglich"); return false; }
   const html = `
-    <p>Die Firma <b>${companyName}</b> wurde in Spengler-DIGITAL angelegt.</p>
-    <p>Login-E-Mail: <b>${email}</b><br>Passwort: <b>${password}</b></p>
+    <p>Die Firma <b>${htmlEsc(companyName)}</b> wurde in Spengler-DIGITAL angelegt.</p>
+    <p>Login-E-Mail: <b>${htmlEsc(email)}</b><br>Passwort: <b>${htmlEsc(password)}</b></p>
     <p>Bitte nach der ersten Anmeldung ein eigenes Passwort vergeben.</p>
   `;
+  const betreff = "Spengler-DIGITAL: Zugangsdaten für " + companyName;
+  const gmailUser = Deno.env.get("GMAIL_USER");
+  const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
+  if (gmailUser && gmailPass) {
+    try {
+      const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+      const client = new SMTPClient({
+        connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass.replace(/\s+/g, "") } },
+      });
+      await client.send({ from: `Spengler-DIGITAL <${gmailUser}>`, to: email, subject: betreff, html });
+      await client.close();
+      return true;
+    } catch (err) {
+      console.error("register-company: Gmail-Versand fehlgeschlagen", String((err as Error)?.message ?? err).slice(0, 200));
+    }
+  }
+  if (!RESEND_API_KEY) { console.error("register-company: kein Mailversand eingerichtet (weder Gmail noch Resend) - keine Zugangsdaten-Mail moeglich"); return false; }
   const mail = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: VON, to: [email], subject: "Spengler-DIGITAL: Zugangsdaten für " + companyName, html }),
+    body: JSON.stringify({ from: VON, to: [email], subject: betreff, html }),
   });
   if (!mail.ok) { console.error("register-company: Resend fehlgeschlagen", await mail.text()); return false; }
   return true;

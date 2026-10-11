@@ -3,9 +3,16 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.313`
+- Aktueller Entwicklungsstand: `v3.314`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.314 — register-company: Zugangsdaten-Mail über Gmail
+
+Rückmeldung zu v3.313: Reset-Mail kommt an (im Spam), Link funktioniert → Gmail-Weg belegt. Jetzt dieselbe Umstellung für `register-company` (Zugangsdaten-Mail an neue Firmenadmins; scheiterte an Resend-Testabsender).
+- `register-company` (Plattform-Version 11, `verify_jwt=false`, beabsichtigt): `zugangsdatenMailen()` bevorzugt Gmail-SMTP (gleiche Secrets, dynamischer Import in try/catch), Rückfall auf Resend; Firmenname/E-Mail/Passwort im Mail-HTML jetzt maskiert (`htmlEsc`). Rest der Funktion unverändert (Zugang nur System-Admin oder Einladungstoken). Live: Aufruf ohne Anmeldung → 403 (Funktion bootet), **Mailversand nicht live geprüft** (würde eine echte Firma anlegen).
+- `system-admin-storage-cron` unverändert auf Resend (Empfänger = Resend-Kontoadresse, funktioniert); Geheimnis im Code weiter offen (Audit v3.310).
+- Die Plattform-Version springt bei Secret-Änderungen im Dashboard (register-company 8 → 11 ohne Code-Deployment durch uns).
 
 ### v3.313 — Reset-Mails über Gmail (SMTP) statt Resend-Testabsender
 
