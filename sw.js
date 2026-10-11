@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.317";
+const CACHE = "spengler-digital-3.318";
 
 const SHELL = [
   "./",
@@ -190,8 +190,12 @@ self.addEventListener("fetch", event => {
   event.respondWith(
     fetch(new Request(req, { cache: "reload" }))
       .then(res => {
-        const kopie = res.clone();
-        caches.open(CACHE).then(cache => cache.put(req, kopie)).catch(() => {});
+        // v3.318: nur ERFOLGREICHE Antworten aufheben. Bis v3.317 landete auch ein 404/500 im Zwischenspeicher und
+        // ueberschrieb dort die gute Kopie derselben Datei - ohne Verbindung kam dann die Fehlerseite statt der App.
+        if (res.ok) {
+          const kopie = res.clone();
+          caches.open(CACHE).then(cache => cache.put(req, kopie)).catch(() => {});
+        }
         return res;
       })
       .catch(() => caches.open(CACHE).then(cache =>

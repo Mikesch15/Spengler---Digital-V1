@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.317`
+- Aktueller Entwicklungsstand: `v3.318`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.318 — Nachtauftrag Paket F: Service Worker hebt nur Erfolgreiches auf
+
+`sw.js` (Netz zuerst, Cache nur ohne Verbindung) legte JEDE Antwort in den Zwischenspeicher – auch 404/500. Ein kurzer Serverfehler überschrieb so die gute Kopie derselben Datei; ohne Verbindung kam danach die Fehlerseite statt der App. Jetzt `if (res.ok)`. Prüfstand `pruefstand-sw-cache-v3-318` (11; ohne die Änderung 3 rot): 200 aufgehoben, 500/404 überschreiben nicht, ohne Netz kommt die gute Kopie, fehlende Datei = Fehler statt falscher Antwort, nur Seitennavigation fällt auf die Startseite zurück, fremde Adressen/POST unberührt, Cache-Nummer = sichtbare Version. Rest von Paket F geprüft, keine Lücke: Cache-Version wird per `werkzeug-version.js` mitgezählt, App-Icon bleibt das blaue SD (`?v=2`), keine neuen Dateien in dieser Nacht (also nichts in App-Hülle/Script-Reihenfolge nachzutragen), Offline-Speichern wird vom Schalter `offlineSperrtSpeichern` abgefangen (Meldung statt vorgetäuschtem Erfolg).
 
 ### v3.317 — Nachtauftrag Pakete B/D/G: Datenbank-Audit (belegt) und verständliche Fehlermeldungen
 
