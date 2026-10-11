@@ -356,7 +356,9 @@ async function recognizePhoto(src){
  // scheitert - eine Zusage, die richtig ist und die ich gebrochen hatte.
  // Sie steht jetzt HINTEN statt vorne: der lesbare Satz zuerst, die Zahl als
  // Anhang fuer die Diagnose. Beides erfuellt, nichts abgeschwaecht.
- const satz=(data&&typeof data.error==="string"&&data.error.trim())?data.error.trim():"";
+ const satz0=(data&&typeof data.error==="string"&&data.error.trim())?data.error.trim():"";
+ // v3.306: ein kurzer Hinweis des Servers (z. B. "Bitte nochmals auf Erkennen tippen.") gehoert zum Satz.
+ const satz=satz0&&data&&typeof data.hinweis==="string"&&data.hinweis.trim()?satz0+" "+data.hinweis.trim():satz0;
  if(!res.ok){
   throw new Error(satz
     ? `${satz} (Status ${res.status})`
@@ -371,6 +373,73 @@ async function recognizePhoto(src){
   preis:Number(p.price)||0,
   abschnitt:p.abschnitt||""
  }));
+}
+
+// ---- v3.306: wiederholbare Erkennung ohne doppelte Positionen -------------------------------------
+// Auftrag "Offertpositionen zuverlaessiger importieren": scheitert EIN Foto bei "Alle Fotos erkennen" und der
+// Anwender tippt nochmals, wurden bisher ALLE Fotos erneut gelesen - die schon erkannten standen dann doppelt in
+// der Liste. Ebenso jeder zweite Tipp auf das Einzelfoto oder "Positionen aus dem PDF erkennen". Und der
+// Abschlusssatz behauptete "aus N Foto(s) erkannt", auch wenn eines fehlschlug.
+// Jetzt merkt sich die App je Quelle (Foto/PDF als data:-URL), welche Positionen sie geliefert hat. Eine Quelle
+// gilt als erkannt, solange mindestens eine dieser Positionen noch in der Liste steht - wird die Liste geleert
+// oder eine andere Offerte geladen, ist sie von selbst wieder "neu". Die Liste wird erst nach einer GELUNGENEN
+// Erkennung veraendert; bei einem Fehler bleibt alles, wie es war.
+const erkennungQuellen=new Map();   // Quelle -> Positions-Objekte, die sie geliefert hat
+function erkennungSchonDa(src,liste){
+ const m=erkennungQuellen.get(src);
+ return !!(m&&m.length&&m.some(p=>liste.indexOf(p)>=0));
+}
+async function erkenneInListe(src,liste,ersetzen){
+ const found=await recognizePhoto(src);
+ let l=liste;
+ if(ersetzen){const alt=erkennungQuellen.get(src)||[];l=l.filter(p=>alt.indexOf(p)<0)}
+ erkennungQuellen.set(src,found);
+ return {liste:l.concat(found),neu:found};
+}
+const ERKENNUNG_LEER=" Es wurde nichts erkannt. Bei einem Foto: die ganze Seite, scharf und gut beleuchtet aufnehmen – oder, falls vorhanden, das Original-PDF verwenden.";
+const ERKENNUNG_PRUEFEN=" Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.";
+// Alle Quellen nacheinander; schon erkannte werden nicht nochmals gelesen. holeListe/setzeListe/status sind die
+// Listen und das Statusfeld der jeweiligen Offerten-/Ausmass-Seite.
+async function erkenneAlleFotos(fotos,holeListe,setzeListe,status){
+ let neu=0,uebersprungen=0;
+ const fehler=[];
+ for(let i=0;i<fotos.length;i++){
+  if(erkennungSchonDa(fotos[i],holeListe())){uebersprungen++;continue}
+  status(`Erkenne Foto ${i+1} von ${fotos.length} … das kann einige Sekunden dauern.`);
+  try{
+   const r=await erkenneInListe(fotos[i],holeListe(),false);
+   setzeListe(r.liste);
+   neu+=r.neu.length;
+  }catch(err){
+   fehler.push(i+1);
+   appAlert(`Fehler bei Foto ${i+1}: `+(err.message||err));
+  }
+ }
+ let t=`${neu} Position(en) neu erkannt`;
+ if(uebersprungen)t+=` (${uebersprungen} schon erkannte(s) Foto(s) nicht nochmals gelesen)`;
+ t+=".";
+ if(fehler.length){
+  t+=` ${fehler.length} von ${fotos.length} Foto(s) konnten NICHT erkannt werden (Foto ${fehler.join(", ")}). Bitte nochmals auf „Alle Fotos erkennen“ tippen – schon erkannte Fotos werden nicht doppelt eingefügt.`;
+ }else if(neu===0&&uebersprungen<fotos.length){
+  t+=ERKENNUNG_LEER;
+ }else{
+  t+=ERKENNUNG_PRUEFEN;
+ }
+ status(t);
+ return {neu,uebersprungen,fehler};
+}
+// Eine einzelne Quelle. Wurde sie schon erkannt, wird NACHGEFRAGT: erneutes Erkennen ersetzt die bisherigen
+// Positionen dieser Quelle (Korrekturen daran gehen verloren) - statt sie stillschweigend zu verdoppeln.
+async function erkenneEinzeln(src,holeListe,setzeListe,name){
+ let ersetzen=false;
+ if(erkennungSchonDa(src,holeListe())){
+  const ja=await appConfirm(`${name} wurde schon erkannt. Nochmals erkennen ersetzt die bisher daraus erkannten Positionen – Korrekturen daran gehen verloren.`,{ok:"Nochmals erkennen",gefahr:true});
+  if(!ja)return null;
+  ersetzen=true;
+ }
+ const r=await erkenneInListe(src,holeListe(),ersetzen);
+ setzeListe(r.liste);
+ return r.neu;
 }
 
 // v3.122: derselbe Handler fuer BEIDE Felder (Kamera und Galerie).
@@ -397,10 +466,8 @@ $("amPhotoGallery").addEventListener("click",async e=>{
   rec.disabled=true;
   $("amRecognizeStatus").textContent=`Erkenne Foto ${i+1} … das kann einige Sekunden dauern.`;
   try{
-   const found=await recognizePhoto(src);
-   amPositions=amPositions.concat(found);
-   renderAmPositionsTable();
-   $("amRecognizeStatus").textContent=`${found.length} Position(en) aus Foto ${i+1} erkannt. Bitte prüfen.`;
+   const found=await erkenneEinzeln(src,()=>amPositions,l=>{amPositions=l;renderAmPositionsTable()},`Foto ${i+1}`);
+   $("amRecognizeStatus").textContent=found===null?"":`${found.length} Position(en) aus Foto ${i+1} erkannt.`+(found.length?" Bitte prüfen.":ERKENNUNG_LEER);
   }catch(err){
    $("amRecognizeStatus").textContent="";
    appAlert("Fehler bei der Erkennung: "+(err.message||err));
@@ -411,20 +478,9 @@ $("amPhotoGallery").addEventListener("click",async e=>{
 $("amRecognizeAll").onclick=async()=>{
  if(!amPhotos.length){appAlert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
  $("amRecognizeAll").disabled=true;
- let totalFound=0;
- for(let i=0;i<amPhotos.length;i++){
-  $("amRecognizeStatus").textContent=`Erkenne Foto ${i+1} von ${amPhotos.length} … das kann einige Sekunden dauern.`;
-  try{
-   const found=await recognizePhoto(amPhotos[i]);
-   amPositions=amPositions.concat(found);
-   renderAmPositionsTable();
-   totalFound+=found.length;
-  }catch(err){
-   appAlert(`Fehler bei Foto ${i+1}: `+(err.message||err));
-  }
- }
- $("amRecognizeStatus").textContent=`${totalFound} Position(en) aus ${amPhotos.length} Foto(s) erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
- $("amRecognizeAll").disabled=false;
+ try{
+  await erkenneAlleFotos(amPhotos,()=>amPositions,l=>{amPositions=l;renderAmPositionsTable()},t=>{$("amRecognizeStatus").textContent=t});
+ }finally{$("amRecognizeAll").disabled=false}
 };
 
 $("amProjectSearch").addEventListener("input",e=>{

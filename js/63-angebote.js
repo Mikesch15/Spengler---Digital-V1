@@ -318,10 +318,8 @@ if($("angPhotoGallery")){
    rec.disabled=true;
    $("angRecognizeStatus").textContent=`Erkenne Foto ${i+1} … das kann einige Sekunden dauern.`;
    try{
-    const found=await recognizePhoto(src);
-    angPositions=angPositions.concat(found);
-    renderAngPositionsTable();
-    $("angRecognizeStatus").textContent=`${found.length} Position(en) aus Foto ${i+1} erkannt. Bitte prüfen.`;
+    const found=await erkenneEinzeln(src,()=>angPositions,l=>{angPositions=l;renderAngPositionsTable()},`Foto ${i+1}`);
+    $("angRecognizeStatus").textContent=found===null?"":`${found.length} Position(en) aus Foto ${i+1} erkannt.`+(found.length?" Bitte prüfen.":ERKENNUNG_LEER);
    }catch(err){
     $("angRecognizeStatus").textContent="";
     appAlert("Fehler bei der Erkennung: "+(err.message||err));
@@ -334,20 +332,9 @@ if($("angRecognizeAll")){
  $("angRecognizeAll").onclick=async()=>{
   if(!angPhotos.length){appAlert("Bitte zuerst mindestens ein Foto hinzufügen.");return}
   $("angRecognizeAll").disabled=true;
-  let totalFound=0;
-  for(let i=0;i<angPhotos.length;i++){
-   $("angRecognizeStatus").textContent=`Erkenne Foto ${i+1} von ${angPhotos.length} … das kann einige Sekunden dauern.`;
-   try{
-    const found=await recognizePhoto(angPhotos[i]);
-    angPositions=angPositions.concat(found);
-    renderAngPositionsTable();
-    totalFound+=found.length;
-   }catch(err){
-    appAlert(`Fehler bei Foto ${i+1}: `+(err.message||err));
-   }
-  }
-  $("angRecognizeStatus").textContent=`${totalFound} Position(en) aus ${angPhotos.length} Foto(s) erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
-  $("angRecognizeAll").disabled=false;
+  try{
+   await erkenneAlleFotos(angPhotos,()=>angPositions,l=>{angPositions=l;renderAngPositionsTable()},t=>{$("angRecognizeStatus").textContent=t});
+  }finally{$("angRecognizeAll").disabled=false}
  };
 }
 
@@ -484,10 +471,8 @@ if($("angPdfBereich")){
    if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="Erkenne Positionen aus dem PDF … das kann einige Sekunden dauern.";
    try{
     const dataUrl=await angPdfDatenUrlFuerErkennung();
-    const found=await recognizePhoto(dataUrl);
-    angPositions=angPositions.concat(found);
-    renderAngPositionsTable();
-    if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=`${found.length} Position(en) aus dem PDF erkannt. Bitte auf Richtigkeit prüfen und bei Bedarf korrigieren, bevor du speicherst.`;
+    const found=await erkenneEinzeln(dataUrl,()=>angPositions,l=>{angPositions=l;renderAngPositionsTable()},"Dieses PDF");
+    if($("angRecognizeStatus"))$("angRecognizeStatus").textContent=found===null?"":`${found.length} Position(en) aus dem PDF erkannt.`+(found.length?ERKENNUNG_PRUEFEN:ERKENNUNG_LEER.replace("Bei einem Foto: die ganze Seite, scharf und gut beleuchtet aufnehmen – oder, falls vorhanden, das Original-PDF verwenden.","Ist es ein gescanntes PDF (nur Bilder), hilft oft ein scharfes Foto der Seiten."));
    }catch(err){
     if($("angRecognizeStatus"))$("angRecognizeStatus").textContent="";
     appAlert("Fehler bei der Erkennung: "+(err.message||err));
