@@ -3,9 +3,26 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.298`
+- Aktueller Entwicklungsstand: `v3.299`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.299 — Abschnitt bei mehreren Streifenbreiten: plan-weite Nummer (Rüstblatt UND Material & Zuschnitt)
+
+Auftrag (11.10.2026): auch «Material & Zuschnitt» soll stimmen, und zwei Abschnitte unter derselben Überschrift
+dürfen nicht vorkommen. `js/33 zuAbschnittTitel(p)` rekonstruiert die plan-weite Abschnittsnummer **nur aus den
+gespeicherten Daten**: ohne Mischung zählen die Gruppen fortlaufend; mit Mischung gibt es je Abschnittlänge so
+viele Abschnitte wie Wirt-Streifen (nicht `mischungsGast`), die Gäste werden per Rückwärtssuche so verteilt,
+dass jeder Abschnitt in die Rollenbreite passt. Titel «Abschnitt N · L mm», nummeriert nach Länge absteigend.
+Gelingt die Verteilung nicht oder fehlt die Rollenbreite bei mehreren gleich langen Abschnitten (älterer Plan),
+bleibt die bisherige Anzeige statt einer falschen Nummer. Genutzt von der Herkunft im Rüstblatt
+(`zuAlleStuecke`) und von `zuBelegungHtml`; eine Gruppe allein, Tafel und Stange unverändert.
+**Bewusst NICHT gespeichert:** eine Abschnitts-ID in `measurements.data` würde den Trigger
+`schuetze_measurement_workflow` («data distinct» → Freigabe verfällt) bei jedem erneuten Speichern bestehender
+Mischpläne auslösen. Grenze: die Verteilung der Gäste ist eine gültige, nicht zwingend die ursprüngliche
+Aufteilung (gleich schneidbar). Prüfstand `ruestblatt-abschnitte-v3-297` um H (Handyfall), I (zwei gleich
+lange Abschnitte), J (Material-Seite) erweitert, 16; Mutation rot. Ausserdem: Tausenderstrich im Test
+vereinheitlicht (CI v3.298 war rot, `5d415a3` grün).
 
 ### v3.298 — Rüstblatt: bei mehreren Streifenbreiten der echte Abschnitt
 
@@ -30,17 +47,6 @@ antippbaren Haken. Nur auf dem Rüstblatt (`rbBlattHtml`) und nur bei mehr als e
 (`zuHerkunftNoetig`); Material-Seite, Werkstatt-Liste und Register bleiben unverändert. Prüfstand
 `ruestblatt-abschnitte-v3-297` (aus `-v3-295` umgebaut, 12; Mutation rot). Die Regel «Breite quer zur Rolle,
 Länge längs» gilt im Plan bereits (`ebaStreifenJeAbschnitt`), nichts geändert.
-
-### v3.296 — Rüstblatt: keine Masse doppelt
-
-Ansage (10.10.2026), auf die Frage nach den übrigen Arten: „Ja, alle Angaben kürzen, so dass nirgends Masse
-doppelt stehen.“ `js/80 rbDoppeltesEntfernen`: ein Wert in den Angaben/Stückzeilen entfällt, wenn jede
-Zahl darin (ab 10 oder mit Nachkommastelle) schon im Text der Zeichnung oder der Zuschnittliste desselben
-Blattes steht; der Wert bleibt dort sichtbar, nichts geht verloren. Worte, kleine Zahlen und Werte, die sonst
-nirgends stehen (z. B. Gesamtlänge, Montage), bleiben. Der Monteur sieht keine Zuschnittliste → dort bleibt
-alles. Dachfenster/Kamin behalten ihre feste Kurzauswahl (v3.294). Verträge angepasst, mit Gegenproben:
-`ruestblatt-masse-v3-293` (Beschriftung darf fehlen, wenn der Wert anderswo steht),
-`werkstatt-liste-v3-30`. Neuer Prüfstand `ruestblatt-doppelt-v3-296` (6; Mutation rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

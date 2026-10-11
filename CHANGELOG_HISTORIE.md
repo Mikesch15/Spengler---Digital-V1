@@ -34162,3 +34162,14 @@ Stange“, bei Tafeln „aus welcher Tafel“). `js/80 rbBlattHtml` hängt den B
 Erscheint nur bei mehr als einem Streifen (bzw. mehr als einer Stange); sonst nichts. Datenquelle ist der
 gespeicherte Plan (`zuPlanAusGespeichert`), nichts wird neu berechnet. Prüfstand
 `ruestblatt-abschnitte-v3-295` (9; Mutation rot). Offen: ob die übrigen Arten ihre Angaben auch kürzen sollen.
+
+### v3.296 — Rüstblatt: keine Masse doppelt
+
+Ansage (10.10.2026), auf die Frage nach den übrigen Arten: „Ja, alle Angaben kürzen, so dass nirgends Masse
+doppelt stehen.“ `js/80 rbDoppeltesEntfernen`: ein Wert in den Angaben/Stückzeilen entfällt, wenn jede
+Zahl darin (ab 10 oder mit Nachkommastelle) schon im Text der Zeichnung oder der Zuschnittliste desselben
+Blattes steht; der Wert bleibt dort sichtbar, nichts geht verloren. Worte, kleine Zahlen und Werte, die sonst
+nirgends stehen (z. B. Gesamtlänge, Montage), bleiben. Der Monteur sieht keine Zuschnittliste → dort bleibt
+alles. Dachfenster/Kamin behalten ihre feste Kurzauswahl (v3.294). Verträge angepasst, mit Gegenproben:
+`ruestblatt-masse-v3-293` (Beschriftung darf fehlen, wenn der Wert anderswo steht),
+`werkstatt-liste-v3-30`. Neuer Prüfstand `ruestblatt-doppelt-v3-296` (6; Mutation rot).
