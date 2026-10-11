@@ -3,9 +3,30 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.307`
+- Aktueller Entwicklungsstand: `v3.308`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.308 — Profilskizzen-Erkennung nur für angemeldete Personen + KI-Funktions-Inventar (Edge Function extract-profile-shape, Fassung 5)
+
+Auftrag (11.10.2026, Ausgangsstand v3.307 `573df27`). **Befund:** `extract-profile-shape` (js/14, Freies Profil → Gemini) hatte
+`verify_jwt=true`, der Client schickte aber den **öffentlichen** App-Schlüssel als Bearer und die Funktion prüfte selbst nichts;
+der Gateway lässt diesen Schlüssel durch (live an v26 gemessen) → ohne Anmeldung aufrufbar, jeder Aufruf = Gemini-Kosten.
+Missbrauch nicht belegt. **Änderung:** gemeinsamer Helfer `erkennungsToken()` (js/17; Token der Sitzung, ohne Sitzung keine
+Anfrage + Satz) für `recognizePhoto` und `recognizeProfileSketch` (js/14; 401 des Gateways → Satz); Funktion: `pruefeZugang()`
+(`my_company_id()` mit dem Benutzer-Token: anon → 401, ohne aktive Firma → 403, Prüfung nicht erreichbar → 503), Google-Fehler als
+deutscher Satz, Rohtext ohne Schlüssel nur in `detail`. Prompt/Modell/Format unverändert, `verify_jwt` bleibt true.
+**KI-Inventar (Gemini = einziger externer KI-Anbieter):** `extract-offer-positions` (Aufrufer js/17 → js/63, Gemini, v26 gesichert),
+`extract-profile-shape` (js/14, Gemini, jetzt gesichert). `smart-action` ist **keine** KI-Funktion (legt Mitarbeiter an, Resend-
+Mail), prüft den Aufrufer selbst sauber (angemeldet + Administrator + aktive Firma). Übrige Funktionen (`reset-password`,
+`register-company`, `resolve-login-email`, `password-reset`, `system-admin-*`) rufen nach Name/Aufrufer keine KI auf – ihr Code
+liegt nicht im Repo und wurde **nicht** gelesen; öffentlich (`verify_jwt=false`) sind bewusst `register-company`,
+`resolve-login-email`, `password-reset`, `system-admin-storage-cron`. **Folgeauftrag (nicht angefasst):** die öffentlichen Funktionen
+auf Missbrauch (E-Mail-Versand, Registrierung) ansehen. **Lokal belegt:** `profil-erkennung-sicherheit-v3-308` (22; ohne Prüfung
+7 rot, mit altem Bearer 1 rot); Wächter-Prüfstände grün. **Live:** siehe Abschlussbericht; Erfolgsfall mit echter Sitzung am
+Endpunkt **nicht** durchgeführt (kein Benutzer-Token verfügbar), nur die Voraussetzung in der Datenbank (aktive Person bekommt
+über `my_company_id()` eine Firma). **Offen:** manueller Test in der App (Freies Profil: Skizze erkennen, angemeldet und mit
+abgelaufener Sitzung), kein Limit je Benutzer.
 
 ### v3.307 — Offert-Erkennung nur für angemeldete Personen (Sicherheit; Edge Function v26)
 
@@ -48,28 +69,6 @@ Inhalt gegen das Repo geprüft). **Nicht geändert:** Modell, Prompt, Wiederholu
 Prüfstände: `erkennung-fehlerfaelle-v3-306` (23, Edge-Datei mit Gemini-Attrappe; v24 → 13 rot),
 `erkennung-wiederholung-v3-306` (11, Client; Altverhalten → 8 rot). **Nicht belegt:** ein echter Gemini-Aufruf (kein Netz/
 Key hier), die Ursache des gemeldeten Fehlers (Logs ohne Eintrag), Erkennungsgüte.
-
-### v3.305 — Prüfung deaktivierter Module und Workflow-Übergänge (Auftrag 11.10.2026, Ausgangsstand v3.304 `6b57d3a`)
-
-**Matrix (Code + Live-DB-Funktionen lesend; Client-Verhalten durch Prüfstand `module-workflow-v3-305`):**
-| Einstellung (firmenweit) | Erwartung | Befund | Prüfstand |
-|---|---|---|---|
-| Arbeitsablauf AN, Werkstatt AN | Werkstatt, Aufgaben, Badge, Archivieren nur für Abgeschlossene | ok | module-workflow-305 A, werkstatt-v3-09 |
-| Arbeitsablauf AUS (`workflow_aktiv=false`) | Aufgaben/Badge/Cockpit-Karte aus | ok (js/44, js/45) | workflow-v3-05, 305 B |
-| Arbeitsablauf AUS + Werkstatt-Modul AN | Werkstatt ebenfalls aus | **Lücke**: Werkstatt zeigte alte Stati samt «Rüsten bestätigen» | 305 B (vorher rot) |
-| Arbeitsablauf AUS | Massaufnahme archivierbar | **Lücke**: Archivieren nur für `abgeschlossen`, das nie erreicht wird → für immer unerreichbar | 305 B (vorher rot) |
-| Arbeitsablauf AN, Werkstatt AUS | Rüsten/Montage weiter über «Heute» | ok | 305 C, ruesten-montage-v3-292 |
-| Reservierung/Zuschnitt AUS | Blöcke/Abhaken weg, Hinweis | ok | werkstatt-v3-09 H, reservierung-v3-09 |
-| Hauptschalter AUS | alles aus, Unterschalter bleiben gespeichert | ok | projektmodule-v3-09 |
-**Server:** `feature_boundary_*` (RESTRICTIVE, `(SELECT auth.uid())`) betrifft nur angebote/lager-Tabellen; die
-Projektmodule (Reservierung, Versionierung, Werkstatt…) und `workflow_aktiv` sind laut Code (js/01, js/47)
-**reine Bedienung** – die Absicherung liegen in `schuetze_measurement_workflow` und den `measurement_*`-Funktionen
-(Firma `mw_firma_ok`, Rolle, Status), unverändert und nicht angefasst. **Behoben (kleinste Änderung):** `werkAktiv()`
-(js/51) verlangt zusätzlich den Arbeitsablauf; `js/09` bietet «Archivieren» bei ausgeschaltetem Ablauf für jede
-Massaufnahme an; Hinweis in den Modul-Einstellungen («Wirkt nur bei eingeschaltetem Arbeitsablauf»). Keine Migration.
-**Nicht belegt:** Live-Test mit zwei Firmen/echten Konten (keine echte DB in dieser Umgebung); Prüfstände belegen
-keine RLS/Mandantentrennung. Hinweis: bei ausgeschaltetem Ablauf erzwingt der Trigger weiterhin das Verfallen der
-Freigabe bei Datenänderung (harmlos, da nichts am Status hängt).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
