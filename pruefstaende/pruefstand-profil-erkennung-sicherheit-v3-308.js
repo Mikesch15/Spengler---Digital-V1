@@ -77,6 +77,10 @@ const hatEnglisch=s=>/UNAVAILABLE|INTERNAL|API key|\"code\"|high demand/.test(s|
  p(r.body.ok&&r.body.schenkel.length===2&&r.body.verworfen===1&&r.body.schenkel[1].winkel===180,"Prüfung der Schenkel (negativ verworfen, Winkel begrenzt) unverändert",r.body);
  r=await lauf({wirf:true});
  p(r.status===504&&/zu lange gedauert/.test(r.body.error),"Zeitgrenze: 504 mit dem bisherigen Satz",r.body);
+ r=await lauf(gutAntwort,{},"data:image/png;base64,"+"A".repeat(12000001));
+ p(r.status===413&&/zu gross/.test(r.body.error)&&r.aufrufe.length===0,"v3.316: Bild ueber der Obergrenze: 413 mit deutschem Satz, keine Anfrage an Google",{s:r.status,e:r.body.error});
+ r=await lauf(gutAntwort,{},"data:image/png;base64,"+"A".repeat(1000));
+ p(r.status===200&&r.aufrufe.length===1,"v3.316: Gegenprobe: normale Groesse wird erkannt",r.status);
  r=await lauf(gutAntwort,{},"");
  p(r.status===400&&/Kein Bild/.test(r.body.error)&&r.aufrufe.length===0,"kein Bild: 400 wie bisher, keine Anfrage an Google",r.body);
 

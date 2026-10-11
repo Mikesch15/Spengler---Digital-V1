@@ -114,18 +114,40 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-async function resolveImage(src: string): Promise<{ mimeType: string; data: string } | null> {
+// v3.316 (Eingabegrenzen, Audit): Obergrenzen gegen unnoetige KI-Kosten/Speicher und ein Abruf-Ziel, das nur auf den
+// Speicher DIESES Projekts zeigen darf. Bis v3.315 holte die Funktion JEDE http(s)-Adresse, die eine angemeldete Person
+// schickte (Server-Anfrage an beliebige Ziele, z. B. interne Adressen). Gebraucht wird nur der Abruf eines
+// signierten Foto-/PDF-Links aus dem eigenen Supabase-Speicher.
+const MAX_DATEN_ZEICHEN = 28_000_000; // base64-Text, rund 20 MB Datei (Client-Grenze fuer PDF: 15 MB)
+const MAX_ABRUF_BYTES = 20 * 1024 * 1024;
+
+function erlaubteQuelle(src: string): boolean {
+  try {
+    const u = new URL(src);
+    const eigener = new URL(Deno.env.get("SUPABASE_URL") || "https://invalid.invalid");
+    return u.protocol === "https:" && u.host === eigener.host && u.pathname.startsWith("/storage/v1/");
+  } catch {
+    return false;
+  }
+}
+
+async function resolveImage(src: string): Promise<{ mimeType: string; data: string } | { zuGross: true } | null> {
   if (!src) return null;
   const dataMatch = /^data:([^;]+);base64,(.+)$/s.exec(src);
   if (dataMatch) {
+    if (dataMatch[2].length > MAX_DATEN_ZEICHEN) return { zuGross: true };
     return { mimeType: dataMatch[1], data: dataMatch[2] };
   }
   if (/^https?:\/\//i.test(src)) {
-    const res = await fetch(src);
+    if (!erlaubteQuelle(src)) return null;
+    const res = await fetch(src, { redirect: "error" });
     if (!res.ok) return null;
     const mimeType = res.headers.get("content-type") || "image/jpeg";
-    if (!mimeType.startsWith("image/")) return null;
+    if (!mimeType.startsWith("image/") && mimeType !== "application/pdf") return null;
+    const laenge = Number(res.headers.get("content-length") || "0");
+    if (laenge > MAX_ABRUF_BYTES) return { zuGross: true };
     const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.length > MAX_ABRUF_BYTES) return { zuGross: true };
     return { mimeType, data: bytesToBase64(buf) };
   }
   return null;
@@ -193,7 +215,19 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Ungueltiger Request-Body." }, 400);
   }
 
-  const image = await resolveImage(String(body.image || ""));
+  let gelesen: Awaited<ReturnType<typeof resolveImage>> = null;
+  try {
+    gelesen = await resolveImage(String(body.image || ""));
+  } catch {
+    return json({ ok: false, error: "Das Bild/PDF konnte nicht geladen werden. Bitte nochmals versuchen." }, 400);
+  }
+  if (gelesen && "zuGross" in gelesen) {
+    return json({
+      ok: false,
+      error: "Die Datei ist fuer die Erkennung zu gross (hoechstens rund 20 MB). Bitte ein kleineres PDF oder ein Foto in geringerer Aufloesung verwenden.",
+    }, 413);
+  }
+  const image = gelesen;
   if (!image) {
     return json({ ok: false, error: "Kein gueltiges Bild/PDF uebergeben." }, 400);
   }
@@ -402,6 +436,15 @@ Wichtig für "abschnitt":
     if ((err as Error)?.name === "AbortError") {
       return json({ ok: false, error: "Zeitüberschreitung bei der Erkennung (90s)." }, 504);
     }
-    return json({ ok: false, error: `Unerwarteter Fehler: ${(err as Error)?.message ?? String(err)}` }, 500);
+    // v3.316: Netzwerkfehler von fetch() nennen in ihrer Meldung die ganze Adresse - und die enthaelt hier den
+    // API-Schluessel (?key=...). Bis v3.315 ging diese Meldung woertlich an den Client. Jetzt: deutscher Satz, der
+    // Rohtext (ohne Schluessel, gekuerzt) nur in "detail".
+    const rohFehler = String((err as Error)?.message ?? err).split(apiKey).join("***").slice(0, 200);
+    console.error("extract-offer-positions: unerwarteter Fehler:", rohFehler);
+    return json({
+      ok: false,
+      error: "Bei der Erkennung ist ein unerwarteter Fehler aufgetreten. Bitte nochmals auf „Erkennen“ tippen.",
+      detail: rohFehler,
+    }, 500);
   }
 });

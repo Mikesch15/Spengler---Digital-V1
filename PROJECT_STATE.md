@@ -3,9 +3,37 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.315`
+- Aktueller Entwicklungsstand: `v3.316`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.316 — Nachtauftrag Paket A: Sicherheit der Edge Functions (Befunde, Fixes, Inventar)
+
+Auftrag „Grosse Weiterentwicklung“ (12.10.2026, Ausgangsstand v3.315 `d13b3df`). Roadmap-Dokument und Fachkonzept liegen NICHT im Repo (nur die Zusammenfassungen `Zusammenfassung_Auftrag_*.txt`); Paket B–G siehe unten bzw. folgende Versionen.
+**Behoben (alles deployt, live per pg_net gegengeprüft, Tests lokal):**
+- `smart-action` (v16, verify_jwt true): Startpasswort war `Rinnen_`+Initialen (erratbar) → zufällig `Start-xxxxxxxx`; Mail über Gmail mit Resend-Rückfall; kein Doppelversand. **Bestehende Konten unverändert:** laut DB haben 10 von 15 Profilen noch kein eigenes Passwort gesetzt (`passwort_gesetzt=false`) – wurden sie über `smart-action` angelegt, gilt noch das alte Muster → Passwort per 🔑 (Admin) zurücksetzen lassen (manueller Schritt für Mike).
+- `register-company` (v12): Einladung wird atomar beansprucht (`PATCH … used_at=is.null`), bei Fehler freigegeben; Rohtexte von Auth/PostgREST nicht mehr in Antworten; (Fund beim Testen: ein `if` ohne Klammern hätte jede Registrierung abgebrochen – im Prüfstand aufgefallen, vor dem Deploy behoben).
+- `system-admin-storage-cron` (v4): Geheimnis jetzt im **Supabase Vault** (`storage_cron_secret`, in der DB erzeugt, nie ausgegeben); Cron-Job liest es beim Lauf aus dem Vault; die Funktion fragt `public.system_cron_secret_ok(text)` (nur service_role; anon/authenticated ohne Recht). Migration `cron_geheimnis_im_vault`. **Rotation live belegt:** Lauf mit Vault-Geheimnis 200, ohne/falsch/ALTES Geheimnis 401. **Rest-Risiko:** `cron.job_run_details` enthält in 27 alten Läufen das ALTE (jetzt ungültige) Geheimnis im Klartext; nichts gelöscht. **Rotation künftig:** `update vault.secrets` bzw. `vault.update_secret(id, neuer_wert)` – Funktion und Job brauchen keine Änderung.
+- `extract-offer-positions` (v29): Abruf nur noch von https-Adressen des EIGENEN Supabase-Speichers (`/storage/v1/`), kein Redirect, Obergrenze rund 20 MB (413), Typprüfung auch für Abrufe; **Fund:** `err.message` von fetch() nennt die Gemini-Adresse samt `?key=` und ging roh an den Client → jetzt maskiert, nur in `detail`.
+- `extract-profile-shape` (v9): Obergrenze Bildgrösse (413).
+- `reset-password` (v7) und `password-reset`/`resolve-login-email` (v3.311): CORS-Preflight erlaubte `apikey`/`x-client-info` nicht → Admin-„Passwort zurücksetzen“ erreichte den Server vermutlich nie (aus Code und Logs der Schwesterfunktionen abgeleitet; für reset-password selbst keine Logs mehr verfügbar).
+- `password-reset`, `smart-action`, `register-company`: Gmail hat Mail angenommen, aber `close()` scheitert → kein zweiter Versand über Resend. Nicht beweisbar bleibt: ein Timeout VOR der Annahme-Antwort kann theoretisch doppelt zustellen.
+- Repo: neue Kopien `smart-action`, `reset-password`, `system-admin-delete-company`, `system-admin-storage-cron` (ohne Geheimnis); CI läuft jetzt mit Node 22 (Prüfstände nutzen `module.stripTypeScriptTypes`).
+**Inventar (alle 12 deployten Funktionen):**
+| Funktion | verify_jwt | eigene Prüfung | externe Kosten | Befund |
+|---|---|---|---|---|
+| extract-offer-positions | an | angemeldet + aktive Firma (my_company_id) | Gemini | oben |
+| extract-profile-shape | an | dito | Gemini | oben |
+| smart-action | an | angemeldet, Rolle admin, Firma aktiv | Mail | oben |
+| reset-password | an | admin, gleiche Firma, Firma aktiv | – | CORS; Passwortlänge nur ≥ 8 |
+| system-admin-delete-company | an | System-Admin + Firmenname exakt + Dry-Run | – | ok; liefert Rohgrund des Preflights an System-Admins |
+| system-admin-storage-aufraeumen / -ansehen | an | System-Admin (gelesen: im Repo) | – | nicht erneut geprüft |
+| register-company | **aus** | System-Admin ODER einmaliger Einladungstoken | Mail | oben |
+| resolve-login-email | **aus** | Passwortprüfung selbst, Limit 30/IP, 8/Eingabe | – | v3.311 |
+| password-reset | **aus** | Limit 3 Mails/Konto/15 Min, fester Link-Host | Mail | v3.310–313 |
+| system-admin-storage-cron | **aus** | Vault-Geheimnis (fail closed) | Mail (an Betreiber) | oben |
+**Offen / manuell:** (1) 10 Konten ohne eigenes Passwort prüfen/zurücksetzen (s. o.). (2) Supabase-Dashboard → Auth → „Leaked password protection“ ist AUS (Advisor-Warnung; Schalter im Dashboard, nicht per Code). (3) Mails an Dritte: Gmail-Weg läuft (Spam-Ordner); Resend nur an Kontoadresse. (4) `esm.sh/@supabase/supabase-js@2` in `reset-password` ist ungepinnt (Lieferkette). (5) Keine Live-Prüfung mit echtem Benutzer-Token (Erkennung, Mitarbeiter anlegen, Reset) – nur Absagen, Limits und Zugangsregeln am echten Endpunkt.
+**Tests:** neu `pruefstand-konten-funktionen-v3-316` (36), `pruefstand-cron-geheimnis-v3-316` (11), `pruefstand-edge-cors-v3-316` (19); erweitert `erkennung-fehlerfaelle-v3-306` (48), `profil-erkennung-sicherheit-v3-308` (26), `passwort-reset-sicherheit-v3-310` (27). Gegenproben (Fix entfernt → rot) für Einladung, Gmail-close, Passwortmuster, Abruf-Ziel, Schlüssel-Maskierung, CORS.
 
 ### v3.315 — App-Symbol wieder „SD“
 
@@ -26,101 +54,6 @@ Weg 2 aus der Rückfrage (keine eigene Domain): Auftraggeber hat das Konto `spen
 - **Grenzen:** Gmail ~500 Mails/Tag; Mails einer Privatadresse landen eher im Spam; Betrieb hängt am Google-Konto (Passwortwechsel/Löschen des App-Passworts stoppt den Versand). Die Plattform-Version sprang von 4 auf 7 (zwischenzeitliche Deployments ausserhalb dieser Session, z. B. durch Dashboard-Aktionen; Inhalt jetzt = Repo).
 - **Noch auf Resend (offen):** `register-company` (Zugangsdaten-Mail an neue Firmenadmins – genau die Testfirmen-Adresse betrifft das) und `system-admin-storage-cron` (geht an die Resend-Kontoadresse, funktioniert). Umstellung von `register-company` ist der nächste Schritt, sobald der Empfang bestätigt ist.
 - Tests: `pruefstand-passwort-reset-sicherheit-v3-310.js` 24 Prüfungen (neu: Rückfall auf Resend wenn Gmail scheitert, Passwort nirgends in Log/Antwort/Mail). **Nicht lokal testbar:** der echte SMTP-Versand.
-
-### v3.312 — Passwort-vergessen-Link zeigt in die App; Resend-Grenze belegt
-
-Gemeldet (11.10.2026): E-Mail-Login klappt, Offerten-Erkennung klappt; die Reset-Mail kam an (an die eigene Adresse), der Link ging nicht; an die Adresse der Testfirma kam nichts.
-- **Link:** `https://mikesch15.github.io/?reset=…` ohne Projektpfad der App → ins Leere. Jetzt schickt der Client `app_url` (`location.origin+location.pathname`, `js/69`); `password-reset` (Version 4) nimmt sie nur an, wenn sie mit `https://mikesch15.github.io/` beginnt und nur unauffällige Zeichen enthält (kein fremder Host, kein `//`, kein `..`), sonst Standard `https://mikesch15.github.io/Spengler---Digital-V1/` (Repo-Name angenommen, nicht geprüft – die App meldet ihren echten Pfad). Der Origin-Header wird nicht mehr benutzt.
-- **Mail an andere Adressen (belegt, Funktionslog 11.10. 18:24/18:26):** Resend antwortet 403 „You can only send testing emails to your own email address (mik.ledermann@gmail.com) … verify a domain“. Solange keine eigene Domain bei Resend bestätigt und `VON` darauf umgestellt ist, kommen Reset-Mails (und Zugangsdaten-Mails von `register-company`) nur bei der Resend-Kontoadresse an. **Das kann der Code nicht lösen** – braucht Domain + DNS-Einträge durch den Auftraggeber.
-- Tests: `pruefstand-passwort-reset-sicherheit-v3-310.js` 20 Prüfungen (u. a. fremder Host, Unterdomain-/Benutzerinfo-Trick, `javascript:`, Anführungszeichen, zu lang, Doppel-Slash). Deployt: `password-reset` Version 4 (`verify_jwt=false`). **Nicht geprüft:** Klick auf einen echten Link nach dem Update, Passwort setzen per Link.
-
-### v3.311 — Sicherer Login mit Benutzername UND E-Mail (resolve-login-email neu) + Passwort-vergessen-Mail (CORS)
-
-Auftrag (11.10.2026, Ausgangsstand v3.310 `95fecc1`), Entscheid: beide Anmeldewege bleiben.
-- **Befund resolve-login-email (v3.310: offen):** öffentliches Nachschlagen E-Mail → interne Pseudo-Adresse (`vorname.nachname@…`), sonst Eingabe zurück → Konten und interne Benutzernamen abfragbar, kein Limit, Kopfkommentar falsch. Die Auflösung MUSS serverseitig bleiben (Mitarbeiter-Auth-Adresse ist die Pseudo-Adresse), konnte aber vom Nachschlagen zum Anmelden werden.
-- **Lösung:** Client (`js/03-login.js`, `loginAnmelden`): Benutzername → direkt wie immer; E-Mail → erst direkt (selbst registrierte Admins, Funktion nicht nötig), bei Absage `{login,password}` an `resolve-login-email`. Die Funktion gibt NIE eine Adresse heraus: sie löst intern auf, prüft das Passwort bei Supabase Auth (`/auth/v1/token`, öffentlicher Schlüssel) und liefert bei Erfolg die Sitzung (`setSession`), sonst immer `401 {ok:false}` (bekannt/unbekannt/falsches Passwort/ohne Mitarbeiter-E-Mail identisch; immer dieselben Schritte → kein Zeitunterschied durch übersprungene Arbeit). Eingaben: leer/zu lang (>254 / Passwort >256) → 400.
-- **Limit:** neue Tabelle `login_aufloesung_versuche` (Migration, RLS an ohne Policy, anon/authenticated entzogen, nur SHA-256-Hashes): je IP 30, je Eingabe 8 Versuche / 10 Min → 429 für alle gleich; Zähler nicht les-/schreibbar → 503, es wird nichts geprüft (fail closed). **Grenzen:** die IP kommt aus dem Anfrage-Header (kein harter Beweis); wer die E-Mail eines Mitarbeiters kennt, kann dessen E-Mail-Login für 10 Min sperren (Benutzername-Login bleibt frei); bei gleichzeitigen Aufrufen zählt jeder Aufruf die der anderen mit. Alte PWAs (v≤3.310) schicken kein Passwort → Mitarbeiter-E-Mail-Login erst nach App-Neuladen.
-- **Passwort-vergessen-Mail kam nicht an (gemeldet):** `password-reset` erlaubte im Preflight nur `authorization, content-type`; supabase-js schickt aber `apikey` und `x-client-info` → der Browser blockierte die POST-Anfrage (Logs 11.10. 18:02: OPTIONS ohne POST), das Formular zeigte trotzdem „Falls …“. Behoben (CORS wie die anderen Funktionen). Aus Code und Logs abgeleitet, **nicht mit echtem Versand belegt**. **Mögliche zweite Hürde, nicht geprüft:** Absender `onboarding@resend.dev` (Resend-Testabsender) darf laut Kommentar in `system-admin-storage-cron` nur an die beim Resend-Konto hinterlegte Adresse senden → Reset-Mails an andere Adressen scheitern ohne eigene verifizierte Domain; der Fehler steht dann nur im Funktionslog. Auch der Link `https://mikesch15.github.io/?reset=…` (ohne App-Pfad) ist ungeprüft.
-- **Tests:** `pruefstand-login-aufloesung-v3-311.js` (29, Funktion mit Attrappen; ohne die Fixes 9 rot), `pruefstand-email-auth-v3-103.js` angepasst (56, Client: beide Wege, Funktion Nein/offline), `pruefstand-passwort-reset-sicherheit-v3-310.js` +CORS (13).
-- **Deployt (live verifiziert):** `resolve-login-email` Version 2, `password-reset` Version 3, beide `verify_jwt=false` (beabsichtigt, Login-Bildschirm). **Live (pg_net, ohne echte Zugangsdaten):** unbekannte E-Mail, unbekannter Benutzername → beide `401 {ok:false}`; leer → 400; GET → 405; 11 Aufrufe auf dieselbe Eingabe → 429; Zähler enthält nur Hashes. Kein Fehler im Funktionslog (Passwortprüfung mit dem öffentlichen Schlüssel wird von Auth akzeptiert, abgeleitet). **Nicht live geprüft:** Erfolgsfall mit einem echten Mitarbeiter-Konto, echte Reset-Mail, Preflight aus dem Browser.
-- Weiter offen aus dem Audit (v3.310): `system-admin-storage-cron` (Geheimnis im Code/Cron-Befehl), `register-company` (Kleinigkeiten).
-
-### v3.310 — Audit der öffentlichen Edge Functions: password-reset gehärtet (Plattform-Version 2)
-
-Auftrag „Sicherheitsprüfung öffentlich erreichbarer Edge Functions“ (11.10.2026, Ausgangsstand v3.309 `61da466`). Code aller vier Funktionen **tatsächlich gelesen** (live per `get_edge_function`), `verify_jwt=false` ist bei allen vier beabsichtigt (Login-Bildschirm / Cron).
-- **HOCH, behoben – `password-reset`:** der Link in der Mail wurde aus dem frei setzbaren `Origin`-Header gebaut → mit gefälschtem Origin und einer bekannten Mitarbeiter-E-Mail kam eine ECHTE Mail mit gültigem Token und Link auf eine fremde Domain (Token-Diebstahl → Konto übernehmen, wenn die Person klickt). Fix: feste Liste `ERLAUBTE_ORIGINS` (`https://mikesch15.github.io`), alles andere fällt darauf zurück. **MITTEL, behoben:** keine Begrenzung → Postfach-/Resend-Flut; jetzt höchstens 3 Tokens je Konto in 15 Min (Zählung über `password_reset_tokens`, bei Fehler fail closed), Antwort bleibt immer `{ok:true}`.
-- **MITTEL, in v3.311 behoben – `resolve-login-email`:** für eine echte E-Mail eines Mitarbeiters liefert sie die interne Pseudo-Adresse (`vorname.nachname@…`), sonst die Eingabe zurück → Konto-Existenz und interner Benutzername sind für Unangemeldete abfragbar; der Kopfkommentar („kein Leck“) stimmt so nicht; kein Limit. Fix würde den Login mit E-Mail ändern → Entscheid nötig.
-- **NIEDRIG, offen – `system-admin-storage-cron`:** Zugang nur über geteiltes Geheimnis (`x-cron-secret`, live: ohne/falsch → 401), aber das Geheimnis steht im Funktionscode und im pg_cron-Befehl (kein Supabase-Secret), Vergleich nicht zeitkonstant. Wirkung gering (liest Liste, schickt Mail an Betreiber, löscht nichts). Rotation = Änderung am Cron-Job in der DB → Entscheid nötig. Das Geheimnis steht NICHT im Repo.
-- **NIEDRIG, offen – `register-company`:** Zugang nur System-Admin oder gültiger, einmaliger Einladungstoken (live ohne beides → 403); Einlösung nicht atomar (doppelter Aufruf mit demselben Token theoretisch möglich), rohe Auth-Fehlertexte, Firmenname ungefiltert im Mail-HTML (nur System-Admin-Weg).
-- Code liegt neu im Repo: `supabase/functions/password-reset/index.ts` (+ `HISTORIE.md`). Prüfstand `pruefstand-passwort-reset-sicherheit-v3-310.js` (12 Prüfungen; ohne die zwei Fixes 5 rot). Live (pg_net, Version 2): unbekannte E-Mail mit fremdem Origin → `{ok:true}`; Bestätigen mit Fantasie-Token → 400 „ungültig“; Cron ohne/mit falschem Geheimnis → 401; register-company ohne Anmeldung → 403. **Nicht live geprüft:** echter Versand an ein Konto. Offen/latent: der Link baut `https://mikesch15.github.io/?reset=…` ohne Pfad – ob der Reset-Link in der Praxis die App erreicht, ist nicht belegt.
-- **v3.309 Nachtrag (Erkennung „Failed to fetch“):** Edge-Logs 11.10. 17:06–17:19 UTC: `extract-offer-positions` antwortete 200 (6 KB) nach **80 s** bzw. **32 s**; ein früherer Versuch 401 (Gateway). Die Funktion arbeitet, die Antwort kommt aber teils erst nach über einer Minute – im Mobilnetz bricht der Browser dann ab. Ursache nicht endgültig belegt; Folgeidee: Antwort in Stücken/Keep-alive oder Hintergrund-Erkennung.
-
-### v3.309 — Offerten-Erkennung: „Failed to fetch“ verständlich
-
-Gemeldet (Bildschirmfoto, PDF „Positionen erkennen“): „Fehler bei der Erkennung: Failed to fetch“. **Befund:** die Gateway-Ablehnungen (401) tragen CORS-Header (gemessen, `net._http_response`), ein 401 durch v3.307/v3.308 wäre als Satz angekommen – es ist ein reiner Netzwerkfehler von `fetch()` (Anfrage kam nicht an / Antwort riss ab). **Ursache nicht belegt:** Edge-Logs waren nicht abrufbar (`function_edge_logs` fehlt/Backend-Fehler); Vorbild ist der Fall v3.43 (langer POST im Mobilnetz). **Änderung:** `js/17` (`recognizePhoto`) und `js/63` (`angPdfDatenUrlFuerErkennung`) fangen den Netzwerkfehler und nennen den Schritt (Speicher bzw. Erkennungsdienst) und was zu tun ist. Funktion unverändert (v26). Offen: Wiederholung durch Mike mit demselben PDF; bei erneutem Fehler Edge-Logs prüfen (OPTIONS ohne POST = Verbindungsabbruch).
-
-### v3.308 — Profilskizzen-Erkennung nur für angemeldete Personen + KI-Funktions-Inventar (Edge Function extract-profile-shape, Fassung 5)
-
-Auftrag (11.10.2026, Ausgangsstand v3.307 `573df27`). **Befund:** `extract-profile-shape` (js/14, Freies Profil → Gemini) hatte
-`verify_jwt=true`, der Client schickte aber den **öffentlichen** App-Schlüssel als Bearer und die Funktion prüfte selbst nichts;
-der Gateway lässt diesen Schlüssel durch (live an v26 gemessen) → ohne Anmeldung aufrufbar, jeder Aufruf = Gemini-Kosten.
-Missbrauch nicht belegt. **Änderung:** gemeinsamer Helfer `erkennungsToken()` (js/17; Token der Sitzung, ohne Sitzung keine
-Anfrage + Satz) für `recognizePhoto` und `recognizeProfileSketch` (js/14; 401 des Gateways → Satz); Funktion: `pruefeZugang()`
-(`my_company_id()` mit dem Benutzer-Token: anon → 401, ohne aktive Firma → 403, Prüfung nicht erreichbar → 503), Google-Fehler als
-deutscher Satz, Rohtext ohne Schlüssel nur in `detail`. Prompt/Modell/Format unverändert, `verify_jwt` bleibt true.
-**KI-Inventar (Gemini = einziger externer KI-Anbieter):** `extract-offer-positions` (Aufrufer js/17 → js/63, Gemini, v26 gesichert),
-`extract-profile-shape` (js/14, Gemini, jetzt gesichert). `smart-action` ist **keine** KI-Funktion (legt Mitarbeiter an, Resend-
-Mail), prüft den Aufrufer selbst sauber (angemeldet + Administrator + aktive Firma). Übrige Funktionen (`reset-password`,
-`register-company`, `resolve-login-email`, `password-reset`, `system-admin-*`) rufen nach Name/Aufrufer keine KI auf – ihr Code
-liegt nicht im Repo und wurde **nicht** gelesen; öffentlich (`verify_jwt=false`) sind bewusst `register-company`,
-`resolve-login-email`, `password-reset`, `system-admin-storage-cron`. **Folgeauftrag (nicht angefasst):** die öffentlichen Funktionen
-auf Missbrauch (E-Mail-Versand, Registrierung) ansehen. **Lokal belegt:** `profil-erkennung-sicherheit-v3-308` (22; ohne Prüfung
-7 rot, mit altem Bearer 1 rot); Wächter-Prüfstände grün. **Live (11.10.2026, pg_net, Version 6, verify_jwt true):** ohne Header → 401 Gateway; erfundenes Token → 401 Gateway; öffentlicher Schlüssel als Bearer → 401 aus der Funktion; extract-offer-positions (v26) mit Schlüssel → 401 unverändert; Erfolgsfall mit echter Sitzung am
-Endpunkt **nicht** durchgeführt (kein Benutzer-Token verfügbar), nur die Voraussetzung in der Datenbank (aktive Person bekommt
-über `my_company_id()` eine Firma). **Offen:** manueller Test in der App (Freies Profil: Skizze erkennen, angemeldet und mit
-abgelaufener Sitzung), kein Limit je Benutzer.
-
-### v3.307 — Offert-Erkennung nur für angemeldete Personen (Sicherheit; Edge Function v26)
-
-Auftrag (11.10.2026, Ausgangsstand v3.306 `9d2d119`). **Befund:** `extract-offer-positions` hatte `verify_jwt=false`, der Client
-sandte als Bearer den **öffentlichen** App-Schlüssel (kein Benutzer-Token) → ohne Anmeldung aufrufbar, jeder Aufruf =
-Gemini-Kosten. Ein konkreter Missbrauch ist **nicht belegt** (Logs reichen nicht zurück). **Änderung:** (1) `js/17 recognizePhoto`
-sendet das Token der angemeldeten Person (`sb.auth.getSession()`), ohne Sitzung keine Anfrage + verständlicher Satz, 401 → Satz;
-(2) Funktion `verify_jwt=true`; (3) `pruefeZugang()` in der Funktion: `public.my_company_id()` mit diesem Token → nur angemeldete
-Person mit aktiver Firma (anon → 401, ohne aktive Firma → 403, Prüfung nicht erreichbar → 503, fail closed). Keine Migration,
-RLS/Policies unverändert. Modell/Prompt/Wiederholung/Antwortformat unverändert. Details und Grenzen: `supabase/functions/
-extract-offer-positions/HISTORIE.md` v26. **Lokal belegt:** `erkennung-fehlerfaelle-v3-306` (35, Datei geladen, Supabase/Gemini
-als Attrappe; ohne Prüfung 8 rot), `erkennung-wiederholung-v3-306` (14; alter Bearer → 2 rot); Verträge in
-`erkennung-ueberlastet-v3-254`, `angebote-v3-34`, `angebot-pdf-erkennen-v3-39` (Attrappen liefern erst nach dem Start eine Sitzung).
-**Live (am echten Endpunkt, per `pg_net` aus der Datenbank ausgelöst, leerer Body, keine Gemini-Kosten, deployte Version 26,
-`verify_jwt=true`):** ohne Authorization → 401 (Gateway «Missing authorization header»); erfundenes Token → 401 (Gateway
-«Invalid JWT»); falsches Schema → 401; **öffentlicher App-Schlüssel als Bearer → 401 von der Funktion selbst** («Anmeldung
-abgelaufen oder ungültig») – der Gateway lässt diesen Schlüssel durch, `verify_jwt` allein hätte also NICHT geschützt.
-**Nicht live geprüft:** der Erfolgsfall mit dem Token einer echten angemeldeten Person (kein Konto/Token verfügbar) – er ist
-nur lokal belegt (Attrappe). **Offen:** manueller Test in der App (angemeldet → Erkennung geht; Sitzung abgelaufen → Satz),
-`extract-profile-shape` (js/14) schickt ebenfalls den öffentlichen Schlüssel und hat **keine** Prüfung in der Funktion →
-wegen des Gateway-Verhaltens vermutlich offen aufrufbar (Gemini-Kosten) – eigener Auftrag, nicht angefasst; kein Limit je Benutzer;
-ein bereits geladener alter App-Stand (PWA-Cache) bekommt bis zum Neuladen ein 401.
-
-### v3.306 — Offert-Import aus PDF/Foto: zuverlässiger und ohne Doppelte (Edge Function v25)
-
-Auftrag (11.10.2026, Ausgangsstand v3.305 `4a01ee9`). **So läuft es:** Foto → `resizeImageFile` (maxDim 1400/2200 je
-«Bildqualität») → `data:`-URL; PDF → `fileZuDataUrl` (max. Erkennungsgrösse `ANG_PDF_ERKENNEN_MAX_BYTES`); beide gehen
-durch `recognizePhoto()` (js/17) an `extract-offer-positions`, das MIME-Typ und Inhalt unverändert als `inline_data` an
-Gemini reicht (PDF als `application/pdf`); gleiche Positionsstruktur (`pos, description, quantity, unit, preis,
-abschnitt`). **Empfehlung:** digitales PDF mit Text > scharfes Foto ≈ gescanntes PDF; Foto/Scan nur, wenn es kein
-Original-PDF gibt. **Belegte Lücken (Code):** (a) «Alle Fotos erkennen» las nach einem Teilfehler beim erneuten Tippen
-ALLE Fotos nochmals → doppelte Positionen; ebenso Einzelfoto und «Positionen aus dem PDF erkennen»; der Abschlusssatz
-sagte «aus N Foto(s) erkannt», auch wenn eines scheiterte; (b) leeres Ergebnis wurde nicht erklärt; (c) Edge Function:
-Fehler ausser 503/429 kamen als rohes Englisch, MIME wurde nicht geprüft, Google-Rohtext konnte den API-Key enthalten.
-**Behoben:** `js/17` `erkennungQuellen`/`erkenneAlleFotos`/`erkenneEinzeln` (genutzt von js/17 und js/63): schon erkannte
-Quellen werden übersprungen, Einzelerkennung fragt nach und ERSETZT, Liste ändert sich erst nach gelungener Erkennung,
-ehrlicher Abschlusssatz inkl. fehlgeschlagener Foto-Nummern; Erklärung bei 0 Positionen; Edge Function **v25** (siehe
-`supabase/functions/extract-offer-positions/HISTORIE.md`), **deployt** (Version 25, `verify_jwt` unverändert false,
-Inhalt gegen das Repo geprüft). **Nicht geändert:** Modell, Prompt, Wiederholungsregel (nur 503/429), Positionsstruktur.
-Prüfstände: `erkennung-fehlerfaelle-v3-306` (23, Edge-Datei mit Gemini-Attrappe; v24 → 13 rot),
-`erkennung-wiederholung-v3-306` (11, Client; Altverhalten → 8 rot). **Nicht belegt:** ein echter Gemini-Aufruf (kein Netz/
-Key hier), die Ursache des gemeldeten Fehlers (Logs ohne Eintrag), Erkennungsgüte.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
@@ -234,7 +167,7 @@ setzt den Pro-Plan voraus, den der Betrieb nicht hat (Stand 28.09.2026).
 
 ## ÄLTERE VERSIONEN
 
-Die Versionsgeschichte von **v3.218 bis v3.255** steht in
+Die Versionsgeschichte von **v3.218 bis v3.312** steht in
 `CHANGELOG_HISTORIE.md`. Sie stand bis v3.259 hier und machte rund 80 % der
 Datei aus.
 

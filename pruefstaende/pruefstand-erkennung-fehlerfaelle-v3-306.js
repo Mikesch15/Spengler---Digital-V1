@@ -16,7 +16,8 @@ function ohneTypen(t){
  return t
   .replace(/\bas (Error|unknown\[\])/g,"")
   .replace(/(\w)!(?=[.;,)])/g,"$1")
-  .replace(/\): Promise<\{[^}]*\} \| null> \{/g,") {")
+  .replace(/\): Promise<.*?> \{$/gm,") {")
+  .replace(/let gelesen: [^;=]+= null;/g,"let gelesen = null;")
   .replace(/\): Promise<\{ ok: true \} \| \{ ok: false; status: number; error: string \}> \{/g,") {")
   .replace(/(\(|, )(\w+): (unknown|string|number|Uint8Array|Request)(?=[,)= ])/g,"$1$2")
   .replace(/\): (string|boolean) (\{|=>)/g,") $2")
@@ -30,6 +31,7 @@ async function lauf(ablauf,bild,zugang){
  const z=Object.assign({auth:"Bearer user-token-123",rpc:{status:200,body:'"firma-uuid-1"'}},zugang||{});
  const aufrufe=[], rpcAufrufe=[]; let i=0, handler=null;
  const sandbox={
+  __abrufe:[],
   Deno:{serve:h=>{handler=h},env:{get:k=>({GEMINI_API_KEY:KEY,SUPABASE_URL:"https://test.supabase.co",SUPABASE_ANON_KEY:"ANON-OEFFENTLICH"})[k]}},
   fetch:async(url,opt)=>{
    if(String(url).indexOf("/rest/v1/rpc/my_company_id")>0){
@@ -37,19 +39,25 @@ async function lauf(ablauf,bild,zugang){
     if(z.rpc==="netz")throw new Error("Netz weg");
     return {ok:z.rpc.status>=200&&z.rpc.status<300,status:z.rpc.status,text:async()=>z.rpc.body,json:async()=>JSON.parse(z.rpc.body)};
    }
+   if(String(url).indexOf("https://test.supabase.co/storage/")===0||String(url).indexOf("http")===0&&String(url).indexOf("generativelanguage")<0){
+    sandbox.__abrufe.push(String(url));
+    const st=z.storage||{ok:true,ct:"image/jpeg",len:"3",bytes:3};
+    return {ok:st.ok,status:st.ok?200:404,headers:{get:n=>String(n).toLowerCase()==="content-type"?st.ct:(String(n).toLowerCase()==="content-length"?st.len:null)},arrayBuffer:async()=>new Uint8Array(st.bytes).buffer};
+   }
    aufrufe.push({url:String(url),body:opt&&opt.body?JSON.parse(opt.body):null});
    const a=ablauf[Math.min(i++,ablauf.length-1)];
+   if(a.wirfUrl)throw new Error("error sending request for url ("+url+"): connection reset");
    if(a.wirf){const e=new Error("abgebrochen");e.name="AbortError";throw e}
    return {ok:a.status===200,status:a.status,text:async()=>a.text||"",json:async()=>a.json};
   },
   setTimeout:(f,ms)=>setTimeout(f,0), clearTimeout, AbortController, AbortSignal, Response, btoa, atob, JSON, Math, Array, String,
-  Uint8Array, Error, RegExp, Promise, Object, console:{log(){}}
+  Uint8Array, Error, RegExp, Promise, Object, URL, Number, console:{log(){},error(){}}
  };
  vm.runInNewContext(JS,sandbox);
  const kopf=z.auth?{authorization:z.auth}:{};
  const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({image:bild})});
  const body=JSON.parse(await res.text());
- return {status:res.status,body,aufrufe,rpcAufrufe};
+ return {status:res.status,body,aufrufe,rpcAufrufe,abrufe:sandbox.__abrufe};
 }
 const PDF="data:application/pdf;base64,JVBERi0xLjQK";
 const JPG="data:image/jpeg;base64,/9j/4AAQSkZJRg==";
@@ -131,7 +139,7 @@ const hatEnglisch=s=>/UNAVAILABLE|INTERNAL|INVALID_ARGUMENT|high demand|\"code\"
  p(JSON.stringify(r.body).indexOf("user-token-123")<0&&JSON.stringify(r.body).indexOf("ANON-OEFFENTLICH")<0,"weder Token noch Schlüssel stehen in der Antwort");
  // OPTIONS (CORS-Preflight) braucht keine Anmeldung und bleibt unveraendert
  {
-  const sb2={Deno:{serve:h=>{globalThis.__h=h},env:{get:()=>undefined}},fetch:async()=>{throw new Error("kein Netz")},Response,AbortController,AbortSignal,setTimeout,clearTimeout,btoa,JSON,Math,Array,String,Uint8Array,Error,RegExp,Promise,Object,console:{log(){}}};
+  const sb2={Deno:{serve:h=>{globalThis.__h=h},env:{get:()=>undefined}},fetch:async()=>{throw new Error("kein Netz")},Response,AbortController,AbortSignal,setTimeout,clearTimeout,btoa,JSON,Math,Array,String,Uint8Array,Error,RegExp,Promise,Object,console:{log(){},error(){}}};
   vm.runInNewContext(JS,sb2);
   const o=await globalThis.__h({method:"OPTIONS",headers:{get:()=>null}});
   p(o.status===200&&/authorization/.test(o.headers.get("Access-Control-Allow-Headers")),"CORS-Preflight (OPTIONS) funktioniert ohne Anmeldung und erlaubt den Authorization-Header",o.status);
@@ -143,5 +151,33 @@ const hatEnglisch=s=>/UNAVAILABLE|INTERNAL|INVALID_ARGUMENT|high demand|\"code\"
  r=await lauf([{wirf:true}],JPG);
  p(r.status===504&&/Zeitüberschreitung/.test(r.body.error),"Abbruch durch das Zeitlimit: 504 mit deutschem Satz",r.body);
 
+
+ console.log("\nH · Eingabegrenzen und Abruf-Ziele (v3.316)");
+ const GROSS="data:application/pdf;base64,"+"A".repeat(28_000_001);
+ r=await lauf([gut(POS)],GROSS);
+ p(r.status===413&&/zu gross/.test(r.body.error)&&r.aufrufe.length===0,"Datei ueber der Obergrenze: 413 mit deutschem Satz, KEINE Anfrage an Google",{s:r.status,e:r.body.error});
+ r=await lauf([gut(POS)],"data:application/pdf;base64,"+"A".repeat(1000));
+ p(r.status===200&&r.aufrufe.length===1,"Gegenprobe: normale Groesse wird erkannt",r.status);
+ r=await lauf([gut(POS)],"https://fremd.example/bild.jpg");
+ p(r.status===400&&r.abrufe.length===0&&r.aufrufe.length===0,"Adresse eines fremden Hosts: kein Abruf, kein KI-Aufruf",r);
+ r=await lauf([gut(POS)],"http://169.254.169.254/latest/meta-data/");
+ p(r.status===400&&r.abrufe.length===0,"interne/Metadaten-Adresse: kein Abruf",r);
+ r=await lauf([gut(POS)],"https://test.supabase.co/rest/v1/profiles?select=*");
+ p(r.status===400&&r.abrufe.length===0,"eigener Host, aber nicht der Speicher (/rest/...): kein Abruf",r);
+ r=await lauf([gut(POS)],"http://test.supabase.co/storage/v1/object/sign/x");
+ p(r.status===400&&r.abrufe.length===0,"Speicher-Pfad, aber ohne https: kein Abruf",r);
+ r=await lauf([gut(POS)],"https://test.supabase.co/storage/v1/object/sign/fotos/a.jpg?token=x");
+ p(r.status===200&&r.abrufe.length===1&&r.aufrufe.length===1,"Gegenprobe: signierter Link aus dem eigenen Speicher wird weiter geladen und erkannt",r);
+ r=await lauf([gut(POS)],"https://test.supabase.co/storage/v1/object/sign/fotos/a.pdf?token=x",{storage:{ok:true,ct:"application/pdf",len:"3",bytes:3}});
+ p(r.status===200&&r.aufrufe.length===1,"Gegenprobe: PDF aus dem eigenen Speicher geht ebenfalls",r.status);
+ r=await lauf([gut(POS)],"https://test.supabase.co/storage/v1/object/sign/fotos/a.jpg?token=x",{storage:{ok:true,ct:"image/jpeg",len:String(21*1024*1024),bytes:3}});
+ p(r.status===413&&r.aufrufe.length===0,"Speicher-Datei ueber 20 MB (Content-Length): 413, keine KI-Anfrage",r.status);
+ r=await lauf([gut(POS)],"https://test.supabase.co/storage/v1/object/sign/fotos/a.jpg?token=x",{storage:{ok:true,ct:"text/html",len:"3",bytes:3}});
+ p(r.status===400&&r.aufrufe.length===0,"Speicher liefert HTML statt Bild/PDF: abgelehnt",r.status);
+ r=await lauf([gut(POS)],"https://test.supabase.co/storage/v1/object/sign/fotos/a.jpg?token=x",{storage:{ok:false,ct:"image/jpeg",len:"3",bytes:3}});
+ p(r.status===400&&r.aufrufe.length===0,"Speicher-Abruf scheitert (404): deutscher Satz statt Absturz",r);
+ r=await lauf([{wirfUrl:true}],PDF);
+ p(r.status===500&&JSON.stringify(r.body).indexOf(KEY)<0&&/unerwarteter Fehler/.test(r.body.error),"v3.316: Netzwerkfehler von fetch() (Meldung enthaelt die Adresse MIT API-Schluessel): Antwort ohne Schluessel, deutscher Satz",r.body);
+ p(/\*\*\*/.test(r.body.detail||""),"...der Rohtext steht nur in detail und mit maskiertem Schluessel",r.body.detail);
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen"); process.exit(fail?1:0);
 })();

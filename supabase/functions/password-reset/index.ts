@@ -36,6 +36,8 @@
 //     Kontingent) beliebig mit Mails fluten. Weitere Anfragen werden still
 //     ignoriert und antworten wie immer {ok:true}.
 //  5) v3.313: Mailversand ueber Gmail (SMTP) mit Rueckfall auf Resend, siehe mailSenden().
+//     v3.316: Hat Gmail die Mail ANGENOMMEN und scheitert danach nur das Schliessen der Verbindung, gibt es keinen
+//     zweiten Versand ueber Resend.
 //  4) v3.312: Der Link lautete https://mikesch15.github.io/?reset=... (ohne den Projektpfad der App) und fuehrte ins
 //     Leere. Jetzt schickt der Client seine Adresse (app_url); der Host bleibt fest (siehe appUrl()).
 //  3) CORS (v3.311): "Access-Control-Allow-Headers" enthielt nur "authorization, content-type". supabase-js schickt aber
@@ -84,16 +86,22 @@ function zufallsToken(): string {
 // Versendet eine Mail. true = abgeschickt. Das App-Passwort steht nie in Logs oder Antworten.
 async function mailSenden(an: string, betreff: string, html: string): Promise<boolean> {
   if (GMAIL_USER && GMAIL_APP_PASSWORD) {
+    // Wurde die Mail von Gmail ANGENOMMEN (send() ohne Fehler), gilt sie als verschickt: ein spaeterer Fehler beim
+    // Schliessen der Verbindung loest KEINEN zweiten Versand ueber Resend aus (sonst kaeme sie doppelt an).
+    let client: { send: (m: Record<string, unknown>) => Promise<void>; close: () => Promise<void> } | null = null;
     try {
       const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
-      const client = new SMTPClient({
+      client = new SMTPClient({
         connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: GMAIL_USER, password: GMAIL_APP_PASSWORD.replace(/\s+/g, "") } },
       });
-      await client.send({ from: `Spengler-DIGITAL <${GMAIL_USER}>`, to: an, subject: betreff, html });
-      await client.close();
-      return true;
+      await client!.send({ from: `Spengler-DIGITAL <${GMAIL_USER}>`, to: an, subject: betreff, html });
     } catch (err) {
       console.error("password-reset: Gmail-Versand fehlgeschlagen", String((err as Error)?.message ?? err).slice(0, 200));
+      client = null;
+    }
+    if (client) {
+      try { await client.close(); } catch { /* Mail ist angenommen - Fehler beim Schliessen ist egal */ }
+      return true;
     }
   }
   if (!RESEND_API_KEY) { console.error("password-reset: kein Mailversand eingerichtet (weder Gmail noch Resend)"); return false; }
@@ -102,7 +110,7 @@ async function mailSenden(an: string, betreff: string, html: string): Promise<bo
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: VON, to: [an], subject: betreff, html }),
   });
-  if (!mail.ok) { console.error("password-reset: Resend fehlgeschlagen", await mail.text()); return false; }
+  if (!mail.ok) { console.error("password-reset: Resend fehlgeschlagen, Status", mail.status); return false; }
   return true;
 }
 

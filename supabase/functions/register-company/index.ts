@@ -113,11 +113,34 @@ async function gueltigeEinladung(token: string): Promise<EinladungsZeile | null>
   if (new Date(zeile.expires_at).getTime() < Date.now()) return null;
   return zeile;
 }
+// v3.316: Die Einladung wird ZU BEGINN atomar beansprucht (PATCH nur dort, wo used_at noch leer ist, und die Antwort
+// sagt, ob wirklich eine Zeile geaendert wurde). Bis v3.315 wurde sie erst am Ende als eingeloest markiert - zwei
+// gleichzeitige Aufrufe mit demselben Link konnten beide die Pruefung bestehen und zwei Firmen anlegen.
+// Scheitert die Registrierung danach, wird die Einladung wieder freigegeben (Rollback), damit der Link nicht
+// wegen eines Fehlers verbrannt ist.
+async function einladungBeanspruchen(id: number): Promise<boolean> {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/company_invites?id=eq.${id}&used_at=is.null`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY!, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`, Prefer: "return=representation" },
+    body: JSON.stringify({ used_at: new Date().toISOString() }),
+  });
+  if (!res.ok) return false;
+  const rows = await res.json();
+  return Array.isArray(rows) && rows.length === 1;
+}
+async function einladungFreigeben(id: number) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/company_invites?id=eq.${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY!, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+    body: JSON.stringify({ used_at: null, used_by_company_id: null }),
+  });
+  if (!res.ok) console.error("register-company: Einladung konnte nicht freigegeben werden, Status", res.status);
+}
 async function einladungEingeloest(id: number, companyId: string) {
   await fetch(`${SUPABASE_URL}/rest/v1/company_invites?id=eq.${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", apikey: SUPABASE_SERVICE_ROLE_KEY!, Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
-    body: JSON.stringify({ used_at: new Date().toISOString(), used_by_company_id: companyId }),
+    body: JSON.stringify({ used_by_company_id: companyId }),
   });
 }
 // v3.314: Versand bevorzugt ueber Gmail (SMTP, Secrets GMAIL_USER + GMAIL_APP_PASSWORD), weil der Resend-Testabsender nur
@@ -134,16 +157,22 @@ async function zugangsdatenMailen(email: string, companyName: string, password: 
   const gmailUser = Deno.env.get("GMAIL_USER");
   const gmailPass = Deno.env.get("GMAIL_APP_PASSWORD");
   if (gmailUser && gmailPass) {
+    // Wurde die Mail von Gmail ANGENOMMEN (send() ohne Fehler), gilt sie als verschickt: ein spaeterer Fehler beim
+    // Schliessen der Verbindung loest KEINEN zweiten Versand ueber Resend aus (sonst kaeme sie doppelt an).
+    let client: { send: (m: Record<string, unknown>) => Promise<void>; close: () => Promise<void> } | null = null;
     try {
       const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
-      const client = new SMTPClient({
+      client = new SMTPClient({
         connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: gmailUser, password: gmailPass.replace(/\s+/g, "") } },
       });
-      await client.send({ from: `Spengler-DIGITAL <${gmailUser}>`, to: email, subject: betreff, html });
-      await client.close();
-      return true;
+      await client!.send({ from: `Spengler-DIGITAL <${gmailUser}>`, to: email, subject: betreff, html });
     } catch (err) {
       console.error("register-company: Gmail-Versand fehlgeschlagen", String((err as Error)?.message ?? err).slice(0, 200));
+      client = null;
+    }
+    if (client) {
+      try { await client.close(); } catch { /* Mail ist angenommen - Fehler beim Schliessen ist egal */ }
+      return true;
     }
   }
   if (!RESEND_API_KEY) { console.error("register-company: kein Mailversand eingerichtet (weder Gmail noch Resend) - keine Zugangsdaten-Mail moeglich"); return false; }
@@ -152,9 +181,13 @@ async function zugangsdatenMailen(email: string, companyName: string, password: 
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({ from: VON, to: [email], subject: betreff, html }),
   });
-  if (!mail.ok) { console.error("register-company: Resend fehlgeschlagen", await mail.text()); return false; }
+  if (!mail.ok) { console.error("register-company: Resend fehlgeschlagen, Status", mail.status); return false; }
   return true;
 }
+
+// Nur Fehler dieser Klasse gehen WOERTLICH an den Client; alles andere wird allgemein beantwortet (v3.316) - vorher
+// standen Rohtexte von Auth/PostgREST ("Auth user creation failed: ...", "Company creation failed: ...") in der Antwort.
+class AnzeigeFehler extends Error {}
 
 async function adminCreateAuthUser(params: { email: string; password: string; user_metadata: Record<string, unknown> }) {
   const res = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
@@ -167,9 +200,10 @@ async function adminCreateAuthUser(params: { email: string; password: string; us
     let msg = text;
     try { const j = JSON.parse(text); msg = j.msg || j.message || j.error_description || text; } catch { /* ignore */ }
     if (/already.*registered|already.*exists|email_exists/i.test(msg)) {
-      throw new Error("Diese E-Mail-Adresse ist bereits registriert.");
+      throw new AnzeigeFehler("Diese E-Mail-Adresse ist bereits registriert.");
     }
-    throw new Error(`Auth user creation failed: ${msg}`);
+    console.error("register-company: Auth-Konto konnte nicht angelegt werden, Status", res.status);
+    throw new Error("auth");
   }
   return JSON.parse(text) as { id: string };
 }
@@ -344,6 +378,15 @@ Deno.serve(async (req: Request) => {
   if (!isValidEmail(email)) return jsonResponse({ error: "Bitte eine gültige E-Mail-Adresse eingeben." }, 400);
   if (password.length < 8) return jsonResponse({ error: "Das Passwort muss mindestens 8 Zeichen haben." }, 400);
 
+  // Einladung atomar beanspruchen: nur EIN gleichzeitiger Aufruf bekommt sie (siehe einladungBeanspruchen).
+  let einladungBeansprucht = false;
+  if (einladung) {
+    if (!(await einladungBeanspruchen(einladung.id))) {
+      return jsonResponse({ error: "Dieser Einladungslink ist ungültig oder abgelaufen." }, 400);
+    }
+    einladungBeansprucht = true;
+  }
+
   let createdUserId: string | null = null;
   let createdCompanyId: string | null = null;
   let profileCreated = false;
@@ -375,9 +418,10 @@ Deno.serve(async (req: Request) => {
       });
       if (ins.ok) { companyRow = Array.isArray(ins.data) ? ins.data[0] : ins.data; break; }
       if (ins.status === 409 || isUniqueViolation(ins.text)) continue; // Slug-Kollision: nächster Versuch
-      throw new Error(`Company creation failed: ${ins.text}`);
+      console.error("register-company: Firma konnte nicht angelegt werden, Status", ins.status);
+      throw new Error("company");
     }
-    if (!companyRow) throw new Error("Konnte keinen eindeutigen Firmen-Slug erzeugen.");
+    if (!companyRow) throw new AnzeigeFehler("Der Firmenname konnte nicht eindeutig angelegt werden. Bitte einen etwas anderen Namen verwenden.");
     createdCompanyId = companyRow.id as string;
 
     // 3. Admin-Profil – company_id kommt ausschliesslich von hier (Server),
@@ -394,7 +438,10 @@ Deno.serve(async (req: Request) => {
       role: "admin", company_id: createdCompanyId, email,
       passwort_gesetzt: !alsSystemAdmin,
     });
-    if (!profileIns.ok) throw new Error(`Profile creation failed: ${profileIns.text}`);
+    if (!profileIns.ok) {
+      console.error("register-company: Profil konnte nicht angelegt werden, Status", profileIns.status);
+      throw new Error("profile");
+    }
     profileCreated = true;
 
     // 4. Eigene app_settings-Zeile, direkt mit dem Firmennamen vorbefüllt –
@@ -410,11 +457,14 @@ Deno.serve(async (req: Request) => {
       company_id: createdCompanyId,
       company_name: companyName,
     });
-    if (!settingsIns.ok) throw new Error(`Company settings creation failed: ${settingsIns.text}`);
+    if (!settingsIns.ok) {
+      console.error("register-company: Einstellungen konnten nicht angelegt werden, Status", settingsIns.status);
+      throw new Error("settings");
+    }
     settingsCreated = true;
 
-    // 5. Einladung als eingeloest markieren (best effort - ein Fehlschlag
-    //    hier reisst die bereits erfolgreiche Registrierung nicht wieder ein).
+    // 5. Einladung der neuen Firma zuordnen (best effort - ein Fehlschlag hier reisst die bereits erfolgreiche
+    //    Registrierung nicht wieder ein; used_at wurde schon zu Beginn gesetzt).
     if (einladung) await einladungEingeloest(einladung.id, createdCompanyId);
 
     // 6. Zugangsdaten-Mail nur beim System-Admin-Weg (siehe Kopfkommentar) -
@@ -457,7 +507,10 @@ Deno.serve(async (req: Request) => {
     if (profileCreated && createdUserId) await restDelete("profiles", "id", createdUserId);
     if (createdCompanyId) await restDelete("companies", "id", createdCompanyId);
     if (createdUserId) await adminDeleteAuthUser(createdUserId);
-    const message = err instanceof Error ? err.message : String(err);
+    if (einladungBeansprucht && einladung) await einladungFreigeben(einladung.id);
+    const message = err instanceof AnzeigeFehler
+      ? err.message
+      : "Die Firma konnte nicht angelegt werden. Bitte nochmals versuchen oder den Support kontaktieren.";
     return jsonResponse({ error: message }, 400);
   }
 });

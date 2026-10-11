@@ -8,19 +8,16 @@ const fs=require("fs"), path=require("path"), vm=require("vm");
 let ok=0,fail=0;
 const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
 const quelle=fs.readFileSync(path.join(process.cwd(),"supabase/functions/password-reset/index.ts"),"utf8");
-// Typen entfernen (Node 20 in GitHub Actions kennt module.stripTypeScriptTypes noch nicht): nur die in dieser Datei
-// vorkommenden Muster, bewusst eng - eine neue Schreibweise macht den Prüfstand laut rot statt still falsch.
-const JS=quelle
- .replace(/\): Promise<.*?> \{$/gm,") {")
- .replace(/\): (string|boolean) \{/g,") {")
- .replace(/(\(|, )(\w+): (string|Request|unknown)(?=[,)= ])/g,"$1$2")
- .replace(/\(err as Error\)/g,"(err)")
- .replace(/let body: \{[^}]*\};/,"let body;")
- .replace(/(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY)!/g,"$1");
+// Typen entfernen mit Node (module.stripTypeScriptTypes, ab Node 22.13; die CI nutzt seit v3.316 Node 22).
+const strip=require("module").stripTypeScriptTypes;
+if(typeof strip!=="function"){console.log("  FEHLGESCHLAGEN: Node >= 22.13 noetig (module.stripTypeScriptTypes)");process.exit(1)}
+process.emitWarning=()=>{};
+const JS=strip(quelle.replace(/await import\("https:\/\/deno\.land\/x\/denomailer@1\.6\.0\/mod\.ts"\)/g,"await __smtpModul()"));
 async function lauf(o){
  o=Object.assign({gmail:false,login:"person@firma.ch",app_url:undefined,origin:"https://mikesch15.github.io",profil:true,bisher:0,bisherStatus:200,mail:true},o||{});
- let handler=null; const mails=[],tokens=[],logs=[];
+ let handler=null; const mails=[],tokens=[],logs=[],gmailMails=[];
  const sb={
+  __smtpModul:async()=>{if(o.smtpImportFehler)throw new Error("Modul nicht ladbar");return {SMTPClient:class{constructor(){}async send(m){if(o.smtpSendFehler)throw new Error("abgelehnt");gmailMails.push(m)}async close(){if(o.smtpCloseFehler)throw new Error("abgebrochen")}}}},
   Deno:{serve:h=>{handler=h},env:{get:k=>({SUPABASE_URL:"https://t.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"SRV",RESEND_API_KEY:"RS",GMAIL_USER:o.gmail?"absender@gmail.com":undefined,GMAIL_APP_PASSWORD:o.gmail?"abcd efgh ijkl mnop":undefined})[k]}},
   fetch:async(url,opt)=>{
    url=String(url);
@@ -35,7 +32,7 @@ async function lauf(o){
  vm.runInNewContext(JS,sb);
  const kopf=o.origin===null?{}:{origin:o.origin};
  const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({action:"request",login:o.login,app_url:o.app_url})});
- return {status:res.status,body:JSON.parse(await res.text()),mails,tokens,logs};
+ return {status:res.status,body:JSON.parse(await res.text()),mails,tokens,logs,gmailMails};
 }
 const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:""};
 (async()=>{
@@ -78,8 +75,14 @@ const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:"
  console.log("\nE · Mailversand (v3.313): Gmail mit Rueckfall auf Resend");
  r=await lauf({});
  p(r.mails.length===1&&r.logs.length===0,"Gmail nicht eingerichtet: wie bisher ueber Resend",r.logs);
- r=await lauf({gmail:true,app_url:"https://mikesch15.github.io/Spengler---Digital-V1/"});
- p(r.status===200&&r.body.ok===true&&r.mails.length===1,"Gmail eingerichtet, aber der SMTP-Baustein laesst sich nicht laden/scheitert: Rueckfall auf Resend, Antwort ok:true",r);
+ r=await lauf({gmail:true,smtpImportFehler:true,app_url:"https://mikesch15.github.io/Spengler---Digital-V1/"});
+ p(r.status===200&&r.body.ok===true&&r.mails.length===1&&r.gmailMails.length===0,"Gmail eingerichtet, aber der SMTP-Baustein laesst sich nicht laden: Rueckfall auf Resend, Antwort ok:true",r);
+ r=await lauf({gmail:true});
+ p(r.mails.length===0&&r.gmailMails.length===1&&/\?reset=/.test(r.gmailMails[0].html),"Gmail eingerichtet: Versand ueber Gmail, nichts ueber Resend",{g:r.gmailMails.length,r:r.mails.length});
+ r=await lauf({gmail:true,smtpCloseFehler:true});
+ p(r.mails.length===0&&r.gmailMails.length===1,"Gmail hat angenommen, close() scheitert: KEIN zweiter Versand ueber Resend",{g:r.gmailMails.length,r:r.mails.length});
+ r=await lauf({gmail:true,smtpSendFehler:true});
+ p(r.mails.length===1&&r.gmailMails.length===0,"Gmail lehnt ab: Rueckfall auf Resend, genau eine Mail",{g:r.gmailMails.length,r:r.mails.length});
  p(r.logs.some(l=>/Gmail-Versand fehlgeschlagen/.test(l)),"...und der Fehler steht im Log",r.logs);
  p(JSON.stringify(r.logs).indexOf("abcd")<0&&JSON.stringify(r.body).indexOf("abcd")<0&&JSON.stringify(r.mails).indexOf("abcd")<0,"das App-Passwort steht nirgends (Log, Antwort, Mail)",null);
  console.log(`\n=== ${ok} bestanden, ${fail} fehlgeschlagen`);

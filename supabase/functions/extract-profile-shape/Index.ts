@@ -38,6 +38,7 @@
 const MODEL = "gemini-3.6-flash";
 const ZEITGRENZE_MS = 25000;
 const MAX_SCHENKEL = 24;
+const MAX_BILD_ZEICHEN = 12_000_000; // base64-Text, rund 9 MB
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,6 +125,10 @@ Deno.serve(async (req) => {
     const { image_base64 } = await req.json();
     if (!image_base64 || typeof image_base64 !== "string") {
       return json({ ok: false, error: "Kein Bild übermittelt." }, 400);
+    }
+    // v3.316: Obergrenze gegen unnoetige KI-Kosten (die App verkleinert Skizzen vorher auf wenige hundert KB).
+    if (image_base64.length > MAX_BILD_ZEICHEN) {
+      return json({ ok: false, error: "Das Bild ist für die Erkennung zu gross. Bitte die Skizze näher fotografieren oder in geringerer Auflösung aufnehmen." }, 413);
     }
 
     const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");

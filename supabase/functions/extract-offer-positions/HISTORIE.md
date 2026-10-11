@@ -469,3 +469,6 @@ Prüfstand: `pruefstaende/pruefstand-erkennung-fehlerfaelle-v3-306.js` (lädt di
 Authorization 401 (`UNAUTHORIZED_NO_AUTH_HEADER`); erfundenes Token 401 (`UNAUTHORIZED_INVALID_JWT_FORMAT`); Schema «Basic» 401;
 **öffentlicher App-Schlüssel als Bearer: 401 aus `pruefeZugang()`** – der Gateway lässt den Schlüssel durch, erst die Prüfung in
 der Funktion weist ihn ab. **Nicht live geprüft:** Erfolgsfall mit dem Token einer echten Person.
+
+## v27 (12.10.2026, App v3.316, Plattform-Version 29) – Eingabegrenzen
+Abruf nur von https-Adressen des eigenen Supabase-Speichers (`/storage/v1/`), ohne Redirect, höchstens rund 20 MB (413); Datei-URL nur Bild oder PDF. `err.message` von fetch() (enthält die Gemini-Adresse mit `?key=`) geht nicht mehr roh an den Client: deutscher Satz, `detail` mit maskiertem Schlüssel. Prompt, Modell, Wiederholung, Antwortformat unverändert.
