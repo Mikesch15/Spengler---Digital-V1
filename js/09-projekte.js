@@ -489,7 +489,10 @@ async function loadProjectMeasurements(projectId){
    // v3.276: Archivieren nur fuer abgeschlossene (dort gehoert es hin), Reaktivieren
    // fuer archivierte. Dasselbe Paar wie bei den Projekten.
    +(m.archived?`<button class="gray" data-archive-measurement="${m.id}">↩️ Reaktivieren</button>`
-     :(m.workflow_status==="abgeschlossen"?`<button class="gray" data-archive-measurement="${m.id}">📦 Archivieren</button>`:""))+`
+     // v3.305: ist der Arbeitsablauf der Firma ausgeschaltet, wird nie etwas "abgeschlossen" - dann waere
+     // Archivieren fuer immer unerreichbar. Ohne Ablauf darf jede Massaufnahme archiviert werden.
+     :((m.workflow_status==="abgeschlossen"||(typeof mwAktiv==="function"&&!mwAktiv()))
+        ?`<button class="gray" data-archive-measurement="${m.id}">📦 Archivieren</button>`:""))+`
 <button class="red" data-del-project-measurement="${m.id}" title="Löschen">×</button>
 </div>
 </div>`;

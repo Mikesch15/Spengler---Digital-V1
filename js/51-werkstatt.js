@@ -117,7 +117,14 @@ function werkSichtSetzen(v){
  renderWerkstatt();
 }
 
-function werkAktiv(){return typeof pmAktiv==="function"&&pmAktiv("werkstatt")}
+// v3.305 (Pruefung deaktivierter Module): die Werkstatt IST eine Sicht auf den Arbeitsablauf (Zeilen nach
+// workflow_status, "Rüsten bestätigen"). Ist der Arbeitsablauf der Firma ausgeschaltet, blenden Aufgaben,
+// Badge und Cockpit-Karte ihn aus - die Werkstatt zeigte weiter alte Stati und Bestaetigungs-Knoepfe.
+// Jetzt gilt dieselbe Regel. Die Daten bleiben unberuehrt; mit dem Ablauf ist die Werkstatt wieder da.
+function werkAktiv(){
+ return typeof pmAktiv==="function"&&pmAktiv("werkstatt")
+   &&((typeof workflowAktiv==="undefined")||workflowAktiv!==false);
+}
 function werkIch(){return currentProfile?currentProfile.id:null}
 
 // ---- Laden ----------------------------------------------------------------

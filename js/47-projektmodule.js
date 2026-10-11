@@ -105,7 +105,8 @@ function renderProjektmodule(){
   return `<label class="pm-zeile${gesperrt?" pm-gesperrt":""}">
    <input type="checkbox" data-pm="${esc(m.key)}"${an?" checked":""}${gesperrt?" disabled":""}>
    <span class="pm-text"><b>${esc(m.name)}</b><br><span class="small">${esc(m.text)}${
-    grund?" <i>Braucht „"+esc(grund.name)+"“.</i>":""}</span></span></label>`;
+    grund?" <i>Braucht „"+esc(grund.name)+"“.</i>":""}${
+    (m.key==="werkstatt"&&typeof mwAktiv==="function"&&!mwAktiv())?" <i>Wirkt nur bei eingeschaltetem Arbeitsablauf.</i>":""}</span></span></label>`;
  }).join("");
 }
 
