@@ -14,8 +14,7 @@
 //     statt eines erfundenen Profils.
 //   * Zeitgrenze für die Gemini-Anfrage, damit die App nicht endlos
 //     "erkennt".
-//   * Die Antwort sagt mit, wie sicher die Erkennung ist und wie viele
-//     Schenkel verworfen wurden.
+//   * Die Antwort sagt mit, wie viele Schenkel verworfen wurden.
 //
 // Die Längen bleiben ausdrücklich grobe, relative Schätzwerte - eine
 // Handskizze hat keinen Massstab. Der Benutzer muss sie prüfen und mit
@@ -24,6 +23,17 @@
 //
 // Der Gemini-Schlüssel wird ausschliesslich hier auf dem Server verwendet,
 // niemals im Browser-Code.
+//
+// VERSION 5 (v3.308, 11.10.2026) - SICHERHEIT: bis v4 schickte der Client als "Bearer" den OEFFENTLICHEN
+// Schluessel der App (sb_publishable_..., im Browser fuer jeden lesbar, kein Benutzer-Token). Der Gateway
+// laesst diesen Schluessel auch bei verify_jwt=true durch (am 11.10.2026 an extract-offer-positions live
+// gemessen), und diese Funktion pruefte selbst nichts - sie war ohne Anmeldung aufrufbar, jeder Aufruf kostete
+// einen Gemini-Aufruf. Jetzt: (1) der Client schickt das Token der angemeldeten Person (js/14), (2) pruefeZugang()
+// ruft public.my_company_id() mit GENAU diesem Token auf: nur eine angemeldete Person mit Profil und aktivem
+// Firmenkonto kommt durch (anon -> 401, ohne aktive Firma -> 403, Pruefung nicht erreichbar -> 503, fail closed),
+// (3) Fehlertexte von Google werden nicht mehr roh durchgereicht (englisch, koennte den Schluessel enthalten):
+// ein deutscher Satz, der Rohtext ohne Schluessel nur in "detail". Prompt, Modell, Zeitgrenze, Pruefung der
+// Schenkel und Antwortformat sind unveraendert. verify_jwt bleibt true.
 
 const MODEL = "gemini-3.6-flash";
 const ZEITGRENZE_MS = 25000;
@@ -59,6 +69,44 @@ function pruefeSchenkel(roh: unknown) {
   return { schenkel: gut, verworfen };
 }
 
+// v5: Wer ruft auf? Dieselbe Pruefung wie in extract-offer-positions (v26): das JWT der angemeldeten Person wird
+// mit dem oeffentlichen Schluessel (apikey) an PostgREST gegeben und fragt public.my_company_id() ab - fuer
+// "anon" nicht ausfuehrbar, fuer eine Person ohne Profil/aktive Firma null. Schlaegt die Pruefung selbst fehl,
+// wird NICHT durchgelassen.
+async function pruefeZugang(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") || "");
+  const token = m ? m[1].trim() : "";
+  if (!token) {
+    return { ok: false, status: 401, error: "Nicht angemeldet. Bitte in der App anmelden und nochmals versuchen." };
+  }
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !key) {
+    return { ok: false, status: 500, error: "Serverkonfiguration unvollstaendig (Anmeldepruefung)." };
+  }
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/my_company_id`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(10000),
+    });
+    if (r.status >= 400 && r.status < 500) {
+      return { ok: false, status: 401, error: "Die Anmeldung ist abgelaufen oder ungültig. Bitte die App neu laden und erneut anmelden." };
+    }
+    if (!r.ok) {
+      return { ok: false, status: 503, error: "Die Anmeldung konnte gerade nicht geprüft werden. Bitte in einem Moment nochmals versuchen." };
+    }
+    const firma = await r.json().catch(() => null);
+    if (!firma) {
+      return { ok: false, status: 403, error: "Für dieses Konto ist kein aktives Firmenkonto hinterlegt. Die Erkennung steht nur angemeldeten Mitarbeitenden einer aktiven Firma zur Verfügung." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, status: 503, error: "Die Anmeldung konnte gerade nicht geprüft werden. Bitte in einem Moment nochmals versuchen." };
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -67,6 +115,10 @@ Deno.serve(async (req) => {
       status,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+
+  // v5: nur angemeldete Personen mit aktivem Firmenkonto - vor allem anderen, auch vor dem Lesen des Bodys.
+  const zugang = await pruefeZugang(req);
+  if (!zugang.ok) return json({ ok: false, error: zugang.error }, zugang.status);
 
   try {
     const { image_base64 } = await req.json();
@@ -154,9 +206,19 @@ Beispiel einer L-Form (kurz nach rechts, dann länger nach unten):
 
     const data = await res.json().catch(() => null);
     if (!res.ok) {
+      // v5: nicht mehr der rohe, englische Text von Google (koennte den Schluessel enthalten) - ein deutscher
+      // Satz; der Rohtext steht ohne Schluessel nur in "detail".
+      const roh = String(data?.error?.message || "").split(GEMINI_API_KEY).join("***").slice(0, 300);
+      const ueberlastet = res.status === 503 || res.status === 429;
       return json(
-        { ok: false, error: data?.error?.message || "Anfrage an Gemini fehlgeschlagen." },
-        502,
+        {
+          ok: false,
+          error: ueberlastet
+            ? "Die Erkennung ist gerade überlastet. Das liegt nicht an deiner Skizze. Bitte in ein paar Minuten nochmals versuchen oder das Profil von Hand erfassen."
+            : "Die Erkennung ist fehlgeschlagen. Bitte erneut versuchen oder das Profil von Hand erfassen.",
+          detail: `Status ${res.status}: ${roh}`,
+        },
+        ueberlastet ? 503 : 502,
       );
     }
 
