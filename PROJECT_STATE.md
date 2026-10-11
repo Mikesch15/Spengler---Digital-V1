@@ -3,9 +3,26 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.299`
+- Aktueller Entwicklungsstand: `v3.300`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.300 — End-to-End-Prozessprüfung: Werkstatt zeigt keine archivierte Arbeit mehr
+
+Auftrag «End-to-End-Prozessprüfung» (11.10.2026), Ausgangsstand v3.299 (`e1b4c77`, 158/158, Deploy grün).
+**Verfolgt (Code + Live-DB-Funktionen, nur lesend):** Trigger `schuetze_measurement_workflow` (Freigabe verfällt
+bei Änderung von `data`/Art/Projekt/Stärke/Form/entferntem Bild; Zuweisungen bleiben), `measurement_freigeben`
+(Status aus Zuweisungen; erneute Freigabe → wieder `zu_ruesten`), `_zuweisen` (nur nach Freigabe; Rüsten wird bei
+reinem Monteur übersprungen → `zu_montieren`, kein Hängen), `_geruestet` (→ `zu_montieren` wenn Monteur da, sonst
+`geruestet`), `_montiert`, `_abschliessen` (Aufnehmer/Admin, nur nach Montage); alle mit `mw_firma_ok`
+(Mandant) und Rollenprüfung serverseitig. **Gefundene Lücke:** `js/51 werkLaden` filterte weder archivierte
+Massaufnahmen noch solche archivierter Projekte (Projekte lassen sich jederzeit archivieren), «Heute» (js/45)
+schon → die Werkstatt zeigte Arbeit samt «Rüsten bestätigen», die die persönliche Liste nicht kannte; über
+`werkZeilen` auch «Werkstatt heute»/«Anstehende Montage» (js/70). **Behoben:** Client-Filter in `werkLaden`
+(Feld fehlt → nicht archiviert; Spalte NOT NULL). Prüfstand `werkstatt-archiv-v3-300` (3; vor dem Fix rot).
+**Offen / nicht belegt:** Live-Test mit zwei Firmen und echten Konten; Verhalten bei ausgeschaltetem Modul je
+Übergang nur über vorhandene Prüfstände (`werkstatt-v3-09`, `reservierung-v3-09`, `projektmodule-v3-09`) geprüft;
+die Rüstblatt-Kürzung für weitere Arten ist seit v3.296 entschieden (Anweisung vom 10.10.2026).
 
 ### v3.299 — Abschnitt bei mehreren Streifenbreiten: plan-weite Nummer (Rüstblatt UND Material & Zuschnitt)
 
@@ -35,18 +52,6 @@ Länge − Rest) – das stimmt mit der Fusszeile überein. Eine Gruppe allein u
 Material-Seite (`zuBelegungHtml`) ist unverändert und zählt weiter je Gruppe (**offen:** dort derselbe Effekt).
 Grenze: zwei gleich lange Abschnitte in einer Mischung erscheinen unter derselben Überschrift (gespeichert ist
 keine Abschnitts-ID). Prüfstand `ruestblatt-abschnitte-v3-297` um Fall H (der Handyfall) erweitert, 13; Mutation rot.
-
-### v3.297 — Rüstblatt: Herkunft direkt in der abhakbaren Liste
-
-Ansage (10.10.2026): „Welches Stück aus welchem Abschnitt ist so noch nicht ideal, das sollte auch in der
-abhakbaren Liste stehen und nicht in einer separaten Liste.“ Der Block aus v3.295 (`zuBelegungKurzHtml`,
-CSS `.zu-belegung-kurz`) ist **entfernt**. Stattdessen trägt jedes Stück in `zuAlleStuecke` (js/33) seine
-`herkunft` („Abschnitt 1 · Streifen 2“, „Stange 1 · 6'000 mm“; Titel aus `zuStreifenTitel`), und
-`zuListeHtml(p,{herkunft:true})` zeigt in jeder Zeile je Herkunft eine Nummernreihe mit den weiterhin
-antippbaren Haken. Nur auf dem Rüstblatt (`rbBlattHtml`) und nur bei mehr als einem Streifen/einer Stange
-(`zuHerkunftNoetig`); Material-Seite, Werkstatt-Liste und Register bleiben unverändert. Prüfstand
-`ruestblatt-abschnitte-v3-297` (aus `-v3-295` umgebaut, 12; Mutation rot). Die Regel «Breite quer zur Rolle,
-Länge längs» gilt im Plan bereits (`ebaStreifenJeAbschnitt`), nichts geändert.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

@@ -34173,3 +34173,15 @@ nirgends stehen (z. B. Gesamtlänge, Montage), bleiben. Der Monteur sieht keine 
 alles. Dachfenster/Kamin behalten ihre feste Kurzauswahl (v3.294). Verträge angepasst, mit Gegenproben:
 `ruestblatt-masse-v3-293` (Beschriftung darf fehlen, wenn der Wert anderswo steht),
 `werkstatt-liste-v3-30`. Neuer Prüfstand `ruestblatt-doppelt-v3-296` (6; Mutation rot).
+
+### v3.297 — Rüstblatt: Herkunft direkt in der abhakbaren Liste
+
+Ansage (10.10.2026): „Welches Stück aus welchem Abschnitt ist so noch nicht ideal, das sollte auch in der
+abhakbaren Liste stehen und nicht in einer separaten Liste.“ Der Block aus v3.295 (`zuBelegungKurzHtml`,
+CSS `.zu-belegung-kurz`) ist **entfernt**. Stattdessen trägt jedes Stück in `zuAlleStuecke` (js/33) seine
+`herkunft` („Abschnitt 1 · Streifen 2“, „Stange 1 · 6'000 mm“; Titel aus `zuStreifenTitel`), und
+`zuListeHtml(p,{herkunft:true})` zeigt in jeder Zeile je Herkunft eine Nummernreihe mit den weiterhin
+antippbaren Haken. Nur auf dem Rüstblatt (`rbBlattHtml`) und nur bei mehr als einem Streifen/einer Stange
+(`zuHerkunftNoetig`); Material-Seite, Werkstatt-Liste und Register bleiben unverändert. Prüfstand
+`ruestblatt-abschnitte-v3-297` (aus `-v3-295` umgebaut, 12; Mutation rot). Die Regel «Breite quer zur Rolle,
+Länge längs» gilt im Plan bereits (`ebaStreifenJeAbschnitt`), nichts geändert.
