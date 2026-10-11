@@ -3,9 +3,30 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.302`
+- Aktueller Entwicklungsstand: `v3.303`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.303 — Zuschnitt: Mischung verdichtet und korrekt gezählt; Einfassung rund quer/längs; paralleler Prüf-Lauf
+
+Rückmeldungen (11.10.2026): (1) «Nr. 4 und 6 hätten im selben Streifen Platz, es entstünde ein grösserer Rest statt
+zweier kleiner.» `js/29 ebaMischeAbschnitte`: Gast-Spuren gleicher Gruppe und Breite in einem Cluster werden
+zusammengelegt, wenn ihre Stücke (+ Schnittfuge) in die Abschnittlänge passen; eine ganze Spur wird frei, der Rest
+steht als ein grosser seitlicher Rest (Beispiel: 256 × 1'215 mm statt 2 × 244 × 705). Nur Gäste, nie der Wirt.
+**Dabei gefunden (v3.87-Altlast, die Mischung hatte keinen Prüfstand):** `ungenutzteStreifen` wurde bei Mischung
+zusätzlich zu `restBreite` gemeldet → Phantom-Reststücke (250 × 1'215 ×2, dort liegen die Gäste) und die
+Materialbilanz ging nicht auf (`aufgeht:false`). Jetzt 0 bei Mischung; `js/33 zuGeometrie` liest die Zahl aus dem
+Plan (ältere Pläne: wie bisher gerechnet, **ältere gespeicherte Mischpläne behalten die Phantom-Reste bis zur
+Neuberechnung**). Prüfstand `zuschnitt-mischung-v3-303` (10, Altcode: 7 rot, Gegenproben 800+800 und ohne Mischung,
+mit Schnittfuge). (2) Einfassung rund: «Zuschnittbreite und -länge sind vertauscht, die Abschnittlänge muss die
+Abwicklung sein.» `js/38 einfaZuschnitte`: Länge = Abwicklung (längs zur Rolle), Breite = Breite der gesamten
+Einfassung (quer = Streifenbreite); Texte «Zuschnitt L × B» in js/38 und PDF (`js/16`) angeglichen, Feldname
+«Abwicklung (Querschnitt)». Verträge angepasst, mit Gegenprüfung des Plans (Streifenbreiten 350/400, Längen
+278/308): `einfassung-app-v2-96`, `einfassung-kopf-v3-264`, `laenge-mal-breite-druck-v2-81`. Gespeicherte
+Massaufnahmen behalten ihre alte Ausrichtung bis zum erneuten Speichern (dann ändert sich `data` → Freigabe verfällt,
+wie bei jeder Änderung am Zuschnitt). Die ältere Einfassung-Ansicht js/21 (Format bis v2.95) ist unverändert.
+(3) `pruefstaende/ci-lauf.js` läuft parallel (3, `CI_PARALLEL=1` = seriell): volle Regression 7 min 43 s statt ~25 min,
+159/159. Regel für mich: die volle Regression läuft in einer eigenen Kopie (`git worktree`), nie im Arbeitsbaum.
 
 ### v3.302 — Abschnitt-Zuordnung: Mischung aus der Fusszeile ablesen (Korrektur zu v3.299/v3.301)
 
@@ -32,23 +53,6 @@ Abhaken. Grundlage `zuAbschnittInfo(p)` (Abschnitt, Länge, Streifen-Nummer im A
 `zuAbschnittTitel`, v3.299): ohne Mischung fortlaufend, mit Mischung rekonstruiert. Material-Seite zeigt
 bei mehreren Streifenbreiten «Abschnitt N · L mm · Streifen M». Material-Seite, Werkstatt-Liste und Register
 behalten die bisherige Liste. Prüfstand `ruestblatt-abschnitte-v3-297` umgebaut (16; Mutation rot).
-
-### v3.300 — End-to-End-Prozessprüfung: Werkstatt zeigt keine archivierte Arbeit mehr
-
-Auftrag «End-to-End-Prozessprüfung» (11.10.2026), Ausgangsstand v3.299 (`e1b4c77`, 158/158, Deploy grün).
-**Verfolgt (Code + Live-DB-Funktionen, nur lesend):** Trigger `schuetze_measurement_workflow` (Freigabe verfällt
-bei Änderung von `data`/Art/Projekt/Stärke/Form/entferntem Bild; Zuweisungen bleiben), `measurement_freigeben`
-(Status aus Zuweisungen; erneute Freigabe → wieder `zu_ruesten`), `_zuweisen` (nur nach Freigabe; Rüsten wird bei
-reinem Monteur übersprungen → `zu_montieren`, kein Hängen), `_geruestet` (→ `zu_montieren` wenn Monteur da, sonst
-`geruestet`), `_montiert`, `_abschliessen` (Aufnehmer/Admin, nur nach Montage); alle mit `mw_firma_ok`
-(Mandant) und Rollenprüfung serverseitig. **Gefundene Lücke:** `js/51 werkLaden` filterte weder archivierte
-Massaufnahmen noch solche archivierter Projekte (Projekte lassen sich jederzeit archivieren), «Heute» (js/45)
-schon → die Werkstatt zeigte Arbeit samt «Rüsten bestätigen», die die persönliche Liste nicht kannte; über
-`werkZeilen` auch «Werkstatt heute»/«Anstehende Montage» (js/70). **Behoben:** Client-Filter in `werkLaden`
-(Feld fehlt → nicht archiviert; Spalte NOT NULL). Prüfstand `werkstatt-archiv-v3-300` (3; vor dem Fix rot).
-**Offen / nicht belegt:** Live-Test mit zwei Firmen und echten Konten; Verhalten bei ausgeschaltetem Modul je
-Übergang nur über vorhandene Prüfstände (`werkstatt-v3-09`, `reservierung-v3-09`, `projektmodule-v3-09`) geprüft;
-die Rüstblatt-Kürzung für weitere Arten ist seit v3.296 entschieden (Anweisung vom 10.10.2026).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

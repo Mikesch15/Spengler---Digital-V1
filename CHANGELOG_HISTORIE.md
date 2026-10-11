@@ -34214,3 +34214,20 @@ Mischpläne auslösen. Grenze: die Verteilung der Gäste ist eine gültige, nich
 Aufteilung (gleich schneidbar). Prüfstand `ruestblatt-abschnitte-v3-297` um H (Handyfall), I (zwei gleich
 lange Abschnitte), J (Material-Seite) erweitert, 16; Mutation rot. Ausserdem: Tausenderstrich im Test
 vereinheitlicht (CI v3.298 war rot, `5d415a3` grün).
+
+### v3.300 — End-to-End-Prozessprüfung: Werkstatt zeigt keine archivierte Arbeit mehr
+
+Auftrag «End-to-End-Prozessprüfung» (11.10.2026), Ausgangsstand v3.299 (`e1b4c77`, 158/158, Deploy grün).
+**Verfolgt (Code + Live-DB-Funktionen, nur lesend):** Trigger `schuetze_measurement_workflow` (Freigabe verfällt
+bei Änderung von `data`/Art/Projekt/Stärke/Form/entferntem Bild; Zuweisungen bleiben), `measurement_freigeben`
+(Status aus Zuweisungen; erneute Freigabe → wieder `zu_ruesten`), `_zuweisen` (nur nach Freigabe; Rüsten wird bei
+reinem Monteur übersprungen → `zu_montieren`, kein Hängen), `_geruestet` (→ `zu_montieren` wenn Monteur da, sonst
+`geruestet`), `_montiert`, `_abschliessen` (Aufnehmer/Admin, nur nach Montage); alle mit `mw_firma_ok`
+(Mandant) und Rollenprüfung serverseitig. **Gefundene Lücke:** `js/51 werkLaden` filterte weder archivierte
+Massaufnahmen noch solche archivierter Projekte (Projekte lassen sich jederzeit archivieren), «Heute» (js/45)
+schon → die Werkstatt zeigte Arbeit samt «Rüsten bestätigen», die die persönliche Liste nicht kannte; über
+`werkZeilen` auch «Werkstatt heute»/«Anstehende Montage» (js/70). **Behoben:** Client-Filter in `werkLaden`
+(Feld fehlt → nicht archiviert; Spalte NOT NULL). Prüfstand `werkstatt-archiv-v3-300` (3; vor dem Fix rot).
+**Offen / nicht belegt:** Live-Test mit zwei Firmen und echten Konten; Verhalten bei ausgeschaltetem Modul je
+Übergang nur über vorhandene Prüfstände (`werkstatt-v3-09`, `reservierung-v3-09`, `projektmodule-v3-09`) geprüft;
+die Rüstblatt-Kürzung für weitere Arten ist seit v3.296 entschieden (Anweisung vom 10.10.2026).
