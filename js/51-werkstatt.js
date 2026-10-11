@@ -144,12 +144,21 @@ async function werkLaden(){
   // Tagesdatum mehr, kein spuerbarer Unterschied fuer die Abfrage.
   .select("id,project_id,type,title,date,workflow_status,freigabe_verfallen,"
         +"ruester_id,monteur_id,geruestet_am,montiert_am,montage_am,updated_at,created_by,"
-        +"staerke_mm,data")
+        +"staerke_mm,archived,data")
   .in("workflow_status",WERK_STATUS)
   .order("updated_at",{ascending:false})
   .limit(WERK_LIMIT);
  if(error){werkFehler=error.message||"Unbekannter Fehler";werkZeilen=[];return}
- werkZeilen=data||[];
+ // v3.300 (Prozesspruefung): was archiviert ist, ist keine offene Arbeit - dieselbe Regel wie in der
+ // Aufgabenliste (js/45 aufgabeProjektOffen): eine archivierte Massaufnahme UND jede Massaufnahme
+ // eines archivierten Projekts bleibt draussen. Filter im Client, weil aeltere Zeilen/Stubs "archived"
+ // nicht tragen: fehlt das Feld, gilt sie als nicht archiviert (Spalte ist NOT NULL, Vorgabe false).
+ werkZeilen=(data||[]).filter(z=>{
+  if(z.archived===true)return false;
+  const pr=(z.project_id&&typeof allProjects!=="undefined"&&Array.isArray(allProjects))
+    ?allProjects.find(x=>x.id===z.project_id):null;
+  return !(pr&&pr.archived);
+ });
  werkReservierungen=[]; werkFassungen=[];
  const mids=werkZeilen.map(z=>z.id);
  if(mids.length&&typeof pmAktiv==="function"&&pmAktiv("versionierung")){
