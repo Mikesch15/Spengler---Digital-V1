@@ -25,6 +25,17 @@
 //   - Der Prompt liest mehrzeilige Positionen zusammen (v16) und gibt
 //     Zwischentitel als eigenes Feld "abschnitt" zurueck (v20).
 //
+// v26 (11.10.2026): SICHERHEIT. Bis v25 stand verify_jwt auf false und der Client schickte als "Bearer" den
+// OEFFENTLICHEN Schluessel der App (sb_publishable_..., im Browser fuer jeden lesbar, kein Benutzer-Token):
+// jeder Kenner der Adresse konnte die Erkennung - und damit den serverseitigen Gemini-Schluessel samt Kosten -
+// ohne Anmeldung aufrufen. Jetzt: (1) der Client schickt das JWT der angemeldeten Person (js/17 recognizePhoto),
+// (2) verify_jwt ist true (der Gateway weist fehlende/ungueltige/abgelaufene Tokens ab), (3) die Funktion prueft
+// SELBST, dass die Person angemeldet ist UND zu einer Firma mit aktivem Konto gehoert: ein Aufruf von
+// public.my_company_id() mit GENAU diesem Token (Anon darf die Funktion nicht ausfuehren, ein Benutzer ohne
+// Profil/aktive Firma bekommt null). Ein oeffentlicher Schluessel ist keine Anmeldung; CORS "*" ist keine
+// Zugriffskontrolle. Alles andere (Modell, Prompt, Wiederholung 503/429, 90s, MAX_TOKENS, Antwortformat) bleibt.
+// Grenze: jede Person mit aktivem Firmenkonto darf die Erkennung nutzen (ein Limit je Benutzer gibt es nicht).
+//
 // v25 (11.10.2026): gemeldet "beim Import aus einem Foto trat eine Fehlermeldung auf, nach einem erneuten
 // Versuch ging es" und die Frage, ob das Original-PDF zuverlaessiger sei. Befund: PDF und Foto laufen
 // DURCH DIESELBE STRECKE (data:-URL -> inline_data mit dem MIME-Typ aus der URL, PDF also als
@@ -122,12 +133,57 @@ async function resolveImage(src: string): Promise<{ mimeType: string; data: stri
 
 const MODEL = "gemini-3.6-flash";
 
+// v26: Wer ruft auf? Das JWT der angemeldeten Person (Authorization: Bearer ...) wird mit dem oeffentlichen
+// Schluessel (apikey) an PostgREST gegeben und fragt public.my_company_id() ab - dieselbe Funktion, auf der die
+// Mandantentrennung der Datenbank beruht: sie liefert die Firma NUR fuer eine angemeldete Person mit Profil und
+// aktivem/Test-Abo, fuer "anon" ist sie nicht ausfuehrbar. Ungueltiges oder abgelaufenes Token -> 401 von
+// PostgREST. Schlaegt die Pruefung selbst fehl (Netz, Konfiguration), wird NICHT durchgelassen.
+async function pruefeZugang(req: Request): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.get("authorization") || "");
+  const token = m ? m[1].trim() : "";
+  if (!token) {
+    return { ok: false, status: 401, error: "Nicht angemeldet. Bitte in der App anmelden und nochmals versuchen." };
+  }
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_ANON_KEY");
+  if (!url || !key) {
+    return { ok: false, status: 500, error: "Serverkonfiguration unvollstaendig (Anmeldepruefung)." };
+  }
+  try {
+    const r = await fetch(`${url}/rest/v1/rpc/my_company_id`, {
+      method: "POST",
+      headers: { apikey: key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: "{}",
+      signal: AbortSignal.timeout(10000),
+    });
+    if (r.status >= 400 && r.status < 500) {
+      return { ok: false, status: 401, error: "Die Anmeldung ist abgelaufen oder ungültig. Bitte die App neu laden und erneut anmelden." };
+    }
+    if (!r.ok) {
+      return { ok: false, status: 503, error: "Die Anmeldung konnte gerade nicht geprüft werden. Bitte in einem Moment nochmals versuchen." };
+    }
+    const firma = await r.json().catch(() => null);
+    if (!firma) {
+      return { ok: false, status: 403, error: "Für dieses Konto ist kein aktives Firmenkonto hinterlegt. Die Erkennung steht nur angemeldeten Mitarbeitenden einer aktiven Firma zur Verfügung." };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, status: 503, error: "Die Anmeldung konnte gerade nicht geprüft werden. Bitte in einem Moment nochmals versuchen." };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
   if (req.method !== "POST") {
     return json({ ok: false, error: "Nur POST erlaubt." }, 405);
+  }
+
+  // v26: nur angemeldete Personen mit aktivem Firmenkonto. Vor allem anderen - auch vor dem Lesen des Bodys.
+  const zugang = await pruefeZugang(req);
+  if (!zugang.ok) {
+    return json({ ok: false, error: zugang.error }, zugang.status);
   }
 
   let body: { image?: string };
