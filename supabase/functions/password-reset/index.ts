@@ -35,6 +35,10 @@
 //     FENSTER_MINUTEN - sonst liess sich ein Postfach (und das Resend-
 //     Kontingent) beliebig mit Mails fluten. Weitere Anfragen werden still
 //     ignoriert und antworten wie immer {ok:true}.
+//  3) CORS (v3.311): "Access-Control-Allow-Headers" enthielt nur "authorization, content-type". supabase-js schickt aber
+//     immer auch "apikey" und "x-client-info" - der Browser-Preflight scheiterte daher und die POST-Anfrage ging NIE los
+//     (in den Logs: OPTIONS ohne POST). Das Formular zeigte trotzdem "Falls ein Konto existiert ...". Ergebnis (aus Code
+//     und Logs abgeleitet, nicht mit einem echten Versand belegt): aus dem Browser kam keine Reset-Mail. Jetzt wie bei den anderen Funktionen der App.
 // Unveraendert: Antwortformat, Tokenlaufzeit, Einmaligkeit, confirm-Ablauf.
 // ============================================================
 
@@ -53,7 +57,7 @@ const ERLAUBTE_ORIGINS = ["https://mikesch15.github.io"];
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 function antwort(inhalt: unknown, status = 200) {

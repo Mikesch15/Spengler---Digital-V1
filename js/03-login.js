@@ -20,20 +20,24 @@ function usernameToEmail(u){
 // v3.103: ein Mitarbeiter kann zusaetzlich zum Benutzernamen eine echte
 // E-Mail hinterlegt haben (profiles.email) - seine tatsaechliche Auth-
 // E-Mail bleibt dabei die Pseudo-Adresse oben (kein riskanter Umzug).
-// Bei einer Eingabe MIT "@" muss deshalb serverseitig aufgeloest werden,
-// welche echte Auth-E-Mail dazugehoert - resolve-login-email uebernimmt
-// das. Schlaegt die Anfrage fehl (z. B. offline), faellt es auf das
-// bisherige Verhalten zurueck (Eingabe direkt als E-Mail verwenden) -
-// das deckt weiterhin den Fall "selbst registrierter Firmenadmin" ab und
-// blockiert die Anmeldung nicht.
-async function loginEmailAufloesen(u){
- const einfach=usernameToEmail(u);
- if(!u.includes("@"))return einfach;
+// v3.311 (SICHERHEIT): bis v3.310 fragte der Client bei einer Eingabe MIT "@" die oeffentliche Funktion
+// resolve-login-email nach der Pseudo-Adresse - jeder konnte so Konten und interne Benutzernamen abfragen. Jetzt:
+//  1) Benutzername (ohne "@"): wie immer direkt auf die Pseudo-Domain.
+//  2) E-Mail: zuerst direkt (deckt selbst registrierte Firmenadmins ab - die Funktion wird dafuer nicht gebraucht).
+//  3) Scheitert das, schickt der Client {login,password} an resolve-login-email. Die Funktion gibt NIE eine Adresse
+//     heraus, sondern prueft das Passwort selbst und liefert bei Erfolg die Sitzung zurueck (setSession), sonst
+//     immer dieselbe Absage. Faellt die Funktion aus, bleibt es bei der Absage von Schritt 2 (kein Absturz).
+async function loginAnmelden(u,p){
+ const erst=await sb.auth.signInWithPassword({email:usernameToEmail(u),password:p});
+ if(!erst.error||!u.includes("@"))return erst;
  try{
-  const {data,error}=await sb.functions.invoke("resolve-login-email",{body:{login:u}});
-  if(!error&&data&&data.email)return data.email;
- }catch(e){/* siehe oben - Ausfallebene unten */}
- return einfach;
+  const {data}=await sb.functions.invoke("resolve-login-email",{body:{login:u,password:p}});
+  if(data&&data.ok===true&&data.access_token&&data.refresh_token){
+   const s=await sb.auth.setSession({access_token:data.access_token,refresh_token:data.refresh_token});
+   if(!s.error)return s;
+  }
+ }catch(e){/* siehe oben - es bleibt bei der ersten Absage */}
+ return erst;
 }
 function showLoginErr(msg){$("loginError").textContent=msg||""}
 
@@ -42,8 +46,7 @@ $("loginBtn").onclick=async()=>{
  const u=$("loginUser").value.trim(), p=$("loginPass").value;
  if(!u||!p){showLoginErr("Bitte Benutzername und Passwort eingeben.");return}
  $("loginBtn").disabled=true;
- const email=await loginEmailAufloesen(u);
- const {error}=await sb.auth.signInWithPassword({email,password:p});
+ const {error}=await loginAnmelden(u,p);
  $("loginBtn").disabled=false;
  if(error){showLoginErr("Benutzername oder Passwort falsch.");return}
  await afterLogin();

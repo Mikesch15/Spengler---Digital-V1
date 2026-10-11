@@ -66,6 +66,11 @@ const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:"
  p(r.status===200&&r.body.ok&&r.mails.length===0,"reiner Benutzername ohne @: keine Mail, ok:true",r);
  r=await lauf({mail:false});
  p(r.status===200&&r.body.ok===true,"Resend-Fehler: Antwort bleibt ok:true",r);
+ console.log("\nD · CORS (v3.311): Preflight von supabase-js");
+ { let h=null; const sb={Deno:{serve:x=>{h=x},env:{get:k=>({SUPABASE_URL:"https://t",SUPABASE_SERVICE_ROLE_KEY:"S"})[k]}},fetch:async()=>({}),crypto,Uint8Array,Array,String,Number,Date,JSON,Math,Error,Response,encodeURIComponent,console};
+  vm.runInNewContext(JS,sb); const res=await h({method:"OPTIONS",headers:{get:()=>null}});
+  const ah=res.headers.get("access-control-allow-headers")||"";
+  p(res.status===200&&/apikey/.test(ah)&&/x-client-info/.test(ah)&&/authorization/.test(ah)&&/content-type/.test(ah),"OPTIONS erlaubt apikey und x-client-info (sonst blockiert der Browser die POST-Anfrage, es kommt nie eine Mail)",ah); }
  console.log(`\n=== ${ok} bestanden, ${fail} fehlgeschlagen`);
  process.exit(fail?1:0);
 })();

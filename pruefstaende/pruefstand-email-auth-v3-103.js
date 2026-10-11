@@ -86,7 +86,9 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return kette;
  };
  return {
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{},
+   signInWithPassword:async o=>{(window.__anm=window.__anm||[]).push(o.email);return (window.__authStub&&window.__authStub.signIn)?window.__authStub.signIn(o):{data:{},error:{message:"Invalid login credentials"}}},
+   setSession:async t=>{window.__gesetzt=t;return {data:{session:{}},error:null}}},
   from:tabelle,
   storage:{from:()=>({createSignedUrl:async()=>({data:null,error:null})})},
   rpc:()=>Promise.resolve({data:null,error:null}),
@@ -109,7 +111,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
 
  await page.goto("file://"+repo+"/index.html");
- await page.waitForFunction(()=>typeof emailAuthBootWeiche==="function"&&typeof loginEmailAufloesen==="function"
+ await page.waitForFunction(()=>typeof emailAuthBootWeiche==="function"&&typeof loginAnmelden==="function"
   &&typeof registerEmployee==="function"&&typeof renderSysAdminEinladungen==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
  p(jsFehler.length===0,"keine unbehandelten JavaScript-Fehler beim Laden",jsFehler);
@@ -136,31 +138,54 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  // 3 · Login-Aufloesung: Benutzername unveraendert, "@" ueber die Edge
  //     Function, mit Ausfallebene bei Fehler/Offline
  // =========================================================================
- console.log("\n3a · Login-Aufloesung (resolve-login-email)");
+ console.log("\n3a · Anmeldung: Benutzername UND E-Mail (v3.311, ohne Konten-Abfrage)");
  let z=await page.evaluate(async()=>{
-  window.__ruf=[];
-  const email=await loginEmailAufloesen("max.muster");
-  return {email,aufrufe:window.__ruf.length};
+  window.__ruf=[];window.__anm=[];window.__authStub={signIn:async()=>({data:{session:{}},error:null})};
+  const r=await loginAnmelden("Max.Muster","pw1");
+  return {fehler:r.error,anm:window.__anm,aufrufe:window.__ruf.length};
  });
- p(z.email==="max.muster@nfgryuzkpwjfmdlmevuy.supabase.co","ein reiner Benutzername wird unveraendert auf die Pseudo-Domain gemappt",z);
- p(z.aufrufe===0,"...ohne dafuer die Edge Function aufzurufen (kein unnoetiger Serverumweg)",z);
+ p(!z.fehler&&z.anm.length===1&&z.anm[0]==="max.muster@nfgryuzkpwjfmdlmevuy.supabase.co","Benutzername: direkt auf die Pseudo-Domain angemeldet",z);
+ p(z.aufrufe===0,"...ohne die Edge Function aufzurufen",z);
 
  z=await page.evaluate(async()=>{
-  window.__ruf=[];
-  window.__funcStub={"resolve-login-email":body=>({data:{email:"echte.adresse@example.com"},error:null})};
-  const email=await loginEmailAufloesen("Mitarbeiter@Example.com");
-  const aufruf=window.__ruf.find(r=>r.name==="resolve-login-email");
-  return {email,gesendet:aufruf&&aufruf.body.login};
+  window.__ruf=[];window.__anm=[];window.__authStub={signIn:async()=>({data:{session:{}},error:null})};
+  const r=await loginAnmelden("Admin@Firma.ch","pw2");
+  return {fehler:r.error,anm:window.__anm,aufrufe:window.__ruf.length};
  });
- p(z.email==="echte.adresse@example.com","eine Eingabe mit \"@\" wird ueber resolve-login-email aufgeloest",z);
- p(z.gesendet==="Mitarbeiter@Example.com","die Original-Eingabe wird unveraendert an die Funktion geschickt (Kleinschreibung macht die Funktion selbst)",z);
+ p(!z.fehler&&z.anm[0]==="admin@firma.ch"&&z.aufrufe===0,"E-Mail eines selbst registrierten Admins: direkt angemeldet, die Funktion wird NICHT gebraucht",z);
 
+ z=await page.evaluate(async()=>{
+  window.__ruf=[];window.__anm=[];window.__gesetzt=null;
+  window.__authStub={signIn:async()=>({data:{},error:{message:"Invalid login credentials"}})};
+  window.__funcStub={"resolve-login-email":()=>({data:{ok:true,access_token:"AT",refresh_token:"RT"},error:null})};
+  const r=await loginAnmelden("Mitarbeiter@Example.com","pw3");
+  const aufruf=window.__ruf.find(x=>x.name==="resolve-login-email");
+  return {fehler:r.error,gesendet:aufruf&&aufruf.body,gesetzt:window.__gesetzt};
+ });
+ p(!z.fehler&&z.gesetzt&&z.gesetzt.access_token==="AT"&&z.gesetzt.refresh_token==="RT","E-Mail eines Mitarbeiters: Sitzung kommt von der Funktion und wird uebernommen (setSession)",z);
+ p(z.gesendet&&z.gesendet.login==="Mitarbeiter@Example.com"&&z.gesendet.password==="pw3"&&Object.keys(z.gesendet).length===2,"an die Funktion gehen genau Eingabe und Passwort",z);
+
+ z=await page.evaluate(async()=>{
+  window.__authStub={signIn:async()=>({data:{},error:{message:"Invalid login credentials"}})};
+  window.__funcStub={"resolve-login-email":()=>({data:{ok:false},error:{message:"401"}})};
+  const r=await loginAnmelden("falsch@example.com","x");
+  return {fehler:!!r.error};
+ });
+ p(z.fehler===true,"Funktion sagt Nein: die Anmeldung scheitert (gleiche Meldung wie sonst)",z);
  z=await page.evaluate(async()=>{
   window.__funcStub={"resolve-login-email":()=>{throw new Error("offline")}};
-  return await loginEmailAufloesen("admin@firma.ch");
+  const r=await loginAnmelden("mitarbeiter@example.com","x");
+  return {fehler:!!r.error};
  });
- p(z==="admin@firma.ch","schlaegt die Anfrage fehl (z. B. offline), wird die Eingabe direkt als E-Mail verwendet - wie bisher",z);
- await page.evaluate(()=>{window.__funcStub={}});
+ p(z.fehler===true,"Funktion nicht erreichbar: kein Absturz, normale Absage",z);
+ z=await page.evaluate(async()=>{
+  window.__ruf=[];window.__authStub={signIn:async()=>({data:{},error:{message:"x"}})};
+  window.__funcStub={};
+  await loginAnmelden("max.muster","falsch");
+  return window.__ruf.length;
+ });
+ p(z===0,"falsches Passwort bei einem Benutzernamen: kein Umweg ueber die Funktion",z);
+ await page.evaluate(()=>{window.__funcStub={};window.__authStub=null});
 
  // =========================================================================
  // 3b · Passwort vergessen: Anfordern und Bestaetigen

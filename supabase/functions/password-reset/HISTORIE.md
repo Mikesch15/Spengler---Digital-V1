@@ -7,3 +7,8 @@ Prüfstand: `pruefstaende/pruefstand-passwort-reset-sicherheit-v3-310.js`. Live 
 
 ## Fassung 1 (v3.103)
 Selfservice-Reset per Mail (request/confirm), Token 30 Min, einmalig.
+
+## Fassung 3 (11.10.2026, App v3.311, Plattform-Version 3) – CORS
+Preflight erlaubte nur `authorization, content-type`; supabase-js schickt zusätzlich `apikey` und `x-client-info` → der Browser
+blockierte die POST-Anfrage (Logs: OPTIONS ohne POST), es ging nie eine Reset-Mail raus. Jetzt wie die anderen Funktionen.
+Offen: ob Resend an beliebige Empfänger sendet (Testabsender `onboarding@resend.dev`), und der Link ohne App-Pfad.
