@@ -17,3 +17,6 @@ Offen: ob Resend an beliebige Empfänger sendet (Testabsender `onboarding@resend
 Link war `https://mikesch15.github.io/?reset=…` (ohne Projektpfad). Neu: Client schickt `app_url`; Host fest (Präfix `https://mikesch15.github.io/`), nur
 unauffällige Zeichen, sonst Standardadresse. Origin-Header wird nicht mehr verwendet.
 Belegt: Resend-Testabsender sendet nur an die Kontoadresse (403 im Funktionslog) – für andere Empfänger ist eine verifizierte Domain nötig.
+
+## Fassung 5 (11.10.2026, App v3.313, Plattform-Version 7) – Gmail-Versand
+`mailSenden()`: Gmail-SMTP (Secrets `GMAIL_USER`, `GMAIL_APP_PASSWORD`) mit Rückfall auf Resend. Grund: Resend-Testabsender sendet nur an die Kontoadresse (403).

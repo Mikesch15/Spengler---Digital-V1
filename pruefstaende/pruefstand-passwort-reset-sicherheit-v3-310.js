@@ -14,13 +14,14 @@ const JS=quelle
  .replace(/\): Promise<.*?> \{$/gm,") {")
  .replace(/\): (string|boolean) \{/g,") {")
  .replace(/(\(|, )(\w+): (string|Request|unknown)(?=[,)= ])/g,"$1$2")
+ .replace(/\(err as Error\)/g,"(err)")
  .replace(/let body: \{[^}]*\};/,"let body;")
  .replace(/(SUPABASE_URL|SUPABASE_SERVICE_ROLE_KEY)!/g,"$1");
 async function lauf(o){
- o=Object.assign({login:"person@firma.ch",app_url:undefined,origin:"https://mikesch15.github.io",profil:true,bisher:0,bisherStatus:200,mail:true},o||{});
- let handler=null; const mails=[],tokens=[];
+ o=Object.assign({gmail:false,login:"person@firma.ch",app_url:undefined,origin:"https://mikesch15.github.io",profil:true,bisher:0,bisherStatus:200,mail:true},o||{});
+ let handler=null; const mails=[],tokens=[],logs=[];
  const sb={
-  Deno:{serve:h=>{handler=h},env:{get:k=>({SUPABASE_URL:"https://t.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"SRV",RESEND_API_KEY:"RS"})[k]}},
+  Deno:{serve:h=>{handler=h},env:{get:k=>({SUPABASE_URL:"https://t.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"SRV",RESEND_API_KEY:"RS",GMAIL_USER:o.gmail?"absender@gmail.com":undefined,GMAIL_APP_PASSWORD:o.gmail?"abcd efgh ijkl mnop":undefined})[k]}},
   fetch:async(url,opt)=>{
    url=String(url);
    if(url.indexOf("/rest/v1/profiles?email=")>0)return {ok:true,status:200,json:async()=>o.profil?[{id:"u1"}]:[]};
@@ -29,12 +30,12 @@ async function lauf(o){
    if(url.indexOf("api.resend.com")>0){mails.push(JSON.parse(opt.body));return {ok:o.mail,status:o.mail?200:500,text:async()=>""}}
    return {ok:true,status:200,json:async()=>[],text:async()=>""};
   },
-  crypto,Uint8Array,Array,String,Number,Date,JSON,Math,Error,Response,encodeURIComponent,console:{log(){},error(){}}
+  crypto,Uint8Array,Array,String,Number,Date,JSON,Math,Error,Response,encodeURIComponent,console:{log(){},error(...a){logs.push(a.join(" "))}}
  };
  vm.runInNewContext(JS,sb);
  const kopf=o.origin===null?{}:{origin:o.origin};
  const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({action:"request",login:o.login,app_url:o.app_url})});
- return {status:res.status,body:JSON.parse(await res.text()),mails,tokens};
+ return {status:res.status,body:JSON.parse(await res.text()),mails,tokens,logs};
 }
 const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:""};
 (async()=>{
@@ -74,6 +75,13 @@ const linkVon=r=>{const m=/href="([^"]+)"/.exec(r.mails[0].html);return m?m[1]:"
   vm.runInNewContext(JS,sb); const res=await h({method:"OPTIONS",headers:{get:()=>null}});
   const ah=res.headers.get("access-control-allow-headers")||"";
   p(res.status===200&&/apikey/.test(ah)&&/x-client-info/.test(ah)&&/authorization/.test(ah)&&/content-type/.test(ah),"OPTIONS erlaubt apikey und x-client-info (sonst blockiert der Browser die POST-Anfrage, es kommt nie eine Mail)",ah); }
+ console.log("\nE · Mailversand (v3.313): Gmail mit Rueckfall auf Resend");
+ r=await lauf({});
+ p(r.mails.length===1&&r.logs.length===0,"Gmail nicht eingerichtet: wie bisher ueber Resend",r.logs);
+ r=await lauf({gmail:true,app_url:"https://mikesch15.github.io/Spengler---Digital-V1/"});
+ p(r.status===200&&r.body.ok===true&&r.mails.length===1,"Gmail eingerichtet, aber der SMTP-Baustein laesst sich nicht laden/scheitert: Rueckfall auf Resend, Antwort ok:true",r);
+ p(r.logs.some(l=>/Gmail-Versand fehlgeschlagen/.test(l)),"...und der Fehler steht im Log",r.logs);
+ p(JSON.stringify(r.logs).indexOf("abcd")<0&&JSON.stringify(r.body).indexOf("abcd")<0&&JSON.stringify(r.mails).indexOf("abcd")<0,"das App-Passwort steht nirgends (Log, Antwort, Mail)",null);
  console.log(`\n=== ${ok} bestanden, ${fail} fehlgeschlagen`);
  process.exit(fail?1:0);
 })();

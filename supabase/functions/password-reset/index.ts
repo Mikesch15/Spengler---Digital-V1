@@ -35,6 +35,7 @@
 //     FENSTER_MINUTEN - sonst liess sich ein Postfach (und das Resend-
 //     Kontingent) beliebig mit Mails fluten. Weitere Anfragen werden still
 //     ignoriert und antworten wie immer {ok:true}.
+//  5) v3.313: Mailversand ueber Gmail (SMTP) mit Rueckfall auf Resend, siehe mailSenden().
 //  4) v3.312: Der Link lautete https://mikesch15.github.io/?reset=... (ohne den Projektpfad der App) und fuehrte ins
 //     Leere. Jetzt schickt der Client seine Adresse (app_url); der Host bleibt fest (siehe appUrl()).
 //  3) CORS (v3.311): "Access-Control-Allow-Headers" enthielt nur "authorization, content-type". supabase-js schickt aber
@@ -51,6 +52,11 @@ if (!SUPABASE_URL) throw new Error("SUPABASE_URL is required");
 if (!SUPABASE_SERVICE_ROLE_KEY) throw new Error("SUPABASE_SERVICE_ROLE_KEY is required");
 
 const VON = "Spengler-DIGITAL <onboarding@resend.dev>";
+// v3.313: Versand bevorzugt ueber Gmail (SMTP, Secrets GMAIL_USER + GMAIL_APP_PASSWORD), weil der Resend-Testabsender
+// nur an die Adresse des Resend-Kontos senden darf (403 im Funktionslog). Ist Gmail nicht eingerichtet oder
+// scheitert es, geht es wie bisher ueber Resend.
+const GMAIL_USER = Deno.env.get("GMAIL_USER");
+const GMAIL_APP_PASSWORD = Deno.env.get("GMAIL_APP_PASSWORD");
 const TOKEN_GUELTIG_MINUTEN = 30;
 const FENSTER_MINUTEN = 15;
 const MAX_TOKEN_PRO_FENSTER = 3;
@@ -75,6 +81,31 @@ function zufallsToken(): string {
   crypto.getRandomValues(bytes);
   return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join("");
 }
+// Versendet eine Mail. true = abgeschickt. Das App-Passwort steht nie in Logs oder Antworten.
+async function mailSenden(an: string, betreff: string, html: string): Promise<boolean> {
+  if (GMAIL_USER && GMAIL_APP_PASSWORD) {
+    try {
+      const { SMTPClient } = await import("https://deno.land/x/denomailer@1.6.0/mod.ts");
+      const client = new SMTPClient({
+        connection: { hostname: "smtp.gmail.com", port: 465, tls: true, auth: { username: GMAIL_USER, password: GMAIL_APP_PASSWORD.replace(/\s+/g, "") } },
+      });
+      await client.send({ from: `Spengler-DIGITAL <${GMAIL_USER}>`, to: an, subject: betreff, html });
+      await client.close();
+      return true;
+    } catch (err) {
+      console.error("password-reset: Gmail-Versand fehlgeschlagen", String((err as Error)?.message ?? err).slice(0, 200));
+    }
+  }
+  if (!RESEND_API_KEY) { console.error("password-reset: kein Mailversand eingerichtet (weder Gmail noch Resend)"); return false; }
+  const mail = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: VON, to: [an], subject: betreff, html }),
+  });
+  if (!mail.ok) { console.error("password-reset: Resend fehlgeschlagen", await mail.text()); return false; }
+  return true;
+}
+
 // Basis-URL fuer den Link: die vom Client gemeldete App-Adresse, aber nur wenn sie mit dem festen Praefix beginnt und
 // nur unauffaellige Zeichen enthaelt; sonst die Standardadresse. Ein fremder Host ist so nie moeglich.
 function appUrl(angefragt: unknown): string {
@@ -124,7 +155,6 @@ async function verarbeiteRequest(login: string, appAdresse: unknown) {
   });
   if (!ins.ok) { console.error("password-reset: Token konnte nicht gespeichert werden", await ins.text()); return; }
 
-  if (!RESEND_API_KEY) { console.error("password-reset: RESEND_API_KEY fehlt - kein Versand moeglich"); return; }
   const link = `${appUrl(appAdresse)}?reset=${token}`;
   const html = `
     <p>Für dein Spengler-DIGITAL-Konto wurde ein neues Passwort angefordert.</p>
@@ -133,12 +163,7 @@ async function verarbeiteRequest(login: string, appAdresse: unknown) {
     Falls du das nicht warst, kannst du diese E-Mail ignorieren - es ändert
     sich nichts an deinem Konto.</p>
   `;
-  const mail = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: VON, to: [eingabe], subject: "Spengler-DIGITAL: Passwort zurücksetzen", html }),
-  });
-  if (!mail.ok) console.error("password-reset: Resend fehlgeschlagen", await mail.text());
+  await mailSenden(eingabe, "Spengler-DIGITAL: Passwort zurücksetzen", html);
 }
 
 async function verarbeiteConfirm(token: string, password: string) {
