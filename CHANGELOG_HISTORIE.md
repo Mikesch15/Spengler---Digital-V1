@@ -34278,3 +34278,16 @@ Massaufnahmen behalten ihre alte Ausrichtung bis zum erneuten Speichern (dann ä
 wie bei jeder Änderung am Zuschnitt). Die ältere Einfassung-Ansicht js/21 (Format bis v2.95) ist unverändert.
 (3) `pruefstaende/ci-lauf.js` läuft parallel (3, `CI_PARALLEL=1` = seriell): volle Regression 7 min 43 s statt ~25 min,
 159/159. Regel für mich: die volle Regression läuft in einer eigenen Kopie (`git worktree`), nie im Arbeitsbaum.
+
+### v3.304 — Prozessprüfung, 2. Lücke: Werkstatt lädt nach Rückkehr in die App neu
+
+Fortsetzung der End-to-End-Prozessprüfung (Punkt 9 «keine veralteten Stände nach Rückkehr in die App»). Bestand:
+`js/45 aufgabenBeiRueckkehr` lädt «Heute» ab einer Minute Alter nach (visibilitychange/online), die Werkstatt
+(`js/51`) nicht – nach Stunden im Hintergrund zeigte sie den alten Stand samt «Rüsten bestätigen» an einer
+Aufnahme, die nicht mehr dran ist (serverseitig würde die Aktion ehrlich abgelehnt, aber der Stand war falsch).
+Neu: `werkBeiRueckkehr` (`werkStandZeit`, 60 s) – nur bei offener Werkstatt und angemeldeter Person, über
+`werkstattNeuLaden`. Prüfstand `werkstatt-rueckkehr-v3-304` (5; gemessen wird die Anzeige, nicht der Speicher;
+Gegenproben frischer Stand / geschlossene Werkstatt; Mutation rot). **Geprüft und für in Ordnung befunden:**
+Projektmaterial/Bedarf rechnet bewusst über ALLE Massaufnahmen inkl. archivierter (js/09-Kommentar); Freigabe-
+verfall, Zuweisungsketten und Rüsten-Überspringen serverseitig (siehe v3.300). **Weiter offen:** Live-Test mit
+zwei Firmen/echten Konten; Verhalten ausgeschalteter Module je Übergang nur über vorhandene Prüfstände.

@@ -3,9 +3,25 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.306`
+- Aktueller Entwicklungsstand: `v3.307`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.307 — Offert-Erkennung nur für angemeldete Personen (Sicherheit; Edge Function v26)
+
+Auftrag (11.10.2026, Ausgangsstand v3.306 `9d2d119`). **Befund:** `extract-offer-positions` hatte `verify_jwt=false`, der Client
+sandte als Bearer den **öffentlichen** App-Schlüssel (kein Benutzer-Token) → ohne Anmeldung aufrufbar, jeder Aufruf =
+Gemini-Kosten. Ein konkreter Missbrauch ist **nicht belegt** (Logs reichen nicht zurück). **Änderung:** (1) `js/17 recognizePhoto`
+sendet das Token der angemeldeten Person (`sb.auth.getSession()`), ohne Sitzung keine Anfrage + verständlicher Satz, 401 → Satz;
+(2) Funktion `verify_jwt=true`; (3) `pruefeZugang()` in der Funktion: `public.my_company_id()` mit diesem Token → nur angemeldete
+Person mit aktiver Firma (anon → 401, ohne aktive Firma → 403, Prüfung nicht erreichbar → 503, fail closed). Keine Migration,
+RLS/Policies unverändert. Modell/Prompt/Wiederholung/Antwortformat unverändert. Details und Grenzen: `supabase/functions/
+extract-offer-positions/HISTORIE.md` v26. **Lokal belegt:** `erkennung-fehlerfaelle-v3-306` (35, Datei geladen, Supabase/Gemini
+als Attrappe; ohne Prüfung 8 rot), `erkennung-wiederholung-v3-306` (14; alter Bearer → 2 rot); Verträge in
+`erkennung-ueberlastet-v3-254`, `angebote-v3-34`, `angebot-pdf-erkennen-v3-39` (Attrappen liefern erst nach dem Start eine Sitzung).
+**Live:** siehe Abschlussbericht dieser Version – Supabase ist aus dieser Umgebung nicht erreichbar, ein Aufruf des echten
+Endpunkts ohne/mit Token wurde nicht durchgeführt. **Offen:** manueller Test (angemeldet → Erkennung geht; abgemeldet → Meldung),
+`extract-profile-shape` (js/14) sendet ebenfalls den öffentlichen Schlüssel (nicht Teil dieses Auftrags), kein Limit je Benutzer.
 
 ### v3.306 — Offert-Import aus PDF/Foto: zuverlässiger und ohne Doppelte (Edge Function v25)
 
@@ -48,19 +64,6 @@ Massaufnahme an; Hinweis in den Modul-Einstellungen («Wirkt nur bei eingeschalt
 **Nicht belegt:** Live-Test mit zwei Firmen/echten Konten (keine echte DB in dieser Umgebung); Prüfstände belegen
 keine RLS/Mandantentrennung. Hinweis: bei ausgeschaltetem Ablauf erzwingt der Trigger weiterhin das Verfallen der
 Freigabe bei Datenänderung (harmlos, da nichts am Status hängt).
-
-### v3.304 — Prozessprüfung, 2. Lücke: Werkstatt lädt nach Rückkehr in die App neu
-
-Fortsetzung der End-to-End-Prozessprüfung (Punkt 9 «keine veralteten Stände nach Rückkehr in die App»). Bestand:
-`js/45 aufgabenBeiRueckkehr` lädt «Heute» ab einer Minute Alter nach (visibilitychange/online), die Werkstatt
-(`js/51`) nicht – nach Stunden im Hintergrund zeigte sie den alten Stand samt «Rüsten bestätigen» an einer
-Aufnahme, die nicht mehr dran ist (serverseitig würde die Aktion ehrlich abgelehnt, aber der Stand war falsch).
-Neu: `werkBeiRueckkehr` (`werkStandZeit`, 60 s) – nur bei offener Werkstatt und angemeldeter Person, über
-`werkstattNeuLaden`. Prüfstand `werkstatt-rueckkehr-v3-304` (5; gemessen wird die Anzeige, nicht der Speicher;
-Gegenproben frischer Stand / geschlossene Werkstatt; Mutation rot). **Geprüft und für in Ordnung befunden:**
-Projektmaterial/Bedarf rechnet bewusst über ALLE Massaufnahmen inkl. archivierter (js/09-Kommentar); Freigabe-
-verfall, Zuweisungsketten und Rüsten-Überspringen serverseitig (siehe v3.300). **Weiter offen:** Live-Test mit
-zwei Firmen/echten Konten; Verhalten ausgeschalteter Module je Übergang nur über vorhandene Prüfstände.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

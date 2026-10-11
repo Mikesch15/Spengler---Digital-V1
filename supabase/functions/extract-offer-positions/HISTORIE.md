@@ -433,3 +433,34 @@ nicht als Liste gelesen werden.» (v3.40–v3.45 halten ihn quelltextlich fest).
 **Nicht geändert / offen:** `verify_jwt` ist `false` (war schon bei v24 so; nicht Teil dieses Auftrags, aber
 bemerkenswert: die Funktion ist ohne Anmeldung aufrufbar). Ein echter Gemini-Aufruf wurde nicht gemacht.
 Prüfstand: `pruefstaende/pruefstand-erkennung-fehlerfaelle-v3-306.js` (lädt diese Datei, Gemini als Attrappe).
+
+---
+
+## v26 (11.10.2026) – Zugangsschutz
+
+Steht im Kopf von `index.ts`. **Befund (Code, nicht geraten):** `verify_jwt` war `false`, und `recognizePhoto()` (js/17)
+schickte als `Authorization: Bearer` den **öffentlichen** Schlüssel der App (`sb_publishable_…`, steht in js/01 und
+ist im Browser für jeden lesbar; kein Benutzer-Token, kein JWT). Die Funktion war damit ohne Anmeldung aufrufbar und
+löste jedes Mal einen Gemini-Aufruf aus – Kosten- und Missbrauchsrisiko. Ein konkreter Missbrauch ist nicht belegt (die
+Funktions-Logs reichen nicht zurück). Auch `verify_jwt=true` allein hätte nichts geändert: der Gateway prüft nur, dass ein
+gültiges JWT da ist, und der öffentliche Schlüssel ist keine Anmeldung; ein Aufruf mit dem Schlüssel wäre abgewiesen
+oder – je nach Schlüsselart – durchgegangen, in beiden Fällen ohne Aussage über die Person.
+
+**Lösung (kleinste robuste, vorhandene Architektur):**
+1. Client: `recognizePhoto()` holt das Token der angemeldeten Person (`sb.auth.getSession()`, supabase-js erneuert es
+   selbst) und sendet es als Bearer; der öffentliche Schlüssel bleibt nur `apikey`. Ohne Sitzung gibt es keine Anfrage,
+   sondern einen verständlichen Satz. Ein 401 des Gateways ({code:401,message:"Invalid JWT"}) wird zu einem deutschen Satz.
+2. Funktion: `verify_jwt=true` (Gateway weist fehlende/ungültige/abgelaufene Tokens ab – wie bei `smart-action`,
+   `reset-password`, `system-admin-*`, die alle mit dem Benutzer-Token über `sb.functions.invoke` laufen).
+3. Funktion: `pruefeZugang()` ruft `public.my_company_id()` per PostgREST mit GENAU diesem Token auf. Die Funktion ist
+   `SECURITY DEFINER`, für `anon` nicht ausführbar, liefert die Firma nur für eine angemeldete Person mit Profil UND
+   aktivem bzw. Test-Abo (`companies.subscription_status`), sonst `null`. Ergebnis: Anon/öffentlicher Schlüssel → 401,
+   angemeldet ohne aktive Firma → 403, Prüfung nicht erreichbar → 503 (**fail closed**). `profiles` taugt dafür nicht:
+   die Select-Policy verlangt `has_permission('profiles','view')`.
+**Nicht geändert:** Modell, Prompt, Wiederholung (nur 503/429), 90-s-Abbruch, MAX_TOKENS-Meldung, Antwortformat, CORS
+(`*` bleibt – ist keine Zugriffskontrolle und wird auch nicht als solche benutzt; OPTIONS braucht keine Anmeldung).
+**Grenzen:** jede Person mit aktivem Firmenkonto darf die Erkennung nutzen (kein Limit je Benutzer/Firma); ein bereits
+geladener, alter App-Stand (PWA-Cache) sendet noch den öffentlichen Schlüssel und bekommt bis zum Neuladen ein 401.
+Verwandt, nicht Teil dieses Auftrags: `extract-profile-shape` (js/14) schickt ebenfalls den öffentlichen Schlüssel als Bearer.
+Prüfstand: `pruefstaende/pruefstand-erkennung-fehlerfaelle-v3-306.js` (lädt die Datei, Supabase/Gemini als Attrappe) und
+`pruefstand-erkennung-wiederholung-v3-306.js` (Client sendet das Token; ohne Sitzung keine Anfrage).
