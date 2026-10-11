@@ -25,6 +25,19 @@
 //   - Der Prompt liest mehrzeilige Positionen zusammen (v16) und gibt
 //     Zwischentitel als eigenes Feld "abschnitt" zurueck (v20).
 //
+// v25 (11.10.2026): gemeldet "beim Import aus einem Foto trat eine Fehlermeldung auf, nach einem erneuten
+// Versuch ging es" und die Frage, ob das Original-PDF zuverlaessiger sei. Befund: PDF und Foto laufen
+// DURCH DIESELBE STRECKE (data:-URL -> inline_data mit dem MIME-Typ aus der URL, PDF also als
+// application/pdf); ein digitales PDF mit Text ist genauer als ein Foto, ein gescanntes PDF nicht. Die
+// Ursache des gemeldeten Fehlers ist NICHT belegt (die Funktions-Logs reichen nicht bis zum Vorfall) - deshalb
+// bleibt die Wiederholungsregel (nur 503/429, v3.254 D4) unveraendert. Neu ist nur, was sicher fehlte:
+// (1) Typ-Pruefung VOR dem Aufruf, (2) jede uebrige Fehlerart von Google bekommt einen deutschen Satz mit der
+// naechsten Handlung statt rohem Englisch, der Rohtext steht nur in "detail" und ohne API-Key, (3) eine
+// leere/unlesbare Antwort (ausser MAX_TOKENS) wird einmal automatisch nochmals gefragt - genau das, was der
+// Anwender sonst von Hand tut -, eine abgelehnte (SAFETY u. a.) bekommt einen eigenen Satz, (4) nur echte
+// Objekte zaehlen als Position. Modell, Prompt, generationConfig, Timeout und der allgemeine Satz "Antwort der
+// KI konnte nicht als Liste gelesen werden." bleiben unveraendert.
+//
 // v24: gemeldet am 05.10.2026 beim PDF-Import einer Offerte, mit
 // Bildschirmfoto. Im Dialog stand woertlich:
 //   "Fehler bei der Erkennung: Server antwortete mit Status 502: Server
@@ -129,6 +142,18 @@ Deno.serve(async (req: Request) => {
     return json({ ok: false, error: "Kein gueltiges Bild/PDF uebergeben." }, 400);
   }
 
+  // v25: nur Typen, die die Erkennung wirklich liest. Alles andere wuerde bei Google als 400 mit
+  // englischem Rohtext zurueckkommen - hier wird es vorher und auf Deutsch abgelehnt.
+  const ERLAUBT = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+  const typ = String(image.mimeType || "").toLowerCase().trim();
+  if (!ERLAUBT.includes(typ)) {
+    return json({
+      ok: false,
+      error: `Dieser Dateityp (${typ || "unbekannt"}) kann nicht gelesen werden. Erlaubt sind Fotos (JPG, PNG, WebP, HEIC) und PDF. Bitte ein Foto aufnehmen oder das Original-PDF verwenden.`,
+    }, 400);
+  }
+  image.mimeType = typ;
+
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) {
     return json({ ok: false, error: "Serverkonfiguration unvollstaendig (kein API-Key)." }, 500);
@@ -195,7 +220,7 @@ Wichtig für "abschnitt":
       if (!ueberlastet || versuch === maxVersuche) break;
       await new Promise((resolve) => setTimeout(resolve, PAUSEN[versuch - 1]));
     }
-    clearTimeout(timeout);
+    if (!res!.ok) clearTimeout(timeout);
 
     if (!res!.ok) {
       // v24: Ein Ueberlastungsfehler wird in einem Satz gesagt, den der
@@ -226,17 +251,63 @@ Wichtig für "abschnitt":
           versuche: maxVersuche,
         }, 503);
       }
-      return json({ ok: false, error: `Server antwortete mit Status ${res!.status}: ${errText.slice(0, 300)}` }, 502);
+      // v25: jede uebrige Fehlerart in einem deutschen Satz mit der naechsten Handlung. Der Rohtext von Google
+      // steht nur in "detail" - und ohne den API-Key, falls Google ihn in einer Meldung wiederholt.
+      const roh = errText.split(apiKey).join("***").slice(0, 300);
+      const st = res!.status;
+      if (st === 500 || st === 502 || st === 504) {
+        return json({
+          ok: false,
+          error: `Die Texterkennung hat einen Fehler gemeldet. Das liegt meist nicht am Dokument. Bitte in einer Minute nochmals auf „Erkennen“ tippen. Das Dokument bleibt hochgeladen, es muss nicht neu gewählt werden.`,
+          detail: `Status ${st}: ${roh}`,
+        }, 502);
+      }
+      if (st === 400 || st === 413) {
+        return json({
+          ok: false,
+          error: `Die Texterkennung konnte dieses Dokument nicht lesen. Mögliche Gründe: die Datei ist beschädigt oder passwortgeschützt, zu gross oder leer. Bitte ein anderes Foto aufnehmen oder das Original-PDF verwenden.`,
+          detail: `Status ${st}: ${roh}`,
+        }, 400);
+      }
+      if (st === 401 || st === 403 || st === 404) {
+        return json({
+          ok: false,
+          error: `Die Texterkennung ist im Moment nicht eingerichtet oder nicht erreichbar. Das liegt nicht am Dokument. Bitte den Administrator informieren.`,
+          detail: `Status ${st}: ${roh}`,
+        }, 502);
+      }
+      return json({ ok: false, error: `Server antwortete mit Status ${res!.status}: ${roh}` }, 502);
     }
 
-    const data = await res!.json();
-    const candidate = data?.candidates?.[0];
-    const raw = candidate?.content?.parts?.[0]?.text ?? "";
+    let data = await res!.json();
+    let candidate = data?.candidates?.[0];
+    let raw = candidate?.content?.parts?.[0]?.text ?? "";
 
     let positions: unknown;
-    try {
-      positions = JSON.parse(raw);
-    } catch {
+    const lesen = (): boolean => {
+      try { positions = JSON.parse(raw); return true; } catch { return false; }
+    };
+    let gelesen = lesen();
+    // v25: eine leere oder unlesbare Antwort ohne MAX_TOKENS ist erfahrungsgemaess ein Ausrutscher des
+    // Modells - einmal nochmals fragen (dasselbe Zeitbudget), statt dem Anwender den Fehler zu zeigen.
+    if (!gelesen && candidate?.finishReason !== "MAX_TOKENS" && !controller.signal.aborted) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res2 = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
+        body: geminiBody,
+      });
+      if (res2.ok) {
+        data = await res2.json();
+        candidate = data?.candidates?.[0];
+        raw = candidate?.content?.parts?.[0]?.text ?? "";
+        gelesen = lesen();
+      }
+    }
+    clearTimeout(timeout);
+
+    if (!gelesen) {
       if (candidate?.finishReason === "MAX_TOKENS") {
         return json({
           ok: false,
@@ -245,16 +316,29 @@ Wichtig für "abschnitt":
           geminiFinishReason: candidate?.finishReason ?? null,
         }, 502);
       }
+      const grund = String(candidate?.finishReason ?? data?.promptFeedback?.blockReason ?? "");
+      const blockiert = /SAFETY|PROHIBITED|BLOCKLIST|RECITATION|SPII|IMAGE_SAFETY/i.test(grund);
+      if (blockiert) {
+        return json({
+          ok: false,
+          error: "Die Erkennung hat dieses Dokument nicht verarbeitet (von der KI abgelehnt). Bitte ein anderes Foto oder das Original-PDF verwenden.",
+          detail: `Grund: ${grund}`,
+        }, 502);
+      }
       return json({
         ok: false,
         error: "Antwort der KI konnte nicht als Liste gelesen werden.",
+        hinweis: "Bitte nochmals auf „Erkennen“ tippen.",
         raw: String(raw).slice(0, 500),
       }, 502);
     }
 
     if (!Array.isArray(positions)) {
-      return json({ ok: false, error: "Antwort der KI war kein Array." }, 502);
+      return json({ ok: false, error: "Die Antwort der KI hatte nicht das erwartete Format (keine Liste). Bitte nochmals versuchen." }, 502);
     }
+    // v25: nur echte Objekte sind Positionen - ein Text oder eine Zahl in der Liste wird nicht als leere
+    // Position weitergereicht.
+    positions = (positions as unknown[]).filter((p) => p && typeof p === "object" && !Array.isArray(p));
 
     return json({ ok: true, positions });
   } catch (err) {
