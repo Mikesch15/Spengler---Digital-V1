@@ -34257,3 +34257,24 @@ auf genau so viele Abschnitte verteilt, jeder in die Rollenbreite passend (Rück
 belegt). Gelingt das nicht, bleibt die gruppenweise Zählung. Fixtures im Prüfstand ohne `mischungsGast`, mit
 `teile` wie gespeichert; `ruestblatt-abschnitte-v3-297` 16, Mutation rot. Grenze: die Verteilung ist eine
 gültige, nicht zwingend die ursprüngliche Aufteilung (gleich schneidbar).
+
+### v3.303 — Zuschnitt: Mischung verdichtet und korrekt gezählt; Einfassung rund quer/längs; paralleler Prüf-Lauf
+
+Rückmeldungen (11.10.2026): (1) «Nr. 4 und 6 hätten im selben Streifen Platz, es entstünde ein grösserer Rest statt
+zweier kleiner.» `js/29 ebaMischeAbschnitte`: Gast-Spuren gleicher Gruppe und Breite in einem Cluster werden
+zusammengelegt, wenn ihre Stücke (+ Schnittfuge) in die Abschnittlänge passen; eine ganze Spur wird frei, der Rest
+steht als ein grosser seitlicher Rest (Beispiel: 256 × 1'215 mm statt 2 × 244 × 705). Nur Gäste, nie der Wirt.
+**Dabei gefunden (v3.87-Altlast, die Mischung hatte keinen Prüfstand):** `ungenutzteStreifen` wurde bei Mischung
+zusätzlich zu `restBreite` gemeldet → Phantom-Reststücke (250 × 1'215 ×2, dort liegen die Gäste) und die
+Materialbilanz ging nicht auf (`aufgeht:false`). Jetzt 0 bei Mischung; `js/33 zuGeometrie` liest die Zahl aus dem
+Plan (ältere Pläne: wie bisher gerechnet, **ältere gespeicherte Mischpläne behalten die Phantom-Reste bis zur
+Neuberechnung**). Prüfstand `zuschnitt-mischung-v3-303` (10, Altcode: 7 rot, Gegenproben 800+800 und ohne Mischung,
+mit Schnittfuge). (2) Einfassung rund: «Zuschnittbreite und -länge sind vertauscht, die Abschnittlänge muss die
+Abwicklung sein.» `js/38 einfaZuschnitte`: Länge = Abwicklung (längs zur Rolle), Breite = Breite der gesamten
+Einfassung (quer = Streifenbreite); Texte «Zuschnitt L × B» in js/38 und PDF (`js/16`) angeglichen, Feldname
+«Abwicklung (Querschnitt)». Verträge angepasst, mit Gegenprüfung des Plans (Streifenbreiten 350/400, Längen
+278/308): `einfassung-app-v2-96`, `einfassung-kopf-v3-264`, `laenge-mal-breite-druck-v2-81`. Gespeicherte
+Massaufnahmen behalten ihre alte Ausrichtung bis zum erneuten Speichern (dann ändert sich `data` → Freigabe verfällt,
+wie bei jeder Änderung am Zuschnitt). Die ältere Einfassung-Ansicht js/21 (Format bis v2.95) ist unverändert.
+(3) `pruefstaende/ci-lauf.js` läuft parallel (3, `CI_PARALLEL=1` = seriell): volle Regression 7 min 43 s statt ~25 min,
+159/159. Regel für mich: die volle Regression läuft in einer eigenen Kopie (`git worktree`), nie im Arbeitsbaum.

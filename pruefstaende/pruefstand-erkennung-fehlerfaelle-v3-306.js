@@ -79,6 +79,8 @@ const hatEnglisch=s=>/UNAVAILABLE|INTERNAL|INVALID_ARGUMENT|high demand|\"code\"
  console.log("\nD · Der API-Schlüssel steht nie in der Antwort");
  r=await lauf([{status:400,text:"Fehler bei key="+KEY+" in der URL"}],JPG);
  p(JSON.stringify(r.body).indexOf(KEY)<0,"400 mit Schlüssel im Google-Text: in 'detail' geschwärzt",r.body.detail);
+ r=await lauf([{status:503,text:"overloaded key="+KEY}],JPG);
+ p(JSON.stringify(r.body).indexOf(KEY)<0,"503 (Überlast) mit Schlüssel im Google-Text: geschwärzt",r.body.detail);
  r=await lauf([{status:500,text:"key="+KEY}],JPG);
  p(JSON.stringify(r.body).indexOf(KEY)<0,"500 mit Schlüssel im Google-Text: geschwärzt",r.body.detail);
 

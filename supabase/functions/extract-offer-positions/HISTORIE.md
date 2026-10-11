@@ -402,3 +402,34 @@ Fehlermeldungen) ist unveraendert.
 
 Steht im Kopf von `index.ts` – es ist die aktuell gültige Begründung und
 gehört deshalb dorthin, wo der Code steht.
+
+---
+
+## v25 (11.10.2026)
+
+Steht im Kopf von `index.ts`. Kurz: gemeldet «beim Import aus einem Foto trat eine Fehlermeldung auf, nach einem
+erneuten Versuch ging es» + Frage «ist das Original-PDF zuverlässiger?».
+
+**Befund (Code, nicht geraten):** PDF und Foto laufen durch dieselbe Strecke – der Client schickt eine `data:`-URL,
+die Funktion reicht MIME-Typ und Inhalt unverändert als `inline_data` an Gemini (PDF also als `application/pdf`,
+nicht umgewandelt). Ein digitales PDF mit Text liefert Gemini sowohl Textebene als auch Seitenbild und ist damit
+genauer als ein Foto; ein gescanntes PDF besteht nur aus Bildern und ist nicht besser als ein gutes Foto.
+**Die Ursache des gemeldeten Fehlers ist nicht belegt:** die Funktions-Logs (Supabase `function_edge_logs`) enthielten
+für den Zeitraum keinen Eintrag. Deshalb bleibt die Wiederholungsregel (nur 503/429, `pruefstand-erkennung-
+ueberlastet-v3-254` D4) unverändert, ebenso Modell, Prompt, `generationConfig` und der Satz «Antwort der KI konnte
+nicht als Liste gelesen werden.» (v3.40–v3.45 halten ihn quelltextlich fest).
+
+**Geändert (nur was sicher fehlte):**
+1. Typ-Prüfung vor dem Aufruf (`application/pdf`, JPEG, PNG, WebP, HEIC/HEIF) – sonst kam bei Google ein 400 mit
+   englischem Rohtext zurück.
+2. Jede übrige Fehlerart bekommt einen deutschen Satz mit der nächsten Handlung (500/502/504, 400/413, 401/403/404);
+   der Rohtext steht nur in `detail` und **ohne API-Key** (`errText.split(apiKey).join("***")`, jetzt auch im 503-Pfad).
+   Der letzte Rückfall bleibt «Server antwortete mit Status N: …».
+3. Eine leere oder unlesbare 200-Antwort (nicht MAX_TOKENS) wird **einmal** automatisch nochmals gefragt (gleicher
+   90-s-Abbruch); eine abgelehnte (SAFETY u. a.) bekommt einen eigenen Satz; sonst bleibt der allgemeine Satz, ergänzt
+   um das Feld `hinweis` («Bitte nochmals auf Erkennen tippen.»), das der Client anhängt.
+4. Nur echte Objekte zählen als Position (Text/Zahl/null/Liste in der Antwort fallen weg).
+
+**Nicht geändert / offen:** `verify_jwt` ist `false` (war schon bei v24 so; nicht Teil dieses Auftrags, aber
+bemerkenswert: die Funktion ist ohne Anmeldung aufrufbar). Ein echter Gemini-Aufruf wurde nicht gemacht.
+Prüfstand: `pruefstaende/pruefstand-erkennung-fehlerfaelle-v3-306.js` (lädt diese Datei, Gemini als Attrappe).

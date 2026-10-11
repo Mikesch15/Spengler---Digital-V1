@@ -3,9 +3,29 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.305`
+- Aktueller Entwicklungsstand: `v3.306`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.306 — Offert-Import aus PDF/Foto: zuverlässiger und ohne Doppelte (Edge Function v25)
+
+Auftrag (11.10.2026, Ausgangsstand v3.305 `4a01ee9`). **So läuft es:** Foto → `resizeImageFile` (maxDim 1400/2200 je
+«Bildqualität») → `data:`-URL; PDF → `fileZuDataUrl` (max. Erkennungsgrösse `ANG_PDF_ERKENNEN_MAX_BYTES`); beide gehen
+durch `recognizePhoto()` (js/17) an `extract-offer-positions`, das MIME-Typ und Inhalt unverändert als `inline_data` an
+Gemini reicht (PDF als `application/pdf`); gleiche Positionsstruktur (`pos, description, quantity, unit, preis,
+abschnitt`). **Empfehlung:** digitales PDF mit Text > scharfes Foto ≈ gescanntes PDF; Foto/Scan nur, wenn es kein
+Original-PDF gibt. **Belegte Lücken (Code):** (a) «Alle Fotos erkennen» las nach einem Teilfehler beim erneuten Tippen
+ALLE Fotos nochmals → doppelte Positionen; ebenso Einzelfoto und «Positionen aus dem PDF erkennen»; der Abschlusssatz
+sagte «aus N Foto(s) erkannt», auch wenn eines scheiterte; (b) leeres Ergebnis wurde nicht erklärt; (c) Edge Function:
+Fehler ausser 503/429 kamen als rohes Englisch, MIME wurde nicht geprüft, Google-Rohtext konnte den API-Key enthalten.
+**Behoben:** `js/17` `erkennungQuellen`/`erkenneAlleFotos`/`erkenneEinzeln` (genutzt von js/17 und js/63): schon erkannte
+Quellen werden übersprungen, Einzelerkennung fragt nach und ERSETZT, Liste ändert sich erst nach gelungener Erkennung,
+ehrlicher Abschlusssatz inkl. fehlgeschlagener Foto-Nummern; Erklärung bei 0 Positionen; Edge Function **v25** (siehe
+`supabase/functions/extract-offer-positions/HISTORIE.md`), **deployt** (Version 25, `verify_jwt` unverändert false,
+Inhalt gegen das Repo geprüft). **Nicht geändert:** Modell, Prompt, Wiederholungsregel (nur 503/429), Positionsstruktur.
+Prüfstände: `erkennung-fehlerfaelle-v3-306` (23, Edge-Datei mit Gemini-Attrappe; v24 → 13 rot),
+`erkennung-wiederholung-v3-306` (11, Client; Altverhalten → 8 rot). **Nicht belegt:** ein echter Gemini-Aufruf (kein Netz/
+Key hier), die Ursache des gemeldeten Fehlers (Logs ohne Eintrag), Erkennungsgüte.
 
 ### v3.305 — Prüfung deaktivierter Module und Workflow-Übergänge (Auftrag 11.10.2026, Ausgangsstand v3.304 `6b57d3a`)
 
@@ -41,27 +61,6 @@ Gegenproben frischer Stand / geschlossene Werkstatt; Mutation rot). **Geprüft u
 Projektmaterial/Bedarf rechnet bewusst über ALLE Massaufnahmen inkl. archivierter (js/09-Kommentar); Freigabe-
 verfall, Zuweisungsketten und Rüsten-Überspringen serverseitig (siehe v3.300). **Weiter offen:** Live-Test mit
 zwei Firmen/echten Konten; Verhalten ausgeschalteter Module je Übergang nur über vorhandene Prüfstände.
-
-### v3.303 — Zuschnitt: Mischung verdichtet und korrekt gezählt; Einfassung rund quer/längs; paralleler Prüf-Lauf
-
-Rückmeldungen (11.10.2026): (1) «Nr. 4 und 6 hätten im selben Streifen Platz, es entstünde ein grösserer Rest statt
-zweier kleiner.» `js/29 ebaMischeAbschnitte`: Gast-Spuren gleicher Gruppe und Breite in einem Cluster werden
-zusammengelegt, wenn ihre Stücke (+ Schnittfuge) in die Abschnittlänge passen; eine ganze Spur wird frei, der Rest
-steht als ein grosser seitlicher Rest (Beispiel: 256 × 1'215 mm statt 2 × 244 × 705). Nur Gäste, nie der Wirt.
-**Dabei gefunden (v3.87-Altlast, die Mischung hatte keinen Prüfstand):** `ungenutzteStreifen` wurde bei Mischung
-zusätzlich zu `restBreite` gemeldet → Phantom-Reststücke (250 × 1'215 ×2, dort liegen die Gäste) und die
-Materialbilanz ging nicht auf (`aufgeht:false`). Jetzt 0 bei Mischung; `js/33 zuGeometrie` liest die Zahl aus dem
-Plan (ältere Pläne: wie bisher gerechnet, **ältere gespeicherte Mischpläne behalten die Phantom-Reste bis zur
-Neuberechnung**). Prüfstand `zuschnitt-mischung-v3-303` (10, Altcode: 7 rot, Gegenproben 800+800 und ohne Mischung,
-mit Schnittfuge). (2) Einfassung rund: «Zuschnittbreite und -länge sind vertauscht, die Abschnittlänge muss die
-Abwicklung sein.» `js/38 einfaZuschnitte`: Länge = Abwicklung (längs zur Rolle), Breite = Breite der gesamten
-Einfassung (quer = Streifenbreite); Texte «Zuschnitt L × B» in js/38 und PDF (`js/16`) angeglichen, Feldname
-«Abwicklung (Querschnitt)». Verträge angepasst, mit Gegenprüfung des Plans (Streifenbreiten 350/400, Längen
-278/308): `einfassung-app-v2-96`, `einfassung-kopf-v3-264`, `laenge-mal-breite-druck-v2-81`. Gespeicherte
-Massaufnahmen behalten ihre alte Ausrichtung bis zum erneuten Speichern (dann ändert sich `data` → Freigabe verfällt,
-wie bei jeder Änderung am Zuschnitt). Die ältere Einfassung-Ansicht js/21 (Format bis v2.95) ist unverändert.
-(3) `pruefstaende/ci-lauf.js` läuft parallel (3, `CI_PARALLEL=1` = seriell): volle Regression 7 min 43 s statt ~25 min,
-159/159. Regel für mich: die volle Regression läuft in einer eigenen Kopie (`git worktree`), nie im Arbeitsbaum.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

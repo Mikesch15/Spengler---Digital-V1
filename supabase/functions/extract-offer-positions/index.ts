@@ -239,6 +239,7 @@ Wichtig für "abschnitt":
       // Fehlersprache eines fremden Systems nicht vorgesetzt. Der Rohtext
       // geht nicht verloren, er steht in "detail" - fuer die Diagnose, nicht
       // fuer den Dialog.
+      const roh = errText.split(apiKey).join("***").slice(0, 300);
       const ueberlastet = res!.status === 503 || res!.status === 429;
       if (ueberlastet) {
         const wartesumme = Math.round(PAUSEN.reduce((a, b) => a + b, 0) / 1000);
@@ -247,13 +248,12 @@ Wichtig für "abschnitt":
           error: res!.status === 429
             ? `Das Kontingent der Texterkennung ist im Moment ausgeschoepft. Die App hat es ${maxVersuche}-mal über rund ${wartesumme} Sekunden versucht. Bitte später nochmals auf „Erkennen“ tippen - am Dokument liegt es nicht.`
             : `Die Texterkennung ist gerade überlastet. Das ist ein vorübergehender Engpass beim Anbieter und kein Fehler an deinem Dokument - die App hat es ${maxVersuche}-mal über rund ${wartesumme} Sekunden versucht. Bitte in ein paar Minuten nochmals auf „Erkennen“ tippen. Das PDF bleibt so lange hochgeladen, es muss nicht neu gewählt werden.`,
-          detail: `Status ${res!.status}: ${errText.slice(0, 300)}`,
+          detail: `Status ${res!.status}: ${roh}`,
           versuche: maxVersuche,
         }, 503);
       }
       // v25: jede uebrige Fehlerart in einem deutschen Satz mit der naechsten Handlung. Der Rohtext von Google
       // steht nur in "detail" - und ohne den API-Key, falls Google ihn in einer Meldung wiederholt.
-      const roh = errText.split(apiKey).join("***").slice(0, 300);
       const st = res!.status;
       if (st === 500 || st === 502 || st === 504) {
         return json({
