@@ -3,9 +3,19 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.309`
+- Aktueller Entwicklungsstand: `v3.310`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.310 — Audit der öffentlichen Edge Functions: password-reset gehärtet (Plattform-Version 2)
+
+Auftrag „Sicherheitsprüfung öffentlich erreichbarer Edge Functions“ (11.10.2026, Ausgangsstand v3.309 `61da466`). Code aller vier Funktionen **tatsächlich gelesen** (live per `get_edge_function`), `verify_jwt=false` ist bei allen vier beabsichtigt (Login-Bildschirm / Cron).
+- **HOCH, behoben – `password-reset`:** der Link in der Mail wurde aus dem frei setzbaren `Origin`-Header gebaut → mit gefälschtem Origin und einer bekannten Mitarbeiter-E-Mail kam eine ECHTE Mail mit gültigem Token und Link auf eine fremde Domain (Token-Diebstahl → Konto übernehmen, wenn die Person klickt). Fix: feste Liste `ERLAUBTE_ORIGINS` (`https://mikesch15.github.io`), alles andere fällt darauf zurück. **MITTEL, behoben:** keine Begrenzung → Postfach-/Resend-Flut; jetzt höchstens 3 Tokens je Konto in 15 Min (Zählung über `password_reset_tokens`, bei Fehler fail closed), Antwort bleibt immer `{ok:true}`.
+- **MITTEL, offen – `resolve-login-email`:** für eine echte E-Mail eines Mitarbeiters liefert sie die interne Pseudo-Adresse (`vorname.nachname@…`), sonst die Eingabe zurück → Konto-Existenz und interner Benutzername sind für Unangemeldete abfragbar; der Kopfkommentar („kein Leck“) stimmt so nicht; kein Limit. Fix würde den Login mit E-Mail ändern → Entscheid nötig.
+- **NIEDRIG, offen – `system-admin-storage-cron`:** Zugang nur über geteiltes Geheimnis (`x-cron-secret`, live: ohne/falsch → 401), aber das Geheimnis steht im Funktionscode und im pg_cron-Befehl (kein Supabase-Secret), Vergleich nicht zeitkonstant. Wirkung gering (liest Liste, schickt Mail an Betreiber, löscht nichts). Rotation = Änderung am Cron-Job in der DB → Entscheid nötig. Das Geheimnis steht NICHT im Repo.
+- **NIEDRIG, offen – `register-company`:** Zugang nur System-Admin oder gültiger, einmaliger Einladungstoken (live ohne beides → 403); Einlösung nicht atomar (doppelter Aufruf mit demselben Token theoretisch möglich), rohe Auth-Fehlertexte, Firmenname ungefiltert im Mail-HTML (nur System-Admin-Weg).
+- Code liegt neu im Repo: `supabase/functions/password-reset/index.ts` (+ `HISTORIE.md`). Prüfstand `pruefstand-passwort-reset-sicherheit-v3-310.js` (12 Prüfungen; ohne die zwei Fixes 5 rot). Live (pg_net, Version 2): unbekannte E-Mail mit fremdem Origin → `{ok:true}`; Bestätigen mit Fantasie-Token → 400 „ungültig“; Cron ohne/mit falschem Geheimnis → 401; register-company ohne Anmeldung → 403. **Nicht live geprüft:** echter Versand an ein Konto. Offen/latent: der Link baut `https://mikesch15.github.io/?reset=…` ohne Pfad – ob der Reset-Link in der Praxis die App erreicht, ist nicht belegt.
+- **v3.309 Nachtrag (Erkennung „Failed to fetch“):** Edge-Logs 11.10. 17:06–17:19 UTC: `extract-offer-positions` antwortete 200 (6 KB) nach **80 s** bzw. **32 s**; ein früherer Versuch 401 (Gateway). Die Funktion arbeitet, die Antwort kommt aber teils erst nach über einer Minute – im Mobilnetz bricht der Browser dann ab. Ursache nicht endgültig belegt; Folgeidee: Antwort in Stücken/Keep-alive oder Hintergrund-Erkennung.
 
 ### v3.309 — Offerten-Erkennung: „Failed to fetch“ verständlich
 
