@@ -164,7 +164,12 @@ function zuGeometrie(p){
   // aelterer Plan ohne Angabe. rlAngegeben (oben) unterscheidet genau das.
   const voll=L>0&&n>=1&&(rlAngegeben||(ab>=1&&RL>0));
   raus.push({B,A,L,jeAbschnitt:n,abschnitte:ab,rollenLaenge:RL,
-   restBreite:rb,frei:(n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0,
+   restBreite:rb,
+   // v3.303: die Zahl steht im Plan (js/29 ungenutzteStreifen) - bei der Mischung 0, weil die freie Breite
+   // schon in restBreite steckt. Aeltere Plaene tragen sie nicht oder rechnen so wie bisher.
+   frei:(z.ungenutzteStreifen!==undefined&&z.ungenutzteStreifen!==null)
+     ?Math.max(0,zuZahl(z.ungenutzteStreifen))
+     :((n>0&&ab>0)?Math.max(0,n*ab-streifen.length):0),
    fugeQuer:qf!==null?qf:((n>0)?Math.max(0,B-n*A-rb):0),streifen,index:i,
    voll});
  });

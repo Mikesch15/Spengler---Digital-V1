@@ -529,6 +529,36 @@ function ebaMischeAbschnitte(einheiten,R){
    cluster.push({laenge:e.laenge,breiteBelegt:e.effektivBreite,mitglieder:[e]});
   }
  });
+ // v3.303, Rueckmeldung des Anwenders: zwei Gast-Spuren GLEICHER Breite mit je einem kurzen Stueck
+ // (z. B. 2 x 510 mm in einem 1'215er Abschnitt) lagen in zwei Spuren und liessen zwei kleine Reste
+ // (244 x 705) stehen. Passen ihre Stuecke zusammen in EINE Spur, kommen sie dorthin: eine ganze
+ // Spur wird frei, der Rest ist ein grosser statt zwei kleiner. Nur Gaeste (nie der Wirt, der die
+ // Abschnittlaenge bestimmt), nur gleiche Gruppe und gleiche Breite; Packung laengste zuerst.
+ cluster.forEach(c=>{
+  const nachSpur=new Map();
+  c.mitglieder.forEach((e,i)=>{
+   if(i===0||!e.ref||!Array.isArray(e.ref.stuecke)||!e.ref.stuecke.length)return;
+   const k=e.gi+"|"+e.effektivBreite;
+   if(!nachSpur.has(k))nachSpur.set(k,[]);
+   nachSpur.get(k).push(e);
+  });
+  nachSpur.forEach(liste=>{
+   if(liste.length<2)return;
+   const alle=[].concat.apply([],liste.map(e=>e.ref.stuecke)).slice()
+     .sort((a,b)=>ebaZahl(b.laenge)-ebaZahl(a.laenge));
+   const spuren=[];
+   alle.forEach(x=>{
+    const l=ebaZahl(x.laenge);
+    const t=spuren.find(sp=>sp.frei>=l+(sp.s.length?fuge:0)-1e-9);
+    if(t){t.frei-=l+(t.s.length?fuge:0);t.s.push(x)}
+    else spuren.push({s:[x],frei:c.laenge-l});
+   });
+   if(spuren.length>=liste.length)return;
+   liste.forEach((e,i)=>{if(i<spuren.length)e.neu=spuren[i].s;else e.weg=true});
+  });
+  c.mitglieder=c.mitglieder.filter(e=>!e.weg);
+  c.breiteBelegt=c.mitglieder.reduce((a,e,i)=>a+e.effektivBreite+(i>0?fuge:0),0);
+ });
  cluster.forEach(c=>{
   c.restBreite=Math.max(0,R-c.breiteBelegt);
   c.mitglieder.forEach((e,i)=>{e.wirt=(i===0); e.cluster=c});
@@ -666,14 +696,22 @@ function ebaFormatZeilen(gruppen,f,packe,packeMehrfach,laengstes){
   // die sonst die ganze Gastbreite faelschlich zur Schnittfuge zaehlen wuerde.
   const streifenFinal=streifen.map(st=>{
    const e=einheitenGruppe.find(x=>x.ref===st);
+   if(e&&e.weg)return null;                 // v3.303: seine Stuecke liegen jetzt in einer anderen Spur
    if(!e||e.wirt)return st;
-   const summe=(st.stuecke||[]).reduce((s,x)=>s+ebaZahl(x.laenge),0);
-   return Object.assign({},st,{abschnittLaenge:e.cluster.laenge,
-     rest:Math.max(0,e.cluster.laenge-summe),mischungsGast:true});
-  });
+   const sk=e.neu||(st.stuecke||[]);
+   const summe=sk.reduce((s,x)=>s+ebaZahl(x.laenge),0);
+   // zusammengelegte Spur: der Rest enthaelt die Schnittfuge zwischen den Stuecken NICHT (wie in
+   // ebaPackeInStreifen: Laenge - Summe - (n-1) Fugen); sonst bleibt die bisherige Rechnung.
+   const innen=e.neu?Math.max(0,sk.length-1)*fuge:0;
+   return Object.assign({},st,{stuecke:sk,abschnittLaenge:e.cluster.laenge,
+     rest:Math.max(0,e.cluster.laenge-summe-innen),mischungsGast:true});
+  }).filter(Boolean);
   return {breite:g.breite,jeTafel:jeAbschnitt,jeAbschnitt,abschnitte:wirte.length,
     abschnittLaenge:L,rollenLaenge,streifen:streifenFinal,optimal:optimalGruppe,
-    ungenutzteStreifen:Math.max(0,wirte.length*jeAbschnitt-streifen.length),
+    // v3.303: bei der Mischung steht ALLE freie Breite eines Abschnitts schon in restBreite (Cluster-
+    // Rest). Zusaetzlich "ungenutzte Streifen" zu melden zaehlte sie doppelt - es erschienen Reststuecke,
+    // die es nicht gibt (die Plaetze belegen ja die Gaeste), und die Materialbilanz ging nicht auf.
+    ungenutzteStreifen:0,
     restBreite,querFuge,teile};
  });
  return {zeilen,flaeche};
