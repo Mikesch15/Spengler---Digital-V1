@@ -320,17 +320,24 @@ function renderAmPhotoGallery(){
  // bleibt der Offerte vorbehalten.
  $("amRecognizeAll").hidden=amPhotos.length===0||$("amType").value!=="offerte_erfassen";
 }
-async function recognizePhoto(src){
- // v3.307 (SICHERHEIT): bis v3.306 ging der OEFFENTLICHE Schluessel der App (im Browser fuer jeden lesbar) als
- // "Bearer" mit - die Funktion war ohne Anmeldung aufrufbar, samt Kosten fuer Gemini. Jetzt geht das Token
- // der angemeldeten Person mit (supabase-js erneuert es bei Bedarf selbst); der oeffentliche Schluessel bleibt
- // nur als "apikey". Ohne Anmeldung gibt es keine Anfrage - mit einem verstaendlichen Satz statt einem 401.
+// v3.308: EIN Weg fuer das Token der KI-Erkennungen (Offerte js/17, Profilskizze js/14): das Token der
+// angemeldeten Person aus der Sitzung (supabase-js erneuert es bei Bedarf selbst). Der OEFFENTLICHE Schluessel der
+// App ist keine Anmeldung. Ohne Sitzung gibt es keine Anfrage - mit einem verstaendlichen Satz.
+async function erkennungsToken(){
  let token="";
  try{
   const {data}=await sb.auth.getSession();
   token=(data&&data.session&&data.session.access_token)||"";
  }catch(e){token=""}
  if(!token)throw new Error("Du bist nicht angemeldet oder die Anmeldung ist abgelaufen. Bitte die App neu laden und anmelden – danach nochmals auf „Erkennen“ tippen.");
+ return token;
+}
+async function recognizePhoto(src){
+ // v3.307 (SICHERHEIT): bis v3.306 ging der OEFFENTLICHE Schluessel der App (im Browser fuer jeden lesbar) als
+ // "Bearer" mit - die Funktion war ohne Anmeldung aufrufbar, samt Kosten fuer Gemini. Jetzt geht das Token
+ // der angemeldeten Person mit (supabase-js erneuert es bei Bedarf selbst); der oeffentliche Schluessel bleibt
+ // nur als "apikey". Ohne Anmeldung gibt es keine Anfrage - mit einem verstaendlichen Satz statt einem 401.
+ const token=await erkennungsToken();
  const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
   method:"POST",
   headers:{

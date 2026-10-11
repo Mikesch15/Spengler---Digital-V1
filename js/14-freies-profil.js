@@ -262,6 +262,10 @@ $("fp_sketchRecognize").onclick=()=>{
 };
 
 async function recognizeProfileSketch(dataUrl){
+ // v3.308 (SICHERHEIT): das Token der angemeldeten Person statt des oeffentlichen App-Schluessels als Bearer
+ // (siehe erkennungsToken() in js/17). Ohne Sitzung keine Anfrage; der Satz steht VOR dem try, damit ihn der
+ // catch ("Keine Verbindung ...") nicht ueberschreibt.
+ const token=await erkennungsToken();
  // Zeitgrenze auch im Browser: sonst bleibt die Anzeige bei einer
  // haengenden Verbindung endlos auf "wird erkannt".
  const abbruch=("AbortController" in window)?new AbortController():null;
@@ -272,7 +276,7 @@ async function recognizeProfileSketch(dataUrl){
    method:"POST",
    headers:{
     "Content-Type":"application/json",
-    "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+    "Authorization":`Bearer ${token}`,
     "apikey":SUPABASE_ANON_KEY
    },
    body:JSON.stringify({image_base64:dataUrl}),
@@ -291,6 +295,10 @@ async function recognizeProfileSketch(dataUrl){
  if(!data){
   throw new Error("Die Antwort der Erkennung war unlesbar. Bitte erneut versuchen.");
  }
+ // v3.308: lehnt schon der Gateway ab ({code:401,message:"Invalid JWT"}), kommt kein "error" - ein Satz, der sagt,
+ // was zu tun ist.
+ if(res.status===401&&typeof data.error!=="string")
+  throw new Error("Die Anmeldung ist abgelaufen oder ungültig. Bitte die App neu laden und erneut anmelden.");
  if(!res.ok||!data.ok){
   // Nur eine Meldung durchreichen, die auch fuer den Benutzer eine Aussage
   // ist. Rohe Serverbrocken ("kaputt", ein Statuscode) helfen niemandem -
