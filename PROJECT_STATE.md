@@ -19,9 +19,15 @@ RLS/Policies unverändert. Modell/Prompt/Wiederholung/Antwortformat unverändert
 extract-offer-positions/HISTORIE.md` v26. **Lokal belegt:** `erkennung-fehlerfaelle-v3-306` (35, Datei geladen, Supabase/Gemini
 als Attrappe; ohne Prüfung 8 rot), `erkennung-wiederholung-v3-306` (14; alter Bearer → 2 rot); Verträge in
 `erkennung-ueberlastet-v3-254`, `angebote-v3-34`, `angebot-pdf-erkennen-v3-39` (Attrappen liefern erst nach dem Start eine Sitzung).
-**Live:** siehe Abschlussbericht dieser Version – Supabase ist aus dieser Umgebung nicht erreichbar, ein Aufruf des echten
-Endpunkts ohne/mit Token wurde nicht durchgeführt. **Offen:** manueller Test (angemeldet → Erkennung geht; abgemeldet → Meldung),
-`extract-profile-shape` (js/14) sendet ebenfalls den öffentlichen Schlüssel (nicht Teil dieses Auftrags), kein Limit je Benutzer.
+**Live (am echten Endpunkt, per `pg_net` aus der Datenbank ausgelöst, leerer Body, keine Gemini-Kosten, deployte Version 26,
+`verify_jwt=true`):** ohne Authorization → 401 (Gateway «Missing authorization header»); erfundenes Token → 401 (Gateway
+«Invalid JWT»); falsches Schema → 401; **öffentlicher App-Schlüssel als Bearer → 401 von der Funktion selbst** («Anmeldung
+abgelaufen oder ungültig») – der Gateway lässt diesen Schlüssel durch, `verify_jwt` allein hätte also NICHT geschützt.
+**Nicht live geprüft:** der Erfolgsfall mit dem Token einer echten angemeldeten Person (kein Konto/Token verfügbar) – er ist
+nur lokal belegt (Attrappe). **Offen:** manueller Test in der App (angemeldet → Erkennung geht; Sitzung abgelaufen → Satz),
+`extract-profile-shape` (js/14) schickt ebenfalls den öffentlichen Schlüssel und hat **keine** Prüfung in der Funktion →
+wegen des Gateway-Verhaltens vermutlich offen aufrufbar (Gemini-Kosten) – eigener Auftrag, nicht angefasst; kein Limit je Benutzer;
+ein bereits geladener alter App-Stand (PWA-Cache) bekommt bis zum Neuladen ein 401.
 
 ### v3.306 — Offert-Import aus PDF/Foto: zuverlässiger und ohne Doppelte (Edge Function v25)
 

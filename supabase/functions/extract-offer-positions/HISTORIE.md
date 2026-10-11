@@ -464,3 +464,8 @@ geladener, alter App-Stand (PWA-Cache) sendet noch den öffentlichen Schlüssel 
 Verwandt, nicht Teil dieses Auftrags: `extract-profile-shape` (js/14) schickt ebenfalls den öffentlichen Schlüssel als Bearer.
 Prüfstand: `pruefstaende/pruefstand-erkennung-fehlerfaelle-v3-306.js` (lädt die Datei, Supabase/Gemini als Attrappe) und
 `pruefstand-erkennung-wiederholung-v3-306.js` (Client sendet das Token; ohne Sitzung keine Anfrage).
+
+**Live-Prüfung nach dem Deploy (Version 26, `verify_jwt=true`; per `pg_net` aus der Datenbank, leerer Body):** ohne
+Authorization 401 (`UNAUTHORIZED_NO_AUTH_HEADER`); erfundenes Token 401 (`UNAUTHORIZED_INVALID_JWT_FORMAT`); Schema «Basic» 401;
+**öffentlicher App-Schlüssel als Bearer: 401 aus `pruefeZugang()`** – der Gateway lässt den Schlüssel durch, erst die Prüfung in
+der Funktion weist ihn ab. **Nicht live geprüft:** Erfolgsfall mit dem Token einer echten Person.
