@@ -34231,3 +34231,16 @@ schon → die Werkstatt zeigte Arbeit samt «Rüsten bestätigen», die die pers
 **Offen / nicht belegt:** Live-Test mit zwei Firmen und echten Konten; Verhalten bei ausgeschaltetem Modul je
 Übergang nur über vorhandene Prüfstände (`werkstatt-v3-09`, `reservierung-v3-09`, `projektmodule-v3-09`) geprüft;
 die Rüstblatt-Kürzung für weitere Arten ist seit v3.296 entschieden (Anweisung vom 10.10.2026).
+
+### v3.301 — Rüstblatt: Liste nach dem Schnitt gegliedert (Abschnitt → Streifen mit Abwicklung → Stücke)
+
+Rückmeldung (11.10.2026): «Man muss auf Anhieb sehen, aus welchem Abschnitt welche Streifen mit welchen
+Abwicklungen geschnitten werden und welche Stücke dann aus welchen Streifen gemacht werden – jetzt steht nur der
+Abschnitt, das ist zu wenig.» `js/33 zuListeAbschnitteHtml` (nur `zuListeHtml(p,{herkunft:true})` = Rüstblatt, nur
+bei mehr als einem Streifen/einer Stange): Kopf «Abschnitt N · L mm ab Rolle» (Stange: «Stange N · L mm»), darin
+je Streifen eine Zeile «Streifen M · Abwicklung A mm» mit den Stücken (abhakbare Nummer + Länge + Merkmal wie
+Gehrung/Hinweis); «✓ alle» und «x/y zugeschnitten» je Streifen. Gleiche `data-ze-*`-Knöpfe wie bisher → dasselbe
+Abhaken. Grundlage `zuAbschnittInfo(p)` (Abschnitt, Länge, Streifen-Nummer im Abschnitt; Vorgänger
+`zuAbschnittTitel`, v3.299): ohne Mischung fortlaufend, mit Mischung rekonstruiert. Material-Seite zeigt
+bei mehreren Streifenbreiten «Abschnitt N · L mm · Streifen M». Material-Seite, Werkstatt-Liste und Register
+behalten die bisherige Liste. Prüfstand `ruestblatt-abschnitte-v3-297` umgebaut (16; Mutation rot).

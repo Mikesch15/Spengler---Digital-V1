@@ -3,9 +3,22 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.303`
+- Aktueller Entwicklungsstand: `v3.304`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.304 — Prozessprüfung, 2. Lücke: Werkstatt lädt nach Rückkehr in die App neu
+
+Fortsetzung der End-to-End-Prozessprüfung (Punkt 9 «keine veralteten Stände nach Rückkehr in die App»). Bestand:
+`js/45 aufgabenBeiRueckkehr` lädt «Heute» ab einer Minute Alter nach (visibilitychange/online), die Werkstatt
+(`js/51`) nicht – nach Stunden im Hintergrund zeigte sie den alten Stand samt «Rüsten bestätigen» an einer
+Aufnahme, die nicht mehr dran ist (serverseitig würde die Aktion ehrlich abgelehnt, aber der Stand war falsch).
+Neu: `werkBeiRueckkehr` (`werkStandZeit`, 60 s) – nur bei offener Werkstatt und angemeldeter Person, über
+`werkstattNeuLaden`. Prüfstand `werkstatt-rueckkehr-v3-304` (5; gemessen wird die Anzeige, nicht der Speicher;
+Gegenproben frischer Stand / geschlossene Werkstatt; Mutation rot). **Geprüft und für in Ordnung befunden:**
+Projektmaterial/Bedarf rechnet bewusst über ALLE Massaufnahmen inkl. archivierter (js/09-Kommentar); Freigabe-
+verfall, Zuweisungsketten und Rüsten-Überspringen serverseitig (siehe v3.300). **Weiter offen:** Live-Test mit
+zwei Firmen/echten Konten; Verhalten ausgeschalteter Module je Übergang nur über vorhandene Prüfstände.
 
 ### v3.303 — Zuschnitt: Mischung verdichtet und korrekt gezählt; Einfassung rund quer/längs; paralleler Prüf-Lauf
 
@@ -40,19 +53,6 @@ auf genau so viele Abschnitte verteilt, jeder in die Rollenbreite passend (Rück
 belegt). Gelingt das nicht, bleibt die gruppenweise Zählung. Fixtures im Prüfstand ohne `mischungsGast`, mit
 `teile` wie gespeichert; `ruestblatt-abschnitte-v3-297` 16, Mutation rot. Grenze: die Verteilung ist eine
 gültige, nicht zwingend die ursprüngliche Aufteilung (gleich schneidbar).
-
-### v3.301 — Rüstblatt: Liste nach dem Schnitt gegliedert (Abschnitt → Streifen mit Abwicklung → Stücke)
-
-Rückmeldung (11.10.2026): «Man muss auf Anhieb sehen, aus welchem Abschnitt welche Streifen mit welchen
-Abwicklungen geschnitten werden und welche Stücke dann aus welchen Streifen gemacht werden – jetzt steht nur der
-Abschnitt, das ist zu wenig.» `js/33 zuListeAbschnitteHtml` (nur `zuListeHtml(p,{herkunft:true})` = Rüstblatt, nur
-bei mehr als einem Streifen/einer Stange): Kopf «Abschnitt N · L mm ab Rolle» (Stange: «Stange N · L mm»), darin
-je Streifen eine Zeile «Streifen M · Abwicklung A mm» mit den Stücken (abhakbare Nummer + Länge + Merkmal wie
-Gehrung/Hinweis); «✓ alle» und «x/y zugeschnitten» je Streifen. Gleiche `data-ze-*`-Knöpfe wie bisher → dasselbe
-Abhaken. Grundlage `zuAbschnittInfo(p)` (Abschnitt, Länge, Streifen-Nummer im Abschnitt; Vorgänger
-`zuAbschnittTitel`, v3.299): ohne Mischung fortlaufend, mit Mischung rekonstruiert. Material-Seite zeigt
-bei mehreren Streifenbreiten «Abschnitt N · L mm · Streifen M». Material-Seite, Werkstatt-Liste und Register
-behalten die bisherige Liste. Prüfstand `ruestblatt-abschnitte-v3-297` umgebaut (16; Mutation rot).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
