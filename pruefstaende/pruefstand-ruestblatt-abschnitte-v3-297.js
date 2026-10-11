@@ -61,7 +61,8 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   o.F=titel(zuBelegungHtml(pa));
   return o;
  });
- const kv=l=>JSON.stringify(l.map(x=>[x.k,x.nr]));
+ // Tausenderstrich je nach Browser-Sprache ’ oder ' - fuer den Vergleich vereinheitlicht
+ const kv=l=>JSON.stringify(l.map(x=>[x.k.replace(/[\u2019\u202f\u00a0]/g,"'"),x.nr]));
  p(kv(r.A.z)===JSON.stringify([["Abschnitt 1 · Streifen 1",["1"]],["Abschnitt 1 · Streifen 1",["2"]],["Abschnitt 1 · Streifen 2",["3"]],["Abschnitt 2 · Streifen 1",["4"]],["Abschnitt 2 · Streifen 2",["5"]]]),
    "A mehrere Abschnitte: jedes Stück der abhakbaren Liste nennt seinen Abschnitt und Streifen",r.A.z);
  p(r.A.z.every(x=>x.hak===x.nr.length&&x.hak>0),"die Nummern bleiben abhakbare Knöpfe",r.A.z);
@@ -70,7 +71,7 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(kv(r.B.z)===JSON.stringify([["Abschnitt 1 · Streifen 1",["1"]],["Abschnitt 2 · Streifen 1",["2"]],["Abschnitt 2 · Streifen 1",["3"]],["Abschnitt 2 · Streifen 2",["4"]]]),
    "B mehrere Abschnittlängen: die Abschnittnummer des Streifens gilt",r.B.z);
  p(kv(r.G.z)===JSON.stringify([["Streifen 1",["1"]],["Streifen 2",["2"]]]),"G gleich lange Stücke aus zwei Streifen: je Streifen eine Herkunft",r.G.z);
- p(kv(r.H.z)===JSON.stringify([["Abschnitt 595 mm",["1"]],["Abschnitt 595 mm",["2"]],["Abschnitt 1’215 mm",["3","5"]],["Abschnitt 1’215 mm",["4","6"]]]),
+ p(kv(r.H.z)===JSON.stringify([["Abschnitt 595 mm",["1"]],["Abschnitt 595 mm",["2"]],["Abschnitt 1'215 mm",["3","5"]],["Abschnitt 1'215 mm",["4","6"]]]),
    "H mehrere Streifenbreiten: der Abschnitt ist der echte (1'215 bzw. 595 ab Rolle), auch für mitfahrende Gruppen - nicht je Gruppe 'Abschnitt 1'",r.H.z);
  p(r.C.z.length===0&&r.C.ohne>0,"Gegenprobe: bei nur EINEM Streifen keine Herkunft, die normale Nummernreihe bleibt",r.C);
  p(kv(r.D)===JSON.stringify([["Stange 1 · 6000 mm",["1","2"]],["Stange 2 · 5000 mm",["3"]]])||/Stange 1 · 6.?000 mm/.test(r.D[0].k)&&r.D.length===2&&r.D[0].nr.join()==="1,2"&&/Stange 2/.test(r.D[1].k),"D zwei Stangen: Stück → Stange, abhakbar",r.D);
