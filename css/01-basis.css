@@ -1843,5 +1843,12 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .rb-masse .eb-cutlist td{padding:5px 6px 5px 0;border-top:1px solid var(--card-line);overflow-wrap:anywhere}
 .rb-masse .note{font-size:14px}
 
-/* ---- v3.297: Herkunft (Abschnitt/Streifen/Stange) in der abhakbaren Liste, js/33 zuGruppenZeileHtml ---- */
-.zu-pos-herkunft .zu-pos-marke{font-size:12px;font-weight:800;letter-spacing:0;text-transform:none;color:var(--text)}
+/* ---- v3.301: Liste des Ruestblatts nach dem Schnitt gegliedert: Abschnitt -> Streifen -> Stuecke (js/33 zuListeAbschnitteHtml) ---- */
+.zu-abschnitt{margin:8px 0;border:1px solid var(--card-line);border-radius:10px;overflow:hidden;background:var(--card-bg)}
+.zu-abschnitt-kopf{padding:6px 10px;font-size:14px;font-weight:900;background:rgba(127,127,127,.12)}
+.zu-streifen-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;padding:8px 10px;border-top:1px solid var(--card-line)}
+.zu-streifen-name{flex:1 1 100%;font-size:13px;font-weight:800;color:var(--muted)}
+.zu-streifen-stuecke{display:flex;flex-wrap:wrap;gap:6px 14px}
+.zu-st{display:inline-flex;align-items:center;gap:6px}
+.zu-st-mass{font-size:15px;font-weight:800;white-space:nowrap}
+.zu-st-zusatz{font-size:12px;font-weight:600;color:var(--muted)}

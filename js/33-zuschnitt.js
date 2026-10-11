@@ -314,18 +314,18 @@ function zuAlleStuecke(p){
  if(!p)return liste;
  if(p.art==="stange"){
   (p.stangen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>
-   liste.push(Object.assign({},x,{breite:p.breite,platz:si+1,herkunft:"Stange "+(si+1)+" · "+zuMm(s.laenge)+" mm"}))));
+   liste.push(Object.assign({},x,{breite:p.breite,platz:si+1,abschnitt:si+1,abLaenge:zuZahl(s.laenge),strKey:"s|"+si,strIdx:1}))));
  }else{
   // v3.297: woher das Stueck kommt (Abschnitt/Streifen) reist mit - die abhakbare Liste zeigt es.
-  // Bei MEHREREN Streifenbreiten gilt die plan-weite Abschnittsnummer (zuAbschnittTitel), nicht die
-  // gruppenweise: eine Gruppe zaehlt ihre Abschnitte sonst fuer sich ("Abschnitt 1" kaeme mehrfach vor).
+  // v3.301: Abschnitt, Streifen und Abwicklung je Stueck (zuAbschnittInfo) - die Liste des
+  // Ruestblatts gliedert danach: Abschnitt -> Streifen (mit Abwicklung) -> Stuecke.
   const gruppen=p.gruppen||[];
-  const ab=zuAbschnittTitel(p);
-  gruppen.forEach(g=>{
-   const titel=zuStreifenTitel(g,p);
+  const ab=zuAbschnittInfo(p);
+  gruppen.forEach((g,gi)=>{
    (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>{
-    liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,
-     herkunft:(ab&&ab.get(s))||((gruppen.length>1?zuMm(g.breite)+" mm · ":"")+titel[si])}));
+    const i=ab&&ab.get(s);
+    liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,strKey:gi+"|"+si,
+     abschnitt:i?i.nr:undefined,abLaenge:i?i.laenge:undefined,strIdx:i?i.idx:undefined}));
    }));
   });
  }
@@ -384,12 +384,54 @@ function zuErledigtFuer(p){
 // v3.297, Ansage des Anwenders: "Welches Stueck aus welchem Abschnitt sollte auch in der abhakbaren
 // Liste stehen und nicht in einer separaten Liste." Nur wenn es mehr als einen Streifen bzw. eine
 // Stange gibt (sonst waere es Rauschen) und nur wo der Aufrufer es verlangt (opt.herkunft).
+// v3.301, Ansage des Anwenders: "Man muss auf Anhieb sehen, aus welchem Abschnitt welche Streifen mit
+// welchen Abwicklungen geschnitten werden und welche Stuecke dann aus welchen Streifen gemacht werden."
+// Die abhakbare Liste des Ruestblatts gliedert deshalb nach dem Schnitt selbst:
+//   Abschnitt N (Laenge ab Rolle)  ->  Streifen M (Abwicklung)  ->  Stueck-Nummern mit Laenge.
+// Dieselben Knoepfe/Attribute wie zuGruppenZeileHtml (data-ze-*), also dasselbe Abhaken.
+function zuListeAbschnitteHtml(p){
+ const mid=zuErledigtFuer(p);
+ const abhakbar=!(mid===null||mid===undefined);
+ const stange=p.art==="stange";
+ const wort=stange?"Stange":zuWort(p).abschnitt;
+ const bloecke=new Map();
+ zuAlleStuecke(p).forEach(x=>{
+  const k=x.abschnitt!==undefined?x.abschnitt:"rest";
+  if(!bloecke.has(k))bloecke.set(k,{laenge:x.abLaenge,streifen:new Map()});
+  const b=bloecke.get(k);
+  if(!b.streifen.has(x.strKey||"rest"))b.streifen.set(x.strKey||"rest",{idx:x.strIdx,breite:x.breite,stuecke:[]});
+  b.streifen.get(x.strKey||"rest").stuecke.push(x);
+ });
+ const knopf=(x)=>{
+  const n=x.nr, l=Math.round(zuZahl(x.laenge)), bb=Math.round(zuZahl(x.breite));
+  const nrEl=abhakbar
+   ?`<button type="button" class="zu-nr zu-nr-hak" aria-pressed="false" data-ze-meas="${esc(mid)}" data-ze-nr="${esc(n)}"`
+    +` data-ze-l="${esc(l)}" data-ze-b="${esc(bb||"")}" data-ze-m="${esc(x.merkmal||"")}"`
+    +` title="Stück ${esc(n)} als zugeschnitten abhaken">${esc(n)}</button>`
+   :`<span class="zu-nr">${esc(n)}</span>`;
+  const zus=[x.merkmal,x.hinweis].filter(Boolean).map(esc).join(" · ");
+  return `<span class="zu-st">${nrEl}<span class="zu-st-mass">${esc(zuMm(l))} mm${zus?` · <span class="zu-st-zusatz">${zus}</span>`:""}</span></span>`;
+ };
+ const reihenfolge=Array.from(bloecke.keys()).sort((a,b)=>(a==="rest")-(b==="rest")||(a===b?0:a-b));
+ return reihenfolge.map(k=>{
+  const b=bloecke.get(k);
+  const kopf=k==="rest"?"Aus vorhandenem Rest":(wort+" "+k+(b.laenge>0?" · "+zuMm(b.laenge)+" mm"+(stange?"":(zuIstTafel(p)?"":" ab Rolle")):""));
+  const zeilen=Array.from(b.streifen.values()).sort((x,y)=>(x.idx||0)-(y.idx||0)).map(st=>{
+   const nrs=st.stuecke.map(x=>x.nr).filter(n=>n!==undefined&&n!==null);
+   const name=(stange||k==="rest")?"":`<span class="zu-streifen-name">Streifen ${esc(st.idx)} · Abwicklung ${esc(zuMm(st.breite))} mm</span>`;
+   const stand=abhakbar?`<span class="ze-stand" data-ze-stand="1">–</span>`
+     +(nrs.length>1?`<button type="button" class="ze-alle" data-ze-alle="${esc(mid)}" data-ze-nrs="${esc(nrs.join(","))}">✓ alle</button>`:""):"";
+   return `<div class="zu-streifen-zeile"${abhakbar?' data-ze-zeile="1"':""}>${name}<span class="zu-streifen-stuecke">${st.stuecke.map(knopf).join("")}</span>${stand}</div>`;
+  }).join("");
+  return `<div class="zu-abschnitt"><div class="zu-abschnitt-kopf">${esc(kopf)}</div>${zeilen}</div>`;
+ }).join("");
+}
 function zuHerkunftNoetig(p){
  if(!p)return false;
  if(p.art==="stange")return (p.stangen||[]).length>=2;
  return (p.gruppen||[]).reduce((a,g)=>a+(g.streifen||[]).length,0)>=2;
 }
-function zuGruppenZeileHtml(g,einheit,p,opt){
+function zuGruppenZeileHtml(g,einheit,p){
  const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);
  const hinweise=[];
  g.stuecke.forEach(x=>{if(x.hinweis&&hinweise.indexOf(x.hinweis)<0)hinweise.push(x.hinweis)});
@@ -413,18 +455,6 @@ function zuGruppenZeileHtml(g,einheit,p,opt){
    +` data-ze-m="${esc(g.merkmal||"")}"`
    +` title="Stück ${esc(n)} als zugeschnitten abhaken">${esc(n)}</button>`;
  };
- // Eine Zeile je Herkunft: "Abschnitt 1 · Streifen 1 [1] [2]" - die Nummern bleiben antippbar.
- const herkunftHtml=()=>{
-  const nach=new Map();
-  g.stuecke.forEach(x=>{
-   if(x.nr===undefined||x.nr===null)return;
-   const k=x.herkunft||"aus Rest";
-   if(!nach.has(k))nach.set(k,[]);
-   nach.get(k).push(x.nr);
-  });
-  return Array.from(nach.entries()).map(([k,nrs])=>`<span class="zu-pos zu-pos-herkunft"><span class="zu-pos-marke">${esc(k)}</span>${
-   nrs.map(n=>nrHtml(n)).join("")}</span>`).join("");
- };
  const stand=(mid===null||mid===undefined)?"":
   `<span class="ze-stand" data-ze-stand="1">–</span>`
   +(nummern.length>1?`<button type="button" class="ze-alle" data-ze-alle="${esc(mid)}"`
@@ -432,10 +462,8 @@ function zuGruppenZeileHtml(g,einheit,p,opt){
  return `<div class="zu-zeile"${mid!==null&&mid!==undefined?' data-ze-zeile="1"':""}>
 <span class="zu-anzahl">${g.stuecke.length} ×</span>
 <span class="zu-mass">${esc(zuMm(g.laenge))}${g.breite>0?" × "+esc(zuMm(g.breite)):""}<span class="zu-einheit"> mm</span></span>
-${nummern.length?((opt&&opt.herkunft&&zuHerkunftNoetig(p)&&g.stuecke.some(x=>x.herkunft))
-  ?herkunftHtml()
-  :`<span class="zu-pos"><span class="zu-pos-marke">${esc(e)}</span>${
-  nummern.map(n=>nrHtml(n)).join("")}</span>`):""}
+${nummern.length?`<span class="zu-pos"><span class="zu-pos-marke">${esc(e)}</span>${
+  nummern.map(n=>nrHtml(n)).join("")}</span>`:""}
 ${stand}
 ${zusatz.length?`<span class="zu-zusatz">${zusatz.join(" · ")}</span>`:""}
 </div>`;
@@ -477,7 +505,7 @@ function zuListeHtml(p,opt){
  }
  return `<div class="zu-liste">
 <div class="zu-liste-kopf">${esc(kopf)}</div>
-${gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p,opt)).join("")}
+${(opt&&opt.herkunft&&zuHerkunftNoetig(p))?zuListeAbschnitteHtml(p):gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p)).join("")}
 ${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
 ${zuAbhakenHinweis(p)}
 </div>`;
@@ -726,25 +754,32 @@ ${zuPlatzStueckeHtml(stuecke,breite,einheit)}
 //                  die bisherige Anzeige) statt eine falsche zu behaupten.
 // Rueckgabe: Map Streifen -> "Abschnitt N · L mm", oder null (eine Gruppe, Tafel, Stange).
 const ZU_ABSCHNITT_CACHE=new WeakMap();
-function zuAbschnittTitel(p){
- if(!p||p.art==="stange"||zuIstTafel(p))return null;
+// Rueckgabe: Map Streifen -> {nr, laenge, idx} (Abschnittsnummer, Abschnittlaenge ab Rolle bzw. Tafel,
+// laufende Nummer des Streifens IM Abschnitt), oder null (Stange, kein Plan).
+function zuAbschnittInfo(p){
+ if(!p||p.art==="stange")return null;
  const gruppen=p.gruppen||[];
- if(gruppen.length<2)return null;
+ if(!gruppen.length)return null;
  if(ZU_ABSCHNITT_CACHE.has(p))return ZU_ABSCHNITT_CACHE.get(p);
- const wort=zuWort(p).abschnitt;
- const titel=new Map();
- const setze=(st,n,L)=>titel.set(st,wort+" "+n+(L>0?" · "+zuMm(L)+" mm":""));
+ const tafel=zuIstTafel(p);
+ const info=new Map();
+ const zaehler=new Map();
+ const setze=(st,n,L)=>{const i=(zaehler.get(n)||0)+1;zaehler.set(n,i);info.set(st,{nr:n,laenge:L,idx:i})};
  const gemischt=gruppen.some(g=>(g.streifen||[]).some(st=>st.mischungsGast));
  let nr=0;
  if(!gemischt){
   gruppen.forEach(g=>{
-   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
+   const gL=tafel?(zuZahl(g.tafelLaenge)||zuZahl(p.formLaenge)||zuZahl(p.tafelLaenge))
+              :(zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge));
    const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
    const schl=new Map();
    (g.streifen||[]).forEach((st,i)=>{
     const k=(st.abschnittNr!==undefined&&st.abschnittNr!==null)?"n"+st.abschnittNr:"i"+Math.floor(i/je);
     if(!schl.has(k))schl.set(k,++nr);
-    setze(st,schl.get(k),zuZahl(st.abschnittLaenge)||gL);
+    const eigen=zuZahl(st.abschnittLaenge);
+    // Rolle mit einem Streifen je Abschnitt: jeder wird nur so lang gezogen wie noetig (L - Rest).
+    const L=eigen>0?eigen:((!tafel&&je===1)?Math.max(0,gL-zuZahl(st.rest)):gL);
+    setze(st,schl.get(k),L);
    });
   });
  }else{
@@ -761,12 +796,13 @@ function zuAbschnittTitel(p){
    });
   });
   const laengen=Array.from(new Set(einheiten.map(e=>e.La))).sort((a,b)=>b-a);
+  const zuordnung=[];   // [{st,nr,La}] - erst nach der Nummerierung nach Plan-Reihenfolge setzen
   laengen.forEach(La=>{
    const wirte=einheiten.filter(e=>e.La===La&&e.wirt);
    const gaeste=einheiten.filter(e=>e.La===La&&!e.wirt).sort((a,b)=>b.A-a.A);
    if(!wirte.length)return;
    if(B<=0){      // Rollenbreite unbekannt (aelterer Plan): nur eindeutig, wenn es EINEN Abschnitt dieser Laenge gibt
-    if(wirte.length===1){const n=++nr;setze(wirte[0].st,n,La);gaeste.forEach(g=>setze(g.st,n,La))}
+    if(wirte.length===1){const n=++nr;zuordnung.push({st:wirte[0].st,n,La});gaeste.forEach(g=>zuordnung.push({st:g.st,n,La}))}
     return;
    }
    const frei=wirte.map(w=>B-w.A);
@@ -787,12 +823,25 @@ function zuAbschnittTitel(p){
    };
    if(!suche(0))return;
    const nummern=wirte.map(()=>++nr);
-   wirte.forEach((w,j)=>setze(w.st,nummern[j],La));
-   gaeste.forEach((g,i)=>setze(g.st,nummern[wohin[i]],La));
+   wirte.forEach((w,j)=>zuordnung.push({st:w.st,n:nummern[j],La}));
+   gaeste.forEach((g,i)=>zuordnung.push({st:g.st,n:nummern[wohin[i]],La}));
   });
+  // Streifen-Nummer im Abschnitt in der Reihenfolge des Plans (Gruppe fuer Gruppe), nicht der Suche
+  const nach=new Map(zuordnung.map(z=>[z.st,z]));
+  gruppen.forEach(g=>(g.streifen||[]).forEach(st=>{const z=nach.get(st);if(z)setze(st,z.n,z.La)}));
  }
- ZU_ABSCHNITT_CACHE.set(p,titel);
- return titel;
+ ZU_ABSCHNITT_CACHE.set(p,info);
+ return info;
+}
+// Titel fuer die Belegung auf der Material-Seite - nur bei mehreren Streifenbreiten (Rolle); eine Gruppe
+// allein behaelt zuStreifenTitel.
+function zuAbschnittTitel(p){
+ if(!p||zuIstTafel(p)||(p.gruppen||[]).length<2)return null;
+ const info=zuAbschnittInfo(p);
+ if(!info)return null;
+ const t=new Map();
+ info.forEach((v,st)=>t.set(st,zuWort(p).abschnitt+" "+v.nr+(v.laenge>0?" · "+zuMm(v.laenge)+" mm":"")+" · Streifen "+v.idx));
+ return t;
 }
 function zuStreifenTitel(g,p){
  const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
