@@ -34244,3 +34244,16 @@ Abhaken. Grundlage `zuAbschnittInfo(p)` (Abschnitt, Länge, Streifen-Nummer im A
 `zuAbschnittTitel`, v3.299): ohne Mischung fortlaufend, mit Mischung rekonstruiert. Material-Seite zeigt
 bei mehreren Streifenbreiten «Abschnitt N · L mm · Streifen M». Material-Seite, Werkstatt-Liste und Register
 behalten die bisherige Liste. Prüfstand `ruestblatt-abschnitte-v3-297` umgebaut (16; Mutation rot).
+
+### v3.302 — Abschnitt-Zuordnung: Mischung aus der Fusszeile ablesen (Korrektur zu v3.299/v3.301)
+
+Rückmeldung (11.10.2026, Handy): Das Rüstblatt zeigte vier Abschnitte (595, 595, 1'215, 1'215), die Fusszeile
+nennt «1 × 1'215 + 1 × 595 mm ab Rolle» – 507+325 mm passen in den 595er, 250+250+244+244 mm in den 1'215er.
+Ursache: `mischungsGast` wird von den Modulen **nicht mitgespeichert** (gespeichert sind nur stuecke/rest/
+abschnittLaenge/abschnittNr); `zuAbschnittInfo` erkannte die Mischung daher nie und zählte je Streifenbreite.
+Neu: `zuAbschnittZahlen(p)` liest dieselbe Quelle wie die Fusszeile (`zuAbschnitte(moeglich[0])`); sind das
+weniger Abschnitte als die Gruppen einzeln brauchen, wurde gemischt, und alle Streifen werden nach Abschnittlänge
+auf genau so viele Abschnitte verteilt, jeder in die Rollenbreite passend (Rückwärtssuche, jeder Abschnitt
+belegt). Gelingt das nicht, bleibt die gruppenweise Zählung. Fixtures im Prüfstand ohne `mischungsGast`, mit
+`teile` wie gespeichert; `ruestblatt-abschnitte-v3-297` 16, Mutation rot. Grenze: die Verteilung ist eine
+gültige, nicht zwingend die ursprüngliche Aufteilung (gleich schneidbar).

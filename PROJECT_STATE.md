@@ -3,9 +3,31 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.304`
+- Aktueller Entwicklungsstand: `v3.305`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.305 — Prüfung deaktivierter Module und Workflow-Übergänge (Auftrag 11.10.2026, Ausgangsstand v3.304 `6b57d3a`)
+
+**Matrix (Code + Live-DB-Funktionen lesend; Client-Verhalten durch Prüfstand `module-workflow-v3-305`):**
+| Einstellung (firmenweit) | Erwartung | Befund | Prüfstand |
+|---|---|---|---|
+| Arbeitsablauf AN, Werkstatt AN | Werkstatt, Aufgaben, Badge, Archivieren nur für Abgeschlossene | ok | module-workflow-305 A, werkstatt-v3-09 |
+| Arbeitsablauf AUS (`workflow_aktiv=false`) | Aufgaben/Badge/Cockpit-Karte aus | ok (js/44, js/45) | workflow-v3-05, 305 B |
+| Arbeitsablauf AUS + Werkstatt-Modul AN | Werkstatt ebenfalls aus | **Lücke**: Werkstatt zeigte alte Stati samt «Rüsten bestätigen» | 305 B (vorher rot) |
+| Arbeitsablauf AUS | Massaufnahme archivierbar | **Lücke**: Archivieren nur für `abgeschlossen`, das nie erreicht wird → für immer unerreichbar | 305 B (vorher rot) |
+| Arbeitsablauf AN, Werkstatt AUS | Rüsten/Montage weiter über «Heute» | ok | 305 C, ruesten-montage-v3-292 |
+| Reservierung/Zuschnitt AUS | Blöcke/Abhaken weg, Hinweis | ok | werkstatt-v3-09 H, reservierung-v3-09 |
+| Hauptschalter AUS | alles aus, Unterschalter bleiben gespeichert | ok | projektmodule-v3-09 |
+**Server:** `feature_boundary_*` (RESTRICTIVE, `(SELECT auth.uid())`) betrifft nur angebote/lager-Tabellen; die
+Projektmodule (Reservierung, Versionierung, Werkstatt…) und `workflow_aktiv` sind laut Code (js/01, js/47)
+**reine Bedienung** – die Absicherung liegen in `schuetze_measurement_workflow` und den `measurement_*`-Funktionen
+(Firma `mw_firma_ok`, Rolle, Status), unverändert und nicht angefasst. **Behoben (kleinste Änderung):** `werkAktiv()`
+(js/51) verlangt zusätzlich den Arbeitsablauf; `js/09` bietet «Archivieren» bei ausgeschaltetem Ablauf für jede
+Massaufnahme an; Hinweis in den Modul-Einstellungen («Wirkt nur bei eingeschaltetem Arbeitsablauf»). Keine Migration.
+**Nicht belegt:** Live-Test mit zwei Firmen/echten Konten (keine echte DB in dieser Umgebung); Prüfstände belegen
+keine RLS/Mandantentrennung. Hinweis: bei ausgeschaltetem Ablauf erzwingt der Trigger weiterhin das Verfallen der
+Freigabe bei Datenänderung (harmlos, da nichts am Status hängt).
 
 ### v3.304 — Prozessprüfung, 2. Lücke: Werkstatt lädt nach Rückkehr in die App neu
 
@@ -40,19 +62,6 @@ Massaufnahmen behalten ihre alte Ausrichtung bis zum erneuten Speichern (dann ä
 wie bei jeder Änderung am Zuschnitt). Die ältere Einfassung-Ansicht js/21 (Format bis v2.95) ist unverändert.
 (3) `pruefstaende/ci-lauf.js` läuft parallel (3, `CI_PARALLEL=1` = seriell): volle Regression 7 min 43 s statt ~25 min,
 159/159. Regel für mich: die volle Regression läuft in einer eigenen Kopie (`git worktree`), nie im Arbeitsbaum.
-
-### v3.302 — Abschnitt-Zuordnung: Mischung aus der Fusszeile ablesen (Korrektur zu v3.299/v3.301)
-
-Rückmeldung (11.10.2026, Handy): Das Rüstblatt zeigte vier Abschnitte (595, 595, 1'215, 1'215), die Fusszeile
-nennt «1 × 1'215 + 1 × 595 mm ab Rolle» – 507+325 mm passen in den 595er, 250+250+244+244 mm in den 1'215er.
-Ursache: `mischungsGast` wird von den Modulen **nicht mitgespeichert** (gespeichert sind nur stuecke/rest/
-abschnittLaenge/abschnittNr); `zuAbschnittInfo` erkannte die Mischung daher nie und zählte je Streifenbreite.
-Neu: `zuAbschnittZahlen(p)` liest dieselbe Quelle wie die Fusszeile (`zuAbschnitte(moeglich[0])`); sind das
-weniger Abschnitte als die Gruppen einzeln brauchen, wurde gemischt, und alle Streifen werden nach Abschnittlänge
-auf genau so viele Abschnitte verteilt, jeder in die Rollenbreite passend (Rückwärtssuche, jeder Abschnitt
-belegt). Gelingt das nicht, bleibt die gruppenweise Zählung. Fixtures im Prüfstand ohne `mischungsGast`, mit
-`teile` wie gespeichert; `ruestblatt-abschnitte-v3-297` 16, Mutation rot. Grenze: die Verteilung ist eine
-gültige, nicht zwingend die ursprüngliche Aufteilung (gleich schneidbar).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
