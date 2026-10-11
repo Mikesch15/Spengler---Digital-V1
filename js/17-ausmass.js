@@ -338,15 +338,22 @@ async function recognizePhoto(src){
  // der angemeldeten Person mit (supabase-js erneuert es bei Bedarf selbst); der oeffentliche Schluessel bleibt
  // nur als "apikey". Ohne Anmeldung gibt es keine Anfrage - mit einem verstaendlichen Satz statt einem 401.
  const token=await erkennungsToken();
- const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   "Authorization":`Bearer ${token}`,
-   "apikey":SUPABASE_ANON_KEY
-  },
-  body:JSON.stringify({image:src})
- });
+ // v3.309: "Failed to fetch" sagt nichts - bei einem Netzwerkfehler (Anfrage kam gar nicht an oder die Antwort riss ab)
+ // steht jetzt, dass es die Verbindung zum Erkennungsdienst war und was zu tun ist.
+ let res;
+ try{
+  res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
+   method:"POST",
+   headers:{
+    "Content-Type":"application/json",
+    "Authorization":`Bearer ${token}`,
+    "apikey":SUPABASE_ANON_KEY
+   },
+   body:JSON.stringify({image:src})
+  });
+ }catch(e){
+  throw new Error("Keine Verbindung zum Erkennungsdienst (die Anfrage ist nicht durchgekommen oder die Antwort ist abgebrochen). Bitte Verbindung prüfen und nochmals auf Erkennen tippen. Bei einem grossen PDF: ein kleineres oder einzelne Seiten versuchen.");
+ }
  const text=await res.text();
  let data=null;
  try{data=JSON.parse(text)}catch{}

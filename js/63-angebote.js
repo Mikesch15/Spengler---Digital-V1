@@ -381,7 +381,9 @@ async function angPdfDatenUrlFuerErkennung(){
  }else if(angPdfExisting&&angPdfExisting.path){
   const url=await storageSignedUrl(angPdfExisting.path);
   if(!url)throw new Error("PDF konnte nicht geladen werden.");
-  const res=await fetch(url);
+  let res;
+  try{res=await fetch(url)}
+  catch(e){throw new Error("Das gespeicherte PDF konnte nicht aus dem Speicher geladen werden (keine Verbindung zum Speicher). Bitte Verbindung prüfen und nochmals versuchen.")}
   if(!res.ok)throw new Error(`PDF konnte nicht geladen werden (Status ${res.status}).`);
   quelle=await res.blob();
  }

@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.308`
+- Aktueller Entwicklungsstand: `v3.309`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.309 — Offerten-Erkennung: „Failed to fetch“ verständlich
+
+Gemeldet (Bildschirmfoto, PDF „Positionen erkennen“): „Fehler bei der Erkennung: Failed to fetch“. **Befund:** die Gateway-Ablehnungen (401) tragen CORS-Header (gemessen, `net._http_response`), ein 401 durch v3.307/v3.308 wäre als Satz angekommen – es ist ein reiner Netzwerkfehler von `fetch()` (Anfrage kam nicht an / Antwort riss ab). **Ursache nicht belegt:** Edge-Logs waren nicht abrufbar (`function_edge_logs` fehlt/Backend-Fehler); Vorbild ist der Fall v3.43 (langer POST im Mobilnetz). **Änderung:** `js/17` (`recognizePhoto`) und `js/63` (`angPdfDatenUrlFuerErkennung`) fangen den Netzwerkfehler und nennen den Schritt (Speicher bzw. Erkennungsdienst) und was zu tun ist. Funktion unverändert (v26). Offen: Wiederholung durch Mike mit demselben PDF; bei erneutem Fehler Edge-Logs prüfen (OPTIONS ohne POST = Verbindungsabbruch).
 
 ### v3.308 — Profilskizzen-Erkennung nur für angemeldete Personen + KI-Funktions-Inventar (Edge Function extract-profile-shape, Fassung 5)
 
