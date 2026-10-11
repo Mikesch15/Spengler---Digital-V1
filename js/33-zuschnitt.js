@@ -317,22 +317,15 @@ function zuAlleStuecke(p){
    liste.push(Object.assign({},x,{breite:p.breite,platz:si+1,herkunft:"Stange "+(si+1)+" · "+zuMm(s.laenge)+" mm"}))));
  }else{
   // v3.297: woher das Stueck kommt (Abschnitt/Streifen) reist mit - die abhakbare Liste zeigt es.
-  // Bei MEHREREN Streifenbreiten zaehlt jede Gruppe ihre Abschnitte fuer sich ("Abschnitt 1" kaeme
-  // mehrfach vor), und eine mitfahrende Gruppe (Trittbrett-Mischung, js/29) hat gar keinen eigenen -
-  // sie liegt im Abschnitt einer anderen. Da ist die Laenge des Abschnitts ab Rolle das, was
-  // stimmt und mit der Fusszeile ("1 × 1'215 mm + 1 × 595 mm ab Rolle") uebereinstimmt.
+  // Bei MEHREREN Streifenbreiten gilt die plan-weite Abschnittsnummer (zuAbschnittTitel), nicht die
+  // gruppenweise: eine Gruppe zaehlt ihre Abschnitte sonst fuer sich ("Abschnitt 1" kaeme mehrfach vor).
   const gruppen=p.gruppen||[];
-  const mehrere=gruppen.length>1;
-  const gemischt=gruppen.some(g=>(g.streifen||[]).some(s=>s.mischungsGast));
+  const ab=zuAbschnittTitel(p);
   gruppen.forEach(g=>{
    const titel=zuStreifenTitel(g,p);
-   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
    (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>{
-    const eigen=zuZahl(s.abschnittLaenge);
-    const L=eigen>0?eigen:(gemischt?Math.max(0,gL-zuZahl(s.rest)):gL);
     liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,
-     herkunft:(mehrere&&L>0&&!zuIstTafel(p))?zuWort(p).abschnitt+" "+zuMm(L)+" mm"
-      :(mehrere?zuMm(g.breite)+" mm · ":"")+titel[si]}));
+     herkunft:(ab&&ab.get(s))||((gruppen.length>1?zuMm(g.breite)+" mm · ":"")+titel[si])}));
    }));
   });
  }
@@ -719,6 +712,88 @@ ${zuPlatzStueckeHtml(stuecke,breite,einheit)}
 // v3.295: Der Name eines Streifens - "Abschnitt 2 · Streifen 1" bzw. nur "Streifen 3" - EINMAL
 // hier, damit Belegung (Material & Zuschnitt) und Ruestblatt dieselbe Zuordnung zeigen.
 // Unveraendert gegenueber der Regel, die bis v3.294 in zuBelegungHtml stand.
+// v3.299, Rueckmeldung des Anwenders (Handy-Screenshot): bei mehreren Streifenbreiten stand ueberall
+// "Abschnitt 1", obwohl die Fusszeile zwei Abschnitte nennt. zuStreifenTitel zaehlt je Gruppe; eine
+// mitfahrende Gruppe (Trittbrett-Mischung, js/29 ebaMischeAbschnitte) hat gar keinen eigenen. Hier die
+// plan-weite Nummer, nur aus den GESPEICHERTEN Daten rekonstruiert - eine zusaetzlich gespeicherte
+// Abschnitts-ID waere eine Aenderung von measurements.data und liesse bei jeder erteilten Freigabe die
+// Freigabe verfallen (Trigger schuetze_measurement_workflow).
+//   ohne Mischung: die Gruppen sind getrennte Abschnitte - fortlaufend gezaehlt.
+//   mit Mischung:  je Abschnittlaenge gibt es so viele Abschnitte wie Wirt-Streifen (die nicht
+//                  mischungsGast sind); die Gaeste werden so verteilt, dass jeder Abschnitt in die
+//                  Rollenbreite passt (Rueckwaertssuche - jede gueltige Verteilung ist auch
+//                  schneidbar). Gelingt das nicht, bleibt der Streifen ohne Nummer (Rueckfall auf
+//                  die bisherige Anzeige) statt eine falsche zu behaupten.
+// Rueckgabe: Map Streifen -> "Abschnitt N · L mm", oder null (eine Gruppe, Tafel, Stange).
+const ZU_ABSCHNITT_CACHE=new WeakMap();
+function zuAbschnittTitel(p){
+ if(!p||p.art==="stange"||zuIstTafel(p))return null;
+ const gruppen=p.gruppen||[];
+ if(gruppen.length<2)return null;
+ if(ZU_ABSCHNITT_CACHE.has(p))return ZU_ABSCHNITT_CACHE.get(p);
+ const wort=zuWort(p).abschnitt;
+ const titel=new Map();
+ const setze=(st,n,L)=>titel.set(st,wort+" "+n+(L>0?" · "+zuMm(L)+" mm":""));
+ const gemischt=gruppen.some(g=>(g.streifen||[]).some(st=>st.mischungsGast));
+ let nr=0;
+ if(!gemischt){
+  gruppen.forEach(g=>{
+   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
+   const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
+   const schl=new Map();
+   (g.streifen||[]).forEach((st,i)=>{
+    const k=(st.abschnittNr!==undefined&&st.abschnittNr!==null)?"n"+st.abschnittNr:"i"+Math.floor(i/je);
+    if(!schl.has(k))schl.set(k,++nr);
+    setze(st,schl.get(k),zuZahl(st.abschnittLaenge)||gL);
+   });
+  });
+ }else{
+  const geo=zuGeometrie(p);
+  const B=geo.length?zuZahl(geo[0].B):0;
+  const fuge=(typeof ebaSchnittfuge==="function")?ebaSchnittfuge():0;
+  const einheiten=[];
+  gruppen.forEach(g=>{
+   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
+   (g.streifen||[]).forEach(st=>{
+    const eigen=zuZahl(st.abschnittLaenge);
+    einheiten.push({st,A:zuZahl(g.breite),
+     La:Math.round(eigen>0?eigen:Math.max(0,gL-zuZahl(st.rest))),wirt:!st.mischungsGast});
+   });
+  });
+  const laengen=Array.from(new Set(einheiten.map(e=>e.La))).sort((a,b)=>b-a);
+  laengen.forEach(La=>{
+   const wirte=einheiten.filter(e=>e.La===La&&e.wirt);
+   const gaeste=einheiten.filter(e=>e.La===La&&!e.wirt).sort((a,b)=>b.A-a.A);
+   if(!wirte.length)return;
+   if(B<=0){      // Rollenbreite unbekannt (aelterer Plan): nur eindeutig, wenn es EINEN Abschnitt dieser Laenge gibt
+    if(wirte.length===1){const n=++nr;setze(wirte[0].st,n,La);gaeste.forEach(g=>setze(g.st,n,La))}
+    return;
+   }
+   const frei=wirte.map(w=>B-w.A);
+   const wohin=new Array(gaeste.length).fill(-1);
+   let schritte=0;
+   const suche=i=>{
+    if(i===gaeste.length)return true;
+    if(++schritte>20000)return false;
+    const probiert=new Set();
+    for(let j=0;j<wirte.length;j++){
+     const kosten=gaeste[i].A+fuge;
+     if(frei[j]+1e-9<kosten||probiert.has(frei[j]+"|"+j))continue;
+     frei[j]-=kosten; wohin[i]=j;
+     if(suche(i+1))return true;
+     frei[j]+=kosten; wohin[i]=-1;
+    }
+    return false;
+   };
+   if(!suche(0))return;
+   const nummern=wirte.map(()=>++nr);
+   wirte.forEach((w,j)=>setze(w.st,nummern[j],La));
+   gaeste.forEach((g,i)=>setze(g.st,nummern[wohin[i]],La));
+  });
+ }
+ ZU_ABSCHNITT_CACHE.set(p,titel);
+ return titel;
+}
 function zuStreifenTitel(g,p){
  const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
  // v3.83: die Anzahl Abschnitte entscheidet ueber "Abschnitt N · Streifen M" vs. nur
@@ -768,7 +843,7 @@ function zuBelegungHtml(p){
 · ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
-    const titel=titel_[i];
+    const titel=((zuAbschnittTitel(p)||new Map()).get(s))||titel_[i];
     // v3.83: s.rest kann legitim 0 sein (Streifen exakt ausgenutzt) - das
     // waere mit "||" faelschlich als 0 verworfen und durch L-belegt ersetzt,
     // was bei mehreren Abschnittlaengen NICHT mehr automatisch 0 waere.
