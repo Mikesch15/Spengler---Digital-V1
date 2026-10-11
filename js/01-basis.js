@@ -1983,3 +1983,35 @@ function xlsxLaden(){
  });
  return xlsxZusage;
 }
+
+// ---- dbFehlerText ---------------------------------------------------------------------------------
+// v3.317: EINE Stelle, die technische Fehlermeldungen von Supabase/PostgREST/Netz in einen deutschen Satz mit der
+// naechsten Handlung uebersetzt. Bis dahin zeigten die Workflow-, Aufgaben-, Werkstatt-, Admin-, Modul- und
+// Reservierungs-Ansichten error.message roh: "TypeError: Failed to fetch", "JWT expired", "permission denied for
+// table ..." (nennt interne Tabellen), "duplicate key value violates unique constraint ..." (nennt Constraint-Namen).
+// Meldungen, die unsere eigenen Datenbankfunktionen bewusst auf Deutsch ausloesen ("Nur der zugewiesene Ruester kann
+// ...", "Massaufnahme nicht gefunden."), gehen UNVERAENDERT durch. Die Rohmeldung bleibt in der Konsole (die
+// Aufrufer loggen sie), sie steht nie im Dialog.
+function dbFehlerText(err,vorgabe){
+ const roh=String((err&&err.message)||(typeof err==="string"?err:"")||"").trim();
+ const std=vorgabe||"Der Vorgang konnte nicht ausgeführt werden. Bitte nochmals versuchen.";
+ if(!roh)return std;
+ if(/failed to fetch|networkerror|load failed|network request failed|fetch failed|err_internet|err_network/i.test(roh))
+  return "Keine Verbindung zum Server. Bitte die Internetverbindung prüfen und nochmals versuchen.";
+ if(/\bjwt\b|refresh token|token (is )?(expired|invalid)|not authenticated|invalid claim/i.test(roh))
+  return "Die Anmeldung ist abgelaufen. Bitte die App neu laden und erneut anmelden.";
+ if(/statement timeout|canceling statement|timed? ?out|timeout/i.test(roh))
+  return "Der Server hat zu lange gebraucht. Bitte in einem Moment nochmals versuchen.";
+ if(/row-level security|permission denied|insufficient[_ ]privilege|not authorized|forbidden/i.test(roh))
+  return "Dafür fehlt die Berechtigung. Bitte den Administrator fragen.";
+ if(/duplicate key|unique constraint|already exists/i.test(roh))
+  return "Dieser Eintrag existiert bereits.";
+ if(/foreign key|violates check constraint|null value in column|violates not-null/i.test(roh))
+  return "Der Eintrag ist unvollständig oder hängt mit anderen Daten zusammen. Bitte prüfen und nochmals versuchen.";
+ if(/schema cache|could not find the function|pgrst\d|\b(42883|42p01|42703)\b|does not exist/i.test(roh))
+  return "Diese Funktion ist auf dem Server gerade nicht verfügbar. Bitte die App neu laden; bleibt es so, den Administrator informieren.";
+ if(/invalid input syntax|syntax error|operator does not exist|relation |column "/i.test(roh))
+  return std;
+ return roh.length>300?roh.slice(0,300)+" …":roh;
+}
+// ---- Ende dbFehlerText

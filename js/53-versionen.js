@@ -55,7 +55,7 @@ async function verLaden(messungId){
   .eq("measurement_id",messungId)
   .order("nummer",{ascending:false});
  if(lauf!==verLauf)return;
- if(error){verFehler=error.message;verCache=[];return}
+ if(error){verFehler=dbFehlerText(error);verCache=[];return}
  verCache=data||[];
 }
 

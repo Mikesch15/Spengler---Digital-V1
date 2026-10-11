@@ -58,7 +58,7 @@ async function vorlagenLaden(){
   .select("id,name,type,data,notiz,created_by,created_at,updated_by,updated_at")
   .order("name",{ascending:true});
  if(lauf!==vorlagenLauf)return;
- if(error){vorlagenFehler=error.message;vorlagenCache=[];return}
+ if(error){vorlagenFehler=dbFehlerText(error);vorlagenCache=[];return}
  vorlagenCache=data||[];
 }
 
@@ -118,7 +118,7 @@ async function vorlageSpeichern(name,notiz,typ,daten,ueberschreibenId){
  if(ueberschreibenId){
   const {data,error}=await sb.from("measurement_vorlagen")
    .update(satz).eq("id",ueberschreibenId).select();
-  if(error)return {fehler:error.message};
+  if(error)return {fehler:dbFehlerText(error)};
   if(!data||!data.length)return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
   return {fehler:null,zeile:data[0]};
  }
@@ -126,7 +126,7 @@ async function vorlageSpeichern(name,notiz,typ,daten,ueberschreibenId){
  // dem Vorgabewert my_company_id(), und die restriktive Policy erzwingt
  // dieselbe Zuordnung noch einmal.
  const {data,error}=await sb.from("measurement_vorlagen").insert(satz).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
  return {fehler:null,zeile:data[0]};
 }
@@ -140,7 +140,7 @@ async function vorlageUmbenennen(id){
  if(!name){vorlagenHinweis("Der Name darf nicht leer sein.",true);return}
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Vorlage"))return;
  const {data,error}=await sb.from("measurement_vorlagen").update({name}).eq("id",id).select();
- if(error){vorlagenHinweis("Konnte nicht gespeichert werden: "+error.message,true);return}
+ if(error){vorlagenHinweis("Konnte nicht gespeichert werden: "+dbFehlerText(error),true);return}
  if(!data||!data.length){vorlagenHinweis("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?",true);return}
  await vorlagenNeuLaden();
  vorlagenHinweis("✓ Umbenannt in „"+name+"“.");
@@ -152,7 +152,7 @@ async function vorlageLoeschen(id){
  if(!await appConfirm("Vorlage „"+v.name+"“ wirklich löschen?\n\nBereits erfasste Massaufnahmen bleiben unverändert – sie sind eigenständig und hängen nicht an der Vorlage."))return;
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Vorlage"))return;
  const {data,error}=await sb.from("measurement_vorlagen").delete().eq("id",id).select();
- if(error){vorlagenHinweis("Konnte nicht gelöscht werden: "+error.message,true);return}
+ if(error){vorlagenHinweis("Konnte nicht gelöscht werden: "+dbFehlerText(error),true);return}
  if(!data||!data.length){vorlagenHinweis("Es wurde nichts gelöscht. Fehlt die nötige Berechtigung?",true);return}
  await vorlagenNeuLaden();
  vorlagenHinweis("✓ Vorlage gelöscht.");
@@ -349,7 +349,7 @@ async function serieAnlegen(){
  }));
  melde("Wird angelegt …",false);
  const {data,error}=await sb.from("measurements").insert(zeilen).select("id");
- if(error){melde("Konnte nicht angelegt werden: "+error.message,true);return}
+ if(error){melde("Konnte nicht angelegt werden: "+dbFehlerText(error),true);return}
  if(!data||!data.length){melde("Es wurde nichts angelegt. Fehlt die nötige Berechtigung?",true);return}
  if(data.length!==zeilen.length){
   melde("Es wurden nur "+data.length+" von "+zeilen.length+" Massaufnahmen angelegt.",true);

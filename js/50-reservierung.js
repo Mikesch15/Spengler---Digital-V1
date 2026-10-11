@@ -387,7 +387,7 @@ async function resvBedarfUebernehmen(){
  // company_id kommt aus dem DEFAULT my_company_id(), niemals vom Client.
  const {data,error}=await sb.from("material_reservierungen")
   .insert(neu.map(z=>({...z,project_id:resvProjektId,status:"benoetigt"}))).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
  resvListe=(resvListe||[]).concat(data);
  // Frisch uebernommene Positionen sind gleich mit ausgewaehlt - sie sind
@@ -415,7 +415,7 @@ async function resvStatusSetzen(id,status){
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Reservierung"))return {offline:true};
  const {data,error}=await sb.from("material_reservierungen")
   .update(resvStatusFelder(status)).eq("id",id).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  // Ein von RLS blockiertes UPDATE meldet keinen Fehler, es betrifft still
  // 0 Zeilen. Kein vorgetaeuschter Erfolg.
  if(!data||!data.length)return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
@@ -425,7 +425,7 @@ async function resvStatusSetzen(id,status){
 async function resvLoeschen(id){
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Reservierung"))return {offline:true};
  const {data,error}=await sb.from("material_reservierungen").delete().eq("id",id).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Es wurde nichts gelöscht. Fehlt die nötige Berechtigung?"};
  resvListe=(resvListe||[]).filter(r=>r.id!==id);
  return {fehler:null};
@@ -457,7 +457,7 @@ async function resvBulkStatus(ids,status){
  if(!ids||!ids.length)return {fehler:null,gesetzt:0,abgelehnt:0};
  const {data,error}=await sb.from("material_reservierungen")
   .update(resvStatusFelder(status)).in("id",ids).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  const zurueck=data||[];
  if(!zurueck.length)return {fehler:"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?"};
  const map=new Map(zurueck.map(r=>[r.id,r]));
@@ -468,7 +468,7 @@ async function resvBulkLoeschen(ids){
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Die Reservierung"))return {offline:true};
  if(!ids||!ids.length)return {fehler:null,gesetzt:0,abgelehnt:0};
  const {data,error}=await sb.from("material_reservierungen").delete().in("id",ids).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  const weg=data||[];
  if(!weg.length)return {fehler:"Es wurde nichts gelöscht. Fehlt die nötige Berechtigung?"};
  const raus=new Set(weg.map(r=>r.id));
@@ -489,7 +489,7 @@ async function resvRestNehmen(id){
            reserviert_von:(currentProfile&&currentProfile.id)||null,
            reserviert_am:new Date().toISOString()})
   .eq("id",id).is("reserviert_fuer_project_id",null).eq("verbraucht",false).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Dieses Reststück ist inzwischen vergeben oder verbraucht."};
  resvRestUebernehmen(data[0]);
  return {fehler:null};
@@ -499,7 +499,7 @@ async function resvRestFreigeben(id){
  const {data,error}=await sb.from("reststuecke")
   .update({reserviert_fuer_project_id:null,reserviert_von:null,reserviert_am:null})
   .eq("id",id).eq("reserviert_fuer_project_id",resvProjektId).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Es wurde nichts geändert. Fehlt die nötige Berechtigung?"};
  resvRestUebernehmen(data[0]);
  return {fehler:null};
@@ -510,7 +510,7 @@ async function resvRestVerbraucht(id){
  if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("Das Reststück"))return {offline:true};
  const {data,error}=await sb.from("reststuecke")
   .update({verbraucht:true}).eq("id",id).eq("reserviert_fuer_project_id",resvProjektId).select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  if(!data||!data.length)return {fehler:"Es wurde nichts geändert. Fehlt die nötige Berechtigung?"};
  // Die geladene Liste fuehrt nur unverbrauchte Reste (js/05).
  if(typeof reststuecke!=="undefined")reststuecke=(reststuecke||[]).filter(r=>r.id!==id);
@@ -538,7 +538,7 @@ async function resvBulkRest(ids,art){
   q=q.update({verbraucht:true}).in("id",ids).eq("reserviert_fuer_project_id",resvProjektId);
  }
  const {data,error}=await q.select();
- if(error)return {fehler:error.message};
+ if(error)return {fehler:dbFehlerText(error)};
  const zurueck=data||[];
  if(!zurueck.length)return {fehler:art==="nehmen"
    ?"Keines dieser Reststücke war noch frei – inzwischen vergeben oder verbraucht."

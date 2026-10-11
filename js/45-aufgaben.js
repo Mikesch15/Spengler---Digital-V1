@@ -160,7 +160,7 @@ async function aufgabenTerminSetzen(mId,schritt,datum){
    .upsert({profil_id:ich,measurement_id:mId,schritt:String(schritt||""),faellig_am:datum},
            {onConflict:"profil_id,measurement_id,schritt"})
    .select("id,faellig_am");
- if(error)return {ok:false,meldung:error.message};
+ if(error)return {ok:false,meldung:dbFehlerText(error)};
  if(!data||!data.length)return {ok:false,meldung:"Nicht gespeichert – fehlt die nötige Berechtigung?"};
  aufgabenTermine[aufgabenTerminSchluessel(mId,schritt)]=
   {id:data[0].id,faellig_am:String(data[0].faellig_am||datum)};
@@ -172,7 +172,7 @@ async function aufgabenTerminWeg(mId,schritt){
  const {data,error}=await sb.from("aufgaben_termine").delete()
    .eq("profil_id",ich).eq("measurement_id",mId).eq("schritt",String(schritt||""))
    .select("id");
- if(error)return {ok:false,meldung:error.message};
+ if(error)return {ok:false,meldung:dbFehlerText(error)};
  if(!data||!data.length)return {ok:false,meldung:"Nichts geändert – fehlt die nötige Berechtigung?"};
  delete aufgabenTermine[aufgabenTerminSchluessel(mId,schritt)];
  return {ok:true};
@@ -438,7 +438,7 @@ async function aufgabeAusfuehren(art,id){
   const {error}=await sb.rpc("measurement_abschliessen",{p_id:Number(id)});
   if(error){
    console.error("Aufgabe abschliessen",error);
-   appAlert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+   appAlert(dbFehlerText(error,"Der Schritt konnte nicht ausgeführt werden."));
   }
   aufgabenNeuLaden();
   if(typeof werkstattNeuLaden==="function")werkstattNeuLaden();
@@ -452,7 +452,7 @@ async function aufgabeAusfuehren(art,id){
  const {error}=await sb.rpc(art==="ruesten"?"measurement_geruestet":"measurement_montiert",{p_id:Number(id)});
  if(error){
   console.error("Aufgabe",art,error);
-  appAlert(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+  appAlert(dbFehlerText(error,"Der Schritt konnte nicht ausgeführt werden."));
  }else if(typeof rbZu==="function"){
   rbZu();      // v3.292: war es die Ausfuehrungsansicht, ist der Schritt erledigt und sie geht zu
  }

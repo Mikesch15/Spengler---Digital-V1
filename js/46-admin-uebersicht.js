@@ -86,7 +86,7 @@ function auAdresse(z){
 
 async function auLaden(){
  const {data,error}=await sb.rpc("admin_alle_massaufnahmen",{p_limit:AU_LIMIT});
- if(error){console.error("admin_alle_massaufnahmen",error);return {fehler:error.message||"Unbekannter Fehler"}}
+ if(error){console.error("admin_alle_massaufnahmen",error);return {fehler:dbFehlerText(error,"Unbekannter Fehler")}}
  const zeilen=Array.isArray(data)?data:[];
  // Nur wenn die Module eingeschaltet sind - sonst gibt es die Angaben nicht
  // und es wird auch nicht danach gefragt.
@@ -390,7 +390,7 @@ async function auZuweisenSpeichern(){
    {p_id:Number(auZuweisenId),p_project_id:Number(pid)});
  if(error){
   console.error("admin_massaufnahme_projekt_zuweisen",error);
-  f.textContent=error.message||"Die Zuordnung konnte nicht gespeichert werden.";
+  f.textContent=dbFehlerText(error,"Die Zuordnung konnte nicht gespeichert werden.");
   f.hidden=false;
   return;
  }

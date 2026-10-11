@@ -138,7 +138,7 @@ async function pmSpeichern(){
  const {data,error}=await sb.rpc("set_projektmodule",{p_module:senden});
  if(error){
   console.error("set_projektmodule fehlgeschlagen:",error);
-  pmHinweis("Konnte nicht gespeichert werden: "+(error.message||"unbekannter Fehler"),true);
+  pmHinweis("Konnte nicht gespeichert werden: "+dbFehlerText(error,"unbekannter Fehler"),true);
   return false;
  }
  if(!data){

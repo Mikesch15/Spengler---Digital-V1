@@ -359,7 +359,7 @@ async function mwMontageTerminSetzen(wert){
   .update({montage_am:wert||null}).eq("id",mwStand.id).select("id,montage_am");
  if(error){
   console.error("montage_am",error);
-  mwFehlerZeigen(error.message||"Der Termin konnte nicht gespeichert werden.");
+  mwFehlerZeigen(dbFehlerText(error,"Der Termin konnte nicht gespeichert werden."));
   return;
  }
  // Von RLS blockierte UPDATEs melden keinen Fehler, sie betreffen still
@@ -508,7 +508,7 @@ async function mwRuf(name,args,wasOffline){
  const {data,error}=await sb.rpc(name,args||{});
  if(error){
   console.error(name,error);
-  mwFehlerZeigen(error.message||"Der Schritt konnte nicht ausgeführt werden.");
+  mwFehlerZeigen(dbFehlerText(error,"Der Schritt konnte nicht ausgeführt werden."));
   return null;
  }
  return data;
@@ -611,7 +611,7 @@ async function measurementArchivSetzen(id,archiviert){
  const {data,error}=await sb.from("measurements").update({archived:!!archiviert}).eq("id",id).select("id,archived");
  if(error||!data||!data.length){
   appAlert((archiviert?"Das Archivieren":"Das Reaktivieren")+" hat nicht geklappt: "
-   +(error?error.message:"Fehlt die n\u00F6tige Berechtigung?"));
+   +(error?dbFehlerText(error):"Fehlt die n\u00F6tige Berechtigung?"));
   return false;
  }
  [typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:null,
@@ -644,7 +644,7 @@ async function mwZuweisenSpeichern(){
  const {data,error}=await sb.rpc("measurement_zuweisen",{p_id:mwStand.id,p_ruester:r,p_monteur:m});
  if(error){
   console.error("measurement_zuweisen",error);
-  const f=$("mwZuweisenFehler"); f.textContent=error.message||"Die Zuweisung konnte nicht gespeichert werden."; f.hidden=false;
+  const f=$("mwZuweisenFehler"); f.textContent=dbFehlerText(error,"Die Zuweisung konnte nicht gespeichert werden."); f.hidden=false;
   return;
  }
  mwStandAusAntwort(data);
@@ -674,7 +674,7 @@ async function mwKorrigierenSpeichern(){
  const {data,error}=await sb.rpc("measurement_workflow_korrigieren",{p_id:mwStand.id,p_status:status});
  if(error){
   console.error("measurement_workflow_korrigieren",error);
-  const f=$("mwKorrigierenFehler"); f.textContent=error.message||"Der Status konnte nicht geändert werden."; f.hidden=false;
+  const f=$("mwKorrigierenFehler"); f.textContent=dbFehlerText(error,"Der Status konnte nicht geändert werden."); f.hidden=false;
   return;
  }
  mwStandAusAntwort(data);

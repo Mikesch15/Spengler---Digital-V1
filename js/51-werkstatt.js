@@ -157,7 +157,7 @@ async function werkLaden(){
   .in("workflow_status",WERK_STATUS)
   .order("updated_at",{ascending:false})
   .limit(WERK_LIMIT);
- if(error){werkFehler=error.message||"Unbekannter Fehler";werkZeilen=[];return}
+ if(error){werkFehler=dbFehlerText(error,"Unbekannter Fehler");werkZeilen=[];return}
  // v3.300 (Prozesspruefung): was archiviert ist, ist keine offene Arbeit - dieselbe Regel wie in der
  // Aufgabenliste (js/45 aufgabeProjektOffen): eine archivierte Massaufnahme UND jede Massaufnahme
  // eines archivierten Projekts bleibt draussen. Filter im Client, weil aeltere Zeilen/Stubs "archived"
@@ -195,7 +195,7 @@ function werkFassung(id){
 // Projekt - kein Nachladen fuer jede Zeile der Liste.
 async function werkGrundlageLaden(projectId){
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId);
- werkGrundlage={projectId,aufnahmen:error?null:(data||[]),fehler:error?error.message:null};
+ werkGrundlage={projectId,aufnahmen:error?null:(data||[]),fehler:error?dbFehlerText(error):null};
 }
 
 // ---- Gruppieren -----------------------------------------------------------
