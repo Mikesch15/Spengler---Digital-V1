@@ -34197,3 +34197,20 @@ Länge − Rest) – das stimmt mit der Fusszeile überein. Eine Gruppe allein u
 Material-Seite (`zuBelegungHtml`) ist unverändert und zählt weiter je Gruppe (**offen:** dort derselbe Effekt).
 Grenze: zwei gleich lange Abschnitte in einer Mischung erscheinen unter derselben Überschrift (gespeichert ist
 keine Abschnitts-ID). Prüfstand `ruestblatt-abschnitte-v3-297` um Fall H (der Handyfall) erweitert, 13; Mutation rot.
+
+### v3.299 — Abschnitt bei mehreren Streifenbreiten: plan-weite Nummer (Rüstblatt UND Material & Zuschnitt)
+
+Auftrag (11.10.2026): auch «Material & Zuschnitt» soll stimmen, und zwei Abschnitte unter derselben Überschrift
+dürfen nicht vorkommen. `js/33 zuAbschnittTitel(p)` rekonstruiert die plan-weite Abschnittsnummer **nur aus den
+gespeicherten Daten**: ohne Mischung zählen die Gruppen fortlaufend; mit Mischung gibt es je Abschnittlänge so
+viele Abschnitte wie Wirt-Streifen (nicht `mischungsGast`), die Gäste werden per Rückwärtssuche so verteilt,
+dass jeder Abschnitt in die Rollenbreite passt. Titel «Abschnitt N · L mm», nummeriert nach Länge absteigend.
+Gelingt die Verteilung nicht oder fehlt die Rollenbreite bei mehreren gleich langen Abschnitten (älterer Plan),
+bleibt die bisherige Anzeige statt einer falschen Nummer. Genutzt von der Herkunft im Rüstblatt
+(`zuAlleStuecke`) und von `zuBelegungHtml`; eine Gruppe allein, Tafel und Stange unverändert.
+**Bewusst NICHT gespeichert:** eine Abschnitts-ID in `measurements.data` würde den Trigger
+`schuetze_measurement_workflow` («data distinct» → Freigabe verfällt) bei jedem erneuten Speichern bestehender
+Mischpläne auslösen. Grenze: die Verteilung der Gäste ist eine gültige, nicht zwingend die ursprüngliche
+Aufteilung (gleich schneidbar). Prüfstand `ruestblatt-abschnitte-v3-297` um H (Handyfall), I (zwei gleich
+lange Abschnitte), J (Material-Seite) erweitert, 16; Mutation rot. Ausserdem: Tausenderstrich im Test
+vereinheitlicht (CI v3.298 war rot, `5d415a3` grün).

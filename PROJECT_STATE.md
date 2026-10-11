@@ -3,9 +3,22 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.301`
+- Aktueller Entwicklungsstand: `v3.302`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.302 — Abschnitt-Zuordnung: Mischung aus der Fusszeile ablesen (Korrektur zu v3.299/v3.301)
+
+Rückmeldung (11.10.2026, Handy): Das Rüstblatt zeigte vier Abschnitte (595, 595, 1'215, 1'215), die Fusszeile
+nennt «1 × 1'215 + 1 × 595 mm ab Rolle» – 507+325 mm passen in den 595er, 250+250+244+244 mm in den 1'215er.
+Ursache: `mischungsGast` wird von den Modulen **nicht mitgespeichert** (gespeichert sind nur stuecke/rest/
+abschnittLaenge/abschnittNr); `zuAbschnittInfo` erkannte die Mischung daher nie und zählte je Streifenbreite.
+Neu: `zuAbschnittZahlen(p)` liest dieselbe Quelle wie die Fusszeile (`zuAbschnitte(moeglich[0])`); sind das
+weniger Abschnitte als die Gruppen einzeln brauchen, wurde gemischt, und alle Streifen werden nach Abschnittlänge
+auf genau so viele Abschnitte verteilt, jeder in die Rollenbreite passend (Rückwärtssuche, jeder Abschnitt
+belegt). Gelingt das nicht, bleibt die gruppenweise Zählung. Fixtures im Prüfstand ohne `mischungsGast`, mit
+`teile` wie gespeichert; `ruestblatt-abschnitte-v3-297` 16, Mutation rot. Grenze: die Verteilung ist eine
+gültige, nicht zwingend die ursprüngliche Aufteilung (gleich schneidbar).
 
 ### v3.301 — Rüstblatt: Liste nach dem Schnitt gegliedert (Abschnitt → Streifen mit Abwicklung → Stücke)
 
@@ -36,23 +49,6 @@ schon → die Werkstatt zeigte Arbeit samt «Rüsten bestätigen», die die pers
 **Offen / nicht belegt:** Live-Test mit zwei Firmen und echten Konten; Verhalten bei ausgeschaltetem Modul je
 Übergang nur über vorhandene Prüfstände (`werkstatt-v3-09`, `reservierung-v3-09`, `projektmodule-v3-09`) geprüft;
 die Rüstblatt-Kürzung für weitere Arten ist seit v3.296 entschieden (Anweisung vom 10.10.2026).
-
-### v3.299 — Abschnitt bei mehreren Streifenbreiten: plan-weite Nummer (Rüstblatt UND Material & Zuschnitt)
-
-Auftrag (11.10.2026): auch «Material & Zuschnitt» soll stimmen, und zwei Abschnitte unter derselben Überschrift
-dürfen nicht vorkommen. `js/33 zuAbschnittTitel(p)` rekonstruiert die plan-weite Abschnittsnummer **nur aus den
-gespeicherten Daten**: ohne Mischung zählen die Gruppen fortlaufend; mit Mischung gibt es je Abschnittlänge so
-viele Abschnitte wie Wirt-Streifen (nicht `mischungsGast`), die Gäste werden per Rückwärtssuche so verteilt,
-dass jeder Abschnitt in die Rollenbreite passt. Titel «Abschnitt N · L mm», nummeriert nach Länge absteigend.
-Gelingt die Verteilung nicht oder fehlt die Rollenbreite bei mehreren gleich langen Abschnitten (älterer Plan),
-bleibt die bisherige Anzeige statt einer falschen Nummer. Genutzt von der Herkunft im Rüstblatt
-(`zuAlleStuecke`) und von `zuBelegungHtml`; eine Gruppe allein, Tafel und Stange unverändert.
-**Bewusst NICHT gespeichert:** eine Abschnitts-ID in `measurements.data` würde den Trigger
-`schuetze_measurement_workflow` («data distinct» → Freigabe verfällt) bei jedem erneuten Speichern bestehender
-Mischpläne auslösen. Grenze: die Verteilung der Gäste ist eine gültige, nicht zwingend die ursprüngliche
-Aufteilung (gleich schneidbar). Prüfstand `ruestblatt-abschnitte-v3-297` um H (Handyfall), I (zwei gleich
-lange Abschnitte), J (Material-Seite) erweitert, 16; Mutation rot. Ausserdem: Tausenderstrich im Test
-vereinheitlicht (CI v3.298 war rot, `5d415a3` grün).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
