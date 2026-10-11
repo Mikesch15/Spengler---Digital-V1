@@ -213,8 +213,12 @@ function einfaAbwicklungVorgabe(i,bauteil){
 }
 
 // ---- Zuschnitte -----------------------------------------------------------
-// Eine Einfassung ist EIN Zuschnitt: Laenge = Breite der gesamten Einfassung,
-// Breite = Abwicklung des Querschnitts (so steht es seit v2.84 auch im PDF).
+// Eine Einfassung ist EIN Zuschnitt: Laenge = Abwicklung des Querschnitts, Breite = Breite der gesamten
+// Einfassung. v3.303, Ansage des Anwenders: "die Zuschnittbreite und die Laenge sind vertauscht, die
+// Abschnittlaenge muss immer die sein, die als Abwicklung definiert ist" - die Laenge laeuft laengs zur
+// Rolle, die Breite quer (Streifenbreite). Bis v3.302 war es umgekehrt (Laenge = Breite der Einfassung):
+// ein 330 × 913er Blech brauchte auf der 1'000er Rolle einen eigenen 913er Streifen je Stueck, statt dass
+// drei 330er Streifen nebeneinander liegen. Gespeicherte Plaene bleiben, wie sie waren.
 // Die Stueckzahl vervielfacht ihn - zwei gleiche Rohre ergeben zwei gleiche
 // Zuschnitte und in der Liste eine Zeile mit "2 x".
 function einfaZuschnitte(quelle){
@@ -227,8 +231,8 @@ function einfaZuschnitte(quelle){
   const bez=(e.bez||"").trim();
   for(let k=0;k<n;k++)
    z.push({nr:z.length+1, name:"Einfassung "+(i+1),
-     laenge:Math.round(einfaZahl(erg.breiteGesamt)),
-     breite:Math.round(einfaZahl(erg.abwicklung)),
+     laenge:Math.round(einfaZahl(erg.abwicklung)),
+     breite:Math.round(einfaZahl(erg.breiteGesamt)),
      durchmesser:einfaZahl(e.durchmesser),
      bleilappen:erg.anzahlBleilappen,
      // merkmal trennt die Gruppen in der Zuschnittliste (js/33). Zwei
@@ -345,10 +349,10 @@ function einfaAusmassZeilen(quelle){
   const n=einfaAnzahl(e);
   const bez=(e.bez||"").trim()||("Ø "+einfaMm(e.durchmesser)+" mm");
   dazu("Einfassung "+(i+1)+" · "+bez,n,"Stk",
-    "Zuschnitt "+einfaMm(erg.breiteGesamt)+" × "+einfaMm(erg.abwicklung)+" mm");
+    "Zuschnitt "+einfaMm(erg.abwicklung)+" × "+einfaMm(erg.breiteGesamt)+" mm");
  });
  const fl=einfaFlaecheM2(q);
- if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Abwicklung");
+ if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Breite");
  const bl=einfaBleilappenGesamt(q);
  if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk","Umfang ÷ Lattenabstand, aufgerundet",true);
  return z;
@@ -513,7 +517,7 @@ function einfaKartenKopfHtml(e,i){
  const erg=einfaBerechne(e);
  const kopf=(e.bez||"").trim()||("Einfassung "+(i+1));
  return esc(kopf)+`<span class="small" style="float:right;font-weight:400;color:var(--muted)">`
-  +(erg?einfaMm(erg.breiteGesamt)+" × "+einfaMm(erg.abwicklung)+" mm":"–")+`</span>`;
+  +(erg?einfaMm(erg.abwicklung)+" × "+einfaMm(erg.breiteGesamt)+" mm":"–")+`</span>`;
 }
 function einfaEinfassungenHtml(){
  const a=einfA;

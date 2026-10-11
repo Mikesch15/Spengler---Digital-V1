@@ -51,7 +51,8 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   tippe("einfa_b_1","415"); tippe("einfa_c_1","35");
   const g=einfaBerechne(einfaListe()[1]);
   return {alleDa,vorher,nachher:kopf(1),kopf0:kopf(0),
-   soll:g?(einfaMm(g.breiteGesamt)+" × "+einfaMm(g.abwicklung)+" mm"):null,
+   // v3.303: L = Abwicklung (laeuft laengs zur Rolle), B = Breite der gesamten Einfassung (quer)
+   soll:g?(einfaMm(g.abwicklung)+" × "+einfaMm(g.breiteGesamt)+" mm"):null,
    zustand:JSON.stringify(einfaListe()[1])};
  });
  p(r.alleDa,"die Felder der zweiten Einfassung sind da");

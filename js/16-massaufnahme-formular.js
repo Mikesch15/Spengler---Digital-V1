@@ -1351,8 +1351,8 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
      Zeichen selbst, nicht die Entitaet. -->
 <tr>${cell("Eindeckungsart",esc(deckName))}${cell("Ø Standrohr",esc(Math.round(d.durchmesser||0))+" mm")}</tr>
 <tr>${cell("Winkel Dach/Rohr",(d.winkel===0||d.winkel)?esc(Number(d.winkel)+90)+"°":"–")}${cell("Material",matName)}</tr>
-<tr>${cell("Zuschnittbreite (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
-<tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(breiteGesamt,abw))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
+<tr>${cell("Abwicklung (Querschnitt)",esc(Math.round(abw))+" mm")}${cell("Breite der gesamten Einfassung",breiteGesamt?esc(Math.round(breiteGesamt))+" mm":"–")}</tr>
+<tr>${cell("Zuschnitt L × B",breiteGesamt?esc(pdfLxB(abw,breiteGesamt))+" mm":"–")}${cell("Anzahl Bleilappen",anzahlBleilappen!==null?esc(anzahlBleilappen):"–")}</tr>
 <tr>${cell("Lattenabstand",esc(Math.round(d.lattenabstand||0))+" mm")}<td></td></tr>
 </table>
 ${einfSchnitteHtml}

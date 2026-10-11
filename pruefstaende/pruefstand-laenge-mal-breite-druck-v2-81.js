@@ -80,7 +80,7 @@ const LXB=/\d[\d'’.\s]*×\s*\d/;
     laenge:4200,abwicklung:470,
     stueckliste:[{nr:1,laenge:3000,gehrung:false},{nr:2,laenge:1200,gehrung:false}],
     teile:[{name:"Anschlussblech",abwicklung:470}],segmente:[]}],
-  ["Einfassung Rund (Format bis v2.95)","einfassung_rund",["330 × 520"],{
+  ["Einfassung Rund (Format bis v2.95)","einfassung_rund",["520 × 330"],{
     deckung:"biber_einfach",durchmesser:110,winkel:30,a:150,b:120,c:60,
     lattenabstand:330,material:"2",abwicklung:520,breiteGesamt:330,anzahlBleilappen:4}],
   // Ab v2.96 mehrere Einfassungen mit eigener Stueckliste. Die Werte sind die
