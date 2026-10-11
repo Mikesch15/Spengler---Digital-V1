@@ -123,6 +123,8 @@ function werkIch(){return currentProfile?currentProfile.id:null}
 // ---- Laden ----------------------------------------------------------------
 // Zwei Abfragen fuer die ganze Liste, danach eine je aufgeklapptem Projekt.
 // Kein company_id-Filter: die Firmengrenze erzwingt die Datenbank.
+// v3.304 (Prozesspruefung): wann die Liste zuletzt geladen wurde - fuer die Rueckkehr in die App.
+let werkStandZeit=0;
 async function werkLaden(){
  werkFehler=null;
  if(!werkAktiv()){werkZeilen=[];werkReservierungen=[];werkFassungen=[];return}
@@ -153,6 +155,7 @@ async function werkLaden(){
  // Aufgabenliste (js/45 aufgabeProjektOffen): eine archivierte Massaufnahme UND jede Massaufnahme
  // eines archivierten Projekts bleibt draussen. Filter im Client, weil aeltere Zeilen/Stubs "archived"
  // nicht tragen: fehlt das Feld, gilt sie als nicht archiviert (Spalte ist NOT NULL, Vorgabe false).
+ werkStandZeit=Date.now();
  werkZeilen=(data||[]).filter(z=>{
   if(z.archived===true)return false;
   const pr=(z.project_id&&typeof allProjects!=="undefined"&&Array.isArray(allProjects))
@@ -944,6 +947,20 @@ async function werkstattNeuLaden(){
  if(werkOffen&&!werkZeilen.some(z=>(z.project_id||0)===werkOffen)){werkOffen=null;werkGrundlage=null}
  renderWerkstatt();
 }
+// v3.304: Kommt die App aus dem Hintergrund zurueck (Handy entsperrt, Tab gewechselt) und die Werkstatt ist
+// offen, ist ihre Liste womoeglich Stunden alt - eine Zuweisung, Freigabe oder ein verfallener Stand von jemand
+// anderem stand dann nirgends, und "Rüsten bestätigen" stuende an einer Aufnahme, die gar nicht mehr dran ist.
+// Dasselbe Muster wie aufgabenBeiRueckkehr() (js/45): ab einer Minute Alter wird nachgeladen; die Verbindung
+// zurueck laedt ebenfalls. Nichts, solange die Werkstatt zu ist oder niemand angemeldet ist.
+const WERK_AUFFRISCHEN_NACH_MS=60000;
+function werkBeiRueckkehr(){
+ const m=$("werkstattModal");
+ if(!currentProfile||!werkAktiv()||!m||m.hidden)return;
+ if(Date.now()-werkStandZeit<WERK_AUFFRISCHEN_NACH_MS)return;
+ werkstattNeuLaden();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")werkBeiRueckkehr()});
+window.addEventListener("online",()=>werkBeiRueckkehr());
 async function werkstattOeffnen(){
  if(!werkAktiv())return;
  // Bewusst NICHT ueber goToStart(): das laedt die Aufgabenzentrale neu und
