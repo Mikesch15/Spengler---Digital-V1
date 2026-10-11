@@ -3,9 +3,22 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.300`
+- Aktueller Entwicklungsstand: `v3.301`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.301 — Rüstblatt: Liste nach dem Schnitt gegliedert (Abschnitt → Streifen mit Abwicklung → Stücke)
+
+Rückmeldung (11.10.2026): «Man muss auf Anhieb sehen, aus welchem Abschnitt welche Streifen mit welchen
+Abwicklungen geschnitten werden und welche Stücke dann aus welchen Streifen gemacht werden – jetzt steht nur der
+Abschnitt, das ist zu wenig.» `js/33 zuListeAbschnitteHtml` (nur `zuListeHtml(p,{herkunft:true})` = Rüstblatt, nur
+bei mehr als einem Streifen/einer Stange): Kopf «Abschnitt N · L mm ab Rolle» (Stange: «Stange N · L mm»), darin
+je Streifen eine Zeile «Streifen M · Abwicklung A mm» mit den Stücken (abhakbare Nummer + Länge + Merkmal wie
+Gehrung/Hinweis); «✓ alle» und «x/y zugeschnitten» je Streifen. Gleiche `data-ze-*`-Knöpfe wie bisher → dasselbe
+Abhaken. Grundlage `zuAbschnittInfo(p)` (Abschnitt, Länge, Streifen-Nummer im Abschnitt; Vorgänger
+`zuAbschnittTitel`, v3.299): ohne Mischung fortlaufend, mit Mischung rekonstruiert. Material-Seite zeigt
+bei mehreren Streifenbreiten «Abschnitt N · L mm · Streifen M». Material-Seite, Werkstatt-Liste und Register
+behalten die bisherige Liste. Prüfstand `ruestblatt-abschnitte-v3-297` umgebaut (16; Mutation rot).
 
 ### v3.300 — End-to-End-Prozessprüfung: Werkstatt zeigt keine archivierte Arbeit mehr
 
@@ -40,18 +53,6 @@ Mischpläne auslösen. Grenze: die Verteilung der Gäste ist eine gültige, nich
 Aufteilung (gleich schneidbar). Prüfstand `ruestblatt-abschnitte-v3-297` um H (Handyfall), I (zwei gleich
 lange Abschnitte), J (Material-Seite) erweitert, 16; Mutation rot. Ausserdem: Tausenderstrich im Test
 vereinheitlicht (CI v3.298 war rot, `5d415a3` grün).
-
-### v3.298 — Rüstblatt: bei mehreren Streifenbreiten der echte Abschnitt
-
-Rückmeldung (10.10.2026, Handy-Screenshot): bei vier Streifenbreiten stand überall „Abschnitt 1“, beim Hinterteil
-(507 mm) gar keiner, obwohl die Fusszeile „1 × 1'215 + 1 × 595 mm ab Rolle“ zwei Abschnitte nennt. Ursache:
-`zuStreifenTitel` (js/33) zählt die Abschnitte **je Streifenbreite-Gruppe**; eine mitfahrende Gruppe
-(Trittbrett-Mischung, js/29) hat keinen eigenen. Das Rüstblatt zeigt bei mehreren Gruppen jetzt
-**„Abschnitt 1'215 mm“ / „Abschnitt 595 mm“** (`st.abschnittLaenge`, sonst Gruppenlänge, bei Mischung
-Länge − Rest) – das stimmt mit der Fusszeile überein. Eine Gruppe allein und Tafeln bleiben wie bisher; die
-Material-Seite (`zuBelegungHtml`) ist unverändert und zählt weiter je Gruppe (**offen:** dort derselbe Effekt).
-Grenze: zwei gleich lange Abschnitte in einer Mischung erscheinen unter derselben Überschrift (gespeichert ist
-keine Abschnitts-ID). Prüfstand `ruestblatt-abschnitte-v3-297` um Fall H (der Handyfall) erweitert, 13; Mutation rot.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

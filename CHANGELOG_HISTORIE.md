@@ -34185,3 +34185,15 @@ antippbaren Haken. Nur auf dem Rüstblatt (`rbBlattHtml`) und nur bei mehr als e
 (`zuHerkunftNoetig`); Material-Seite, Werkstatt-Liste und Register bleiben unverändert. Prüfstand
 `ruestblatt-abschnitte-v3-297` (aus `-v3-295` umgebaut, 12; Mutation rot). Die Regel «Breite quer zur Rolle,
 Länge längs» gilt im Plan bereits (`ebaStreifenJeAbschnitt`), nichts geändert.
+
+### v3.298 — Rüstblatt: bei mehreren Streifenbreiten der echte Abschnitt
+
+Rückmeldung (10.10.2026, Handy-Screenshot): bei vier Streifenbreiten stand überall „Abschnitt 1“, beim Hinterteil
+(507 mm) gar keiner, obwohl die Fusszeile „1 × 1'215 + 1 × 595 mm ab Rolle“ zwei Abschnitte nennt. Ursache:
+`zuStreifenTitel` (js/33) zählt die Abschnitte **je Streifenbreite-Gruppe**; eine mitfahrende Gruppe
+(Trittbrett-Mischung, js/29) hat keinen eigenen. Das Rüstblatt zeigt bei mehreren Gruppen jetzt
+**„Abschnitt 1'215 mm“ / „Abschnitt 595 mm“** (`st.abschnittLaenge`, sonst Gruppenlänge, bei Mischung
+Länge − Rest) – das stimmt mit der Fusszeile überein. Eine Gruppe allein und Tafeln bleiben wie bisher; die
+Material-Seite (`zuBelegungHtml`) ist unverändert und zählt weiter je Gruppe (**offen:** dort derselbe Effekt).
+Grenze: zwei gleich lange Abschnitte in einer Mischung erscheinen unter derselben Überschrift (gespeichert ist
+keine Abschnitts-ID). Prüfstand `ruestblatt-abschnitte-v3-297` um Fall H (der Handyfall) erweitert, 13; Mutation rot.
