@@ -120,7 +120,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return kette;
  };
  return {
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:window.__session||null}}),onAuthStateChange:()=>{}},
   from:tabelle,
   storage:{from:()=>({
    upload:(pfad)=>{(window.__uploads=window.__uploads||[]).push(pfad);
@@ -145,7 +145,7 @@ const FOTO=n=>"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
  await page.route("**/functions/v1/extract-offer-positions",async route=>{
   const bild=route.request().postDataJSON().image;
   const nr=bild.length-FOTO(0).length;     // Foto 1, 2, 3 unterscheiden sich in der Laenge
-  aufrufe.push(nr);
+  aufrufe.push(nr); (page.__kopf=page.__kopf||[]).push(route.request().headers());
   if(nr===2&&foto2Fehler)return route.fulfill({status:503,contentType:"application/json",body:JSON.stringify({ok:false,error:"Die Texterkennung ist gerade überlastet."})});
   if(nr===0||nr>3)return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({ok:true,positions:[]})});
   return route.fulfill({status:200,contentType:"application/json",body:JSON.stringify({ok:true,positions:[
@@ -153,6 +153,7 @@ const FOTO=n=>"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
  });
  await page.goto("file://"+process.cwd()+"/index.html");
  await page.waitForFunction(()=>typeof recognizePhoto==="function"&&typeof erkenneAlleFotos==="function"&&$("angRecognizeAll"));
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}});   // angemeldete Sitzung (v3.307)
  const stand=()=>page.evaluate(()=>({n:angPositions.length,namen:angPositions.map(x=>x.description),status:$("angRecognizeStatus").textContent}));
  await page.evaluate(([f1,f2,f3])=>{angPhotos=[f1,f2,f3];angPositions=[];renderAngPhotoGallery();renderAngPositionsTable()},[FOTO(1),FOTO(2),FOTO(3)]);
 
@@ -187,6 +188,17 @@ const FOTO=n=>"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAw
  await page.evaluate(()=>document.querySelector("[data-recognize-ang-photo=\"0\"]").click()); await page.waitForTimeout(500);
  s=await stand();
  p(aufrufe.length===1&&s.n===6&&s.namen.includes("Foto1-A")&&!s.namen.includes("Foto1-A korrigiert"),"bestätigt: die Positionen von Foto 1 werden ERSETZT (6 bleiben 6, keine zwei Kopien)",s);
+
+ console.log("\nS · Anmeldung (Sicherheit, v3.307)");
+ const kopf=(page.__kopf||[])[0]||{};
+ p(kopf.authorization==="Bearer test-benutzer-jwt"&&kopf.apikey&&kopf.apikey!=="test-benutzer-jwt","die Anfrage trägt das Token der angemeldeten Person als Bearer - der öffentliche Schlüssel nur als apikey",{auth:kopf.authorization});
+ p(!/sb_publishable/.test(kopf.authorization||""),"der öffentliche App-Schlüssel ist NICHT mehr der Bearer",kopf.authorization);
+ await page.evaluate(()=>{window.__session=null;angPhotos=["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=B"];angPositions=[];renderAngPhotoGallery()});
+ aufrufe.length=0; dialoge.length=0;
+ await page.evaluate(()=>$("angRecognizeAll").onclick());
+ s=await stand();
+ p(aufrufe.length===0&&dialoge.some(t=>/nicht angemeldet|Anmeldung/.test(t)),"ohne Sitzung: KEINE Anfrage an den Server, verständlicher Satz",{aufrufe,dialoge});
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}});
 
  console.log("\nE · leeres Ergebnis wird erklärt");
  await page.evaluate(()=>{angPhotos=["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="];angPositions=[];renderAngPhotoGallery()});

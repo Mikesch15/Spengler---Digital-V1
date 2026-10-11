@@ -17,29 +17,39 @@ function ohneTypen(t){
   .replace(/\bas (Error|unknown\[\])/g,"")
   .replace(/(\w)!(?=[.;,)])/g,"$1")
   .replace(/\): Promise<\{[^}]*\} \| null> \{/g,") {")
+  .replace(/\): Promise<\{ ok: true \} \| \{ ok: false; status: number; error: string \}> \{/g,") {")
   .replace(/(\(|, )(\w+): (unknown|string|number|Uint8Array|Request)(?=[,)= ])/g,"$1$2")
   .replace(/\): (string|boolean) (\{|=>)/g,") $2")
   .replace(/let (body|res|positions): [^;=]+;/g,"let $1;");
 }
 const JS=ohneTypen(quelle);
 const KEY="GEHEIMER-KEY-123";
-async function lauf(ablauf,bild){
- const aufrufe=[]; let i=0, handler=null;
+// zugang: Verhalten der Anmeldepruefung (Aufruf von my_company_id mit dem Benutzer-Token):
+//   {auth:"Bearer user-token"|null, rpc:{status,body}|"netz"}; Standard = angemeldete Person mit aktiver Firma
+async function lauf(ablauf,bild,zugang){
+ const z=Object.assign({auth:"Bearer user-token-123",rpc:{status:200,body:'"firma-uuid-1"'}},zugang||{});
+ const aufrufe=[], rpcAufrufe=[]; let i=0, handler=null;
  const sandbox={
-  Deno:{serve:h=>{handler=h},env:{get:k=>k==="GEMINI_API_KEY"?KEY:undefined}},
+  Deno:{serve:h=>{handler=h},env:{get:k=>({GEMINI_API_KEY:KEY,SUPABASE_URL:"https://test.supabase.co",SUPABASE_ANON_KEY:"ANON-OEFFENTLICH"})[k]}},
   fetch:async(url,opt)=>{
+   if(String(url).indexOf("/rest/v1/rpc/my_company_id")>0){
+    rpcAufrufe.push({url:String(url),headers:opt.headers});
+    if(z.rpc==="netz")throw new Error("Netz weg");
+    return {ok:z.rpc.status>=200&&z.rpc.status<300,status:z.rpc.status,text:async()=>z.rpc.body,json:async()=>JSON.parse(z.rpc.body)};
+   }
    aufrufe.push({url:String(url),body:opt&&opt.body?JSON.parse(opt.body):null});
    const a=ablauf[Math.min(i++,ablauf.length-1)];
    if(a.wirf){const e=new Error("abgebrochen");e.name="AbortError";throw e}
    return {ok:a.status===200,status:a.status,text:async()=>a.text||"",json:async()=>a.json};
   },
-  setTimeout:(f,ms)=>setTimeout(f,0), clearTimeout, AbortController, Response, btoa, atob, JSON, Math, Array, String,
+  setTimeout:(f,ms)=>setTimeout(f,0), clearTimeout, AbortController, AbortSignal, Response, btoa, atob, JSON, Math, Array, String,
   Uint8Array, Error, RegExp, Promise, Object, console:{log(){}}
  };
  vm.runInNewContext(JS,sandbox);
- const res=await handler({method:"POST",json:async()=>({image:bild})});
+ const kopf=z.auth?{authorization:z.auth}:{};
+ const res=await handler({method:"POST",headers:{get:n=>kopf[String(n).toLowerCase()]||null},json:async()=>({image:bild})});
  const body=JSON.parse(await res.text());
- return {status:res.status,body,aufrufe};
+ return {status:res.status,body,aufrufe,rpcAufrufe};
 }
 const PDF="data:application/pdf;base64,JVBERi0xLjQK";
 const JPG="data:image/jpeg;base64,/9j/4AAQSkZJRg==";
@@ -99,6 +109,35 @@ const hatEnglisch=s=>/UNAVAILABLE|INTERNAL|INVALID_ARGUMENT|high demand|\"code\"
  p(r.status===200&&r.body.positions.length===1&&r.body.positions[0].description==="Rinne","nur echte Objekte sind Positionen (Text/Zahl/null/Liste fallen weg)",r.body);
  r=await lauf([gut("[]")],JPG);
  p(r.status===200&&r.body.ok&&r.body.positions.length===0,"leere Liste ist ein gültiges Ergebnis (der Client erklärt es)",r.body);
+
+ console.log("\nG · Zugang: nur angemeldete Personen mit aktiver Firma");
+ r=await lauf([gut(POS)],JPG,{auth:null});
+ p(r.status===401&&/angemeldet/.test(r.body.error)&&r.aufrufe.length===0&&r.rpcAufrufe.length===0,"ohne Authorization: abgewiesen (401), keine Anfrage an Google",r);
+ r=await lauf([gut(POS)],JPG,{auth:"Basic abc"});
+ p(r.status===401&&r.aufrufe.length===0,"falsches Schema (nicht Bearer): abgewiesen",r.status);
+ r=await lauf([gut(POS)],JPG,{rpc:{status:401,body:'{"message":"JWT expired"}'}});
+ p(r.status===401&&/abgelaufen/.test(r.body.error)&&r.aufrufe.length===0&&JSON.stringify(r.body).indexOf("JWT expired")<0,"abgelaufenes/ungültiges Token (PostgREST 401): abgewiesen, ohne den englischen Rohtext",r);
+ r=await lauf([gut(POS)],JPG,{rpc:{status:403,body:"{}"}});
+ p(r.status===401&&r.aufrufe.length===0,"verbotene Funktion (Anon-Schlüssel statt Benutzer): abgewiesen",r.status);
+ r=await lauf([gut(POS)],JPG,{rpc:{status:200,body:"null"}});
+ p(r.status===403&&/Firmenkonto/.test(r.body.error)&&r.aufrufe.length===0,"angemeldet, aber ohne aktive Firma (my_company_id = null): 403, keine Anfrage an Google",r);
+ r=await lauf([gut(POS)],JPG,{rpc:"netz"});
+ p(r.status===503&&r.aufrufe.length===0,"Anmeldeprüfung selbst nicht erreichbar: NICHT durchlassen (fail closed)",r.status);
+ r=await lauf([gut(POS)],JPG,{rpc:{status:500,body:"x"}});
+ p(r.status===503&&r.aufrufe.length===0,"Anmeldeprüfung antwortet mit Serverfehler: nicht durchlassen",r.status);
+ r=await lauf([gut(POS)],JPG);
+ p(r.status===200&&r.body.ok&&r.aufrufe.length===1,"Gegenprobe: angemeldete Person mit aktiver Firma → Erkennung läuft wie bisher",r.body);
+ p(r.rpcAufrufe.length===1&&r.rpcAufrufe[0].headers.Authorization==="Bearer user-token-123"&&r.rpcAufrufe[0].headers.apikey==="ANON-OEFFENTLICH","die Prüfung benutzt GENAU das Token der Person (Authorization) und den öffentlichen Schlüssel nur als apikey",r.rpcAufrufe);
+ p(JSON.stringify(r.body).indexOf("user-token-123")<0&&JSON.stringify(r.body).indexOf("ANON-OEFFENTLICH")<0,"weder Token noch Schlüssel stehen in der Antwort");
+ // OPTIONS (CORS-Preflight) braucht keine Anmeldung und bleibt unveraendert
+ {
+  const sb2={Deno:{serve:h=>{globalThis.__h=h},env:{get:()=>undefined}},fetch:async()=>{throw new Error("kein Netz")},Response,AbortController,AbortSignal,setTimeout,clearTimeout,btoa,JSON,Math,Array,String,Uint8Array,Error,RegExp,Promise,Object,console:{log(){}}};
+  vm.runInNewContext(JS,sb2);
+  const o=await globalThis.__h({method:"OPTIONS",headers:{get:()=>null}});
+  p(o.status===200&&/authorization/.test(o.headers.get("Access-Control-Allow-Headers")),"CORS-Preflight (OPTIONS) funktioniert ohne Anmeldung und erlaubt den Authorization-Header",o.status);
+  const g=await globalThis.__h({method:"GET",headers:{get:()=>null}});
+  p(g.status===405,"GET wird weiter mit 405 abgelehnt");
+ }
 
  console.log("\nF · Zeitüberschreitung");
  r=await lauf([{wirf:true}],JPG);

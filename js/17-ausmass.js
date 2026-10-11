@@ -321,11 +321,21 @@ function renderAmPhotoGallery(){
  $("amRecognizeAll").hidden=amPhotos.length===0||$("amType").value!=="offerte_erfassen";
 }
 async function recognizePhoto(src){
+ // v3.307 (SICHERHEIT): bis v3.306 ging der OEFFENTLICHE Schluessel der App (im Browser fuer jeden lesbar) als
+ // "Bearer" mit - die Funktion war ohne Anmeldung aufrufbar, samt Kosten fuer Gemini. Jetzt geht das Token
+ // der angemeldeten Person mit (supabase-js erneuert es bei Bedarf selbst); der oeffentliche Schluessel bleibt
+ // nur als "apikey". Ohne Anmeldung gibt es keine Anfrage - mit einem verstaendlichen Satz statt einem 401.
+ let token="";
+ try{
+  const {data}=await sb.auth.getSession();
+  token=(data&&data.session&&data.session.access_token)||"";
+ }catch(e){token=""}
+ if(!token)throw new Error("Du bist nicht angemeldet oder die Anmeldung ist abgelaufen. Bitte die App neu laden und anmelden – danach nochmals auf „Erkennen“ tippen.");
  const res=await fetch(`${SUPABASE_URL}/functions/v1/extract-offer-positions`,{
   method:"POST",
   headers:{
    "Content-Type":"application/json",
-   "Authorization":`Bearer ${SUPABASE_ANON_KEY}`,
+   "Authorization":`Bearer ${token}`,
    "apikey":SUPABASE_ANON_KEY
   },
   body:JSON.stringify({image:src})
@@ -356,6 +366,10 @@ async function recognizePhoto(src){
  // scheitert - eine Zusage, die richtig ist und die ich gebrochen hatte.
  // Sie steht jetzt HINTEN statt vorne: der lesbare Satz zuerst, die Zahl als
  // Anhang fuer die Diagnose. Beides erfuellt, nichts abgeschwaecht.
+ // v3.307: lehnt schon der Gateway ab (abgelaufenes/ungueltiges Token), kommt {code:401,message:"Invalid JWT"} -
+ // englisch und ohne "error". Daraus wird ein Satz, der sagt, was zu tun ist.
+ if(res.status===401&&!(data&&typeof data.error==="string"))
+  throw new Error("Die Anmeldung ist abgelaufen oder ungültig. Bitte die App neu laden und erneut anmelden. (Status 401)");
  const satz0=(data&&typeof data.error==="string"&&data.error.trim())?data.error.trim():"";
  // v3.306: ein kurzer Hinweis des Servers (z. B. "Bitte nochmals auf Erkennen tippen.") gehoert zum Satz.
  const satz=satz0&&data&&typeof data.hinweis==="string"&&data.hinweis.trim()?satz0+" "+data.hinweis.trim():satz0;

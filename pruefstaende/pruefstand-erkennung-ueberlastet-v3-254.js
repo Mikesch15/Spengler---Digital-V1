@@ -37,7 +37,7 @@ let ok=0,fail=0;
 const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
   console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,300):""))}};
 
-const ATTRAPPE="window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),"
+const ATTRAPPE="window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:window.__session||null}}),"
  +"onAuthStateChange:()=>{}},from:()=>{const q={};['select','eq','order','limit'].forEach(k=>q[k]=()=>q);"
  +"q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q;}})};";
 
@@ -63,6 +63,7 @@ const ROH='{"error":{"code":503,"message":"This model is currently experiencing 
    status:antwort.status,contentType:"application/json",body:JSON.stringify(antwort.body)}));
 
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(500);
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}}); // v3.307: die Erkennung braucht eine angemeldete Sitzung
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin"}; meineRechte={admin:true};
   $("authScreen").hidden=true; $("appRoot").hidden=false;

@@ -111,7 +111,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return kette;
  };
  return {
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:window.__session||null}}),onAuthStateChange:()=>{}},
   from:tabelle,
   storage:{from:()=>({
    upload:(pfad,datei,opt)=>{
@@ -161,6 +161,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   &&typeof renderAngPdfBereich==="function"&&typeof angPdfDatenUrlFuerErkennung==="function"
   &&typeof recognizePhoto==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
+ await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}}); // v3.307: die Erkennung braucht eine angemeldete Sitzung
 
  // window.fetch ueberschreiben: NUR fuer die beiden Sentinel-URLs eigenes
  // Verhalten, sonst Durchreichen an den echten fetch - sonst wuerde die

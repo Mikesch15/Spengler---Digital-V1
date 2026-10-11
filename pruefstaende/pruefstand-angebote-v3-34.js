@@ -162,7 +162,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   return kette;
  };
  return {
-  auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+  auth:{getSession:async()=>({data:{session:window.__session||null}}),onAuthStateChange:()=>{}},
   from:tabelle,
   storage:{from:()=>({
    upload:(pfad)=>{(window.__uploads=window.__uploads||[]).push(pfad);
@@ -216,7 +216,8 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
   &&typeof renderMitarbeiterSettings==="function",null,{timeout:15000});
  await page.waitForTimeout(200);
 
- // ---- Grundzustand ---------------------------------------------------
+ // ---- Grundzustand await page.evaluate(()=>{window.__session={access_token:"test-benutzer-jwt"}}); // v3.307: die Erkennung braucht eine angemeldete Sitzung
+ ---------------------------------------------------
  await page.evaluate(()=>{
   window.__lese={angebote:[],feature_access:[],audit_log:[]};
   window.__zeileFuer=(t,id)=>{
