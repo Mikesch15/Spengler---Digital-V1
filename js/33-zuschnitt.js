@@ -754,8 +754,29 @@ ${zuPlatzStueckeHtml(stuecke,breite,einheit)}
 //                  die bisherige Anzeige) statt eine falsche zu behaupten.
 // Rueckgabe: Map Streifen -> "Abschnitt N · L mm", oder null (eine Gruppe, Tafel, Stange).
 const ZU_ABSCHNITT_CACHE=new WeakMap();
+// Wie viele Abschnitte welcher Laenge der Plan EINMAL von der Rolle zieht - dieselbe Quelle wie die
+// Fusszeile unter der Liste ("1 × 1'215 mm + 1 × 595 mm ab Rolle", zuAbschnitte), also die Zahl, mit der
+// der Anwender vergleicht. Null, wenn der Plan sie nicht traegt.
+function zuAbschnittZahlen(p){
+ const best=(p.moeglich||[])[0];
+ if(!best)return null;
+ const a=zuAbschnitte(best,p);
+ const l=Array.isArray(a.teile)?a.teile:((a.n>0&&a.laenge>0)?[{n:a.n,laenge:a.laenge}]:null);
+ if(!l||!l.length)return null;
+ const k=new Map();
+ l.forEach(t=>k.set(Math.round(zuZahl(t.laenge)),(k.get(Math.round(zuZahl(t.laenge)))||0)+zuZahl(t.n)));
+ return k;
+}
 // Rueckgabe: Map Streifen -> {nr, laenge, idx} (Abschnittsnummer, Abschnittlaenge ab Rolle bzw. Tafel,
 // laufende Nummer des Streifens IM Abschnitt), oder null (Stange, kein Plan).
+// Gespeichert ist je Streifen nur {stuecke, rest, abschnittLaenge, abschnittNr}; ob Streifen verschiedener
+// Breiten in EINEM Abschnitt liegen (Trittbrett-Mischung, js/29 ebaMischeAbschnitte), steht dort nicht
+// (mischungsGast wird nicht mitgespeichert). Es laesst sich aber ablesen: zieht der Plan weniger Abschnitte
+// von der Rolle (Fusszeile) als die Gruppen einzeln brauchten, wurde gemischt. Dann werden alle Streifen
+// nach Abschnittlaenge auf genau so viele Abschnitte verteilt, wie die Fusszeile nennt, jeder in die
+// Rollenbreite passend (Rueckwaertssuche). Eine neu gespeicherte Abschnitts-ID waere eine Aenderung von
+// measurements.data und liesse bei jeder erteilten Freigabe die Freigabe verfallen (Trigger
+// schuetze_measurement_workflow) - deshalb wird nichts gespeichert.
 function zuAbschnittInfo(p){
  if(!p||p.art==="stange")return null;
  const gruppen=p.gruppen||[];
@@ -765,71 +786,70 @@ function zuAbschnittInfo(p){
  const info=new Map();
  const zaehler=new Map();
  const setze=(st,n,L)=>{const i=(zaehler.get(n)||0)+1;zaehler.set(n,i);info.set(st,{nr:n,laenge:L,idx:i})};
- const gemischt=gruppen.some(g=>(g.streifen||[]).some(st=>st.mischungsGast));
+ // 1) Abschnitte je Gruppe fuer sich, fortlaufend gezaehlt (ohne Mischung ist das die Wahrheit)
  let nr=0;
- if(!gemischt){
-  gruppen.forEach(g=>{
-   const gL=tafel?(zuZahl(g.tafelLaenge)||zuZahl(p.formLaenge)||zuZahl(p.tafelLaenge))
-              :(zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge));
-   const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
-   const schl=new Map();
-   (g.streifen||[]).forEach((st,i)=>{
-    const k=(st.abschnittNr!==undefined&&st.abschnittNr!==null)?"n"+st.abschnittNr:"i"+Math.floor(i/je);
-    if(!schl.has(k))schl.set(k,++nr);
-    const eigen=zuZahl(st.abschnittLaenge);
-    // Rolle mit einem Streifen je Abschnitt: jeder wird nur so lang gezogen wie noetig (L - Rest).
-    const L=eigen>0?eigen:((!tafel&&je===1)?Math.max(0,gL-zuZahl(st.rest)):gL);
-    setze(st,schl.get(k),L);
-   });
+ const einzeln=[];
+ gruppen.forEach(g=>{
+  const gL=tafel?(zuZahl(g.tafelLaenge)||zuZahl(p.formLaenge)||zuZahl(p.tafelLaenge))
+             :(zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge));
+  const je=Math.max(1,Math.round(zuZahl(g.jeAbschnitt))||1);
+  const schl=new Map();
+  (g.streifen||[]).forEach((st,i)=>{
+   const k=(st.abschnittNr!==undefined&&st.abschnittNr!==null)?"n"+st.abschnittNr:"i"+Math.floor(i/je);
+   if(!schl.has(k))schl.set(k,++nr);
+   const eigen=zuZahl(st.abschnittLaenge);
+   // Rolle mit einem Streifen je Abschnitt: jeder wird nur so lang gezogen wie noetig (L - Rest).
+   const L=eigen>0?eigen:((!tafel&&je===1)?Math.max(0,gL-zuZahl(st.rest)):gL);
+   einzeln.push({st,A:zuZahl(g.breite),La:Math.round(L),n:schl.get(k)});
   });
- }else{
+ });
+ const K=tafel?null:zuAbschnittZahlen(p);
+ const kSumme=K?Array.from(K.values()).reduce((a,b)=>a+b,0):0;
+ let gemischtOk=false;
+ if(K&&kSumme>0&&kSumme<nr){
+  // 2) Mischung: alle Streifen nach Laenge auf die K Abschnitte verteilen
   const geo=zuGeometrie(p);
   const B=geo.length?zuZahl(geo[0].B):0;
   const fuge=(typeof ebaSchnittfuge==="function")?ebaSchnittfuge():0;
-  const einheiten=[];
-  gruppen.forEach(g=>{
-   const gL=zuZahl(g.abschnittLaenge)||zuZahl(p.abschnittLaenge);
-   (g.streifen||[]).forEach(st=>{
-    const eigen=zuZahl(st.abschnittLaenge);
-    einheiten.push({st,A:zuZahl(g.breite),
-     La:Math.round(eigen>0?eigen:Math.max(0,gL-zuZahl(st.rest))),wirt:!st.mischungsGast});
+  const laengen=Array.from(K.keys()).sort((a,b)=>b-a);
+  const alleLaengenDa=einzeln.every(e=>K.has(e.La));
+  if(alleLaengenDa){
+   const zuordnung=new Map();   // st -> {n, La}
+   let nn=0, ok=true;
+   laengen.forEach(La=>{
+    if(!ok)return;
+    const k=K.get(La);
+    const units=einzeln.filter(e=>e.La===La).sort((a,b)=>b.A-a.A);
+    if(!units.length){ok=false;return}
+    const frei=new Array(k).fill(B>0?B:Infinity);
+    const belegt=new Array(k).fill(0);
+    const wohin=new Array(units.length).fill(-1);
+    let schritte=0;
+    const suche=i=>{
+     if(i===units.length)return belegt.every(x=>x>0);
+     if(++schritte>20000)return false;
+     const probiert=new Set();
+     for(let j=0;j<k;j++){
+      const kosten=units[i].A+(belegt[j]>0?fuge:0);
+      if(frei[j]+1e-9<kosten||probiert.has(frei[j]+"|"+belegt[j]))continue;
+      probiert.add(frei[j]+"|"+belegt[j]);
+      frei[j]-=kosten; belegt[j]++; wohin[i]=j;
+      if(suche(i+1))return true;
+      frei[j]+=kosten; belegt[j]--; wohin[i]=-1;
+     }
+     return false;
+    };
+    if(!suche(0)){ok=false;return}
+    const nummern=[];for(let j=0;j<k;j++)nummern.push(++nn);
+    units.forEach((u,i)=>zuordnung.set(u.st,{n:nummern[wohin[i]],La}));
    });
-  });
-  const laengen=Array.from(new Set(einheiten.map(e=>e.La))).sort((a,b)=>b-a);
-  const zuordnung=[];   // [{st,nr,La}] - erst nach der Nummerierung nach Plan-Reihenfolge setzen
-  laengen.forEach(La=>{
-   const wirte=einheiten.filter(e=>e.La===La&&e.wirt);
-   const gaeste=einheiten.filter(e=>e.La===La&&!e.wirt).sort((a,b)=>b.A-a.A);
-   if(!wirte.length)return;
-   if(B<=0){      // Rollenbreite unbekannt (aelterer Plan): nur eindeutig, wenn es EINEN Abschnitt dieser Laenge gibt
-    if(wirte.length===1){const n=++nr;zuordnung.push({st:wirte[0].st,n,La});gaeste.forEach(g=>zuordnung.push({st:g.st,n,La}))}
-    return;
+   if(ok&&zuordnung.size===einzeln.length){
+    einzeln.forEach(e=>{const z=zuordnung.get(e.st);setze(e.st,z.n,z.La)});
+    gemischtOk=true;
    }
-   const frei=wirte.map(w=>B-w.A);
-   const wohin=new Array(gaeste.length).fill(-1);
-   let schritte=0;
-   const suche=i=>{
-    if(i===gaeste.length)return true;
-    if(++schritte>20000)return false;
-    const probiert=new Set();
-    for(let j=0;j<wirte.length;j++){
-     const kosten=gaeste[i].A+fuge;
-     if(frei[j]+1e-9<kosten||probiert.has(frei[j]+"|"+j))continue;
-     frei[j]-=kosten; wohin[i]=j;
-     if(suche(i+1))return true;
-     frei[j]+=kosten; wohin[i]=-1;
-    }
-    return false;
-   };
-   if(!suche(0))return;
-   const nummern=wirte.map(()=>++nr);
-   wirte.forEach((w,j)=>zuordnung.push({st:w.st,n:nummern[j],La}));
-   gaeste.forEach((g,i)=>zuordnung.push({st:g.st,n:nummern[wohin[i]],La}));
-  });
-  // Streifen-Nummer im Abschnitt in der Reihenfolge des Plans (Gruppe fuer Gruppe), nicht der Suche
-  const nach=new Map(zuordnung.map(z=>[z.st,z]));
-  gruppen.forEach(g=>(g.streifen||[]).forEach(st=>{const z=nach.get(st);if(z)setze(st,z.n,z.La)}));
+  }
  }
+ if(!gemischtOk)einzeln.forEach(e=>setze(e.st,e.n,e.La));
  ZU_ABSCHNITT_CACHE.set(p,info);
  return info;
 }

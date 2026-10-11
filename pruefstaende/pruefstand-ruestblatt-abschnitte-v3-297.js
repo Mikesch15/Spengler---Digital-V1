@@ -49,24 +49,24 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   // H: der Fall vom Handy - vier Streifenbreiten, zwei Abschnitte (1215 und 595 ab Rolle):
   // 250er (Nr 3,5) fahren im 1215er, 244er (Nr 4,6) fahren dort mit; 507er (Nr 2) ist der 595er,
   // 325er (Nr 1) faehrt dort mit. Jede Gruppe zaehlt ihre eigenen "Abschnitte" - das war falsch.
-  o.H=blatt({abwicklung:250,optimal:true,streifen:[],moeglich:[{breite:1000,laenge:null}],
+  o.H=blatt({abwicklung:250,optimal:true,streifen:[],moeglich:[{breite:1000,laenge:null,teile:[{n:1,laenge:1215},{n:1,laenge:595}]}],
    gruppen:[
-    {breite:250,abschnitte:1,abschnittLaenge:1215,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:3,laenge:1215}]},{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:0,stuecke:[{nr:5,laenge:1215}]}]},
+    {breite:250,abschnitte:1,abschnittLaenge:1215,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:3,laenge:1215}]},{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:5,laenge:1215}]}]},
     {breite:507,abschnitte:1,abschnittLaenge:595,jeAbschnitt:1,streifen:[{rest:0,stuecke:[{nr:2,laenge:595}]}]},
-    {breite:325,abschnitte:0,abschnittLaenge:564,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:595,mischungsGast:true,rest:31,stuecke:[{nr:1,laenge:564}]}]},
-    {breite:244,abschnitte:0,abschnittLaenge:510,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:4,laenge:510}]},{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:6,laenge:510}]}]}]});
+    {breite:325,abschnitte:0,abschnittLaenge:564,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:595,rest:31,stuecke:[{nr:1,laenge:564}]}]},
+    {breite:244,abschnitte:0,abschnittLaenge:510,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:705,stuecke:[{nr:4,laenge:510}]},{abschnittNr:1,abschnittLaenge:1215,rest:705,stuecke:[{nr:6,laenge:510}]}]}]});
   // I: zwei Abschnitte GLEICHER Laenge (je 600er Wirt + 300er Gast): jeder Abschnitt bekommt seine eigene
   // Nummer - dieselbe Ueberschrift fuer zwei Abschnitte darf nicht vorkommen.
-  o.I=blatt({abwicklung:600,optimal:true,streifen:[],moeglich:[{breite:1000,laenge:null}],
+  o.I=blatt({abwicklung:600,optimal:true,streifen:[],moeglich:[{breite:1000,laenge:null,teile:[{n:2,laenge:1000}]}],
    gruppen:[
     {breite:600,abschnitte:2,abschnittLaenge:1000,jeAbschnitt:1,streifen:[{rest:0,stuecke:[{nr:1,laenge:1000}]},{rest:0,stuecke:[{nr:2,laenge:1000}]}]},
-    {breite:300,abschnitte:0,abschnittLaenge:1000,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:1000,mischungsGast:true,rest:0,stuecke:[{nr:3,laenge:1000}]},{abschnittNr:1,abschnittLaenge:1000,mischungsGast:true,rest:0,stuecke:[{nr:4,laenge:1000}]}]}]});
+    {breite:300,abschnitte:0,abschnittLaenge:1000,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:1000,rest:0,stuecke:[{nr:3,laenge:1000}]},{abschnittNr:1,abschnittLaenge:1000,rest:0,stuecke:[{nr:4,laenge:1000}]}]}]});
   // J: Material-Seite (Belegung) - bei mehreren Streifenbreiten dieselben, plan-weiten Abschnitte
-  const ph=zuPlanAusGespeichert({abwicklung:250,abschnitte:1,moeglich:[{breite:1000,laenge:null}],gruppen:[
-    {breite:250,abschnitte:1,abschnittLaenge:1215,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:3,laenge:1215}]},{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:0,stuecke:[{nr:5,laenge:1215}]}]},
+  const ph=zuPlanAusGespeichert({abwicklung:250,abschnitte:1,moeglich:[{breite:1000,laenge:null,teile:[{n:1,laenge:1215},{n:1,laenge:595}]}],gruppen:[
+    {breite:250,abschnitte:1,abschnittLaenge:1215,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:3,laenge:1215}]},{abschnittNr:1,abschnittLaenge:1215,rest:0,stuecke:[{nr:5,laenge:1215}]}]},
     {breite:507,abschnitte:1,abschnittLaenge:595,jeAbschnitt:1,streifen:[{rest:0,stuecke:[{nr:2,laenge:595}]}]},
-    {breite:325,abschnitte:0,abschnittLaenge:564,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:595,mischungsGast:true,rest:31,stuecke:[{nr:1,laenge:564}]}]},
-    {breite:244,abschnitte:0,abschnittLaenge:510,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:4,laenge:510}]},{abschnittNr:1,abschnittLaenge:1215,mischungsGast:true,rest:705,stuecke:[{nr:6,laenge:510}]}]}]},250,"Stück");
+    {breite:325,abschnitte:0,abschnittLaenge:564,jeAbschnitt:3,streifen:[{abschnittNr:1,abschnittLaenge:595,rest:31,stuecke:[{nr:1,laenge:564}]}]},
+    {breite:244,abschnitte:0,abschnittLaenge:510,jeAbschnitt:4,streifen:[{abschnittNr:1,abschnittLaenge:1215,rest:705,stuecke:[{nr:4,laenge:510}]},{abschnittNr:1,abschnittLaenge:1215,rest:705,stuecke:[{nr:6,laenge:510}]}]}]},250,"Stück");
   o.J=(()=>{const x=document.createElement("div");x.innerHTML=zuBelegungHtml(ph);return [...x.querySelectorAll(".zu-platz-kopf b")].map(y=>y.textContent.trim().replace(/[\u2019\u202f\u00a0]/g,"'"))})();
   const stange=(n)=>({art:"stange",einheit:"Stück",breite:0,stangen:n,zuLang:[],optimal:true,erledigtFuer:1});
   const st2=stange([{laenge:6000,rest:0,stuecke:[{nr:1,laenge:3000},{nr:2,laenge:3000}]},{laenge:5000,rest:500,stuecke:[{nr:3,laenge:4500}]}]);
