@@ -1,0 +1,57 @@
+ABSCHLUSSBERICHT – Korrektur Offert-Materialvorschläge v3.334 (12.10.2026)
+
+1. VERSION / COMMITS
+Ausgang: v3.333 (Commit 3503580, Bericht c48051e, main). Ende: v3.334, Commit 12b1924. (Dieser Bericht folgt als reiner Doku-Commit.)
+
+2. URSACHE (an echtem Code und echten Offerten nachgewiesen)
+a) v3.333 wertete nur den Text der EINZELNEN Zeile aus. Material stand in den echten Offerten kaum in den Zeilen: Offerte 13 (112 Positionen)
+   nennt nur in 21 Positionen ein Metall, Offerte 12 praktisch nie. Material aus einem Offertanfang wurde nirgends weitergereicht.
+b) Der Einleitungstext importierter PDFs wird beim Import NICHT gespeichert: angebote kennt nur Bezeichnung (title) und Notiz (note),
+   beide in den vorhandenen Offerten leer bzw. nur "Offerte …". Ein stored "Offertanfang" gab es also nicht.
+c) Die Abkürzung "Abw." wurde nicht erkannt. Die gespeicherten Schreibweisen "Abwicklung mm 1'000" (ASCII-Apostroph, an den Daten geprüft)
+   funktionierten dagegen schon; der Regex passte also nicht zu jeder Schreibweise, aber nicht zu den vorhandenen.
+d) Der Vorschlag stand nur im zugeklappten 🧱-Bereich, am Knopf war nichts zu sehen – der Vorschlag blieb unbemerkt.
+Fixtures im Repo: die Prüfstände nutzten erfundene Kurzsätze; echte Formate stammen aus den Offerten (NPK-Stil: "Abwicklung mm 250.", "Zu Abwicklung mm 250.",
+"Walzblei mm 0,75", "Stahlblech mm 0,87", "Dicke mm 0,60"). Keine Werkstoffnamen als sichere Treffer erfunden: nur die Liste der Firma.
+
+3. UMSETZUNG (js/63-angebote.js, keine Migration, keine Edge Function, Import unverändert)
+- Offertanfang = Bezeichnung + Notiz der Offerte. Material daraus nur, wenn GENAU ein Werkstoff der Firma (measurement_materials unter RLS) vorkommt;
+  dort darf der Name auch allein stehen ("Material: Kupfer"). Mehrdeutig (z. B. "Kupfer oder Stahl") → kein Vorschlag, Hinweis. Eigener Zeilentext hat Vorrang;
+  ist er mehrdeutig, wird nicht auf den Offertanfang ausgewichen. Anzeige "Materialvorschlag aus Offertanfang".
+- Positionsgruppen: Position mit eindeutiger Abwicklung (Feld oder Text) = Hauptposition; folgende Positionen ohne Abwicklung = Zusatzpositionen bis zur
+  nächsten Hauptposition; davor = nicht zugeordnet. Zuordnung über den Platz in der Liste (doppelte/leere Positionsnummern egal).
+  Der Editor zeigt je Position die Rolle ("Hauptposition … Zusatzpositionen: Zeile 2 (Pos. 1), Zeile 3 (ohne Nummer)" / "Zusatzposition zur Hauptposition Zeile 1").
+  Knopf: 🧱💡 = Vorschlag, 🧱↳ = Zusatzposition.
+- ABWEICHUNG von der wörtlichen Regel (begründet, bitte bestätigen): "Zu Abwicklung mm N" (NPK-Schreibweise der Mehr-/Zusatzleistungen, z. B. "Rinnenwinkel. Zu Abwicklung
+  mm 250.") beginnt KEINE neue Hauptgruppe, sondern gehört zur laufenden. Weicht N von der Hauptposition ab, steht "abweichend, bitte prüfen". Grund: diese Positionen sind
+  Zusatzarbeiten (meist St), sie würden sonst die Gruppen zerstückeln und eine zweite Materialfläche suggerieren.
+- Vorschläge nur für Hauptpositionen; Zusatz- und Vorab-Positionen bekommen keine, nichts wird auf andere Positionen geschrieben. Alles einzeln anhakbar, unangehakt;
+  nur "Ausgewählte übernehmen" schreibt, und prüft vorher erneut gegen aktuellen Text, Offertanfang und Gruppe. Nach jeder Änderung (Text, Abwicklungsfeld, Bezeichnung, Notiz)
+  werden Gruppen und Vorschläge neu gerechnet, alte Haken verfallen.
+- Erkannte Schreibweisen Abwicklung (Zahl immer mit mm): "Abwicklung 500 mm", "Abwicklung mm 500", "Abw. 500 mm", "Abw. mm 500", "Abw.: 500 mm", "abw 500mm",
+  "Abwicklung: 1'000 mm", "Abwicklung mm 1’250", "Abwicklung mm 333,5", "Zu Abwicklung mm 250". NICHT erkannt (bewusst): ohne Einheit, "Abwicklungen", Meter, Werte < 5 oder > 3000 mm,
+  zwei verschiedene Werte. Stärke und Werkstoff wie v3.333 (Dicke mm 0,60, Stahlblech mm 0,87, Walzblei mm 0,75; Kupferblech, Walzblei …).
+- Fläche unverändert: nur Einheit "m": Menge × Abwicklung/1000 (12 m × 500 mm = 6 m²), "m2" = Menge ist die Fläche; Zusatzpositionen zählen nicht als Fläche; St/Stk/h/Fr/leer/kg/lfm: keine Rechnung. Nur Vorschau.
+
+4. PRÜFERGEBNISSE
+- Prüfstand offert-material-v3-333 erweitert: 145 ok, 0 fehlgeschlagen. Neue Abschnitte M (Offertanfang/Hauptposition/Zusatz), N (Schreibweisen inkl. Negativfälle),
+  O (Gruppen: Haupt/Zusatz/davor, nächste Abwicklung beginnt neue Gruppe, doppelte/fehlende Nummern, Zu-Abwicklung), P (Editor: Knöpfe, Herkunftstexte, Offertanfang ändern verwirft
+  alte Haken, mehrdeutiger Offertanfang, Hinweis ohne Material, gepflegtes Material, nur die Offerte wird geschrieben). Bestehende v3.333-Fälle und 12 m × 500 mm = 6 m² bleiben grün
+  (sechs v3.333-Editorfälle mussten angepasst werden, weil Material-Vorschläge jetzt Hauptpositionen mit Abwicklung voraussetzen).
+- Gegenproben (absichtlich eingebaute Fehler, vom Prüfstand erkannt): falsche Gruppenzuordnung (4 rot), "Zu Abwicklung" beginnt neue Gruppe (5), Fläche auch bei Stk (13),
+  automatische Übernahme beim Zeichnen (2), Offertanfang ignoriert (5), Zusatzposition bekommt Vorschlag (3).
+- Schnellprüfung (19 Prüfstände Offerte/Angebote/Leistungen/Hilfe/Versionen/Cockpit/Ansicht2): grün. Volle Regression 12b1924: 177/177.
+- GitHub: pages build and deployment success für 12b1924; Prüfstände-Lauf zu 12b1924 lief beim Abschluss noch (lokale volle Regression grün).
+
+5. GRENZEN / NICHT LIVE GETESTET
+- Keine echten Live-Offerten getestet (nur Prüfstand mit Browser-Attrappe und Textfälle aus echten Offerten).
+- Der Einleitungstext importierter PDFs steht NICHT in der App: damit der Offertanfang wirkt, muss das Material in Bezeichnung oder Notiz der Offerte stehen.
+  Vorschlag: die Extraktions-Edge-Function liefert den Einleitungstext zusätzlich, und der Import legt ihn in die Notiz – das wäre eine Änderung der Edge Function und braucht deine Freigabe.
+- Der Vorschlag gilt nur für Hauptpositionen mit eindeutiger Abwicklung; eine Hauptposition, die ihr Material nirgends nennt und deren Offertanfang leer ist, bekommt nur den Hinweis.
+- Keine Reservierung, Lagerbuchung, Zuschnittanlage; keine Änderung an measurements, leistungen, material_reservierungen oder Lager; measurement_materials, materials (Regie) und
+  lieferanten_artikel bleiben getrennt; RLS/tenant_boundary/feature_boundary unberührt.
+
+── Stand ──
+✅ Fertig: v3.334 online (Pages success): Material aus dem Offertanfang (Bezeichnung/Notiz), Hauptpositionen mit Zusatzpositionen, "Abw."-Schreibweisen, 💡-Hinweis am Knopf; Regression 177/177
+⏳ Läuft: GitHub-Prüfstände zu 12b1924 (lokal grün)
+❓ Von dir: App neu laden (3.334); Material in Bezeichnung/Notiz der Offerte eintragen und prüfen; bestätigen, dass "Zu Abwicklung mm N" zur laufenden Gruppe gehört (keine neue Gruppe)
