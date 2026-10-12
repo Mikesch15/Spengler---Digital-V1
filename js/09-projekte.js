@@ -469,13 +469,14 @@ async function loadProjectMeasurements(projectId){
  if(projectMeasArchivFuer!==projectId){projectMeasArchivAnzeigen=false;projectMeasArchivFuer=projectId}
  box.innerHTML='<div class="small">Lädt…</div>';
  const {data,error}=await sb.from("measurements").select("*").eq("project_id",projectId).order("date",{ascending:false});
- if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;return}
+ if(error){box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;if(typeof kaLadeFehler==="function")kaLadeFehler();return}
  const alle=data||[];
  const typeLabels=MEAS_TYPE_LABELS;
  // Der Zwischenspeicher haelt ALLE - Material-Bedarf, Zuschnitt, Fotowand und
  // Ruestliste rechnen ueber ihn, und eine abgeschlossene Arbeit verschwindet
  // nicht aus der Rechnung, nur weil sie aus der Liste ausgeblendet ist.
  projectMeasurementsCache=alle;
+ if(typeof kaGeladen==="function")kaGeladen();   // v3.341 Komplettausmass folgt jedem Laden der Massaufnahmen
  const archivierte=alle.filter(m=>m.archived);
  // Gibt es keine archivierten mehr, faellt die Ansicht von selbst zurueck.
  if(!archivierte.length)projectMeasArchivAnzeigen=false;

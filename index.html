@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.340</div>
+<div id="appVersion">Version 3.341</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -618,6 +618,13 @@
 <div class="klapp-body">
 <div class="bar"><button class="blue" id="cockpitNeueLeistung">＋ Neue Leistung</button></div>
 <div id="cockpitLeistungenBody"></div>
+</div>
+</div>
+<!-- v3.341: Komplettausmass - rein lesende Übersicht aus den Massaufnahmen (js/85). Keine Offertmenge, kein bestätigtes Ausmass. -->
+<div class="card klapp" id="cockpitKomplettCard">
+<h2 class="klapp-kopf" data-klapp="komplett" role="button" tabindex="0" aria-expanded="false">📊 Komplettausmass (Übersicht)<span id="cockpitKomplettCount" class="cockpit-count">–</span><span class="klapp-chevron">›</span></h2>
+<div class="klapp-body">
+<div id="cockpitKomplettBody"></div>
 </div>
 </div>
 <div class="card klapp" id="cockpitMeasCard">
@@ -2432,7 +2439,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.340.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.341.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3114,7 +3121,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.340.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.341.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3584,6 +3591,7 @@ nicht neu installieren.</div>
 <script src="js/82-lieferanten-lager.js"></script>
 <script src="js/83-katalog-position.js"></script>
 <script src="js/84-app-dialoge.js"></script>
+<script src="js/85-komplettausmass.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

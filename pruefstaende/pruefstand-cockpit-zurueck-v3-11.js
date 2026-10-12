@@ -156,7 +156,7 @@ const abschnitt=(s,key)=>s.abschnitte.find(a=>a.key===key)||{};
  // kein Codefehler; die Liste wird nachgezogen, nicht der Code - und die
  // Gegenprobe darunter haelt fest, dass er wirklich weg ist und nicht bloss
  // nicht gezeichnet wurde.
- const SOLL=["stand","angebote","offerten","leistungen","meas","matzu","am","rep",
+ const SOLL=["stand","angebote","offerten","leistungen","komplett","meas","matzu","am","rep",
              "files","fotos","verlauf"];
  p(SOLL.every(k=>s.abschnitte.some(a=>a.key===k))&&s.abschnitte.length===SOLL.length,
    "jeder Bereich ist ein klappbarer Abschnitt",s.abschnitte.map(a=>a.key));

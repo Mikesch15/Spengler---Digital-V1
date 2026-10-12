@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.340.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.341.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -678,7 +678,14 @@ Archivierte stehen nicht mehr in der Liste; <b>🗄 Archivierte anzeigen</b> zei
 sie, <b>↩️ Reaktivieren</b> holt eine zurück. An jeder abgeschlossenen Massaufnahme
 steht auch ein Knopf <b>📦 Archivieren</b>. Material-Bedarf, Zuschnitt und
 Rüstliste rechnen weiter mit allen Massaufnahmen des Projekts, auch den
-archivierten.</p>`},
+archivierten.</p>
+<p><b>Komplettausmass (Übersicht):</b> Die Karte darüber fasst die
+Ausmasszeilen aller Massaufnahmen dieses Projekts zusammen – Summen nur je
+Bezeichnung und Einheit (m², m, Stück, Stunden). Masse in mm werden nicht
+summiert; fehlende oder ungültige Mengen stehen unter „Zu prüfen“ und nicht
+als 0; gleiche Art und gleicher Titel gelten als mögliche Dublette und sind
+nur markiert. Jede Zeile führt in ihre Massaufnahme zurück. Es ist eine reine
+Übersicht – keine Offertmenge, kein bestätigtes oder verrechnetes Ausmass.</p>`},
 
 "cockpit-angebote":{titel:"Offerte im Projekt",text:`
 <p>Alle Offerten dieses Projekts. Diese Karte ist nur sichtbar, wenn die
