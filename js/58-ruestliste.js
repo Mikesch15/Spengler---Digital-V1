@@ -174,6 +174,8 @@ async function rlDrucken(o){
   appAlert("Für diese Auswahl gibt es nichts zu rüsten – keine Massaufnahme hat einen gespeicherten Zuschnitt.");
   return;
  }
+ // v3.325: dasselbe volle Blatt wie das Rüstblatt (Zeichnung, Masse, Streifen/Stücke) statt der reinen Kästchenliste.
+ if(typeof rbDruckenAufnahmen==="function"){rbDruckenAufnahmen(eintraege.map(x=>x.m));return}
  let logoSrc="";
  try{ logoSrc=(typeof storageSignedUrl==="function")?await storageSignedUrl(logoUrl):logoUrl }catch(e){ logoSrc="" }
  const html=rlDokumentHtml({...o,eintraege,logoSrc});

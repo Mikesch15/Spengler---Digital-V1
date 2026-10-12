@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.324`
+- Aktueller Entwicklungsstand: `v3.325`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.325 — Rüstliste druckt das volle Rüstblatt (Blitzanpassung, ohne Prüfstände/Regression)
+
+Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Popup-Dokument nur mit Kästchentabelle – ohne Schnittzeichnung, Masse, Streifen-Gliederung. Jetzt ruft `rlDrucken` `rbDruckenAufnahmen(liste)` (js/80) auf: je Massaufnahme eine Seite mit dem vollen Rüstblatt (Zeichnung, Masse, Abschnitt→Streifen→Stück, Baustellenangaben), Druck über `#rbDruck` im selben Dokument. Der Einzel-Knopf im Rüstblatt nutzt dieselbe Funktion. Altes Popup-Dokument bleibt als Rückfall im Code (nur wenn `rbDruckenAufnahmen` fehlt). **Bekannt:** bestehende Rüstlisten-Prüfstände prüfen das alte Popup und werden voraussichtlich rot; auf Ansage keine Prüfstände/Regression gelaufen – bei Bedarf anpassen. Per Druckvorschau mit echten Dachfenster-Werten (Datensatz 120) geprüft.
 
 ### v3.324 — Rüstblatt-PDF: Stück-Nummern je Streifen sichtbar (Blitzanpassung, ohne Prüfstände/Regression)
 
@@ -14,10 +18,6 @@ Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern de
 ### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
 
 `rbDrucken()` (js/80) baut das Blatt frisch mit `rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})` (Zeichnung, alle Masse, Zuschnittliste, Baustellenangaben; ohne Fotos), hängt es sichtbar ausserhalb des Bildschirms ein und schneidet die Zeichnung zu (`rsZuschneiden`), dann Druck. Nur mit Playwright-Druckvorschau (PDF gerendert, Schnittzeichnung + Masse sichtbar) geprüft; keine Prüfstände, keine Regression.
-
-### v3.322 — Rüstblatt als PDF drucken (Blitzanpassung, ohne Prüfstände/Regression auf Ansage des Anwenders)
-
-Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` kopiert das gezeigte Blatt in einen Druckbereich `#rbDruck` und ruft `window.print()` (Muster `abwDrucken`, js/78); `css/01-basis.css`: im Druck nur dieser Bereich. Schreibt nichts. **Nicht getestet** (weder Prüfstand noch Regression, ausdrücklicher Wunsch).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

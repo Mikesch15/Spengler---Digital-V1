@@ -341,12 +341,18 @@ function rbAktionZeichnen(m,ausf){
 function rbDrucken(){
  const m=rbOffenId===null?null:rbFinde(rbOffenId);
  if(!m){appAlert("Es ist kein Rüstblatt geöffnet.");return}
+ rbDruckenAufnahmen([m]);
+}
+// v3.325: Eine oder mehrere Massaufnahmen als Rüstblätter drucken (je Massaufnahme eine neue Seite). Auch die "Rüstliste" der
+// Werkstatt (js/58) druckt darüber: Schnittzeichnung, alle Masse, Zuschnittliste nach Abschnitt/Streifen/Stück, Baustellenangaben.
+function rbDruckenAufnahmen(liste){
+ const ms=(liste||[]).filter(Boolean);
+ if(!ms.length){appAlert("Es gibt nichts zu drucken.");return}
  const alt=document.getElementById("rbDruck");if(alt)alt.remove();
  const box=document.createElement("div");
  box.id="rbDruck";box.className="rb-druck";
- // Immer das VOLLE Rüstblatt (Schnittzeichnung, alle Masse, Zuschnittliste, Angaben zur Baustelle) - auch wenn am Bildschirm
- // die Montage-Ansicht ohne Zuschnittliste offen ist. Fotos bleiben weg (werden asynchron nachgeladen).
- box.innerHTML=rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"});
+ // Immer das VOLLE Rüstblatt - auch wenn am Bildschirm die Montage-Ansicht offen ist. Fotos bleiben weg (asynchron geladen).
+ box.innerHTML=ms.map(m=>'<div class="rb-druck-seite">'+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
  box.querySelectorAll(".rb-bilder").forEach(x=>x.remove());
  // Ausserhalb des Bildschirms, aber sichtbar eingehaengt: nur dann kann die Zeichnung auf ihren Inhalt zugeschnitten werden (js/60).
  box.style.cssText="display:block;position:absolute;left:-99999px;top:0;width:190mm";
