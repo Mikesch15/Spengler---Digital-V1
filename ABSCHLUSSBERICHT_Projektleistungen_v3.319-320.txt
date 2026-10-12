@@ -1,0 +1,87 @@
+ABSCHLUSSBERICHT – Projekt-Leistungen / Roadmap-Abgleich (12.10.2026)
+
+1. COMMITS
+Start: b4781cf (v3.318). Ende: 5b6e5a3 (v3.320); dazwischen 6ec386c (v3.319).
+(Dieser Bericht selbst wurde danach als reiner Doku-Commit nachgeschoben.)
+
+2. WELCHE ROADMAP-QUELLEN WAREN WIRKLICH DA
+NICHT vorhanden: Original "Erweiterungsideen/Roadmap" (Abschnitte 11, 13, 25, 26) und Original "Konzept
+Benachrichtigungszentrale/Workflow". Vorhanden: Zusammenfassung_Auftrag_Benachrichtigungszentrale.txt,
+Zusammenfassung_Auftrag_Massaufnahme-Workflow.txt, die Zusammenfassungen v3.290/v3.295 und die Upload-Datei
+"Weiterentwicklung_Material_Projekt_Workflow.txt". Nichts wurde erfunden oder nachgebaut; Originale gibt es nicht
+unter docs/roadmap/. Vergleich: docs/roadmap/Roadmap-Abgleich_v3.319.md.
+
+3. STATUS DER ROADMAP-PUNKTE (Beleg im Dokument)
+vorhanden: Vorlagen, Serienaufnahmen (js/52); projektweite Materialuebersicht (js/48); projektweiter Zuschnitt (js/49);
+Werkstatt (js/51); Zuschnittstatus (Tabelle zuschnitt_erledigt, js/56); Materialreservierung (js/50);
+Reststuecke<->Zuschnitt (js/42, js/49); Schnittfuge (blechSchnittfuge, js/29/42).
+teilweise: Aufgaben-/Benachrichtigungszentrale (Push und "seit letztem Besuch" bewusst nicht gebaut; Original fehlt);
+Offerte->Massaufnahme (Erkennung vorhanden; Verbindung zur Leistung fehlte -> mit v3.320 geschlossen).
+fehlt: Offerte->Materialbedarf (Idee der Weiterentwicklungsliste).
+
+4. PROJEKT-LEISTUNGS-ZUORDNUNG: BEFUND UND AENDERUNG
+Existierte: leistungen (angebot_id, angebot_position), leistung_massaufnahmen (n:m, Unique), RLS/tenant_boundary, UI js/65.
+Nachgewiesene Luecken -> behoben:
+ a) Position nur ueber Nummer gespeichert: leere/doppelte Nummern fuehrten zur falschen/keiner Position, Zuordnung ging beim
+    naechsten Speichern still verloren. -> Spalte angebot_position_beschreibung, leiPositionFinden, Option "behalten".
+ b) Speichern loeschte ALLE Verknuepfungen und legte neu an. -> Diff: erst upsert (ignoreDuplicates), dann nur Entfernte loeschen.
+ c) DB erlaubte Verknuepfung mit Massaufnahme/Offerte eines ANDEREN Projekts derselben Firma. -> Trigger
+    pruefe_leistung_massaufnahme / pruefe_leistung_angebot.
+ d) Offerte-Position ohne Nummer wurde als "Zusatzleistung" angezeigt. -> leiHerkunftText.
+ e) v3.320: "Massaufnahmen ableiten" legte nur Massaufnahmen an. -> je Position Leistung anlegen/wiederverwenden +
+    Verknuepfung (Auswahlfeld, Standard an), idempotent, Fehler rollen Massaufnahmen nicht zurueck, unklare Faelle uebersprungen.
+Bewusst NICHT geaendert: Preise/Mengen der Offerte, Workflow-Status, Aufgabensystem, bestehende Leistungen (kein update/delete
+in der Ableiten-Funktion), keine automatische Zuordnung alter Massaufnahmen (nicht zugeordnete bleiben, nur Hinweis).
+Zusatzleistung = Leistung ohne angebot_id (Offerte geloescht: "Zusatzleistung (Offerte gelöscht, früher Pos. N)").
+
+5. DATEIEN / MIGRATION / EDGE FUNCTIONS
+Migration (live angewendet, idempotent): leistungen_zuordnung_integritaet. Keine Edge Function geaendert oder deployt.
+Code: js/65-leistungen.js, js/63-angebote.js, js/70-ansicht2.js, index.html (Auswahlfeld), js/67, js/41, sw.js, Anleitung v3.320,
+PROJECT_STATE.md, CHANGELOG_HISTORIE.md. Neue Pruefstaende: leistungen-zuordnung-v3-319 (30), offerte-leistungen-v3-320 (30).
+Angepasst: leistungen-v3-37 (Mock upsert, kein Loeschen mehr), ansicht2-projekt-v3-151 (Fixture mit angebot_id).
+
+6. PRUEFERGEBNISSE
+DB live (Rollback-Tests mit Nutzer-Impersonation, 0 Zeilen zurueckgeblieben): gleiches Projekt ok; Duplikat -> Unique; anderes
+Projekt/fremde Firma/nicht vorhandene Massaufnahme -> abgewiesen; Offerte anderes Projekt abgewiesen; fremde Firma sieht/verknuepft nichts.
+Schnellpruefung v3.319 und v3.320: gruen (Exit-Codes geprueft). Volle Regression v3.319: 172/173 - ROT: ansicht2-projekt-v3-151
+(Test-Fixture ohne angebot_id + zusaetzliche measurements-Abfrage); GitHub-Lauf zu 6ec386c ebenfalls rot (gleicher Grund).
+v3.320 behebt beides: volle Regression 174/174, GitHub Pruefstaende zu 5b6e5a3 success, "pages build and deployment" success.
+Gegenproben: Mutationen (Beschreibungsverfeinerung, Herkunft, Diff, Wiederverwendung) werden von den Pruefstaenden erkannt.
+Hinweis: zwischen 6ec386c und 5b6e5a3 war main kurz rot (ca. 40 Min.).
+
+7. NICHT DURCHGEFUEHRT (ehrlich)
+- Echte Browser-/Handy-Tests gegen Produktion (mobile/Cockpit nur per Playwright-Attrappe, 1200px).
+- Echter Nutzer-Token-Fluss; Mitarbeiter OHNE projects/edit; "unberechtigter Mitarbeiter" nur ueber RLS-Definition/Impersonation fuer
+  einen Mitarbeiter MIT Recht getestet. In der Live-DB gibt es 0 Leistungen: kein Test mit echten Altdaten.
+- Mailversand/Live-Flows dieses Auftrags: keine betroffen.
+- Live-Seite nicht aufgerufen (aus Sandbox nicht erreichbar); Beleg ist nur der gruene Pages-Deploy.
+
+8. KURZE MANUELLE TESTS FUER MIKE (Reihenfolge)
+ 1. Offerte mit 3 Positionen (eine ohne Nummer) in einem Projekt speichern -> "Massaufnahmen ableiten" -> Haekchen lassen -> Meldung
+    "Leistungen: 3 neu ... 3 verknuepft"; im Cockpit unter Leistungen: je Leistung "Offerte-Pos. N · 1 Massaufnahme".
+ 2. Nochmals ableiten (alle anhaken) -> Leistungen bleiben 3, je Leistung 2 Massaufnahmen.
+ 3. Leistung oeffnen, nur Status aendern, speichern -> Offerten-Position und Massaufnahmen bleiben erhalten.
+ 4. Zusatzleistung ohne Offerte anlegen -> "Zusatzleistung"; eine Massaufnahme zuordnen und wieder entfernen.
+ 5. Offerte NICHT gespeichert ableiten -> nur Massaufnahmen + Hinweis.
+ 6. Haekchen "Projekt-Leistung anlegen" aus -> keine Leistung.
+ 7. Altprojekt mit Massaufnahmen ohne Leistung -> Hinweis "keiner Leistung zugeordnet", nichts passiert automatisch.
+ 8. Aus frueherem Auftrag weiterhin offen: 10 Konten ohne eigenes Passwort per Schluessel-Symbol zuruecksetzen; im Supabase-Dashboard
+    "Leaked password protection" einschalten; Admin-Passwort-Reset, Offerten-Erkennung, Mitarbeiter-Anlage (Mail im Spam) testen.
+
+9. NAECHSTE ENTWICKLUNGSSCHRITTE (priorisiert)
+ 1. Originale Roadmap/Benachrichtigungskonzept als Datei liefern, dann Luecken der Benachrichtigungszentrale gezielt bewerten.
+ 2. Leistungs-Ausfuehrung: Status/ausgefuehrte Menge aus Werkstatt-/Montage-Fortschritt der verknuepften Massaufnahmen vorschlagen
+    (nur Vorschlag, kein Automatismus).
+ 3. Offerte->Materialbedarf (Projekt-Material-Cockpit), erst nach Klaerung der Artikelstruktur.
+ 4. Ausmass je Leistung (Soll Offerte vs. Ist aufgenommen) im Cockpit.
+ 5. Test mit Mitarbeiter ohne projects/edit und mit echten Daten nach den ersten Live-Leistungen.
+
+10. ZUSAETZLICHE IDEEN (nicht umgesetzt)
+Artikelstruktur/Lieferantenartikel, Lager & Barcode, Lieferantenliste, tatsaechlicher Verbrauch, Projektstatus-Ableitung,
+Sammelzuordnung "nicht zugeordnete Massaufnahmen" per Vorschlagsliste, Bereinigung von cron.job_run_details (alter Cron-Schluessel in 27 Zeilen),
+Aufraeumen von /trim.py im Container-Root (nicht im Repo).
+
+── Stand ──
+✅ Fertig: v3.319 + v3.320 online (Pages success), 174/174 Regression gruen, Roadmap-Abgleich und dieser Bericht im Repo
+⏳ Läuft: nichts
+❓ Von dir: manuelle Tests aus Abschnitt 8 (Leistungen-Ablauf, 10 Konten zuruecksetzen, Leaked-Password-Schutz einschalten)
