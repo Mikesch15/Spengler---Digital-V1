@@ -339,13 +339,20 @@ function rbAktionZeichnen(m,ausf){
 // v3.322: Das Ruestblatt als PDF drucken ("Als PDF speichern" im Druckdialog). Eine Kopie des gerade gezeigten Blatts
 // kommt in einen Druckbereich; nur der wird gedruckt (gleiches Muster wie abwDrucken, js/78). Schreibt nichts.
 function rbDrucken(){
- const quelle=$("ruestblattBody");
- if(!quelle||!quelle.innerHTML.trim()){appAlert("Es ist kein Rüstblatt geöffnet.");return}
+ const m=rbOffenId===null?null:rbFinde(rbOffenId);
+ if(!m){appAlert("Es ist kein Rüstblatt geöffnet.");return}
  const alt=document.getElementById("rbDruck");if(alt)alt.remove();
  const box=document.createElement("div");
  box.id="rbDruck";box.className="rb-druck";
- box.innerHTML=quelle.innerHTML;
+ // Immer das VOLLE Rüstblatt (Schnittzeichnung, alle Masse, Zuschnittliste, Angaben zur Baustelle) - auch wenn am Bildschirm
+ // die Montage-Ansicht ohne Zuschnittliste offen ist. Fotos bleiben weg (werden asynchron nachgeladen).
+ box.innerHTML=rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"});
+ box.querySelectorAll(".rb-bilder").forEach(x=>x.remove());
+ // Ausserhalb des Bildschirms, aber sichtbar eingehaengt: nur dann kann die Zeichnung auf ihren Inhalt zugeschnitten werden (js/60).
+ box.style.cssText="display:block;position:absolute;left:-99999px;top:0;width:190mm";
  document.body.appendChild(box);
+ if(typeof rsZuschneiden==="function")rsZuschneiden(box);
+ box.style.cssText="";
  document.body.classList.add("rb-drucken");
  const weg=()=>{box.remove();document.body.classList.remove("rb-drucken");window.removeEventListener("afterprint",weg)};
  window.addEventListener("afterprint",weg);

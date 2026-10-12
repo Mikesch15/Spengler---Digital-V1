@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.322`
+- Aktueller Entwicklungsstand: `v3.323`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
+
+`rbDrucken()` (js/80) baut das Blatt frisch mit `rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})` (Zeichnung, alle Masse, Zuschnittliste, Baustellenangaben; ohne Fotos), hängt es sichtbar ausserhalb des Bildschirms ein und schneidet die Zeichnung zu (`rsZuschneiden`), dann Druck. Nur mit Playwright-Druckvorschau (PDF gerendert, Schnittzeichnung + Masse sichtbar) geprüft; keine Prüfstände, keine Regression.
 
 ### v3.322 — Rüstblatt als PDF drucken (Blitzanpassung, ohne Prüfstände/Regression auf Ansage des Anwenders)
 
@@ -17,11 +21,6 @@ Befund: Verlässliche Fortschrittsquelle ist allein `measurements.workflow_statu
 Umsetzung (nur `js/65` + Feld `#leiVorschlag` in `index.html`): reine Funktion `leiAusfuehrungVorschlag(l,links,messungen)` (alle montiert → vollstaendig, einige → teilweise, keine → kein Vorschlag/kein Herabstufen; montiert ohne `montiert_am`, nicht lesbar oder unbekannter Status → Hinweis statt Vorschlag; nur verknüpfte Massaufnahmen; deterministisch). Anzeige im Leistungsdialog mit Quellenliste; Übernahme nur per Häkchen + Knopf; vor dem Schreiben frisch lesen (Fortschritt geändert → nichts), bestehender Status → Rückfrage, `update({status}).eq("status",bisher)` (nur dieses Feld; Doppelklick/parallele Änderung überschreibt nichts), Fehler/fehlende Berechtigung ehrlich gemeldet. Keine Migration, keine Edge Function, Materiallisten unberührt.
 Live (Rollback-Test, Nutzer-Impersonation): PETER-Admin liest Verknüpfung + Massaufnahme und ändert Status; bedingtes zweites Update 0 Zeilen; Testfirma liest/ändert nichts Fremdes (0). Mitarbeiter mit projects/edit darf ändern; Mitarbeiter ohne Recht nicht getestet.
 Prüfstand: `pruefstand-leistung-vorschlag-v3-321` (48); Gegenprobe (Bedingung entfernt) schlägt an.
-
-### v3.320 — „Massaufnahmen ableiten" legt Projekt-Leistungen an und verknüpft (idempotent)
-
-Schliesst die Lücke Offerte → Massaufnahme → Leistung: bis v3.319 stand die Herkunft nur in der Notiz der Massaufnahme. Neu `leiAusOffertePositionen()` (js/65): je gewählter Position Leistung wiederverwenden (gleiche Offerte + Nummer, bei doppelter Nummer + Beschreibung) oder anlegen (Status offen, Menge/Einheit aus der Position, nur Zuordnung – Preise unberührt) und Massaufnahme per upsert verknüpfen. Mehrere passende Leistungen → übersprungen und gemeldet (nie geraten). Offerte ungespeichert → nur Massaufnahmen + Hinweis. Fehler bei Leistungen rollen die Massaufnahmen NICHT zurück; Meldung ehrlich. Auswahlfeld `angMeasLeistungen` (Standard an) im Dialog (index.html). Die Leistungsliste (js/65) nutzt für den „nicht zugeordnet"-Hinweis `projectMeasurementsCache` statt einer zweiten Abfrage; Prüfstand 151 angepasst (Fixture mit angebot_id). Keine Migration, keine Edge Function.
-Prüfstand: `pruefstand-offerte-leistungen-v3-320` (30).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
