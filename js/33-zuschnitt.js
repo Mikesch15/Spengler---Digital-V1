@@ -1171,9 +1171,19 @@ function zuNeuMischen(p,r){
  try{
   if(!p||p.art==="stange"||zuIstTafel(p)||typeof ebaFormatPlan!=="function")return p;
   const b0=(p.moeglich||[])[0];
-  if(!b0||Array.isArray(b0.mischung))return p;
-  const breiten=((r&&r.breiten)||[]).map(Number).filter(x=>x>0);
-  if(breiten.length<2||(p.gruppen||[]).length<2)return p;
+  if(!b0||!(p.gruppen||[]).length)return p;
+  // Welche Rollen gelten JETZT? Das Blechlager der Firma, eingeschränkt auf die Wahl dieser Massaufnahme (leer = ganzes Lager).
+  // Ohne Lager (oder ohne Modul) gelten die mit dem Plan gespeicherten Rollenbreiten, eingeschränkt auf die gespeicherte Wahl.
+  const wahl=((r&&r.auswahl)||[]).map(Number).filter(x=>x>0);
+  const gespeichert=((r&&r.breiten)||[]).map(Number).filter(x=>x>0);
+  const lager=(typeof zuLagerbreiten==="function")?zuLagerbreiten():[];
+  let jetzt=lager.length?zuRollenGefiltert(wahl)
+    :(wahl.length?gespeichert.filter(x=>wahl.indexOf(x)>=0):gespeichert);
+  jetzt=Array.from(new Set(jetzt.map(Number).filter(x=>x>0))).sort((a,c)=>c-a);
+  if(!jetzt.length)return p;
+  const gleiche=gespeichert.length>0&&JSON.stringify(gespeichert.slice().sort((a,c)=>c-a))===JSON.stringify(jetzt);
+  // Nichts zu tun: dieselben Rollen wie beim Speichern und schon gemischt bzw. gar nicht mischbar.
+  if(gleiche&&(Array.isArray(b0.mischung)||(p.gruppen||[]).length<2))return p;
   const nachBreite=new Map();
   (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach(st=>(st.stuecke||[]).forEach(x=>{
    const A=zuZahl(x.breite)||zuZahl(g.breite);
@@ -1181,11 +1191,12 @@ function zuNeuMischen(p,r){
    if(!nachBreite.has(A))nachBreite.set(A,[]);
    nachBreite.get(A).push({nr:x.nr,laenge:zuZahl(x.laenge),merkmal:x.merkmal,hinweis:x.hinweis});
   })));
-  if(nachBreite.size<2)return p;
+  if(!nachBreite.size)return p;
   const gruppen=Array.from(nachBreite.keys()).sort((a,c)=>c-a).map(A=>({breite:A,bleche:nachBreite.get(A)}));
-  const neu=ebaFormatPlan({gruppen,formate:breiten.map(b=>({breite:b,laenge:null,text:b+" mm"})),form:"rolle",netto:zuZahl(p.netto)});
-  const nb=neu&&neu.bestes;
-  if(!nb||!Array.isArray(nb.mischung))return p;
+  const neu=ebaFormatPlan({gruppen,formate:jetzt.map(b=>({breite:b,laenge:null,text:b+" mm"})),form:"rolle",netto:zuZahl(p.netto)});
+  if(!neu||!neu.bestes||!(neu.moeglich||[]).length)return p;   // keine der Rollen passt: der gespeicherte Plan bleibt
+  // Unverändert gespeicherte Rollen und keine Mischung: der gespeicherte Plan bleibt genau so.
+  if(gleiche&&!Array.isArray(neu.bestes.mischung))return p;
   return Object.assign({},p,{gruppen:neu.gruppen,moeglich:neu.moeglich,streifenbreiten:gruppen.map(g=>g.breite)});
  }catch(e){return p}
 }

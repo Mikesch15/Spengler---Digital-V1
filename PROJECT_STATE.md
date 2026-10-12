@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.329`
+- Aktueller Entwicklungsstand: `v3.330`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.330 — Rollen nachträglich ändern wirkt in Rüstblatt/Rüstliste/Werkstatt/Material
+
+Rückmeldung: nachträglich geänderte verfügbare Rollen wurden nicht berücksichtigt. `zuNeuMischen` (js/33, aus `pmatPlanFuer`) rechnet jetzt jeden gespeicherten Rollenplan aus den JETZT gültigen Rollen neu: Blechlager der Firma (`zuLagerbreiten`) eingeschränkt auf die gespeicherte Wahl der Massaufnahme (`rollen.auswahl`, leer = ganzes Lager); ohne Lager die gespeicherten `breiten` ∩ Wahl. Gleiche Rollen wie beim Speichern und schon gemischt/nicht mischbar → gespeicherter Plan unverändert; passt keine Rolle → gespeicherter Plan bleibt. Nichts wird zurückgeschrieben. Prüfstand `rollen-mischen-v3-328` Abschnitt F (40 gesamt).
 
 ### v3.329 — Rollen-Mischung auch für bereits gespeicherte Pläne (Rüstliste/Rüstblatt/Werkstatt)
 
@@ -15,10 +19,6 @@ Rückmeldung: die Rüstliste zeigte die Mischung nicht. Ursache: Rüstblatt, Rü
 
 Auftrag des Anwenders: mehrere Rollen dürfen in einer Massaufnahme gemischt werden, automatisch, aber nur mit den in der Massaufnahme angewählten Rollen. Umsetzung am EINEN Formatplan `ebaFormatPlan` (js/29): neue `ebaRollenMischung()` sucht per Teilmengen-DP die Aufteilung der Streifenbreiten (Gruppen) auf die angewählten Rollen mit der kleinsten Blechfläche; innerhalb einer Rolle rechnet unverändert `ebaFormatZeilen` (inkl. Mischung verschiedener Breiten in einem Abschnitt). Nur Rolle (nie Tafel), 2–6 Gruppen, ≥2 Rollen; Mischung ersetzt das beste Einzelformat nur bei Gewinn ≥ 0,02 m² und ≥ 2 %, jeder weitere Rollenwechsel muss ≥ 0,03 m² sparen (`EBA_MISCH_*`). Ergebnis: `moeglich[0]` mit `mischung:[{breite,gruppen,format}]`, `gruppen[].rolleBreite`, `zeilen[].rolleBreite`; Pläne ohne `mischung` (alle alten) laufen unverändert. js/33: `zuMischBloecke` – jeder Block wird wie ein eigener Plan behandelt (`zuGeometrie`, `zuAbschnittInfo` mit fortlaufenden Abschnittsnummern über alle Rollen → Bilanz, Reste, Zuschnittliste/Rüstblatt „ab 670er Rolle“); `zuFormatText`/`zuAbschnittText` nennen die Rollen. Beispiel (Dachfenster Süd Rechts): 670er + 1000er statt nur 670er = 1,416 statt 1,558 m².
 Prüfstand: `pruefstand-rollen-mischen-v3-328` (29). Angepasst: `kamin-app-v2-90` (beste Lösung jetzt gemischt 3,006 m², 1000er allein 3,6 m²); `ruestliste-offline-v3-23`, `reste-schnittfuge-v3-26`, `rolle-tafel-v3-33` prüfen das alte Rüstlisten-Kästchendokument (Rückfall) und schalten den neuen Druckweg (v3.325) ab. Vorher-Lauf der vollen Regression auf dem Arbeitsstand: nur diese vier rot.
-
-### v3.327 — Rüstblatt-Druck: pro Massaufnahme möglichst eine Seite (Blitzanpassung, ohne Prüfstände/Regression)
-
-In `rbDruckenAufnahmen` (js/80) misst der Druckrahmen jede Blattseite und verkleinert zu hohe per `zoom` (Untergrenze 55 %) auf die verfügbare Seitenhöhe (297 − Ränder − Fusszeile); darüber hinaus läuft es auf die nächste Seite. Zeichnung höchstens 58 mm hoch. Per gerendertem PDF mit 14 Stücken geprüft (eine Seite je Massaufnahme); keine Prüfstände/Regression.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

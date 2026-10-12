@@ -34509,3 +34509,7 @@ Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Pop
 ### v3.326 — Rüstblatt-/Rüstlisten-Druck im Layout der übrigen Dokumente (Blitzanpassung, ohne Prüfstände/Regression)
 
 `rbDruckenAufnahmen` (js/80) baut jetzt ein eigenes Dokument (`rbDokumentHtml`: `pdfKopfHtml` mit Logo/Projekt, `PDF_LAYOUT_CSS`, `RB_DRUCK_CSS` im PDF-Schriftmass, `pdfFooterHtml`, Seitenzahl) und druckt es aus einem unsichtbaren iframe (`srcdoc`, Zeichnungen per `rsZuschneiden` zugeschnitten); je Massaufnahme eine Seite. Die Bildschirm-Druckregeln `#rbDruck` aus v3.322–325 sind entfernt. Per gerendertem PDF geprüft (2 Seiten für 2 Massaufnahmen); keine Prüfstände/Regression.
+
+### v3.327 — Rüstblatt-Druck: pro Massaufnahme möglichst eine Seite (Blitzanpassung, ohne Prüfstände/Regression)
+
+In `rbDruckenAufnahmen` (js/80) misst der Druckrahmen jede Blattseite und verkleinert zu hohe per `zoom` (Untergrenze 55 %) auf die verfügbare Seitenhöhe (297 − Ränder − Fusszeile); darüber hinaus läuft es auf die nächste Seite. Zeichnung höchstens 58 mm hoch. Per gerendertem PDF mit 14 Stücken geprüft (eine Seite je Massaufnahme); keine Prüfstände/Regression.

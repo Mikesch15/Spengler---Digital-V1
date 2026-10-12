@@ -125,6 +125,39 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   const pl=pmatPlanFuer(m);return pl&&!pl.moeglich[0].mischung&&pl.moeglich[0].breite===670;
  });
  p(gleichAlt,"ein Plan mit nur einer Streifenbreite bleibt, wie gespeichert");
+ console.log("\nF · Rollen nachträglich geändert: Rüstblatt/Rüstliste folgen");
+ const nachtrag=await page.evaluate(()=>{
+  const gr=[{breite:280,bleche:[{nr:1,laenge:564,merkmal:"Vorderteil"}]},
+   {breite:190,bleche:[{nr:3,laenge:1225},{nr:5,laenge:1225}]},
+   {breite:462,bleche:[{nr:2,laenge:595}]},{breite:219,bleche:[{nr:4,laenge:505},{nr:6,laenge:505}]}];
+  const netto=gr.reduce((s,g)=>s+g.breite*g.bleche.reduce((a,x)=>a+x.laenge,0),0)/1e6;
+  const alle=ebaFormatPlan({gruppen:gr.map(g=>({breite:g.breite,bleche:g.bleche.map(x=>Object.assign({breite:g.breite},x))})),formate:[250,330,670,1000].map(b=>({breite:b,laenge:null,text:b+" mm"})),form:"rolle",netto});
+  const roh=Object.assign({},alle,{breiten:[250,330,670,1000],auswahl:[]});
+  const kopie=()=>JSON.parse(JSON.stringify(roh));
+  const holen=(r)=>pmatPlanFuer({id:9,type:"kehle",project_id:1,data:{rollen:r}});
+  const text=pl=>pl.moeglich[0].text, misch=pl=>!!pl.moeglich[0].mischung;
+  const aus={};
+  aus.gespeichert=[text(holen(kopie())),misch(holen(kopie()))];
+  // 1) Wahl der Massaufnahme nachträglich auf die 1000er beschränkt
+  const r1=kopie();r1.auswahl=[1000];const p1=holen(r1);aus.nur1000=[text(p1),misch(p1)];
+  // 2) Wahl 670 + 1000
+  const r2=kopie();r2.auswahl=[670,1000];const p2=holen(r2);aus.w670_1000=[text(p2),misch(p2),(p2.moeglich[0].mischung||[]).map(m=>m.breite).sort((a,c)=>a-c)];
+  // 3) Blechlager der Firma nachträglich geändert (nur noch 670 und 330 im Lager)
+  const alt=window.ebaRollenbreiten;window.ebaRollenbreiten=()=>[670,330];
+  let p3=null;try{p3=holen(kopie())}finally{window.ebaRollenbreiten=alt}
+  aus.lager=p3?[text(p3),misch(p3)]:null;
+  // 4) Lager wieder wie vorher: unverändert der gespeicherte Plan
+  const alt2=window.ebaRollenbreiten;window.ebaRollenbreiten=()=>[250,330,670,1000];
+  let p4=null;try{p4=holen(kopie())}finally{window.ebaRollenbreiten=alt2}
+  aus.lagerGleich=[text(p4),misch(p4)];
+  aus.gespFlaeche=roh.moeglich[0].flaeche;aus.p4Flaeche=p4.moeglich[0].flaeche;
+  return aus;
+ });
+ p(nachtrag.gespeichert[1],"Ausgangslage: gespeicherter Plan ist gemischt",nachtrag.gespeichert);
+ p(JSON.stringify(nachtrag.nur1000)==='["1000 mm",false]',"Wahl nachträglich nur 1000er: keine Mischung, nur 1000er",nachtrag.nur1000);
+ p(nachtrag.w670_1000[1]&&JSON.stringify(nachtrag.w670_1000[2])==="[670,1000]","Wahl 670 + 1000: nur diese beiden gemischt",nachtrag.w670_1000);
+ p(nachtrag.lager&&!/1.?000/.test(nachtrag.lager[0]),"Blechlager nachträglich ohne 1000er: Plan nutzt sie nicht mehr",nachtrag.lager);
+ p(nachtrag.lagerGleich[1]&&Math.abs(nachtrag.p4Flaeche-nachtrag.gespFlaeche)<1e-9,"Lager unverändert: derselbe Plan wie gespeichert",nachtrag.lagerGleich);
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
  console.log("\nErgebnis: "+ok+" ok, "+fail+" fehlgeschlagen");
