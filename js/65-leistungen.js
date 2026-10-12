@@ -103,6 +103,39 @@ function leiVerknuepfungsDiff(vorhanden,gewaehlt){
  const v=new Set((vorhanden||[]).map(Number)), g=new Set((gewaehlt||[]).map(Number));
  return {neu:[...g].filter(x=>!v.has(x)),weg:[...v].filter(x=>!g.has(x))};
 }
+
+// v3.321: Vorschlag fuer den Ausfuehrungsstatus einer Leistung aus dem MONTAGEFORTSCHRITT ihrer verknuepften Massaufnahmen.
+// Rein lesend, keine Datenbank. Einzige belegbare Quelle: measurements.workflow_status mit Zeitstempel montiert_am
+// ("montiert"/"abgeschlossen"). Gerüstet/zugewiesen ist Vorbereitung, KEINE Ausfuehrung; Zuschnitt-Haken (zuschnitt_erledigt)
+// ebenso. Eine ausgefuehrte MENGE gibt keine Quelle her (die Massaufnahmen speichern keine ausgefuehrte Menge in der Einheit
+// der Leistung) - sie wird nie vorgeschlagen. Unklare/widerspruechliche Daten -> kein Vorschlag, sondern ein Hinweis.
+// links: [{measurement_id}], messungen: Zeilen der verknuepften Massaufnahmen (id,title,workflow_status,montiert_am).
+const LEI_WF_OFFEN=["in_bearbeitung","freigegeben","zu_ruesten","geruestet","zu_montieren"];
+const LEI_WF_AUSGEFUEHRT=["montiert","abgeschlossen"];
+function leiAusfuehrungVorschlag(l,links,messungen){
+ const erg={status:null,quellen:[],hinweis:"",mengeHinweis:"Eine ausgeführte Menge wird nicht vorgeschlagen: Die Massaufnahmen speichern keine ausgeführte Menge in der Einheit der Leistung."};
+ const ids=[...new Set((links||[]).map(r=>Number(r.measurement_id)))];
+ if(!ids.length){erg.hinweis="Keine Massaufnahme verknüpft – ohne Verknüpfung gibt es keinen Vorschlag.";return erg}
+ const nachId={};(messungen||[]).forEach(m=>{nachId[Number(m.id)]=m});
+ let ausg=0,offen=0,unklar=0;
+ ids.sort((a,b)=>a-b).forEach(id=>{
+  const m=nachId[id];
+  const q={id,titel:m?(m.title||"Ohne Titel"):"(nicht lesbar)",workflow:m?(m.workflow_status||""):"",wertung:"unklar",grund:""};
+  if(!m)q.grund="Massaufnahme nicht lesbar oder gelöscht";
+  else if(LEI_WF_AUSGEFUEHRT.indexOf(m.workflow_status)>=0){
+   if(m.montiert_am){q.wertung="ausgefuehrt"}
+   else q.grund="Status „"+m.workflow_status+"“ ohne Montagedatum – widersprüchlich";
+  }else if(LEI_WF_OFFEN.indexOf(m.workflow_status)>=0){q.wertung="offen"}
+  else q.grund="Status unbekannt oder leer";
+  if(q.wertung==="ausgefuehrt")ausg++;else if(q.wertung==="offen")offen++;else unklar++;
+  erg.quellen.push(q);
+ });
+ if(unklar){erg.hinweis="Kein Vorschlag: bei "+unklar+" von "+ids.length+" Massaufnahme"+(ids.length===1?"":"n")+" ist der Fortschritt unklar. Bitte dort prüfen.";return erg}
+ if(ausg===ids.length)erg.status="vollstaendig";
+ else if(ausg>0)erg.status="teilweise";
+ else erg.hinweis="Kein Vorschlag: noch keine verknüpfte Massaufnahme ist montiert – es ist kein Ausführungsfortschritt belegt.";
+ return erg;
+}
 // ---- Ende Hilfsfunktionen
 
 // v3.320: Zu den aus einer Offerte abgeleiteten Massaufnahmen je Position eine Leistung anlegen (oder die vorhandene
@@ -258,6 +291,7 @@ function newLeistung(){
  if($("leiAusgefuehrteMenge"))$("leiAusgefuehrteMenge").value="";
  if($("leiAngebotPosition"))$("leiAngebotPosition").value="";
  leiEditReturnTo="cockpitLeistungen";
+ if(typeof leiVorschlagRendern==="function")leiVorschlagRendern();
  leiLadeAngebotePositionen(cockpitProjectId).then(leiRenderAngebotAuswahl);
  leiRenderMassaufnahmenAuswahl();
  $("leistungEditModal").hidden=false;
@@ -285,6 +319,94 @@ async function openLeistung(l){
  leiRenderMassaufnahmenAuswahl();
  $("leistungEditModal").hidden=false;
  $("projectCockpitModal").hidden=true;
+ leiVorschlagRendern();
+}
+
+// ---- v3.321: Vorschlag anzeigen / ausdruecklich uebernehmen (schreibt NUR auf Klick, nur den Status) ----
+let leiVorschlagStand=null;   // {vorschlag}
+let leiVorschlagLaeuft=false;
+async function leiVorschlagLesen(leistungId){
+ const {data:links,error:e1}=await sb.from("leistung_massaufnahmen").select("measurement_id").eq("leistung_id",leistungId);
+ if(e1)return {fehler:dbFehlerText(e1)};
+ const ids=(links||[]).map(r=>r.measurement_id);
+ let ms=[];
+ if(ids.length){
+  const {data,error:e2}=await sb.from("measurements").select("id,title,type,workflow_status,montiert_am").in("id",ids);
+  if(e2)return {fehler:dbFehlerText(e2)};
+  ms=data||[];
+ }
+ return {vorschlag:leiAusfuehrungVorschlag(currentLeistungMeta,links,ms)};
+}
+async function leiVorschlagRendern(){
+ const box=$("leiVorschlag");
+ if(!box)return;
+ leiVorschlagStand=null;
+ if(!currentLeistungId){box.hidden=true;box.innerHTML="";return}
+ box.hidden=false;
+ box.innerHTML='<div class="muted small">Fortschritt wird gelesen…</div>';
+ const id=currentLeistungId;
+ const r=await leiVorschlagLesen(id);
+ if(id!==currentLeistungId)return;
+ if(r.fehler){box.innerHTML=`<div class="muted small">Der Montagefortschritt konnte nicht gelesen werden: ${esc(r.fehler)}</div>`;return}
+ const v=r.vorschlag;leiVorschlagStand=v;
+ const quellen=v.quellen.map(q=>`<li>${esc(q.titel)} – ${q.wertung==="ausgefuehrt"?"montiert":q.wertung==="offen"?"noch nicht montiert ("+esc(typeof mwStatusText==="function"?mwStatusText(q.workflow):q.workflow)+")":esc(q.grund)}</li>`).join("");
+ const aktuell=currentLeistungMeta&&currentLeistungMeta.status||"nicht_ausgefuehrt";
+ let kopf="";
+ if(v.status){
+  const gleich=v.status===aktuell;
+  kopf=`<div><b>Vorschlag:</b> ${ausfBadge(v.status)}${gleich?' <span class="muted small">(entspricht dem gespeicherten Status)</span>':""}</div>`;
+  if(!gleich){
+   const ersetzt=aktuell!=="nicht_ausgefuehrt";
+   kopf+=`<label class="check-row" style="margin-top:6px"><input type="checkbox" id="leiVorschlagStatus"> Status übernehmen${ersetzt?` (ersetzt den bisherigen Wert „${esc(ausfStatusText(aktuell))}“)`:""}</label>
+<button type="button" id="leiVorschlagUebernehmen" class="green" disabled>Ausgewählte Werte übernehmen</button>`;
+  }
+ }else kopf=`<div class="muted">${esc(v.hinweis)}</div>`;
+ box.innerHTML=`<div class="small" style="margin-bottom:4px"><b>Vorschlag aus dem Montagefortschritt</b> (nur Vorschlag – nichts wird automatisch gespeichert)</div>${kopf}
+<ul class="small" style="margin:6px 0 4px 18px">${quellen}</ul>
+<div class="muted small">Grundlage: gespeicherte Verknüpfungen und Status der Massaufnahmen. ${esc(v.mengeHinweis)}</div>`;
+ const cb=$("leiVorschlagStatus"),bt=$("leiVorschlagUebernehmen");
+ if(cb&&bt)cb.onchange=()=>{bt.disabled=!cb.checked};
+ if(bt)bt.onclick=()=>leiVorschlagUebernehmen();
+}
+async function leiVorschlagUebernehmen(){
+ if(leiVorschlagLaeuft||!currentLeistungId||!leiVorschlagStand)return;
+ const cb=$("leiVorschlagStatus");
+ if(!cb||!cb.checked)return;
+ if(typeof offlineSperrtSpeichern==="function"&&offlineSperrtSpeichern("den Ausführungsstatus zu übernehmen"))return;
+ leiVorschlagLaeuft=true;
+ const bt=$("leiVorschlagUebernehmen");if(bt)bt.disabled=true;
+ try{
+  const id=currentLeistungId;
+  // Frisch lesen: stimmt der Fortschritt noch mit dem ueberein, was der Anwender gesehen hat?
+  const r=await leiVorschlagLesen(id);
+  if(r.fehler){appAlert("Nicht übernommen: "+r.fehler);return}
+  const neu=r.vorschlag.status, alt=leiVorschlagStand.status;
+  if(neu!==alt){appAlert("Der Montagefortschritt hat sich inzwischen geändert. Es wurde nichts übernommen – der Vorschlag wird neu angezeigt.");await leiVorschlagRendern();return}
+  const gespeichert=currentLeistungMeta&&currentLeistungMeta.status||"nicht_ausgefuehrt";
+  const formStatus=($("leiStatus")&&$("leiStatus").value)||gespeichert;
+  if(gespeichert!=="nicht_ausgefuehrt"||formStatus!==gespeichert){
+   const ok=await appConfirm(`Der Status „${ausfStatusText(formStatus!==gespeichert?formStatus:gespeichert)}“ wurde bereits gesetzt. Wirklich durch „${ausfStatusText(neu)}“ ersetzen? Die ausgeführte Menge und alle anderen Felder bleiben unverändert.`,{ok:"Ersetzen"});
+   if(!ok)return;
+  }
+  // Nur das Feld status; die Bedingung auf den bisher gespeicherten Wert verhindert Doppeleffekte und stilles Ueberschreiben
+  // einer zwischenzeitlichen Aenderung. Alles andere an der Leistung bleibt unberuehrt.
+  const {data,error}=await sb.from("leistungen").update({status:neu}).eq("id",id).eq("status",gespeichert).select();
+  if(error){appAlert("Nicht übernommen: "+dbFehlerText(error));return}
+  if(!data||!data.length){
+   const {data:akt}=await sb.from("leistungen").select("*").eq("id",id).maybeSingle();
+   if(akt&&akt.status===neu){currentLeistungMeta=akt;if($("leiStatus"))$("leiStatus").value=neu;appAlert("Dieser Status ist bereits übernommen.");await leiVorschlagRendern();return}
+   if(akt&&akt.status===gespeichert){appAlert("Nicht übernommen: Die Änderung wurde nicht angenommen – wahrscheinlich fehlt dir die Berechtigung, diese Leistung zu ändern.");return}
+   if(akt){appAlert("Die Leistung wurde inzwischen geändert (Status jetzt „"+ausfStatusText(akt.status)+"“). Es wurde nichts übernommen.");return}
+   appAlert("Nicht übernommen: Die Leistung ist nicht mehr sichtbar oder dir fehlt die Berechtigung zum Ändern.");return;
+  }
+  currentLeistungMeta=data[0];
+  if($("leiStatus"))$("leiStatus").value=neu;
+  const i=projectLeistungenCache.findIndex(x=>x.id===id);if(i>=0)projectLeistungenCache[i]=data[0];
+  appAlert("Status übernommen: „"+ausfStatusText(neu)+"“.");
+  await leiVorschlagRendern();
+ }catch(err){
+  appAlert("Nicht übernommen: "+dbFehlerText(err));
+ }finally{leiVorschlagLaeuft=false;const b2=$("leiVorschlagUebernehmen"),c2=$("leiVorschlagStatus");if(b2&&c2)b2.disabled=!c2.checked}
 }
 
 async function leiEditZurueck(){

@@ -3,9 +3,16 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.320`
+- Aktueller Entwicklungsstand: `v3.321`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.321 — Leistungsausführung: Statusvorschlag aus dem Montagefortschritt (nur Vorschlag)
+
+Befund: Verlässliche Fortschrittsquelle ist allein `measurements.workflow_status` mit Zeitstempel `montiert_am` (Werte montiert/abgeschlossen = ausgeführt; in_bearbeitung…zu_montieren = offen). Gerüstet/zugewiesen ist Vorbereitung, `zuschnitt_erledigt` ist Zuschnitt – beides keine Ausführung. Eine ausgeführte MENGE gibt keine Quelle her (`leistungen.menge`/`ausgefuehrte_menge` sind freier Text, Massaufnahmen speichern keine ausgeführte Menge in der Einheit der Leistung) → Menge wird nie vorgeschlagen (dokumentierte Grenze).
+Umsetzung (nur `js/65` + Feld `#leiVorschlag` in `index.html`): reine Funktion `leiAusfuehrungVorschlag(l,links,messungen)` (alle montiert → vollstaendig, einige → teilweise, keine → kein Vorschlag/kein Herabstufen; montiert ohne `montiert_am`, nicht lesbar oder unbekannter Status → Hinweis statt Vorschlag; nur verknüpfte Massaufnahmen; deterministisch). Anzeige im Leistungsdialog mit Quellenliste; Übernahme nur per Häkchen + Knopf; vor dem Schreiben frisch lesen (Fortschritt geändert → nichts), bestehender Status → Rückfrage, `update({status}).eq("status",bisher)` (nur dieses Feld; Doppelklick/parallele Änderung überschreibt nichts), Fehler/fehlende Berechtigung ehrlich gemeldet. Keine Migration, keine Edge Function, Materiallisten unberührt.
+Live (Rollback-Test, Nutzer-Impersonation): PETER-Admin liest Verknüpfung + Massaufnahme und ändert Status; bedingtes zweites Update 0 Zeilen; Testfirma liest/ändert nichts Fremdes (0). Mitarbeiter mit projects/edit darf ändern; Mitarbeiter ohne Recht nicht getestet.
+Prüfstand: `pruefstand-leistung-vorschlag-v3-321` (48); Gegenprobe (Bedingung entfernt) schlägt an.
 
 ### v3.320 — „Massaufnahmen ableiten" legt Projekt-Leistungen an und verknüpft (idempotent)
 
@@ -17,10 +24,6 @@ Prüfstand: `pruefstand-offerte-leistungen-v3-320` (30).
 Befund (vor der Änderung geprüft): Das Modell existiert bereits (`leistungen` mit `angebot_id`/`angebot_position`, `leistung_massaufnahmen` n:m mit Unique, RLS/tenant_boundary). Nachweisbare Lücken: (1) Position nur über Nummer gespeichert – leere/doppelte Nummern wählten beim Öffnen die falsche oder keine Position, beim nächsten Speichern ging die Zuordnung still verloren; (2) Speichern löschte ALLE Massaufnahme-Verknüpfungen und legte sie neu an (bei Fehler dazwischen weg); (3) DB erlaubte Verknüpfung mit Massaufnahme/Offerte aus anderem Projekt derselben Firma; (4) Offerte-Position ohne Nummer wurde als „Zusatzleistung“ angezeigt.
 Änderung: Migration `leistungen_zuordnung_integritaet` (Spalte `angebot_position_beschreibung`, Trigger `pruefe_leistung_massaufnahme`/`pruefe_leistung_angebot`, SECURITY INVOKER, idempotent); `js/65` Hilfsfunktionen `leiPositionFinden`/`leiHerkunftText`/`leiVerknuepfungsDiff`, Diff-Speichern (upsert, dann nur Entfernte löschen), Option „Bisherige Zuordnung beibehalten“, Anzeige Massaufnahmen-Zahl + Hinweis auf nicht zugeordnete (keine Zwangszuordnung); `js/70` nutzt `leiHerkunftText`. Preise/Mengen/Workflow unverändert. Live (Rollback-Tests mit Nutzer-Impersonation): gleiche Projekt ok, Duplikat/anderes Projekt/fremde Firma abgewiesen.
 Prüfstand: `pruefstand-leistungen-zuordnung-v3-319` (30), `pruefstand-leistungen-v3-37` angepasst.
-
-### v3.318 — Nachtauftrag Paket F: Service Worker hebt nur Erfolgreiches auf
-
-`sw.js` (Netz zuerst, Cache nur ohne Verbindung) legte JEDE Antwort in den Zwischenspeicher – auch 404/500. Ein kurzer Serverfehler überschrieb so die gute Kopie derselben Datei; ohne Verbindung kam danach die Fehlerseite statt der App. Jetzt `if (res.ok)`. Prüfstand `pruefstand-sw-cache-v3-318` (11; ohne die Änderung 3 rot): 200 aufgehoben, 500/404 überschreiben nicht, ohne Netz kommt die gute Kopie, fehlende Datei = Fehler statt falscher Antwort, nur Seitennavigation fällt auf die Startseite zurück, fremde Adressen/POST unberührt, Cache-Nummer = sichtbare Version. Rest von Paket F geprüft, keine Lücke: Cache-Version wird per `werkzeug-version.js` mitgezählt, App-Icon bleibt das blaue SD (`?v=2`), keine neuen Dateien in dieser Nacht (also nichts in App-Hülle/Script-Reihenfolge nachzutragen), Offline-Speichern wird vom Schalter `offlineSperrtSpeichern` abgefangen (Meldung statt vorgetäuschtem Erfolg).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
