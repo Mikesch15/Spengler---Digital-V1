@@ -296,7 +296,6 @@ function pzuAuswahlHtml(alle){
   <div class="bar" style="margin:6px 0">
    <button type="button" class="gray mz-klein" data-pzu-alle="1">Alle auswählen</button>
    <button type="button" class="gray mz-klein" data-pzu-keine="1">Auswahl aufheben</button>
-   <button type="button" class="blue mz-klein" data-pzu-ruestblatt="1" title="Projekt-Rüstblatt der ausgewählten Massaufnahmen mit gemeinsamem Rollenzuschnitt (Vorschau)">📐 Rüstblatt erstellen/aktualisieren</button>
   </div>
   ${alle.map(m=>`<label class="pzu-auswahl-zeile" style="display:block;padding:4px 0">
     <input type="checkbox" data-pzu-auswahl="${esc(m.id)}" ${ausschluss.has(Number(m.id))?"":"checked"}>
@@ -322,14 +321,23 @@ function pzuGetrenntFlaeche(M){
  }
  return summe;
 }
+// v3.336: abgeschlossene (und archivierte) Massaufnahmen kommen auf kein Rüstblatt und in keine Rüstliste.
+function pzuRuestbar(m){return !!m&&m.workflow_status!=="abgeschlossen"&&m.archived!==true}
 function pzuProjektRuestblattHtml(liste){
- const q=(liste||[]).filter(Boolean);
+ const q=(liste||[]).filter(m=>m&&pzuRuestbar(m));
  const {materialien,ohne}=pzuSammeln(q);
  const qm=x=>(Number(x)).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
  const gruppen=materialien.map(M=>{
   const plan=pzuPlan(M);
   const best=(plan.moeglich||[])[0];
   const zahlen=[];
+  // v3.336: wie viele Stücke dieser Gruppe in ihrer eigenen Massaufnahme schon als zugeschnitten abgehakt sind
+  let stGes=0, stOk=0;
+  M.gruppen.forEach(g=>(g.stuecke||[]).forEach(x=>{
+   if(x.quelleId===undefined||x.origNr===undefined)return;
+   stGes++; if(typeof zeIstErledigt==="function"&&zeIstErledigt(x.quelleId,x.origNr))stOk++;
+  }));
+  if(stGes)zahlen.push(`Bereits abgehakt: <b>${stOk} von ${stGes}</b> Stück`);
   if(best&&Number.isFinite(Number(best.flaeche))){
    zahlen.push(`Rolle: <b>${esc(typeof zuFormatText==="function"?zuFormatText(best,plan):"")}</b>`,
      `Blech: <b>${qm(best.flaeche)} m²</b>`);
@@ -374,7 +382,7 @@ function renderProjektZuschnitt(){
  // Der Ruestlisten-Druck (js/58) ist derselbe, den Werkstatt und die Seite
  // "Material & Zuschnitt" bereits verwenden - hier nur mit der eigenen
  // Auswahl statt "alle" bzw. der Werkstatt-Statusfilterung.
- const mitPlan=ausgewaehlt.filter(m=>pzuHatPlan(m));
+ const mitPlan=ausgewaehlt.filter(m=>pzuHatPlan(m)&&pzuRuestbar(m));
  const druckHtml=mitPlan.length
    ?`<button type="button" class="gray mz-klein" data-pzu-druck="1" title="Rüstliste der ausgewählten Massaufnahmen drucken">🖨️ Rüstliste</button>`:"";
  if(!materialien.length){
@@ -411,14 +419,6 @@ if($("cockpitZuschnittBody")){
    if(typeof openMeasurement==="function")openMeasurement(m);
    return;
   }
-  const rb=e.target.closest?e.target.closest("[data-pzu-ruestblatt]"):null;
-  if(rb){
-   const alle=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
-   const mit=pzuAusgewaehlteListe(alle).filter(m=>pzuHatPlan(m));
-   if(!mit.length){appAlert("Keine ausgewählte Massaufnahme dieses Projekts hat einen gespeicherten Zuschnitt.");return}
-   if(typeof rbProjektOeffnen==="function")await rbProjektOeffnen(mit);
-   return;
-  }
   const alleBtn=e.target.closest?e.target.closest("[data-pzu-alle],[data-pzu-keine]"):null;
   if(alleBtn){
    const alle=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
@@ -429,7 +429,7 @@ if($("cockpitZuschnittBody")){
   const druck=e.target.closest?e.target.closest("[data-pzu-druck]"):null;
   if(druck){
    const alle=Array.isArray(projectMeasurementsCache)?projectMeasurementsCache:[];
-   const mit=pzuAusgewaehlteListe(alle).filter(m=>(typeof pmatPlanFuer==="function")&&!!pmatPlanFuer(m));
+   const mit=pzuAusgewaehlteListe(alle).filter(m=>pzuRuestbar(m)&&(typeof pmatPlanFuer==="function")&&!!pmatPlanFuer(m));
    if(mit.length&&typeof ruestlisteProjekt==="function"&&typeof cockpitProjectId!=="undefined")
     await ruestlisteProjekt(cockpitProjectId,mit);
    return;

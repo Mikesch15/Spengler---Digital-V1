@@ -1208,6 +1208,9 @@ button.zu-nr.zu-nr-hak.ze-ok::before{content:"✓ "}
 button.zu-nr.zu-nr-hak.ze-ok.ze-wartet{background:none;color:var(--green);
  border-style:dashed}
 button.zu-nr.zu-nr-hak.ze-ok.ze-wartet::before{content:"⧗ "}
+/* v3.336: Projekt-Rüstblatt: Stückanzeige im gemeinsamen Plan (nur Anzeige) */
+span.zu-nr.zu-nr-ist.ze-ok{border-color:var(--green);background:var(--green);color:#fff}
+span.zu-nr.zu-nr-ist.ze-ok::before{content:"✓ "}
 .ze-stand{font-size:11px;color:var(--muted);white-space:nowrap}
 .ze-stand.ze-stand-ok{color:var(--green);font-weight:700}
 button.ze-alle{min-height:30px;padding:2px 8px;font-size:11px;text-transform:none;

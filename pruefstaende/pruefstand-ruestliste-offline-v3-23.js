@@ -249,6 +249,7 @@ const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.le
   p(knoepfe.mess.length===2,"und an jeder Massaufnahme-Karte einer",knoepfe);
 
   // --- Projekt-Rüstliste ---
+  await page.evaluate(()=>{window.rbProjektOeffnen=null});   // v3.336: der Knopf öffnet jetzt die Auswahl (eigener Prüfstand); hier der Druckweg dahinter
   await klick(page,'[data-werk-druck]',"Rüstliste Projekt");
   await page.waitForTimeout(400);
   const d=await druckHtml(page);

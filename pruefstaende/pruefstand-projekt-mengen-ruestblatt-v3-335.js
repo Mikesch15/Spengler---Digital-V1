@@ -114,7 +114,7 @@ window.supabase={createClient:()=>({
  const M3=await ms();
  await setze(M3,[]);
  let t=await page.evaluate(()=>$("cockpitZuschnittBody").textContent.replace(/\s+/g," "));
- p(/3 von 3 ausgewählt/.test(t)&&/Alle auswählen/.test(t)&&/Auswahl aufheben/.test(t)&&/Rüstblatt erstellen\/aktualisieren/.test(t),"Auswahlübersicht mit Zähler, Alle auswählen, Auswahl aufheben, Rüstblatt erstellen/aktualisieren",t.slice(0,300));
+ p(/3 von 3 ausgewählt/.test(t)&&/Alle auswählen/.test(t)&&/Auswahl aufheben/.test(t)&&!/Rüstblatt erstellen\/aktualisieren/.test(t),"Auswahlübersicht mit Zähler, Alle auswählen, Auswahl aufheben, Rüstblatt erstellen/aktualisieren",t.slice(0,300));
  p(/Titanzink · 0,7 mm/.test(t)&&/Kupfer · 0,7 mm/.test(t)&&/Süd/.test(t)&&/Nord/.test(t)&&/Ost/.test(t),"je Massaufnahme Art/Titel, Werkstoff und Stärke",t.slice(0,400));
  p(/keine Stücke|zugeschnitten|Stück/.test(t),"Zuschnitt-/Rüststand je Massaufnahme sichtbar");
  await setze(M3,[12]);
@@ -142,7 +142,7 @@ window.supabase={createClient:()=>({
   const frisch=[mk(11,"Süd",[{breite:400,stuecke:[500]}],{type:"kehle"}),Object.assign(mk(13,"Ost",[{breite:300,stuecke:[800]}],{material:"1"}),{project_id:99})];
   sb.from=(t)=>({select:()=>({in:async()=>({data:frisch,error:null})})});
  });
- await page.evaluate(()=>{window.__log=[];document.querySelector("[data-pzu-ruestblatt]").click()});await page.waitForTimeout(500);
+ await page.evaluate(()=>{window.__log=[];rbProjektOeffnen(projectMeasurementsCache,{projectId:7})});await page.waitForTimeout(500);
  const modal=await page.evaluate(()=>({offen:!$("ruestblattModal").hidden,t:$("ruestblattBody").textContent.replace(/\s+/g," "),einzel:document.querySelectorAll("#ruestblattBody details.rb-einzel").length,formular:$("ruestblattFormular").style.display}));
  p(modal.offen&&/Projekt-Rüstblatt/.test(modal.t)&&/Vorschau/.test(modal.t),"Projekt-Rüstblatt öffnet im bestehenden Rüstblatt-Schirm als Vorschau",modal.t.slice(0,160));
  p(/gibt es nicht mehr/.test(modal.t)&&/gehört nicht zu diesem Projekt/.test(modal.t),"fehlende und fremde Massaufnahme werden ignoriert und verständlich gemeldet",modal.t.slice(0,400));

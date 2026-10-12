@@ -300,6 +300,7 @@ function rbGross(id,zurueck,opt){
  if(!schirm||!koerper)return false;
  rbOffenId=m.id;
  rbProjektModus=null;
+ rbProjektAuswahl=null;
  if($("ruestblattFormular"))$("ruestblattFormular").style.display="";
  rbZurueck=zurueck||"";
  const ausf=(opt&&opt.ausfuehrung)||"";
@@ -415,6 +416,8 @@ const RB_DRUCK_CSS=`
  .zu-nr{display:inline-block;border:.5pt solid #17202a;min-width:5mm;text-align:center;font-size:7.5pt;font-weight:700;padding:0 1.2mm;background:#fff;color:#17202a}
  .zu-st-mass,.zu-mass,.zu-anzahl{font-size:8pt;font-weight:700;white-space:nowrap}
  .zu-st-zusatz,.zu-zusatz{font-size:7pt;font-weight:600;color:#5b666e}
+ .zu-nr.ze-ok{background:#17202a;color:#fff}
+ .zu-nr.ze-ok::before{content:"✓ "}
  .ze-alle,.ze-stand,.medien-kachel,.rb-bilder,.ze-ein,.ze-aus-hinweis,.zu-abhak-hinweis{display:none !important}
 `;
 async function rbDokumentHtml(ms,opt){
@@ -434,8 +437,13 @@ async function rbDokumentHtml(ms,opt){
  // v3.335 Projekt-Rüstblatt: erste Seite = Kopf + gemeinsamer Rollenzuschnitt (Vorschau), danach je Massaufnahme ihr Rüstblatt.
  const gem=(opt&&opt.gemeinsam)?'<div class="rb-druck-seite">'+kopf+opt.gemeinsam+"</div>":"";
  const seiten=gem+ms.map((m,i)=>'<div class="rb-druck-seite">'+((i===0&&!gem)?kopf:"")+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
+ // v3.336: bereits abgehakte Stücke sind auch im Druck abgehakt (das Dokument ist statisch, die Haken kommen aus dem Speicher).
+ const seitenMitHaken=typeof zeIstErledigt==="function"
+  ?seiten.replace(/class="zu-nr zu-nr-hak" aria-pressed="false" data-ze-meas="([^"]*)" data-ze-nr="([^"]*)"/g,
+    (t,mid,nr)=>zeIstErledigt(mid,nr)?t.replace('class="zu-nr zu-nr-hak"','class="zu-nr zu-nr-hak ze-ok"').replace('aria-pressed="false"','aria-pressed="true"'):t)
+  :seiten;
  const foot=(typeof pdfFooterHtml==="function")?pdfFooterHtml(alleGleich?erste:null):"";
- return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seiten}${foot}</body></html>`;
+ return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seitenMitHaken}${foot}</body></html>`;
 }
 async function rbDruckenAufnahmen(liste,opt){
  let ms=(liste||[]).filter(Boolean);
@@ -443,6 +451,7 @@ async function rbDruckenAufnahmen(liste,opt){
  // v3.332: vor dem Druck frisch lesen - gedruckt wird der aktuelle Stand, nicht ein alter Zwischenspeicher.
  await rbFrischLesen(ms.map(m=>m.id));
  ms=ms.map(m=>rbFinde(m.id)||m);
+ if(typeof zeLaden==="function"){try{await zeLaden(ms.map(m=>m.id),true)}catch(e){}}   // v3.336: Abhak-Stand frisch
  let html;
  try{ html=await rbDokumentHtml(ms,(opt&&typeof opt.gemeinsamFn==="function")?{gemeinsam:opt.gemeinsamFn(ms)}:undefined) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
  const alt=document.getElementById("rbDruckRahmen");if(alt)alt.remove();
@@ -476,46 +485,100 @@ async function rbDruckenAufnahmen(liste,opt){
 // (js/49 pzuProjektRuestblattHtml), darunter je Massaufnahme ihr Einzel-Rüstblatt. Liest frisch (rbFrischLesen) und meldet Ids, die es
 // nicht (mehr) gibt oder die nicht zum geöffneten Projekt gehören; diese werden ignoriert. Schreibt nichts.
 let rbProjektModus=null;
-async function rbProjektOeffnen(liste){
+let rbProjektAuswahl=null;   // {projId, alle:[Massaufnahmen], gewaehlt:Set<id>, hinweise:[]} - nur im Speicher, nichts wird gespeichert
+// v3.336: Das Projekt-Rüstblatt sitzt in der Werkstatt (Knopf „Rüstliste“ am Projekt): dort werden die Massaufnahmen ausgewählt.
+// Abgeschlossene (und archivierte) Massaufnahmen kommen nie vor. Liest frisch, meldet Ids, die es nicht (mehr) gibt oder die nicht zum
+// Projekt gehören (werden ignoriert), und lädt die Abhak-Stände frisch, damit bereits abgehakte Stücke im Blatt abgehakt sind.
+async function rbProjektOeffnen(liste,opt){
  const schirm=$("ruestblattModal"), koerper=$("ruestblattBody");
  if(!schirm||!koerper||typeof pzuProjektRuestblattHtml!=="function")return false;
- const projId=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+ const projId=(opt&&opt.projectId!==undefined&&opt.projectId!==null)?opt.projectId:((typeof cockpitProjectId!=="undefined")?cockpitProjectId:null);
  let ms=(liste||[]).filter(Boolean);
  const ids=ms.map(m=>String(m.id));
- const gefunden=await rbFrischLesen(ids);
+ const gefunden=await rbFrischLesen(ms.map(m=>m.id));
  const hinweise=[];
  if(gefunden!==null){
   const fehlen=ids.filter(id=>gefunden.indexOf(id)<0);
   if(fehlen.length){hinweise.push(fehlen.length+" Massaufnahme"+(fehlen.length===1?"":"n")+" gibt es nicht mehr oder sie ist für dich nicht sichtbar – ignoriert.");ms=ms.filter(m=>fehlen.indexOf(String(m.id))<0)}
  }else hinweise.push("Ohne Verbindung: es wird der zuletzt geladene Stand gezeigt.");
  ms=ms.map(m=>rbFinde(m.id)||m);
- const fremd=ms.filter(m=>projId!==null&&String(m.project_id)!==String(projId));
+ const fremd=ms.filter(m=>projId!==null&&projId!==0&&String(m.project_id)!==String(projId));
  if(fremd.length){hinweise.push(fremd.length+" Massaufnahme"+(fremd.length===1?"":"n")+" gehört nicht zu diesem Projekt – ignoriert.");ms=ms.filter(m=>fremd.indexOf(m)<0)}
- if(!ms.length){appAlert("Keine der ausgewählten Massaufnahmen kann gezeigt werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):""));return false}
- const rb=pzuProjektRuestblattHtml(ms);
- const einzel=ms.map(m=>`<details class="rb-einzel" style="margin:6px 0"><summary><b>${esc(rbTitel(m))}</b> <span class="small muted">${esc(typeof pzuMatText==="function"?pzuMatText(m):"")}</span></summary>${rbBlattHtml(m,{kopf:false,ausfuehrung:"ruesten"})}</details>`).join("");
- koerper.innerHTML=`<div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
-${hinweise.map(h=>`<div class="small" style="color:var(--red)">${esc(h)}</div>`).join("")}
+ const zu=ms.filter(m=>!pzuRuestbar(m));
+ if(zu.length){hinweise.push(zu.length+" abgeschlossene Massaufnahme"+(zu.length===1?"":"n")+" nicht aufgeführt.");ms=ms.filter(m=>pzuRuestbar(m))}
+ ms=ms.filter(m=>pzuHatPlan(m));
+ if(!ms.length){appAlert("Keine Massaufnahme dieses Projekts kann gerüstet werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):""));return false}
+ if(typeof zeLaden==="function"){try{await zeLaden(ms.map(m=>m.id),true)}catch(e){}}
+ const alt=rbProjektAuswahl&&String(rbProjektAuswahl.projId)===String(projId)?rbProjektAuswahl.gewaehlt:null;
+ const gewaehlt=new Set(ms.map(m=>String(m.id)).filter(id=>!alt||alt.has(id)));
+ if(!gewaehlt.size)ms.forEach(m=>gewaehlt.add(String(m.id)));
+ rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false};
+ rbOffenId=null;
+ if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
+ if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
+ rbProjektZeichnen();
+ schirm.hidden=false;
+ window.scrollTo(0,0);
+ return true;
+}
+function rbProjektGewaehlt(){
+ const a=rbProjektAuswahl;
+ return a?a.alle.filter(m=>a.gewaehlt.has(String(m.id))):[];
+}
+function rbProjektZeichnen(){
+ const koerper=$("ruestblattBody"), a=rbProjektAuswahl;
+ if(!koerper||!a)return;
+ const ms=rbProjektGewaehlt();
+ rbProjektModus={liste:ms};
+ const auswahl=`<div class="pzu-auswahl">
+  <div class="pmat-unter">Massaufnahmen für das Rüstblatt <span class="small muted">· ${ms.length} von ${a.alle.length} ausgewählt</span></div>
+  <div class="small muted">Nur Auswahl für dieses Blatt – sie ändert keine Massaufnahme und keinen Zuschnitt und wird nicht gespeichert. Abgeschlossene Massaufnahmen sind nicht aufgeführt.</div>
+  <div class="bar" style="margin:6px 0">
+   <button type="button" class="gray mz-klein" data-rbp-alle="1">Alle auswählen</button>
+   <button type="button" class="gray mz-klein" data-rbp-keine="1">Auswahl aufheben</button>
+   <button type="button" class="blue mz-klein" data-rbp-erstellen="1">📐 Rüstblatt erstellen/aktualisieren</button>
+  </div>
+  ${a.alle.map(m=>`<label class="pzu-auswahl-zeile" style="display:block;padding:4px 0">
+    <input type="checkbox" data-rbp-auswahl="${esc(m.id)}" ${a.gewaehlt.has(String(m.id))?"checked":""}>
+    <b>${esc(typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m))}</b>
+    <span class="small muted">· ${esc(pzuMatText(m))} · ${esc(pzuStandText(m))}</span>
+   </label>`).join("")}
+  ${a.geaendert?'<div class="small" style="color:var(--red)">Auswahl geändert – „Rüstblatt erstellen/aktualisieren“ tippen.</div>':""}
+ </div>`;
+ let ergebnis;
+ if(!ms.length){ergebnis='<div class="small muted">Keine Massaufnahme ausgewählt.</div>'}
+ else{
+  const rb=pzuProjektRuestblattHtml(ms);
+  const einzel=ms.map(m=>`<details class="rb-einzel" style="margin:6px 0"><summary><b>${esc(rbTitel(m))}</b> <span class="small muted">${esc(pzuMatText(m))}</span></summary>${rbBlattHtml(m,{kopf:false,ausfuehrung:"ruesten"})}</details>`).join("");
+  ergebnis=`<div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
 ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der ausgewählten Massaufnahmen hat Rollenstücke.</div>'}
 <h2 style="margin-top:12px">Einzelne Rüstblätter</h2>${einzel}`;
+ }
+ koerper.innerHTML=auswahl+(a.hinweise||[]).map(h=>`<div class="small" style="color:var(--red)">${esc(h)}</div>`).join("")+ergebnis;
  koerper.querySelectorAll("details.rb-einzel").forEach(d=>d.addEventListener("toggle",()=>{
   if(!d.open)return;
   if(typeof rsZuschneiden==="function")rsZuschneiden(d);
   if(typeof medienThumbsAufloesen==="function")medienThumbsAufloesen(d);
  }));
- rbProjektModus={liste:ms};
- rbOffenId=null;
- if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
- if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
- schirm.hidden=false;
- window.scrollTo(0,0);
- return true;
+ if(typeof zeMarkierungAuffrischen==="function")zeMarkierungAuffrischen(koerper);
 }
+document.addEventListener("change",e=>{
+ const cb=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-auswahl]"):null;
+ if(!cb||!rbProjektAuswahl)return;
+ const id=String(cb.dataset.rbpAuswahl);
+ rbProjektAuswahl.gewaehlt=new Set([...rbProjektAuswahl.gewaehlt].filter(x=>x!==id));
+ if(cb.checked)rbProjektAuswahl.gewaehlt.add(id);
+ rbProjektAuswahl.geaendert=true;
+ // nur der Hinweis wird nachgezogen - das Blatt selbst bleibt bis „erstellen/aktualisieren“ stehen
+ const koerper=$("ruestblattBody"), z=koerper&&koerper.querySelector(".pmat-unter .small");
+ if(z)z.textContent="· "+rbProjektAuswahl.gewaehlt.size+" von "+rbProjektAuswahl.alle.length+" ausgewählt – „Rüstblatt erstellen/aktualisieren“ tippen";
+});
 function rbZu(){
  const schirm=$("ruestblattModal");
  if(schirm)schirm.hidden=true;
  rbOffenId=null;
  rbProjektModus=null;
+ rbProjektAuswahl=null;
  if($("ruestblattFormular"))$("ruestblattFormular").style.display="";
 }
 // Nach einem Haken nur die Zahl nachziehen, NICHT neu zeichnen - sonst
@@ -531,6 +594,15 @@ function rbStandAuffrischen(){
 }
 
 document.addEventListener("click",e=>{
+ const rbp=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-alle],#ruestblattBody [data-rbp-keine],#ruestblattBody [data-rbp-erstellen]"):null;
+ if(rbp&&rbProjektAuswahl){
+  const a=rbProjektAuswahl;
+  if(rbp.hasAttribute("data-rbp-alle")){a.alle.forEach(m=>a.gewaehlt.add(String(m.id)));a.geaendert=true}
+  else if(rbp.hasAttribute("data-rbp-keine")){a.gewaehlt.clear();a.geaendert=true}
+  else a.geaendert=false;
+  rbProjektZeichnen();
+  return;
+ }
  const bild=e.target.closest("#ruestblattBody [data-medien-gross]");
  if(bild){ if(typeof medienGrossOeffnen==="function")medienGrossOeffnen(bild); return }
  const gross=e.target.closest("[data-rb-gross]");

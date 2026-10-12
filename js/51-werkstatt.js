@@ -1066,9 +1066,13 @@ document.addEventListener("click",async e=>{
  if(druck){
   const id=Number(druck.dataset.werkDruck)||null;
   const g=werkGruppen().find(x=>(x.projectId||0)===(id||0));
-  if(!g||typeof ruestlisteProjekt!=="function")return;
+  if(!g)return;
   druck.disabled=true;
-  try{ await ruestlisteProjekt(id,g.aufnahmen) }finally{ druck.disabled=false }
+  try{
+   // v3.336: Auswahl der Massaufnahmen + gemeinsamer Rollenzuschnitt (Projekt-Rüstblatt); ohne dieses Modul der alte Weg.
+   if(typeof rbProjektOeffnen==="function"&&typeof pzuProjektRuestblattHtml==="function")await rbProjektOeffnen(g.aufnahmen,{projectId:id||0});
+   else if(typeof ruestlisteProjekt==="function")await ruestlisteProjekt(id,g.aufnahmen.filter(a=>a.workflow_status!=="abgeschlossen"));
+  }finally{ druck.disabled=false }
   return;
  }
  const druckM=e.target.closest("[data-werk-druck-mess]");

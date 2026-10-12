@@ -431,7 +431,13 @@ function zuListeAbschnitteHtml(p){
  });
  const knopf=(x)=>{
   const n=x.nr, l=Math.round(zuZahl(x.laenge)), bb=Math.round(zuZahl(x.breite));
-  const nrEl=abhakbar
+  // v3.336: Projekt-Rüstblatt (gemeinsamer Plan): jedes Stück zeigt SEINE Nummer aus der eigenen Massaufnahme und deren
+  // Abhak-Stand (nur Anzeige, kein Haken setzbar - das Blatt ist eine Vorschau).
+  const gemein=!abhakbar&&p.sammel&&x.quelleId!==undefined&&x.quelleId!==null&&x.origNr!==undefined&&x.origNr!==null;
+  const erl=gemein&&typeof zeIstErledigt==="function"&&zeIstErledigt(x.quelleId,x.origNr);
+  const nrEl=gemein
+   ?`<span class="zu-nr zu-nr-ist${erl?" ze-ok":""}" data-ze-ist="${erl?1:0}" title="Stück ${esc(x.origNr)}${erl?" ist bereits zugeschnitten":""}">${esc(x.origNr)}</span>`
+   :abhakbar
    ?`<button type="button" class="zu-nr zu-nr-hak" aria-pressed="false" data-ze-meas="${esc(mid)}" data-ze-nr="${esc(n)}"`
     +` data-ze-l="${esc(l)}" data-ze-b="${esc(bb||"")}" data-ze-m="${esc(x.merkmal||"")}"`
     +` title="Stück ${esc(n)} als zugeschnitten abhaken">${esc(n)}</button>`
