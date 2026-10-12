@@ -182,6 +182,37 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(JSON.stringify(wahl.fremd)===JSON.stringify(wahl.zwei),"die Wahl der Einlaufblech-Aufnahme ändert nichts",wahl.fremd);
  p(wahl.vergleich.every(x=>[670,1000].includes(x)),"auch der Vergleich nennt nur angewählte Rollen",wahl.vergleich);
  p(wahl.alle.breiten.length>=2,"ohne Wahl: ganzes Lager, gemischt",wahl.alle);
+ console.log("\nH · Rüstblatt und Rüstliste lesen vor Anzeige/Druck frisch (kein alter Zwischenspeicher)");
+ const frisch=await page.evaluate(async()=>{
+  const alt=sb.from;
+  const fake={from:(t)=>({select:()=>({in:async(f,ids)=>({data:ids.map(id=>({id,type:"kehle",title:"NEU",project_id:1,data:{},workflow_status:"zu_ruesten"})),error:null})})})};
+  sb.from=fake.from;
+  const aus={};
+  try{
+   rbExternMerken({id:55,type:"kehle",title:"ALT",project_id:1,data:{},workflow_status:"zu_ruesten"});
+   $("appRoot").hidden=false;$("authScreen").hidden=true;
+   rbGross(55,"");
+   aus.sofort=$("ruestblattBody").textContent.includes("ALT");
+   await new Promise(r=>setTimeout(r,300));
+   aus.danach=$("ruestblattBody").textContent.includes("NEU")&&!$("ruestblattBody").textContent.includes("ALT");
+   // Druck: die uebergebene Zeile ist alt, gedruckt wird der frische Stand
+   rbExternMerken({id:56,type:"kehle",title:"ALT2",project_id:1,data:{},workflow_status:"zu_ruesten"});
+   await rbDruckenAufnahmen([rbFinde(56)]);
+   await new Promise(r=>setTimeout(r,200));
+   const fr=document.getElementById("rbDruckRahmen");
+   aus.druck=!!fr&&fr.srcdoc.includes("NEU")&&!fr.srcdoc.includes("ALT2");
+   // ohne Verbindung (Fehler): der bisherige Stand bleibt, nichts bricht
+   sb.from=()=>({select:()=>({in:async()=>{throw new Error("offline")}})});
+   rbExternMerken({id:57,type:"kehle",title:"OFFLINE",project_id:1,data:{},workflow_status:"zu_ruesten"});
+   await rbFrischLesen([57]);
+   aus.offline=rbFinde(57).title==="OFFLINE";
+  }finally{sb.from=alt}
+  return aus;
+ });
+ p(frisch.sofort,"erst der vorhandene Stand ohne Wartezeit",frisch);
+ p(frisch.danach,"dann der frische Stand aus der Datenbank",frisch);
+ p(frisch.druck,"gedruckt wird der frische Stand",frisch);
+ p(frisch.offline,"ohne Verbindung bleibt der bisherige Stand",frisch);
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
  console.log("\nErgebnis: "+ok+" ok, "+fail+" fehlgeschlagen");

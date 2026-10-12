@@ -301,15 +301,48 @@ function rbGross(id,zurueck,opt){
  rbOffenId=m.id;
  rbZurueck=zurueck||"";
  const ausf=(opt&&opt.ausfuehrung)||"";
- koerper.innerHTML=rbBlattHtml(m,{kopf:true,ausfuehrung:ausf});
- rbAktionZeichnen(m,ausf);
+ rbZeichnen(m,ausf);
  schirm.hidden=false;
  window.scrollTo(0,0);
+ // v3.332: Die gezeigte Zeile kann veraltet sein (Aufgaben-/Werkstatt-/Cockpit-Zwischenspeicher) - nach dem Oeffnen
+ // frisch aus der Datenbank lesen und, wenn sich etwas geaendert hat (z. B. Rollen in der Massaufnahme), neu zeichnen.
+ rbFrischLesen([m.id]).then(()=>{
+  const neu=rbFinde(m.id);
+  if(rbOffenId!==null&&String(rbOffenId)===String(m.id)&&neu&&$("ruestblattBody"))rbZeichnen(neu,ausf);
+ });
+ return true;
+}
+function rbZeichnen(m,ausf){
+ const koerper=$("ruestblattBody");
+ if(!koerper)return;
+ koerper.innerHTML=rbBlattHtml(m,{kopf:true,ausfuehrung:ausf});
+ rbAktionZeichnen(m,ausf);
  // Der Leerraum der festen viewBox wird erst NACH dem Einfuegen
  // weggeschnitten - vorher gibt getBBox nichts her (js/60).
  if(typeof rsZuschneiden==="function")rsZuschneiden(koerper);
  if(typeof medienThumbsAufloesen==="function")medienThumbsAufloesen(koerper);
- return true;
+}
+// v3.332: Die aktuellen Zeilen der Massaufnahmen aus der Datenbank holen und IN die vorhandenen Objekte einarbeiten
+// (Aufgaben-Zeile, Cockpit-, Werkstatt-Zwischenspeicher) - so sehen alle Ansichten denselben, frischen Stand. Ohne
+// Verbindung oder bei einem Fehler bleibt der bisherige Stand (nichts bricht ab). Liest nur, schreibt nichts.
+async function rbFrischLesen(ids){
+ try{
+  const liste=(ids||[]).filter(x=>x!==undefined&&x!==null);
+  if(!liste.length||typeof sb==="undefined"||!sb||typeof sb.from!=="function")return;
+  const {data,error}=await sb.from("measurements").select("*").in("id",liste);
+  if(error||!Array.isArray(data))return;
+  data.forEach(z=>{
+   let da=false;
+   const quellen=[
+    (typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache:[],
+    (typeof werkZeilen!=="undefined"&&Array.isArray(werkZeilen))?werkZeilen:[]
+   ];
+   // Leichte Listen ohne data (Werkstatt) werden nicht aufgebläht - dort liefert rbExtern die frische Zeile.
+   quellen.forEach(q=>q.forEach(x=>{if(x&&String(x.id)===String(z.id)&&("data" in x)){Object.assign(x,z);da=true}}));
+   if(rbExtern[String(z.id)]){Object.assign(rbExtern[String(z.id)],z);da=true}
+   if(!da)rbExternMerken(z);
+  });
+ }catch(e){ /* ohne Verbindung: der bisherige Stand bleibt */ }
 }
 // v3.292: Der Bestaetigen-Knopf der Ausfuehrungsansicht. Er traegt dieselbe Marke wie in
 // der Werkstatt (data-aufgabe -> aufgabeAusfuehren, js/45): dieselbe Rueckfrage, derselbe
@@ -400,8 +433,11 @@ async function rbDokumentHtml(ms){
  return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seiten}${foot}</body></html>`;
 }
 async function rbDruckenAufnahmen(liste){
- const ms=(liste||[]).filter(Boolean);
+ let ms=(liste||[]).filter(Boolean);
  if(!ms.length){appAlert("Es gibt nichts zu drucken.");return}
+ // v3.332: vor dem Druck frisch lesen - gedruckt wird der aktuelle Stand, nicht ein alter Zwischenspeicher.
+ await rbFrischLesen(ms.map(m=>m.id));
+ ms=ms.map(m=>rbFinde(m.id)||m);
  let html;
  try{ html=await rbDokumentHtml(ms) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
  const alt=document.getElementById("rbDruckRahmen");if(alt)alt.remove();

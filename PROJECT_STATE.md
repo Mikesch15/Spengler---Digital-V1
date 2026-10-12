@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.331`
+- Aktueller Entwicklungsstand: `v3.332`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.332 — Rüstblatt/Rüstliste lesen frisch aus der Datenbank
+
+Rückmeldung: In der Massaufnahme stimmt der Zuschnitt, das Rüstblatt wird nicht aktualisiert. Ursache: `rbFinde` (js/80) nimmt die Zeile aus `rbExtern` (einmal abgelegte Aufgaben-Zeile, nie erneuert), `projectMeasurementsCache` oder `werkZeilen` – alles Zwischenspeicher, die nach dem Speichern einer Massaufnahme veralten. Neu `rbFrischLesen(ids)` (liest nur): holt die Zeilen aus `measurements`, arbeitet sie in die vorhandenen Objekte ein (Werkstatt-Listen ohne `data` nur über `rbExtern`) und wird beim Öffnen des Rüstblatts (danach Neuzeichnen) und vor dem Druck (`rbDruckenAufnahmen`, auch Rüstliste) aufgerufen. Fehler/offline: bisheriger Stand. Prüfstand `rollen-mischen-v3-328` Abschnitt H (50 gesamt).
 
 ### v3.331 — Rollenwahl der jeweiligen Massaufnahme bestimmt den Zuschnitt (Fehlerbehebung)
 
@@ -14,10 +18,6 @@ Ursache der Rückmeldung „Neuberechnung nach Rollenanpassung funktioniert nich
 ### v3.330 — Rollen nachträglich ändern wirkt in Rüstblatt/Rüstliste/Werkstatt/Material
 
 Rückmeldung: nachträglich geänderte verfügbare Rollen wurden nicht berücksichtigt. `zuNeuMischen` (js/33, aus `pmatPlanFuer`) rechnet jetzt jeden gespeicherten Rollenplan aus den JETZT gültigen Rollen neu: Blechlager der Firma (`zuLagerbreiten`) eingeschränkt auf die gespeicherte Wahl der Massaufnahme (`rollen.auswahl`, leer = ganzes Lager); ohne Lager die gespeicherten `breiten` ∩ Wahl. Gleiche Rollen wie beim Speichern und schon gemischt/nicht mischbar → gespeicherter Plan unverändert; passt keine Rolle → gespeicherter Plan bleibt. Nichts wird zurückgeschrieben. Prüfstand `rollen-mischen-v3-328` Abschnitt F (40 gesamt).
-
-### v3.329 — Rollen-Mischung auch für bereits gespeicherte Pläne (Rüstliste/Rüstblatt/Werkstatt)
-
-Rückmeldung: die Rüstliste zeigte die Mischung nicht. Ursache: Rüstblatt, Rüstliste, Werkstatt und Materialsicht lesen den GESPEICHERTEN Plan (`pmatPlanFuer`, js/48); vor v3.328 gespeicherte Massaufnahmen kannten die Mischung nicht. Neu `zuNeuMischen(p,r)` (js/33), gerufen in `pmatPlanFuer`: ein gespeicherter Rollenplan ohne `mischung` mit ≥2 Streifenbreiten und ≥2 gespeicherten Rollenbreiten (`r.breiten`, nach Auswahl der Massaufnahme) wird mit derselben Packrechnung `ebaFormatPlan` neu gerechnet (Stücke regroupiert nach ihrer Breite); übernommen wird NUR eine echte Mischung, sonst bleibt der gespeicherte Plan. Nichts wird zurückgeschrieben (kein Verfall erteilter Freigaben, Trigger schuetze_measurement_workflow), Stücknummern/Längen bleiben, Abhaken unberührt. Prüfstand `rollen-mischen-v3-328` um Abschnitt E erweitert (35).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
