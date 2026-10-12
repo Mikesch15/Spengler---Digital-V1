@@ -225,7 +225,7 @@ const MESS3=MESS.concat([{id:13,project_id:7,type:"einlaufblech_gerade",title:"D
  await page.waitForTimeout(700);
  const hk=await page.evaluate(()=>{
   const gr=[...document.querySelectorAll("#ruestblattBody .pzu-rb-gruppe")].find(g=>/Titanzink/.test(g.textContent));
-  const sp=[...gr.querySelectorAll(".zu-nr-ist")];
+  const sp=[...gr.querySelectorAll(".zu-abschnitt .zu-nr-hak, .pzu-erledigt .zu-nr-ist")];
   return {n:sp.length,ok:sp.filter(s=>s.classList.contains("ze-ok")).map(s=>s.textContent),
    stand:"",
    einzel:[...document.querySelectorAll("#ruestblattBody details.rb-einzel [data-ze-meas='11'].ze-ok")].map(b=>b.dataset.zeNr),
@@ -237,7 +237,7 @@ const MESS3=MESS.concat([{id:13,project_id:7,type:"einlaufblech_gerade",title:"D
  // Stueck aus anderer Massaufnahme mit gleicher Nummer bleibt offen
  const kreuz=await page.evaluate(()=>{
   const gr=[...document.querySelectorAll("#ruestblattBody .pzu-rb-gruppe")].find(g=>/Titanzink/.test(g.textContent));
-  const sp=[...gr.querySelectorAll(".zu-nr-ist")];
+  const sp=[...gr.querySelectorAll(".zu-abschnitt .zu-nr-hak, .pzu-erledigt .zu-nr-ist")];
   return sp.map(s=>s.textContent+":"+(s.classList.contains("ze-ok")?"x":"o")).join(" ");
  });
  p(/1:x/.test(kreuz)&&(kreuz.match(/1:o/g)||[]).length===1,"Stück Nr 1 aus Dach Süd (andere Massaufnahme, gleiche Nummer) bleibt offen",kreuz);

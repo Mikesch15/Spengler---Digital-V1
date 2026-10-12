@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.338`
+- Aktueller Entwicklungsstand: `v3.339`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.339 — Abhaken im Schnittbild
+
+Auftrag: „es muss da auch abgehakt werden können“. `zuSchnittbildHtml` (js/33): jedes Stück ist ein `<g class="zu-bild-st">` mit denselben `data-ze-*`-Attributen wie die Nummern-Knöpfe, damit läuft der bestehende Klick-Weg (js/56 `zeSetzen`, Markierung per `zeMarkierungAuffrischen`); nur wenn `zeAbhakenMoeglich()`. Einzelblatt: Massaufnahme-Id + Stücknummer; Projekt-Rüstblatt: `quelleId` + `origNr`, auch die Nummern in der gemeinsamen Liste sind jetzt Knöpfe (zuvor nur Anzeige – die Vorgabe „Vorschau ohne Haken“ aus v3.335 ist auf Anwenderwunsch aufgehoben). Der gemeinsame Plan rechnet erst bei „erstellen/aktualisieren“ neu (abgehakte Stücke verlassen ihn), bis dahin Hinweis im Dialog (js/80). Kein neuer Schreibweg. Prüfstand `ruestblatt-schnittbild-v3-337` (23); drei Mutationen (nicht antippbar, falsche Nummer, Schalter ignoriert) erkannt. Angepasst: `ruestblatt-v3-211`, `werkstatt-ruestblatt-auswahl-v3-336`.
 
 ### v3.338 — Projekt-Rüstblatt: Rückmeldung beim Aktualisieren
 
@@ -15,11 +19,6 @@ Rückmeldung (Handy): „Knopf erstellen/aktualisieren geht nicht“. Ursache: d
 
 Rückmeldung zu v3.336: (1) Im Projekt-Rüstblatt sollen die Rollen separat wählbar sein, und mehrere Rollen sollen gemischt werden; (2) abgehakte und offene Stücke dürfen nicht im selben Abschnitt stehen; (3) jedes Rüstblatt soll eine Grafik haben, wo welches Stück im Abschnitt liegt. Umsetzung: (1) `rbProjektAuswahl.rollen` (nur Speicher, Standard = Wahl der Massaufnahmen): Checkboxen der Lagerrollen (`zuLagerbreiten`) im Dialog (js/80), `pzuSammeln(liste,{rollen})`/`pzuGruppenKey(m,ovr)` ersetzen die Wahl der Massaufnahmen für alle Rollengruppen (Tafel ausgenommen), gerechnet wird weiter mit `ebaFormatPlan` (Mischung automatisch wie in js/29); Druck nimmt dieselbe Wahl. (2) `pzuSammeln(liste,{ohneErledigte:true})` nimmt abgehakte Stücke aus dem Plan (`M.erledigt`); sie stehen je Gruppe im Block „Bereits zugeschnitten“, Stand „n von m – nicht mehr im Plan“, sind alle abgehakt kommt eine Meldung. Nur im Projekt-Rüstblatt; die Einzelblätter zeigen den gespeicherten Plan der Massaufnahme unverändert. (3) `zuSchnittbildHtml(p)` (js/33), eingebunden in `zuListeHtml(..,{herkunft:true})` (Einzel- und Projekt-Rüstblatt, App und Druck): je Abschnitt ein Rechteck (Länge × Rollenbreite), darin Streifen und Stücke mit Nummer in Schnittreihenfolge, abgehakt grün, im gemeinsamen Plan mit Herkunft; Reststücke fehlen im Bild (stehen in der Liste). Reine Anzeige, nichts wird gespeichert.
 Prüfstand `ruestblatt-schnittbild-v3-337` (18); fünf Mutationen (Erledigte im Plan, Rollenwahl ignoriert, Bild fehlt, Haken-Farbe, Druck ohne Rollenwahl) erkannt. Angepasst: `ruestblatt-v3-211` (zählt Zeichnungen ohne Schnittbild).
-
-### v3.336 — Projekt-Rüstblatt in der Werkstatt, ohne Abgeschlossene, mit Haken
-
-Rückmeldung: Der Knopf „Rüstblatt erstellen/aktualisieren“ (v3.335) sass im Projekt-Zuschnitt; gewünscht war die Auswahl beim Tipp auf „Rüstliste“ am Projekt in der **Werkstatt** (js/51 `data-werk-druck` → `rbProjektOeffnen(g.aufnahmen,{projectId})`, js/80). Dort: Auswahl (Checkboxen, Alle/Aufheben, „Rüstblatt erstellen/aktualisieren“; Auswahl nur im Speicher, wird nicht gespeichert, beim Schliessen verworfen), gemeinsamer Plan als Vorschau, darunter die Einzelblätter. Der Knopf im Projekt-Zuschnitt (js/49) ist entfallen, die dortige Ausschluss-Auswahl bleibt. Abgeschlossene/archivierte Massaufnahmen fehlen überall (`pzuRuestbar`, js/49: Auswahl, gemeinsamer Plan, Projekt-Rüstliste im Cockpit; Werkstatt-Rückfallweg). Haken: im gemeinsamen Plan zeigt jedes Stück seine eigene Nummer samt Abhak-Stand (js/33 `zuListeAbschnitteHtml`, nur Anzeige, `zeIstErledigt(quelleId,origNr)`), pro Gruppe „Bereits abgehakt: n von m“; die Haken werden vor dem Zeichnen/Drucken frisch geladen (`zeLaden`); im Druck sind sie statisch gesetzt (auch im Einzelblatt). Keine Migration, keine RLS-/Edge-Änderung, nichts wird geschrieben.
-Prüfstand `werkstatt-ruestblatt-auswahl-v3-336` (25); vier Mutationen (Abgeschlossene zugelassen, Haken im Plan aus, Haken im Druck aus, Werkstatt-Weg aus) erkannt. Angepasst: `projekt-mengen-ruestblatt-v3-335`, `ruestliste-offline-v3-23`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

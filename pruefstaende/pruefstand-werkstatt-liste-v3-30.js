@@ -165,7 +165,7 @@ const werkstattAuf=async page=>{
    const k=[...box.querySelectorAll(".werk-karte")];
    return {karten:k.length,
     koepfe:box.querySelectorAll("[data-werk-karte]").length,
-    listen:box.querySelectorAll("[data-ze-nr]").length,
+    listen:box.querySelectorAll("button[data-ze-nr]").length,
     zuschnittBoxen:box.querySelectorAll(".zu-liste,.zu-gruppe").length,
     skizzen:box.querySelectorAll(".werk-skizze").length,
     svg:box.querySelectorAll(".werk-karte svg").length,
@@ -195,7 +195,7 @@ const werkstattAuf=async page=>{
   const b1=await page.evaluate(()=>{
    const k=document.querySelector('#werkstattBody [data-werk-karte="11"]').closest(".werk-karte");
    const box=$("werkstattBody");
-   return {ze:k.querySelectorAll("[data-ze-nr]").length,
+   return {ze:k.querySelectorAll("button[data-ze-nr]").length,
     skizzen:[...k.querySelectorAll(".werk-skizze figcaption")].map(f=>f.innerText.trim().toLowerCase()),
     svg:k.querySelectorAll(".werk-skizze svg").length,
     aria:k.querySelector("[data-werk-karte]").getAttribute("aria-expanded"),
@@ -262,7 +262,7 @@ const werkstattAuf=async page=>{
    return {skizzen:[...k.querySelectorAll(".werk-skizze figcaption")].map(f=>f.innerText.trim().toLowerCase()),
      leer:!!k.querySelector(".werk-skizze-leer"),
      leerTxt:k.querySelector(".werk-skizze-leer")?k.querySelector(".werk-skizze-leer").innerText.trim():"",
-     ze:k.querySelectorAll("[data-ze-nr]").length};
+     ze:k.querySelectorAll("button[data-ze-nr]").length};
   },id);
   if(erwartet.length){
    p(e.skizzen.length===erwartet.length&&erwartet.every(w=>e.skizzen.some(s=>s.includes(w))),

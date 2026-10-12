@@ -169,6 +169,47 @@ const druckR=await page.evaluate(()=>{
  return {ok:typeof ruf==="string"&&ruf.length>0,nur670:/Rollen 670 mm/.test(String(ruf))};
 });
 p(druckR.ok&&druckR.nur670,"Druck nimmt die gewählten Rollen mit",druckR);
+console.log("\nD · Abhaken im Schnittbild (v3.339)");
+const hak=await page.evaluate(async()=>{
+ const out={};
+ const aufruf=[];const alt=window.zeSetzen;
+ window.zeSetzen=async(mid,nrs,an)=>{aufruf.push([String(mid),nrs.map(String),an]);return {ok:true}};
+ const M=mk(101,"Haken",[{breite:250,stuecke:[500,700]}]);
+ zeFormularAuf(101);
+ const d=document.createElement("div");d.style.cssText="position:absolute;left:0;top:0;width:700px";document.body.appendChild(d);
+ d.innerHTML=rbBlattHtml(M,{kopf:false,ausfuehrung:"ruesten"});
+ const gs=[...d.querySelectorAll(".zu-bild g.zu-bild-st")];
+ out.einzel=gs.map(g=>g.dataset.zeMeas+"#"+g.dataset.zeNr).sort();
+ out.legende=/antippen = abhaken/.test(d.textContent);
+ gs.find(g=>g.dataset.zeNr==="2").dispatchEvent(new MouseEvent("click",{bubbles:true}));
+ await new Promise(r=>setTimeout(r,50));
+ out.einzelAufruf=JSON.stringify(aufruf);
+ // gemeinsamer Plan
+ aufruf.length=0;
+ const A=mk(111,"A",[{breite:250,stuecke:[500]}]),B=mk(112,"B",[{breite:250,stuecke:[700]}]);
+ zeCache.clear();zeGeladen.clear();
+ const j=document.createElement("div");j.style.cssText="position:absolute;left:0;top:0;width:700px";document.body.appendChild(j);
+ j.innerHTML=pzuProjektRuestblattHtml([A,B]).html;
+ const gj=[...j.querySelectorAll(".zu-bild g.zu-bild-st")];
+ out.gemeinsam=gj.map(g=>g.dataset.zeMeas+"#"+g.dataset.zeNr).sort();
+ out.liste=[...j.querySelectorAll(".zu-abschnitt button.zu-nr-hak")].map(b=>b.dataset.zeMeas+"#"+b.dataset.zeNr).sort();
+ gj.find(g=>g.dataset.zeMeas==="112").dispatchEvent(new MouseEvent("click",{bubbles:true}));
+ await new Promise(r=>setTimeout(r,50));
+ out.gemAufruf=JSON.stringify(aufruf);
+ // ausgeschaltetes Abhaken: keine antippbaren Felder
+ const altM=window.zeAbhakenMoeglich;window.zeAbhakenMoeglich=()=>false;
+ const k=document.createElement("div");document.body.appendChild(k);
+ k.innerHTML=pzuProjektRuestblattHtml([A,B]).html+rbBlattHtml(M,{kopf:false,ausfuehrung:"ruesten"});
+ out.aus=k.querySelectorAll("g.zu-bild-st,button.zu-nr-hak").length;out.ausBild=k.querySelectorAll(".zu-bild rect").length;
+ window.zeAbhakenMoeglich=altM;window.zeSetzen=alt;
+ return out;
+});
+p(JSON.stringify(hak.einzel)==='["101#1","101#2"]'&&hak.legende,"Einzel-Rüstblatt: jedes Stück im Schnittbild ist antippbar (Massaufnahme#Nummer), Legende sagt es",hak);
+p(hak.einzelAufruf==='[["101",["2"],true]]',"Tippen aufs Stück 2 hakt genau Stück 2 ab (derselbe Weg wie die Nummern-Knöpfe)",hak.einzelAufruf);
+p(JSON.stringify(hak.gemeinsam)==='["111#1","112#1"]'&&JSON.stringify(hak.liste)==='["111#1","112#1"]',"Projekt-Rüstblatt: Schnittbild und Liste antippbar mit Massaufnahme-Id und eigener Nummer",hak);
+p(hak.gemAufruf==='[["112",["1"],true]]',"Tippen im gemeinsamen Plan hakt das Stück in SEINER Massaufnahme ab",hak.gemAufruf);
+p(hak.aus===0&&hak.ausBild>0,"Abhaken ausgeschaltet: Bild bleibt, nichts ist antippbar",hak);
+
 const log=await page.evaluate(()=>window.__log);
 p(log.length===0,"nichts wird geschrieben",log);
 p(jsFehler.length===0,"keine JS-Fehler",jsFehler);

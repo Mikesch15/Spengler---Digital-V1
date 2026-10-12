@@ -432,10 +432,14 @@ function zuListeAbschnitteHtml(p){
  const knopf=(x)=>{
   const n=x.nr, l=Math.round(zuZahl(x.laenge)), bb=Math.round(zuZahl(x.breite));
   // v3.336: Projekt-Rüstblatt (gemeinsamer Plan): jedes Stück zeigt SEINE Nummer aus der eigenen Massaufnahme und deren
-  // Abhak-Stand (nur Anzeige, kein Haken setzbar - das Blatt ist eine Vorschau).
+  // Abhak-Stand; v3.339: antippbar wie überall (derselbe Klick-Weg js/56, Nummer + Massaufnahme-Id bleiben stabil).
   const gemein=!abhakbar&&p.sammel&&x.quelleId!==undefined&&x.quelleId!==null&&x.origNr!==undefined&&x.origNr!==null;
   const erl=gemein&&typeof zeIstErledigt==="function"&&zeIstErledigt(x.quelleId,x.origNr);
-  const nrEl=gemein
+  const nrEl=(gemein&&(typeof zeAbhakenMoeglich!=="function"||zeAbhakenMoeglich()))
+   ?`<button type="button" class="zu-nr zu-nr-hak${erl?" ze-ok":""}" aria-pressed="${erl?"true":"false"}" data-ze-meas="${esc(x.quelleId)}" data-ze-nr="${esc(x.origNr)}"`
+    +` data-ze-l="${esc(l)}" data-ze-b="${esc(bb||"")}" data-ze-m="${esc(x.merkmal||"")}"`
+    +` title="Stück ${esc(x.origNr)} als zugeschnitten abhaken">${esc(x.origNr)}</button>`
+   :gemein
    ?`<span class="zu-nr zu-nr-ist${erl?" ze-ok":""}" data-ze-ist="${erl?1:0}" title="Stück ${esc(x.origNr)}${erl?" ist bereits zugeschnitten":""}">${esc(x.origNr)}</span>`
    :abhakbar
    ?`<button type="button" class="zu-nr zu-nr-hak" aria-pressed="false" data-ze-meas="${esc(mid)}" data-ze-nr="${esc(n)}"`
@@ -469,6 +473,7 @@ function zuSchnittbildHtml(p){
  const stange=p.art==="stange";
  const best=(p.moeglich||[])[0];
  const mid=zuErledigtFuer(p);
+ const hakenOk=(typeof zeAbhakenMoeglich!=="function")||zeAbhakenMoeglich();
  const erledigt=x=>{
   if(typeof zeIstErledigt!=="function")return false;
   if(p.sammel)return x.quelleId!==undefined&&x.quelleId!==null&&zeIstErledigt(x.quelleId,x.origNr);
@@ -499,14 +504,20 @@ function zuSchnittbildHtml(p){
    let x0=0;
    z.st.forEach(x=>{
     const w=zuZahl(x.laenge)*sx, ok=erledigt(x), t=String(marke(x));
-    el+=`<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${ok?"#9fd3a8":"#dbe7f3"}" stroke="#17202a" stroke-width="1.5"/>`;
+    // v3.339: antippbar = abhaken (dieselben data-ze-*-Attribute wie die Nummern-Knöpfe; js/56 macht den Rest).
+    const hm=p.sammel?x.quelleId:mid, hn=p.sammel?x.origNr:x.nr;
+    const klick=hakenOk&&hm!==undefined&&hm!==null&&hn!==undefined&&hn!==null;
+    let teil=`<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${ok?"#9fd3a8":"#dbe7f3"}" stroke="#17202a" stroke-width="1.5"/>`;
     const fs=Math.max(12,Math.min(30,h*0.55,w/(t.length+0.6)));
-    if(w>=fs*0.9&&h>=12)el+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+    if(w>=fs*0.9&&h>=12)teil+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
     // Im gemeinsamen Plan tragen Stücke aus verschiedenen Massaufnahmen dieselbe Nummer: darunter steht die Herkunft.
     if(p.sammel&&x.hinweis&&w>=60&&h>=40){
      const hk=String(x.hinweis).slice(0,Math.max(4,Math.floor(w/11)));
-     el+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35+15).toFixed(1)}" font-size="13" text-anchor="middle" fill="#3d4850">${esc(hk)}</text>`;
+     teil+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35+15).toFixed(1)}" font-size="13" text-anchor="middle" fill="#3d4850">${esc(hk)}</text>`;
     }
+    el+=klick
+     ?`<g class="zu-bild-st${ok?" ze-ok":""}" role="button" aria-pressed="${ok?"true":"false"}" data-ze-meas="${esc(hm)}" data-ze-nr="${esc(hn)}" data-ze-l="${esc(Math.round(zuZahl(x.laenge)))}" data-ze-b="${esc(Math.round(zuZahl(x.breite))||"")}" data-ze-m="${esc(x.merkmal||"")}"><title>Stück ${esc(hn)} abhaken</title>${teil}</g>`
+     :teil;
     x0+=w;
    });
    y+=h;
@@ -518,7 +529,7 @@ function zuSchnittbildHtml(p){
   return `<figure class="zu-bild"><figcaption>${esc(kopf)} · ${esc(zuMm(Math.round(L)))} × ${esc(zuMm(Math.round(Bm)))} mm</figcaption>`
    +`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}: Lage der Stücke">${rst}${el}${rand}</svg></figure>`;
  }).join("");
- return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild – wo welches Stück liegt <span class="zu-bilder-legende">(grün = bereits abgehakt)</span></div>${svg}</div>`:"";
+ return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild – wo welches Stück liegt <span class="zu-bilder-legende">(grün = abgehakt${hakenOk&&(mid!==null&&mid!==undefined||p.sammel)?" · Stück antippen = abhaken":""})</span></div>${svg}</div>`:"";
 }
 function zuHerkunftNoetig(p){
  if(!p)return false;

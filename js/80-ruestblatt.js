@@ -634,6 +634,13 @@ function rbStandAuffrischen(){
 }
 
 document.addEventListener("click",e=>{
+ // v3.339: Im Projekt-Rüstblatt lässt sich abhaken (Nummer oder Schnittbild); der Plan rechnet erst bei „erstellen/aktualisieren“ neu,
+ // damit das Blatt nicht unter dem Finger wegspringt - das steht dann dort.
+ const hk=e.target.closest?e.target.closest("#ruestblattBody [data-ze-nr]"):null;
+ if(hk&&rbProjektAuswahl&&!hk.closest("details.rb-einzel")&&!document.getElementById("rbpHakenHinweis")){
+  const z=document.querySelector("#ruestblattBody .pzu-auswahl");
+  if(z)z.insertAdjacentHTML("beforeend",'<div class="small" id="rbpHakenHinweis" style="color:var(--red)">Haken gesetzt – „Rüstblatt erstellen/aktualisieren“ tippen: abgehakte Stücke verlassen dann den gemeinsamen Plan.</div>');
+ }
  const rbp=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-alle],#ruestblattBody [data-rbp-keine],#ruestblattBody [data-rbp-erstellen],#ruestblattBody [data-rbp-rollen-eigene]"):null;
  if(rbp&&rbProjektAuswahl){
   const a=rbProjektAuswahl;

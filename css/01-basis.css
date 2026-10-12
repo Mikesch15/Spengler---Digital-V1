@@ -1217,6 +1217,9 @@ label.pzu-auswahl-zeile input[type=checkbox],.pzu-rollen input[type=checkbox]{wi
 .zu-bilder-legende{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
 .zu-bild{margin:4px 0 8px}
 .zu-bild figcaption{font-size:12px;font-weight:700;margin-bottom:2px}
+.zu-bild-st{cursor:pointer}
+.zu-bild-st.ze-ok rect{fill:#9fd3a8}
+.zu-bild-st:not(.ze-ok):hover rect{fill:#c3d8ec}
 .zu-bild svg{display:block;max-width:100%;height:auto;background:#fff}
 span.zu-nr.zu-nr-ist.ze-ok{border-color:var(--green);background:var(--green);color:#fff}
 span.zu-nr.zu-nr-ist.ze-ok::before{content:"✓ "}

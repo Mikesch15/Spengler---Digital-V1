@@ -113,7 +113,7 @@ const tipp=async(page,sel,was)=>{
   const d=document.createElement("div"); d.innerHTML=h;
   return {skizzen:[...d.querySelectorAll(".werk-skizze figcaption")].map(x=>x.textContent.trim().toLowerCase()),
           svg:d.querySelectorAll("svg:not(.zu-bild svg)").length,
-          stuecke:d.querySelectorAll("[data-ze-nr]").length,
+          stuecke:d.querySelectorAll("button[data-ze-nr]").length,
           kopf:(d.querySelector(".rb-kopf")||{}).textContent||"",
           text:d.textContent.replace(/\s+/g," ")};
  });
@@ -169,7 +169,7 @@ const tipp=async(page,sel,was)=>{
  const D=await page.evaluate(()=>({
   offen:!$("ruestblattModal").hidden,
   svg:$("ruestblattBody").querySelectorAll("svg:not(.zu-bild svg)").length,
-  stuecke:$("ruestblattBody").querySelectorAll("[data-ze-nr]").length,
+  stuecke:$("ruestblattBody").querySelectorAll("button[data-ze-nr]").length,
   kopf:($("ruestblattBody").querySelector(".rb-kopf")||{}).textContent||"",
   eingaben:$("ruestblattBody").querySelectorAll("input:not([data-ze-nr]),textarea,select").length
  }));
