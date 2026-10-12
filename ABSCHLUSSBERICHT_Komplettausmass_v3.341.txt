@@ -1,0 +1,43 @@
+ABSCHLUSSBERICHT v3.341 – Komplettausmass (rein lesende Übersicht im Projekt-Cockpit)
+Datum: 12.10.2026
+Ausgangscommit: 8392fdc (v3.340)
+Zielcommit (Code): c6d1d83 – v3.341
+Auftrag: „Zusätzlicher Auftrag – Automatisches Komplettausmass“ (eigener Auftrag, getrennt vom Nachtauftrag v3.340).
+
+1. BESTANDSAUFNAHME (am Code und an echten Daten festgestellt; Abfragen nur lesend)
+- Jede Massaufnahme trägt beim Speichern `measurements.data.ausmass` (Zeilen `{pos, bezeichnung, menge, einheit, teil, herkunft}`), geschrieben von den `*AusmassZeilen()` der Module (js/28–40, js/66). Gedruckt wird das im Massaufnahme-PDF.
+- Gemessene Einheiten in den echten Daten: mm (127 Zeilen – Masse wie „560 × 170“, Abwicklung, Umfang), Stk./Stk (Stückzahlen), m² (Blechfläche), m (Rinnenlänge), leer (1 Zeile). `menge` ist teils Text („1,34“, „3'104“, „560 × 170“), teils Zahl. `teil:true` kennzeichnet Zubehör-/Teilzeilen (z. B. Bleilappen).
+- Bestehende, getrennte Welten, die NICHT angefasst werden: Tabelle `ausmass` (eigene Ausmassdokumente, js/17), `leistungen` (js/65), Offertmengen (angebote.positions, js/63), Zuschnitt/Rollenplan (Rüstblatt).
+- Eine Komplettausmass-Funktion existierte nicht (nur die einzelnen Massaufnahme-Ausmasszeilen und die Offertmengen).
+Kleinste sichere Umsetzung: reine Anzeige aus den bereits geladenen Massaufnahmen (`projectMeasurementsCache`), keine neue Abfrage, keine Migration.
+
+2. UMSETZUNG
+- Neue Datei js/85-komplettausmass.js (in index.html und sw.js eingetragen) und neue Cockpit-Karte „📊 Komplettausmass (Übersicht)“ (index.html, klappbar, Vorgabe zu).
+- Rein (`kaSammeln`, `kaZahl`, `kaEinheit`): Summen nur je Einheit + Teil/Haupt + Bezeichnung (m², m, Stk, h). mm-Zeilen sind Masse und werden nicht summiert (nur gezählt und erklärt). Fehlende, unlesbare oder negative Mengen, Masspaare, fehlende Bezeichnung/Einheit und nicht summierbare Einheiten (z. B. kg, lfm) erscheinen unter „Zu prüfen“ – nie in Summen und nie als 0. Schweizer Schreibweisen (3'080, 1.234,5, 0,93) werden gelesen.
+- Herkunft: jede Summe ist aufklappbar bis zur Zeile (Massaufnahme, Titel, Position, Menge, Herkunftstext, Status); Antippen öffnet die Massaufnahme über `openMeasurement` mit Rückkehr ins Cockpit.
+- Dubletten: gleiche Bezeichnung aus mehreren Massaufnahmen wird summiert, jede Quelle bleibt sichtbar; gleicher Typ + gleicher Titel gilt als „mögliche Dublette“ und wird nur markiert – nichts wird gelöscht oder stillschweigend zusammengeführt.
+- Status: ausschliesslich `workflow_status` der Massaufnahme (js/44), mit dem Hinweis „Status je Massaufnahme, nicht je Position“; Zuschnitt-Haken erscheinen getrennt als „Zuschnitt: n von m abgehakt (kein Montagestand)“. Kein Prozentwert „Projekt fertig“.
+- Mandanten-/Projektgrenze: zusätzlich zur RLS werden Massaufnahmen anderer Projekte/Firmen ausgeschlossen.
+- Aktualität: „Stand: HH:MM Uhr“; bei Ladefehler „Nicht frisch geladen – letzter Stand …“; Ladezustand/Fehler/Leerzustand verständlich. Aktualisierung bei jedem Neuladen der Massaufnahmen (js/09 `loadProjectMeasurements` ruft `kaGeladen()`/`kaLadeFehler()`), also nach Erstellen, Ändern, Löschen, Archivieren oder Verschieben, soweit der bestehende Datenfluss neu lädt.
+- Ansicht: Abgrenzungstext (keine Offertmenge, kein Zuschnitt, keine Reservierung, kein bestätigtes/verrechnetes Ausmass), Kennzahlen (Anzahl Massaufnahmen/Mengenpositionen/zu prüfen), Statusfilter (nur bei eingeschaltetem Arbeitsablauf und mehreren vorhandenen Status), Mengen nach Einheit, Zu prüfen, Masszeilen-Hinweis, Massaufnahmenliste, Aufschlüsselung nach Art/Werkstoff (nur Anzahlen).
+- Keine Migration, keine RLS-/Edge-Function-Änderung, keine Änderung an lager_varianten/Lager/Regiematerial; js/85 enthält keinen Datenbank- oder Netzwerkzugriff; keine der drei Materiallisten wird als Quelle benutzt (Werkstoffname nur über den bestehenden Namens-Lookup der Massaufnahme).
+
+3. TESTS
+- Neuer Prüfstand `pruefstand-komplettausmass-v3-341.js`: 42 Prüfungen. Abgedeckt: Auftragsfälle 1–14 (keine Massaufnahmen; eine gültig; mehrere kompatibel; Einheiten getrennt; fehlende Menge nicht 0; ungültig → zu prüfen; Herkunft; Dublette markiert; Aktualisierung nach Änderung/Entfernung; fremdes Projekt/fremde Firma; Status und Zuschnitt-Haken ≠ Montage; Offertmenge ≠ Komplettausmass; keine Schreibvorgänge; mobile Darstellung 360/390/430/768 px). Fall 15 (bestehende Funktionen) durch die vollständige Regression.
+- Mutationsproben (alle erkannt): Einheiten gemischt (1 Fehlschlag); fehlende Menge als 0 (2); Herkunft verloren (2); fremdes Projekt einbezogen (1); fremde Firma einbezogen (1); Zuschnitt-Abhaken als „montiert“ (1); Offertmengen als „Komplettausmass“ bezeichnet (1); Ansicht schreibt (1).
+- Schnellprüfung vor dem Push: gezielte Auswahl (Komplettausmass, Projektübersicht, Ausmass, Cockpit, Projekt-, Ansicht2-, Startseiten-, Hilfe-, Versions-, Offline-/App-Shell-, Angebots-, Massaufnahme-Prüfstände). Ergebnis: grün bis auf `cockpit-zurueck-v3-11` (erwartet die feste Liste der Klappabschnitte; „komplett“ ergänzt, danach grün) und Wächter-Prüfstände, die einen unveränderten Git-Stand verlangen (im sauberen Worktree der vollständigen Regression geprüft).
+
+4. GRENZEN
+- Das Komplettausmass ist eine Übersicht aus den von den Modulen gespeicherten Ausmasszeilen; Massaufnahmen, die vor Einführung der Zeilen gespeichert wurden oder deren Modul keine Ausmasszeilen schreibt, erscheinen als „ohne Ausmasszeilen“.
+- Bezeichnungen mit abweichender Schreibweise werden nicht fuzzy zusammengeführt (bewusst: keine geratene Gleichheit).
+- Keine Live-/Handy-/Tablet-Tests mit der echten App; Viewport-Prüfung nur im Testbrowser mit Attrappen.
+- Übernahme in die Tabelle `ausmass`, Offerten, Leistungen oder Rechnungen findet bewusst nicht statt.
+
+5. MANUELLE TESTSCHRITTE
+1) App neu laden (3.341), Projekt mit mehreren Massaufnahmen öffnen.
+2) Karte „Komplettausmass (Übersicht)“ aufklappen: Summen je Bezeichnung/Einheit prüfen, eine Summe aufklappen, eine Zeile antippen – die Massaufnahme öffnet.
+3) Eine Massaufnahme ändern/zurückkehren: Übersicht aktualisiert sich; „Stand: HH:MM“ ändert sich.
+4) Unter „Zu prüfen“ stehen unvollständige Zeilen; mm-Masse sind nicht in den Summen.
+
+6. COMMIT/DEPLOY
+(wird nach Push und Kontrolle ergänzt)

@@ -1,7 +1,7 @@
 ABSCHLUSSBERICHT v3.340 – Projektübersicht und Projekt-Rüstblatt
 Datum: 12.10.2026
 Ausgangscommit: c6e78e9 (v3.339, Pages success, Regression 180/180)
-Zielcommit: siehe unten („Commit/Deploy“) – wird nach dem Push eingetragen.
+Zielcommit (Code): 8392fdc – v3.340
 Auftrag: XXL-Nachtauftrag Projektübersicht / Projekt-Rüstblatt (Komplettausmass ausdrücklich NICHT Teil; eigener Auftrag danach, v3.341).
 
 1. BESTANDSAUFNAHME (am Code festgestellt, nicht geraten)
@@ -25,7 +25,7 @@ Keine Migration, keine RLS-/Edge-Function-Änderung, keine Änderung an lager_va
 3. TESTS
 - Neuer Prüfstand `pruefstand-projektuebersicht-v3-340.js`: 39 Prüfungen (Offertmengen m²/m mit und ohne bestätigte Abwicklung/Stück/Zusatz/ungültig/mehrere Offerten; Projektliste: Stand je Karte, Ladefehler, Suche, Leerzustand, Titel ohne Adresse, Viewports 360/390/430/768 px ohne horizontales Scrollen; Cockpit-Zeile; Rüstblatt: Vorbelegung, ohne Zuschnitt, Stärke fehlt, Druck = Vorschau, Seiten je Gruppe, unbekannte Stärke/anderer Werkstoff getrennt, keine Schreibvorgänge).
 - Mutationsproben (alle erkannt): unbekannt als 0 (5 Fehlschläge); Offertmengen als „Komplettausmass“ bezeichnet (2); Status aus falschem Feld (1); Vorbelegung ignoriert (1); Druck ohne Vorschau-Abgleich (1); keine Seiten je Gruppe (1); fehlende Stärke unmarkiert (1); Stand leer (3). Die Mutationen zu Gruppierung, abgehakten Stücken, Rollenwahl, Herkunft und Schreibzugriffen aus dem Auftrag decken die Prüfstände `projekt-mengen-ruestblatt-v3-335`, `werkstatt-ruestblatt-auswahl-v3-336` und `ruestblatt-schnittbild-v3-337` ab (siehe deren Berichte; erneut grün).
-- Schnellprüfung vor dem Push: siehe „Commit/Deploy“.
+- Schnellprüfung vor dem Push: gezielte Auswahl (Projektübersicht, Offerten, Projekt-/Werkstatt-/Rüstblatt-/Zuschnitt-/Hilfe-/Versions-Prüfstände). Ergebnis: alle grün ausser (a) vier Wächter-Prüfstände, die einen unveränderten Git-Stand verlangen (nur im Worktree nach dem Commit aussagekräftig) und (b) `werkstatt-ruestblatt-auswahl-v3-336`, dessen statische Prüfung „speichert die Auswahl nicht“ die neue LESENDE Vorbelegung als Verstoss wertete – Prüfung auf „kein pzuAuswahlSpeichern / kein from(projects)“ präzisiert, danach grün.
 
 4. GRENZEN / NICHT GETAN
 - Offertmengen erscheinen nicht in der Projektliste (bräuchte eine Abfrage je Projekt).
@@ -38,4 +38,8 @@ Keine Migration, keine RLS-/Edge-Function-Änderung, keine Änderung an lager_va
 3) Werkstatt → „Rüstliste“ am Projekt: Auswahl ist wie im Projekt-Zuschnitt vorbelegt; Massaufnahmen ohne Zuschnitt werden genannt; Stück abhaken, Drucken: Druck zeigt dasselbe wie die Vorschau, jede Rollengruppe auf eigener Seite.
 
 6. COMMIT/DEPLOY
-(wird nach Push und Kontrolle ergänzt)
+Code-Commit 8392fdc (nur Code, Prüfstände, PROJECT_STATE/CHANGELOG, Hilfe, Anleitung, Bericht-Entwurf).
+- GitHub Actions „Prüfstände“ für 8392fdc: success.
+- GitHub Pages „pages build and deployment“ für 8392fdc: success.
+- Vollständige lokale Regression im sauberen Worktree auf 8392fdc, bis zum Ende gelaufen: 181/181 Prüfstände, 0 Fehlschläge.
+- Nicht geprüft: echte Live-App, Handy, Tablet.
