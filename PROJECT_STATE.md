@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.327`
+- Aktueller Entwicklungsstand: `v3.328`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.328 — Zuschnitt: Rollen mischen (je Streifenbreite eine der angewählten Rollen)
+
+Auftrag des Anwenders: mehrere Rollen dürfen in einer Massaufnahme gemischt werden, automatisch, aber nur mit den in der Massaufnahme angewählten Rollen. Umsetzung am EINEN Formatplan `ebaFormatPlan` (js/29): neue `ebaRollenMischung()` sucht per Teilmengen-DP die Aufteilung der Streifenbreiten (Gruppen) auf die angewählten Rollen mit der kleinsten Blechfläche; innerhalb einer Rolle rechnet unverändert `ebaFormatZeilen` (inkl. Mischung verschiedener Breiten in einem Abschnitt). Nur Rolle (nie Tafel), 2–6 Gruppen, ≥2 Rollen; Mischung ersetzt das beste Einzelformat nur bei Gewinn ≥ 0,02 m² und ≥ 2 %, jeder weitere Rollenwechsel muss ≥ 0,03 m² sparen (`EBA_MISCH_*`). Ergebnis: `moeglich[0]` mit `mischung:[{breite,gruppen,format}]`, `gruppen[].rolleBreite`, `zeilen[].rolleBreite`; Pläne ohne `mischung` (alle alten) laufen unverändert. js/33: `zuMischBloecke` – jeder Block wird wie ein eigener Plan behandelt (`zuGeometrie`, `zuAbschnittInfo` mit fortlaufenden Abschnittsnummern über alle Rollen → Bilanz, Reste, Zuschnittliste/Rüstblatt „ab 670er Rolle“); `zuFormatText`/`zuAbschnittText` nennen die Rollen. Beispiel (Dachfenster Süd Rechts): 670er + 1000er statt nur 670er = 1,416 statt 1,558 m².
+Prüfstand: `pruefstand-rollen-mischen-v3-328` (29). Angepasst: `kamin-app-v2-90` (beste Lösung jetzt gemischt 3,006 m², 1000er allein 3,6 m²); `ruestliste-offline-v3-23`, `reste-schnittfuge-v3-26`, `rolle-tafel-v3-33` prüfen das alte Rüstlisten-Kästchendokument (Rückfall) und schalten den neuen Druckweg (v3.325) ab. Vorher-Lauf der vollen Regression auf dem Arbeitsstand: nur diese vier rot.
 
 ### v3.327 — Rüstblatt-Druck: pro Massaufnahme möglichst eine Seite (Blitzanpassung, ohne Prüfstände/Regression)
 
@@ -14,10 +19,6 @@ In `rbDruckenAufnahmen` (js/80) misst der Druckrahmen jede Blattseite und verkle
 ### v3.326 — Rüstblatt-/Rüstlisten-Druck im Layout der übrigen Dokumente (Blitzanpassung, ohne Prüfstände/Regression)
 
 `rbDruckenAufnahmen` (js/80) baut jetzt ein eigenes Dokument (`rbDokumentHtml`: `pdfKopfHtml` mit Logo/Projekt, `PDF_LAYOUT_CSS`, `RB_DRUCK_CSS` im PDF-Schriftmass, `pdfFooterHtml`, Seitenzahl) und druckt es aus einem unsichtbaren iframe (`srcdoc`, Zeichnungen per `rsZuschneiden` zugeschnitten); je Massaufnahme eine Seite. Die Bildschirm-Druckregeln `#rbDruck` aus v3.322–325 sind entfernt. Per gerendertem PDF geprüft (2 Seiten für 2 Massaufnahmen); keine Prüfstände/Regression.
-
-### v3.325 — Rüstliste druckt das volle Rüstblatt (Blitzanpassung, ohne Prüfstände/Regression)
-
-Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Popup-Dokument nur mit Kästchentabelle – ohne Schnittzeichnung, Masse, Streifen-Gliederung. Jetzt ruft `rlDrucken` `rbDruckenAufnahmen(liste)` (js/80) auf: je Massaufnahme eine Seite mit dem vollen Rüstblatt (Zeichnung, Masse, Abschnitt→Streifen→Stück, Baustellenangaben), Druck über `#rbDruck` im selben Dokument. Der Einzel-Knopf im Rüstblatt nutzt dieselbe Funktion. Altes Popup-Dokument bleibt als Rückfall im Code (nur wenn `rbDruckenAufnahmen` fehlt). **Bekannt:** bestehende Rüstlisten-Prüfstände prüfen das alte Popup und werden voraussichtlich rot; auf Ansage keine Prüfstände/Regression gelaufen – bei Bedarf anpassen. Per Druckvorschau mit echten Dachfenster-Werten (Datensatz 120) geprüft.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

@@ -61,6 +61,7 @@ function zuWort(p){return ZU_WORT[zuIstTafel(p)?"tafel":"rolle"]}
 // Das Format als Text: bei der Rolle nur die Breite, bei der Tafel L × B.
 function zuFormatText(x,p){
  if(!x)return "–";
+ if(Array.isArray(x.mischung)&&x.mischung.length)return x.mischung.map(m=>zuMm(m.breite)).join(" + ")+" mm";   // v3.328: gemischte Rollen
  const b=zuZahl(x.breite);
  if(b<=0)return "–";
  const l=zuZahl(x.laenge);
@@ -99,8 +100,28 @@ function zuMasse(laenge,breite){
 //   L   Abschnittlänge (= längstes Stück der Gruppe)
 //   n   Streifen je Abschnitt        ab  Abschnitte
 //   restBreite  seitlicher Rand      fugeQuer  B − n·A − restBreite
+// v3.328: Rollen gemischt - das beste "Format" besteht aus Bloecken, je Block eine Rolle und ihre Streifenbreiten (Gruppen).
+// Jeder Block wird wie ein eigener, normaler Plan behandelt (Geometrie, Abschnittsnummern, Bilanz) - es gibt keine zweite
+// Rechnung. Ohne mischung im Plan (alle aelteren Plaene) liefert das null und nichts aendert sich.
+function zuMischBloecke(p){
+ const b=p&&(p.moeglich||[])[0];
+ if(!b||!Array.isArray(b.mischung)||!b.mischung.length)return null;
+ const raus=[];
+ for(const m of b.mischung){
+  const gr=(m.gruppen||[]).map(i=>(p.gruppen||[])[i]);
+  if(!gr.length||gr.some(g=>!g))return null;   // unvollstaendiger Plan: lieber gar nicht mischen
+  raus.push({m,sub:Object.assign({},p,{gruppen:gr,moeglich:[m.format]})});
+ }
+ return raus;
+}
 function zuGeometrie(p){
  if(!zuFlach(p))return [];
+ const bl=zuMischBloecke(p);
+ if(bl){
+  const raus=[];
+  bl.forEach(({m,sub})=>zuGeometrie(sub).forEach(g=>{g.index=m.gruppen[g.index];raus.push(g)}));
+  return raus.sort((a,c)=>a.index-c.index);
+ }
  const best=(p.moeglich||[])[0];
  if(!best)return [];
  const B=zuZahl(best.breite);
@@ -330,7 +351,8 @@ function zuAlleStuecke(p){
    (g.streifen||[]).forEach((s,si)=>(s.stuecke||[]).forEach(x=>{
     const i=ab&&ab.get(s);
     liste.push(Object.assign({},x,{breite:g.breite,platz:si+1,strKey:gi+"|"+si,
-     abschnitt:i?i.nr:undefined,abLaenge:i?i.laenge:undefined,strIdx:i?i.idx:undefined}));
+     abschnitt:i?i.nr:undefined,abLaenge:i?i.laenge:undefined,strIdx:i?i.idx:undefined},
+     (i&&i.rolle)?{rolle:i.rolle}:{}));
    }));
   });
  }
@@ -402,7 +424,7 @@ function zuListeAbschnitteHtml(p){
  const bloecke=new Map();
  zuAlleStuecke(p).forEach(x=>{
   const k=x.abschnitt!==undefined?x.abschnitt:"rest";
-  if(!bloecke.has(k))bloecke.set(k,{laenge:x.abLaenge,streifen:new Map()});
+  if(!bloecke.has(k))bloecke.set(k,{laenge:x.abLaenge,rolle:x.rolle,streifen:new Map()});
   const b=bloecke.get(k);
   if(!b.streifen.has(x.strKey||"rest"))b.streifen.set(x.strKey||"rest",{idx:x.strIdx,breite:x.breite,stuecke:[]});
   b.streifen.get(x.strKey||"rest").stuecke.push(x);
@@ -420,7 +442,7 @@ function zuListeAbschnitteHtml(p){
  const reihenfolge=Array.from(bloecke.keys()).sort((a,b)=>(a==="rest")-(b==="rest")||(a===b?0:a-b));
  return reihenfolge.map(k=>{
   const b=bloecke.get(k);
-  const kopf=k==="rest"?"Aus vorhandenem Rest":(wort+" "+k+(b.laenge>0?" · "+zuMm(b.laenge)+" mm"+(stange?"":(zuIstTafel(p)?"":" ab Rolle")):""));
+  const kopf=k==="rest"?"Aus vorhandenem Rest":(wort+" "+k+(b.laenge>0?" · "+zuMm(b.laenge)+" mm"+(stange?"":(zuIstTafel(p)?"":(b.rolle?" ab "+zuMm(b.rolle)+"er Rolle":" ab Rolle"))):""));
   const zeilen=Array.from(b.streifen.values()).sort((x,y)=>(x.idx||0)-(y.idx||0)).map(st=>{
    const nrs=st.stuecke.map(x=>x.nr).filter(n=>n!==undefined&&n!==null);
    const name=(stange||k==="rest")?"":`<span class="zu-streifen-name">Streifen ${esc(st.idx)} · Abwicklung ${esc(zuMm(st.breite))} mm</span>`;
@@ -501,8 +523,8 @@ function zuListeHtml(p,opt){
   // erste Frage in der Werkstatt.
   kopf=w.kopf+" "+zuFormatText(bestes,p);
   const ab=zuAbschnittText(bestes,p);
-  const st=zuStreifenZahl(bestes,p);
-  fuss=(ab!=="–"?ab+" "+w.ab:"")
+  const st=bestes.mischung?0:zuStreifenZahl(bestes,p);
+  fuss=(ab!=="–"?ab+(bestes.mischung?"":" "+w.ab):"")
     +(st>0?(ab!=="–"?" · ":"")+st+" Streifen je "+w.abschnitt:"");
  }else if(p.art==="stange"){
   kopf="Zuschnittliste";
@@ -649,6 +671,8 @@ function zuAbschnitte(x,p){
 // Als Text: "3 × 2'070 mm". Bei mehreren verschiedenen Abschnittlaengen
 // stehen sie einzeln da - es wird keine gemeinsame erfunden.
 function zuAbschnittText(x,p){
+ if(x&&Array.isArray(x.mischung)&&x.mischung.length)
+  return x.mischung.map(m=>zuMm(m.breite)+"er: "+zuAbschnittText(m.format,p)).join(" · ");
  const a=zuAbschnitte(x,p);
  if(a.teile)return a.teile.map(t=>t.n+" × "+zuMm(t.laenge)+"\u00a0mm").join(" + ");
  if(!a.n||!a.laenge)return "–";
@@ -787,6 +811,19 @@ function zuAbschnittInfo(p){
  const gruppen=p.gruppen||[];
  if(!gruppen.length)return null;
  if(ZU_ABSCHNITT_CACHE.has(p))return ZU_ABSCHNITT_CACHE.get(p);
+ // v3.328: gemischte Rollen - jeder Block fuer sich, die Abschnittsnummern laufen ueber alle Rollen fortlaufend weiter.
+ const bl=zuMischBloecke(p);
+ if(bl){
+  const ges=new Map(); let versatz=0;
+  bl.forEach(({m,sub})=>{
+   const t=zuAbschnittInfo(sub); if(!t)return;
+   let mx=0;
+   t.forEach((v,st)=>{ges.set(st,{nr:v.nr+versatz,laenge:v.laenge,idx:v.idx,rolle:m.breite});mx=Math.max(mx,v.nr)});
+   versatz+=mx;
+  });
+  ZU_ABSCHNITT_CACHE.set(p,ges);
+  return ges;
+ }
  const tafel=zuIstTafel(p);
  const info=new Map();
  const zaehler=new Map();
@@ -914,7 +951,7 @@ function zuBelegungHtml(p){
    // zuAbschnitte() dafuer bewusst kein einzelnes n (siehe dort).
    const titel_=zuStreifenTitel(g,p);
    return `${eine?"":`<div class="small zu-gruppe"><b>Streifenbreite ${esc(zuMm(g.breite))} mm</b>
-· ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}</div>`}
+· ${esc(zuAbschnittText(g,p))} ${esc(zuWort(p).ab)}${g.rolleBreite?esc(" ("+zuMm(g.rolleBreite)+"er Rolle)"):""}</div>`}
 <div class="zu-belegung">${(g.streifen||[]).map((s,i)=>{
     const belegt=(s.stuecke||[]).reduce((a,x)=>a+zuZahl(x.laenge),0);
     const titel=((zuAbschnittTitel(p)||new Map()).get(s))||titel_[i];
@@ -1235,7 +1272,8 @@ hinterlegt – Einstellungen → Allgemein → Rollenbreiten des Blechlagers.</d
  return `<details class="zu-rollen"${zuRollenAuf?" open":""}><summary>Rollen für diese Massaufnahme:
 <b>${esc(genommen.map(x=>zuMm(x)+" mm").join(" · "))}</b>${alle?" (alle aus dem Lager)":""}</summary>
 <div class="small">Aus dem Blechlager der Firma. Ohne Haken wird das ganze Lager
-gerechnet – abgewählte Rollen kommen im Vergleich nicht mehr vor.</div>
+gerechnet – abgewählte Rollen kommen im Vergleich nicht mehr vor. Aus den
+gewählten Rollen darf gemischt werden (je Streifenbreite eine Rolle), wenn das spürbar Blech spart.</div>
 <div class="zu-rollen-liste">${lager.map(x=>`<label class="zu-rolle">
 <input type="checkbox" ${attribut}="${x}"${genommen.indexOf(x)>=0?" checked":""}>
 <span>${esc(zuMm(x))} mm</span></label>`).join("")}</div>

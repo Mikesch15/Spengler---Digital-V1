@@ -34501,3 +34501,7 @@ Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` 
 ### v3.324 — Rüstblatt-PDF: Stück-Nummern je Streifen sichtbar (Blitzanpassung, ohne Prüfstände/Regression)
 
 Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern der Zuschnittliste (`.zu-nr`) sind Knöpfe. Jetzt nur noch `.ze-alle`, `.ze-stand`, Foto-Kacheln und `.no-print` ausgeblendet, `.zu-nr` als Nummer im Rahmen. Per Druckvorschau mit eingefügter Beispielstruktur geprüft; keine Prüfstände/Regression.
+
+### v3.325 — Rüstliste druckt das volle Rüstblatt (Blitzanpassung, ohne Prüfstände/Regression)
+
+Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Popup-Dokument nur mit Kästchentabelle – ohne Schnittzeichnung, Masse, Streifen-Gliederung. Jetzt ruft `rlDrucken` `rbDruckenAufnahmen(liste)` (js/80) auf: je Massaufnahme eine Seite mit dem vollen Rüstblatt (Zeichnung, Masse, Abschnitt→Streifen→Stück, Baustellenangaben), Druck über `#rbDruck` im selben Dokument. Der Einzel-Knopf im Rüstblatt nutzt dieselbe Funktion. Altes Popup-Dokument bleibt als Rückfall im Code (nur wenn `rbDruckenAufnahmen` fehlt). **Bekannt:** bestehende Rüstlisten-Prüfstände prüfen das alte Popup und werden voraussichtlich rot; auf Ansage keine Prüfstände/Regression gelaufen – bei Bedarf anpassen. Per Druckvorschau mit echten Dachfenster-Werten (Datensatz 120) geprüft.

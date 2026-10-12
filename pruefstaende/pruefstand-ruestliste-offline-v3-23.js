@@ -202,6 +202,9 @@ const druckHtml=(page)=>page.evaluate(()=>(window.__druck||[]).filter(x=>x&&x.le
  const cdnWache=await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP,{waitUntil:"load"});
+ // v3.325: Die Werkstatt-Rüstliste druckt jetzt über rbDruckenAufnahmen (volles Rüstblatt, js/80). Dieser Prüfstand prüft das
+ // ALTE Kästchen-Dokument (Rückfall, wenn rbDruckenAufnahmen fehlt) - deshalb wird der neue Weg hier abgeschaltet.
+ await page.evaluate(()=>{window.rbDruckenAufnahmen=undefined});
  // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
  // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
  // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.

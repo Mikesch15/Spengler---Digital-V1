@@ -47,6 +47,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;
  }};`;
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(500);
+ // v3.325: Die Werkstatt-Rüstliste druckt jetzt über rbDruckenAufnahmen (volles Rüstblatt, js/80). Dieser Prüfstand prüft das
+ // ALTE Kästchen-Dokument (Rückfall, wenn rbDruckenAufnahmen fehlt) - deshalb wird der neue Weg hier abgeschaltet.
+ await page.evaluate(()=>{window.rbDruckenAufnahmen=undefined});
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",first_name:"M",last_name:"L",company_id:"f1"};
   allProfiles=[{id:"u1",first_name:"M",last_name:"L"}]; meineRechte={admin:true};

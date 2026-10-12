@@ -716,6 +716,79 @@ function ebaFormatZeilen(gruppen,f,packe,packeMehrfach,laengstes){
  });
  return {zeilen,flaeche};
 }
+// v3.328: Rollen mischen - die beste Zuordnung der Streifenbreiten (Gruppen) zu den ausgewaehlten Rollenbreiten.
+// Jede Gruppe liegt ganz auf einer Rolle; innerhalb einer Rolle rechnet unveraendert ebaFormatZeilen (inkl. der
+// Mischung verschiedener Breiten in einem Abschnitt). Gesucht wird die Aufteilung mit der kleinsten Blechflaeche
+// (Dynamische Programmierung ueber alle Teilmengen der Gruppen). Rueckgabe: null (keine Mischung noetig/moeglich) oder
+// {eintrag, volleZeilen} - eintrag ist ein Format-Eintrag wie in "moeglich" mit zusaetzlich mischung:[{breite,gruppen,format}].
+// Jede zusaetzliche Rolle kostet einen Rollenwechsel an der Maschine: sie muss mindestens EBA_MISCH_WECHSEL m2 Blech sparen.
+const EBA_MISCH_MIN_M2=0.02, EBA_MISCH_MIN_ANTEIL=0.02, EBA_MISCH_MAX_GRUPPEN=6, EBA_MISCH_WECHSEL=0.03;
+function ebaRollenMischung(gruppen,formate,moeglich,packe,packeMehrfach,laengstes,netto,form){
+ if(form==="tafel")return null;
+ const rollen=(formate||[]).filter(f=>f&&f.laenge===null&&Number(f.breite)>0);
+ const G=gruppen.length;
+ if(G<2||G>EBA_MISCH_MAX_GRUPPEN||rollen.length<2||!moeglich.length)return null;
+ const einzel=moeglich[0].flaeche;
+ const eval1=(maske,f)=>{
+  const idx=[];for(let i=0;i<G;i++)if(maske&(1<<i))idx.push(i);
+  const r=ebaFormatZeilen(idx.map(i=>gruppen[i]),f,(k,L)=>packe(idx[k],L),(k,je)=>packeMehrfach(idx[k],je),
+   g=>laengstes(g));
+  if(r.schmal!==undefined||r.lang)return null;
+  return {idx,f,r};
+ };
+ const alle=(1<<G)-1;
+ const kosten=new Array(alle+1).fill(null);   // beste Rolle je Teilmenge
+ for(let m=1;m<=alle;m++){
+  let b=null;
+  rollen.forEach(f=>{
+   const e=eval1(m,f);
+   if(e&&(!b||e.r.flaeche<b.r.flaeche-1e-12||(Math.abs(e.r.flaeche-b.r.flaeche)<=1e-12&&f.breite>b.f.breite)))b=e;
+  });
+  kosten[m]=b;
+ }
+ const teil=new Array(alle+1).fill(null);     // beste Aufteilung je Teilmenge: {summe, bloecke:[maske]}
+ teil[0]={summe:0,bloecke:[]};
+ for(let m=1;m<=alle;m++){
+  const tief=m&-m;                            // die niedrigste Gruppe liegt immer im ersten Block
+  let best=null;
+  for(let s=m;s>0;s=(s-1)&m){
+   if(!(s&tief)||!kosten[s]||!teil[m^s])continue;
+   const summe=kosten[s].r.flaeche+EBA_MISCH_WECHSEL+teil[m^s].summe;
+   if(!best||summe<best.summe-1e-12)best={summe,bloecke:[s].concat(teil[m^s].bloecke)};
+  }
+  teil[m]=best;
+ }
+ const sieger=teil[alle];
+ if(!sieger||sieger.bloecke.length<2)return null;
+ // Zwei Bloecke auf derselben Rolle: zusammenlegen, wenn das nicht schlechter ist.
+ let bloecke=sieger.bloecke.map(m=>kosten[m]);
+ for(let i=0;i<bloecke.length;i++)for(let j=i+1;j<bloecke.length;j++){
+  if(bloecke[i]&&bloecke[j]&&bloecke[i].f.breite===bloecke[j].f.breite){
+   const mm=bloecke[i].idx.concat(bloecke[j].idx).reduce((a,x)=>a|(1<<x),0);
+   const e=eval1(mm,bloecke[i].f);
+   if(e&&e.r.flaeche<=bloecke[i].r.flaeche+bloecke[j].r.flaeche+1e-12){bloecke[i]=e;bloecke[j]=null}
+  }
+ }
+ bloecke=bloecke.filter(Boolean);
+ if(bloecke.length<2)return null;
+ const summe=bloecke.reduce((a,b)=>a+b.r.flaeche,0);
+ if(!(summe+EBA_MISCH_WECHSEL*(bloecke.length-1)<einzel-Math.max(EBA_MISCH_MIN_M2,einzel*EBA_MISCH_MIN_ANTEIL)))return null;
+ bloecke.sort((a,b)=>b.f.breite-a.f.breite);
+ const zeilen=new Array(G), voll=new Array(G);
+ const mischung=bloecke.map(b=>{
+  const schlank=b.r.zeilen.map(z=>Object.assign({},z,{streifen:z.streifen.length,rolleBreite:b.f.breite}));
+  b.idx.forEach((gi,k)=>{zeilen[gi]=schlank[k];voll[gi]=Object.assign({},b.r.zeilen[k],{rolleBreite:b.f.breite})});
+  const rl=b.r.zeilen.reduce((s,x)=>s+x.rollenLaenge,0);
+  return {breite:b.f.breite,gruppen:b.idx.slice(),
+    format:{breite:b.f.breite,laenge:null,text:b.f.text||ebaFormatText(b.f),zeilen:schlank,flaeche:b.r.flaeche,
+      rollenLaenge:rl}};
+ });
+ const breiten=mischung.map(x=>x.breite);
+ const eintrag={breite:breiten[0],laenge:null,text:breiten.join(" + ")+" mm",zeilen,flaeche:summe,
+   verschnitt:summe-netto,anteil:summe>0?(summe-netto)/summe*100:0,
+   rollenLaenge:mischung.reduce((s,x)=>s+x.format.rollenLaenge,0),mischung};
+ return {eintrag,volleZeilen:voll};
+}
 // Der EINE Formatplan fuer alle zehn Rollen-Module - Einzelbreite wie
 // Gruppen. gruppen ist [{breite, bleche:[{nr,laenge,merkmal,hinweis}]}];
 // bei genau einer Gruppe kommen die Felder zusaetzlich flach zurueck, damit
@@ -768,6 +841,11 @@ function ebaFormatPlan(opt){
   moeglich.push(e);
  });
  moeglich.sort((x,y)=>x.flaeche-y.flaeche||x.rollenLaenge-y.rollenLaenge||y.breite-x.breite);
+ // v3.328: Rollen mischen. Nur Rolle (nie Tafel) und nur aus den Formaten, die fuer diese Massaufnahme ausgewaehlt sind
+ // (formate ist schon gefiltert). Gemischt wird je Streifenbreite (Gruppe): jede Gruppe liegt ganz auf EINER Rolle.
+ // Eine Mischung ersetzt das beste Einzelformat nur, wenn sie spuerbar weniger Blech braucht.
+ const misch=ebaRollenMischung(gruppen,formate,moeglich,packe,packeMehrfach,laengstes,netto,o.form);
+ if(misch)moeglich.unshift(misch.eintrag);
  const best=moeglich[0]||null;
  // Passt gar kein Format, sagt die Liste, welche Stuecke selbst im laengsten
  // nicht unterkommen - das ist die Angabe, die die Werkstatt braucht.
@@ -785,10 +863,11 @@ function ebaFormatPlan(opt){
  // die Gruppe keine Streifen, und die Zuschnittliste (js/33 baut sie aus
  // gruppen[].streifen[]) verschwaende ganz: der Zuschneider saehe nur noch
  // die Warnung und nicht mehr, WAS zu schneiden ist. Vom Pruefstand gefunden.
- const voll=best?ebaFormatZeilen(gruppen,{breite:best.breite,laenge:best.laenge},packe,packeMehrfach,laengstes):null;
+ const voll=(best&&!best.mischung)?ebaFormatZeilen(gruppen,{breite:best.breite,laenge:best.laenge},packe,packeMehrfach,laengstes)
+  :(misch&&best===misch.eintrag?{zeilen:misch.volleZeilen}:null);
  const gefuellt=gruppen.map((g,gi)=>{
   const z=(voll&&!voll.schmal&&!voll.lang)?voll.zeilen[gi]:null;
-  if(z)return Object.assign({},g,{abschnittLaenge:z.abschnittLaenge,streifen:z.streifen,
+  if(z)return Object.assign({},g,(best&&best.mischung)?{rolleBreite:z.rolleBreite}:{},{abschnittLaenge:z.abschnittLaenge,streifen:z.streifen,
     optimal:z.optimal,jeAbschnitt:z.jeAbschnitt,abschnitte:z.abschnitte,
     rollenLaenge:z.rollenLaenge,restBreite:z.restBreite,querFuge:z.querFuge,
     verteilung:{streifen:z.streifen,optimal:z.optimal},teile:z.teile});

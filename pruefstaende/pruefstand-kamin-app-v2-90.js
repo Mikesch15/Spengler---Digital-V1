@@ -447,7 +447,8 @@ const FALL={
   return {breiten:r.gruppen.map(g=>g.breite),
     streifen:r.gruppen.map(g=>g.streifen.length),
     abschnitt:r.gruppen.map(g=>g.abschnittLaenge),
-    best:r.bestes?{breite:r.bestes.breite,flaeche:Number(r.bestes.flaeche.toFixed(4))}:null,
+    best:r.bestes?{breite:r.bestes.breite,flaeche:Number(r.bestes.flaeche.toFixed(4)),misch:!!r.bestes.mischung}:null,
+    einzel1000:(()=>{const x=r.moeglich.find(m=>!m.mischung&&m.breite===1000);return x?Number(x.flaeche.toFixed(4)):null})(),
     zuSchmal:r.zuSchmal, netto:Number(r.netto.toFixed(4))};
  });
  // Gruppen nach Abwicklung: 777 (1 Stueck, L=900), 761 (1, L=900), 670 (4 Stuecke)
@@ -467,7 +468,11 @@ const FALL={
  p(JSON.stringify(rp.breiten)==="[777,761,670]","drei Streifenbreiten, breiteste zuerst",rp.breiten);
  p(JSON.stringify(rp.streifen)==="[1,1,4]","die 670er Gruppe braucht 4 Streifen",rp.streifen);
  p(JSON.stringify(rp.abschnitt)==="[900,900,500]","Abschnitt = laengstes Stueck der Gruppe",rp.abschnitt);
- p(rp.best&&rp.best.breite===1000&&Math.abs(rp.best.flaeche-3.6)<1e-4,"beste Rolle 1000 mm, 3.6 m²",rp.best);
+ // v3.328: Rollen mischen. Auf der 1000er allein bleibt es bei 3.6 m² (von Hand oben); mit beiden Rollen im Lager liegen
+// die breiten Gruppen (777, 761) auf der 1000er (900+900 mm) und die 670er Gruppe auf der 670er Rolle
+// (1800 mm * 670 = 1.206 m² statt 1.8 m² auf der 1000er): 1.8 + 1.206 = 3.006 m².
+p(rp.einzel1000!==null&&Math.abs(rp.einzel1000-3.6)<1e-4,"auf der 1000er Rolle allein: 3.6 m²",rp.einzel1000);
+p(rp.best&&rp.best.misch&&Math.abs(rp.best.flaeche-3.006)<1e-4,"beste Lösung: 1000er und 670er gemischt, 3.006 m²",rp.best);
  // Gegenprobe zur Herkunft dieser Zahl: die Rollenlaenge einer Gruppe ist die
  // Summe der ECHTEN Streifenlaengen. Faellt durch, sobald wieder pauschal
  // Streifenzahl x Abschnittlaenge gerechnet wuerde (dann 2000 statt 1800).

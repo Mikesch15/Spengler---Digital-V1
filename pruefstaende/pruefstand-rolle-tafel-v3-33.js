@@ -88,6 +88,9 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  page.on("dialog",d=>d.accept());
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:ATTRAPPE}));
  await page.goto(APP,{waitUntil:"load"});
+ // v3.325: Die Werkstatt-Rüstliste druckt jetzt über rbDruckenAufnahmen (volles Rüstblatt, js/80). Dieser Prüfstand prüft das
+ // ALTE Kästchen-Dokument (Rückfall, wenn rbDruckenAufnahmen fehlt) - deshalb wird der neue Weg hier abgeschaltet.
+ await page.evaluate(()=>{window.rbDruckenAufnahmen=undefined});
  // Ein zu frueher Zugriff bricht den Lauf ab, und ein abgebrochener Lauf
  // sieht aus wie "keine Fehler" (CLAUDE.md 78).
  await page.waitForFunction(()=>typeof ebaFormate==="function"&&typeof zuTitel==="function"
