@@ -929,6 +929,25 @@ if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
    return;
   }
   $("angMeasModal").hidden=true;
+  // v3.320: je Position eine Projekt-Leistung (angelegt oder vorhandene) und Verknuepfung. Scheitert das, bleiben die
+  // Massaufnahmen bestehen - es wird ehrlich dazugesagt, nichts zurueckgerollt.
+  let leiText="";
+  const leiWunsch=!$("angMeasLeistungen")||$("angMeasLeistungen").checked;
+  if(leiWunsch&&typeof leiAusOffertePositionen==="function"){
+   if(!currentAngebotId){
+    leiText="\n\nDie Offerte ist noch nicht gespeichert – deshalb wurden keine Projekt-Leistungen angelegt. Offerte speichern und die Massaufnahmen später über „Leistungen“ zuordnen.";
+   }else if(data.length!==gewaehlt.length){
+    leiText="\n\nProjekt-Leistungen wurden nicht angelegt (Antwort unvollständig). Das kannst du später unter „Leistungen“ nachholen.";
+   }else{
+    const lr=await leiAusOffertePositionen(currentAngebotId,angSelectedProjectId,gewaehlt.map((z,i)=>{
+     const p=angPositions[z.index]||{};
+     return {pos:p.pos,description:p.description,quantity:p.quantity,unit:p.unit,measurementId:data[i].id};
+    }));
+    if(lr.fehler)leiText="\n\nDie Projekt-Leistungen konnten nicht (vollständig) angelegt werden: "+lr.fehler+"\nDie Massaufnahmen sind trotzdem angelegt. Leistungen kannst du unter „Leistungen“ nachholen.";
+    else leiText="\n\nLeistungen: "+lr.neu+" neu, "+lr.vorhanden+" vorhandene verwendet, "+lr.verknuepft+" verknüpft"+(lr.uebersprungen?(", "+lr.uebersprungen+" nicht eindeutig – bitte unter „Leistungen“ von Hand zuordnen"):"")+".";
+    if(typeof cockpitProjectId!=="undefined"&&cockpitProjectId===angSelectedProjectId&&typeof cockpitBereichAktualisieren==="function")await cockpitBereichAktualisieren("leistungen");
+   }
+  }
   // Das Cockpit zeigt die neuen Massaufnahmen sofort, und die Aufgabenzahl
   // stimmt wieder: jede neue Massaufnahme ist eine offene Freigabe (v3.05).
   if(typeof cockpitBereichAktualisieren==="function"
@@ -936,9 +955,9 @@ if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
    await cockpitBereichAktualisieren("meas");
   }
   if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
-  appAlert(data.length===1
+  appAlert((data.length===1
    ?"1 Massaufnahme wurde im Projekt angelegt – noch ohne Masse."
-   :data.length+" Massaufnahmen wurden im Projekt angelegt – noch ohne Masse.");
+   :data.length+" Massaufnahmen wurden im Projekt angelegt – noch ohne Masse.")+leiText);
  }catch(err){
   if(fehler){fehler.textContent="Fehler: "+((err&&err.message)||err);fehler.hidden=false}
  }finally{

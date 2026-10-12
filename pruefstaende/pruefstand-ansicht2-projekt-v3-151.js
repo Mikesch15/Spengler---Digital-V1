@@ -83,7 +83,7 @@ window.supabase={createClient:()=>({
    ausmass:[{id:21,project_id:7,type:"blitzschutz_ausmass",title:"BS Ost",date:"2026-09-14"}],
    reports:[{id:31,project_id:7,date:"2026-09-15",order_no:"26-011",customer:"Hofmatt AG"}],
    project_files:[],
-   leistungen:[{id:41,project_id:7,bezeichnung:"Rinne montieren",menge:12,einheit:"m",angebot_position:"1.1"}],
+   leistungen:[{id:41,project_id:7,bezeichnung:"Rinne montieren",menge:12,einheit:"m",angebot_id:5,angebot_position:"1.1"}],
    angebote:[]
   };
   $("authScreen").hidden=true;$("appRoot").hidden=false;$("startScreen").hidden=false;

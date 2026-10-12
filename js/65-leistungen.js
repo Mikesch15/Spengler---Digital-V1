@@ -105,6 +105,47 @@ function leiVerknuepfungsDiff(vorhanden,gewaehlt){
 }
 // ---- Ende Hilfsfunktionen
 
+// v3.320: Zu den aus einer Offerte abgeleiteten Massaufnahmen je Position eine Leistung anlegen (oder die vorhandene
+// verwenden) und verknuepfen. Rein ergaenzend: Preise/Mengen der Offerte bleiben unberuehrt, nichts wird geloescht, ein
+// zweiter Lauf legt nichts doppelt an (vorhandene Leistung wird erkannt, Verknuepfung per upsert ohne Duplikate).
+// Unklare Faelle (mehrere passende Leistungen) werden uebersprungen und gemeldet, nie geraten.
+// eintraege: [{pos,description,quantity,unit,measurementId}]. Wirft nie; liefert {neu,vorhanden,verknuepft,uebersprungen,fehler}.
+async function leiAusOffertePositionen(angebotId,projectId,eintraege){
+ const erg={neu:0,vorhanden:0,verknuepft:0,uebersprungen:0,fehler:""};
+ try{
+  if(!angebotId||!projectId||!(eintraege||[]).length)return erg;
+  const {data:liste,error:le}=await sb.from("leistungen").select("*").eq("angebot_id",angebotId);
+  if(le){erg.fehler=dbFehlerText(le);return erg}
+  const bekannt=(liste||[]).slice();
+  for(const e of eintraege){
+   const nr=String(e.pos==null?"":e.pos).trim();
+   const be=leiBeschrKurz(e.description);
+   let kand=bekannt.filter(l=>String(l.angebot_position==null?"":l.angebot_position).trim()===nr);
+   if(kand.length>1&&be){const eng=kand.filter(l=>leiBeschrKurz(l.angebot_position_beschreibung)===be);if(eng.length)kand=eng}
+   // Eine einzige Leistung mit anderer, ausdruecklich gespeicherter Beschreibung ist eine andere Position (doppelte Nummer).
+   if(kand.length===1&&kand[0].angebot_position_beschreibung&&be&&leiBeschrKurz(kand[0].angebot_position_beschreibung)!==be)kand=[];
+   let lei=null;
+   if(kand.length===1){lei=kand[0];erg.vorhanden++}
+   else if(kand.length>1){erg.uebersprungen++;continue}
+   else{
+    const menge=Number(e.quantity)||0;
+    const payload={project_id:projectId,bezeichnung:be||(nr?"Position "+nr:"Ohne Bezeichnung"),
+     menge:menge||null,einheit:String(e.unit||"").trim()||null,status:"nicht_ausgefuehrt",
+     angebot_id:angebotId,angebot_position:nr,angebot_position_beschreibung:be||null};
+    const {data,error}=await sb.from("leistungen").insert(payload).select();
+    if(error||!data||!data.length){erg.fehler=error?dbFehlerText(error):"Keine Berechtigung für Leistungen.";return erg}
+    lei=data[0];bekannt.push(lei);erg.neu++;
+   }
+   if(e.measurementId){
+    const {data:v,error:ve}=await sb.from("leistung_massaufnahmen").upsert([{leistung_id:lei.id,measurement_id:e.measurementId}],{onConflict:"leistung_id,measurement_id",ignoreDuplicates:true}).select();
+    if(ve){erg.fehler=dbFehlerText(ve);return erg}
+    if(v&&v.length)erg.verknuepft++;
+   }
+  }
+ }catch(err){erg.fehler=dbFehlerText(err)}
+ return erg;
+}
+
 if(typeof COCKPIT_BEREICHE==="object"&&COCKPIT_BEREICHE){
  COCKPIT_BEREICHE.leistungen={
   count:"cockpitLeistungenCount",body:"cockpitLeistungenBody",card:"cockpitLeistungenCard",
@@ -129,8 +170,10 @@ async function loadProjectLeistungen(projectId){
   const {data:links}=await sb.from("leistung_massaufnahmen").select("leistung_id,measurement_id").in("leistung_id",ids);
   const verknuepft=new Set();
   (links||[]).forEach(r=>{anzahl[r.leistung_id]=(anzahl[r.leistung_id]||0)+1;verknuepft.add(r.measurement_id)});
-  const {data:ms}=await sb.from("measurements").select("id").eq("project_id",projectId).eq("archived",false);
-  const ohne=(ms||[]).filter(m=>!verknuepft.has(m.id)).length;
+  // Die Massaufnahmen kommen aus dem Zwischenspeicher des Cockpits (keine zweite Abfrage auf dieselbe Tabelle). Ist er
+  // fuer dieses Projekt noch nicht geladen, entfaellt der Hinweis - er ist Zugabe und wird beim naechsten Laden gezeigt.
+  const ms=(typeof projectMeasurementsCache!=="undefined"&&projectMeasurementsCache?projectMeasurementsCache:[]).filter(m=>m.project_id===projectId&&!m.archived);
+  const ohne=ms.filter(m=>!verknuepft.has(m.id)).length;
   if(ohne)offeneHinweis=`<div class="muted small" style="margin-top:6px">${ohne} Massaufnahme${ohne===1?" ist":"n sind"} keiner Leistung zugeordnet. Das ist in Ordnung – die App ordnet nichts von sich aus zu.</div>`;
  }catch(e){/* Zaehler und Hinweis sind Zugabe - die Liste bleibt auch ohne sie richtig */}
  box.innerHTML=projectLeistungenCache.map(l=>`
