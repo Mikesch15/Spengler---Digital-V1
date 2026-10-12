@@ -63,6 +63,48 @@ let leiEditReturnTo="cockpitLeistungen";
 let leiAusgewaehlteMassaufnahmen=[];
 let leiAngebotePositionen=[]; // {angebotId,angebotTitel,pos,description,quantity,unit}
 
+// ---- v3.319: Zuordnung Offertenposition <-> Leistung <-> Massaufnahmen ---------------------------------------
+// Reine Hilfsfunktionen (ohne DOM), damit sie sich pruefen lassen.
+//
+// Eine Offertenposition wird durch Offerte + Positionsnummer + Anfang der Beschreibung gekennzeichnet. Die Nummer
+// allein genuegt nicht: der PDF-Import liefert oft leere Nummern, mehrere Positionen koennen dieselbe haben. Frueher
+// wurde nur (Offerte, Nummer) gespeichert und beim Oeffnen die ERSTE passende Position gewaehlt - bei gleicher Nummer
+// die falsche - und beim naechsten Speichern (z. B. nur der Status) wurde die Zuordnung ueberschrieben oder, wenn
+// keine passende Position gefunden wurde, auf "keine" gesetzt: die Verknuepfung ging still verloren.
+function leiBeschrKurz(t){return String(t==null?"":t).replace(/\s+/g," ").trim().slice(0,120)}
+function leiPositionFinden(liste,l){
+ if(!l||!l.angebot_id)return {status:"keine"};
+ const nr=String(l.angebot_position==null?"":l.angebot_position).trim();
+ let kand=[];
+ (liste||[]).forEach((p,i)=>{
+  if(p.angebotId===l.angebot_id&&String(p.pos==null?"":p.pos).trim()===nr)kand.push(i);
+ });
+ const be=l.angebot_position_beschreibung?leiBeschrKurz(l.angebot_position_beschreibung):"";
+ if(be&&kand.length>1){
+  const eng=kand.filter(i=>leiBeschrKurz(liste[i].description)===be);
+  if(eng.length)kand=eng;
+ }
+ if(kand.length===1)return {status:"gefunden",index:kand[0]};
+ if(!kand.length)return {status:"fehlt"};
+ return {status:"mehrdeutig"};
+}
+// Woher kommt die Leistung? Eine Leistung MIT Offerte ist nie eine "Zusatzleistung", auch wenn die Position keine
+// Nummer hat (frueher: leere Nummer -> "Zusatzleistung"). Wurde die Offerte geloescht (angebot_id wird dann leer, die
+// Nummer bleibt), steht das ehrlich da.
+function leiHerkunftText(l){
+ if(!l)return "Zusatzleistung";
+ const nr=String(l.angebot_position==null?"":l.angebot_position).trim();
+ if(l.angebot_id)return "Offerte-Pos. "+(nr||"ohne Nummer");
+ if(nr)return "Zusatzleistung (Offerte gelöscht, früher Pos. "+nr+")";
+ return "Zusatzleistung";
+}
+// Was muss an den Verknuepfungen geaendert werden? Nur der Unterschied - nichts wird geloescht und neu angelegt.
+function leiVerknuepfungsDiff(vorhanden,gewaehlt){
+ const v=new Set((vorhanden||[]).map(Number)), g=new Set((gewaehlt||[]).map(Number));
+ return {neu:[...g].filter(x=>!v.has(x)),weg:[...v].filter(x=>!g.has(x))};
+}
+// ---- Ende Hilfsfunktionen
+
 if(typeof COCKPIT_BEREICHE==="object"&&COCKPIT_BEREICHE){
  COCKPIT_BEREICHE.leistungen={
   count:"cockpitLeistungenCount",body:"cockpitLeistungenBody",card:"cockpitLeistungenCard",
@@ -76,21 +118,33 @@ async function loadProjectLeistungen(projectId){
  if(!box)return undefined;
  box.innerHTML="Lädt…";
  const {data,error}=await sb.from("leistungen").select("*").eq("project_id",projectId).order("created_at",{ascending:false});
- if(error){box.innerHTML=`<div class="error">Fehler: ${esc(error.message)}</div>`;return undefined}
+ if(error){box.innerHTML=`<div class="error">Fehler: ${esc(dbFehlerText(error))}</div>`;return undefined}
  projectLeistungenCache=data||[];
  if(!projectLeistungenCache.length){box.innerHTML=`<div class="muted">Noch keine Leistungen erfasst.</div>`;return 0}
+ // v3.319: je Leistung die Zahl verknuepfter Massaufnahmen und ein Hinweis auf Massaufnahmen ohne Leistung. Es wird
+ // nichts geraten: eine Massaufnahme ohne Leistung bleibt, was sie ist.
+ const anzahl={};let offeneHinweis="";
+ try{
+  const ids=projectLeistungenCache.map(l=>l.id);
+  const {data:links}=await sb.from("leistung_massaufnahmen").select("leistung_id,measurement_id").in("leistung_id",ids);
+  const verknuepft=new Set();
+  (links||[]).forEach(r=>{anzahl[r.leistung_id]=(anzahl[r.leistung_id]||0)+1;verknuepft.add(r.measurement_id)});
+  const {data:ms}=await sb.from("measurements").select("id").eq("project_id",projectId).eq("archived",false);
+  const ohne=(ms||[]).filter(m=>!verknuepft.has(m.id)).length;
+  if(ohne)offeneHinweis=`<div class="muted small" style="margin-top:6px">${ohne} Massaufnahme${ohne===1?" ist":"n sind"} keiner Leistung zugeordnet. Das ist in Ordnung – die App ordnet nichts von sich aus zu.</div>`;
+ }catch(e){/* Zaehler und Hinweis sind Zugabe - die Liste bleibt auch ohne sie richtig */}
  box.innerHTML=projectLeistungenCache.map(l=>`
   <div class="report-row">
    <div class="report-row-info">
     <b>${esc(l.bezeichnung||"Ohne Bezeichnung")}</b>
     ${typeof ausfBadge==="function"?ausfBadge(l.status):""}
-    <span class="muted">${l.angebot_position?`Offerte-Pos. ${esc(l.angebot_position)}`:"Zusatzleistung"}${l.menge?` · ${esc(String(l.menge))} ${esc(l.einheit||"")}`:""}</span>
+    <span class="muted">${esc(leiHerkunftText(l))}${l.menge?` · ${esc(String(l.menge))} ${esc(l.einheit||"")}`:""}${anzahl[l.id]?` · ${anzahl[l.id]} Massaufnahme${anzahl[l.id]===1?"":"n"}`:" · noch keine Massaufnahme"}</span>
    </div>
    <div class="report-row-actions">
     <button type="button" class="gray" data-open-project-leistung="${l.id}">✏️ Öffnen</button>
     <button type="button" class="red" data-del-project-leistung="${l.id}">🗑</button>
    </div>
-  </div>`).join("");
+  </div>`).join("")+offeneHinweis;
  return projectLeistungenCache.length;
 }
 
@@ -114,7 +168,16 @@ function leiRenderAngebotAuswahl(){
  if(!sel)return;
  const optionen=leiAngebotePositionen.map((p,i)=>
   `<option value="${i}">${esc(p.angebotTitel)} · ${esc(p.pos)} ${esc(p.description)}</option>`).join("");
- sel.innerHTML=`<option value="">– keine Offertenposition (Zusatzleistung) –</option>${optionen}`;
+ // v3.319: Ist die bisherige Zuordnung in der Liste nicht EINDEUTIG wiederzufinden (Position umbenannt/entfernt, zwei
+ // Positionen mit gleicher Nummer, Offerte fuer diese Person nicht lesbar), steht sie als eigene, vorgewaehlte Zeile
+ // da. Speichern aendert dann nichts an der Zuordnung - sie wird nie still durch "keine" ersetzt oder geraten.
+ let behalten="";
+ const l=currentLeistungMeta;
+ if(l&&l.angebot_id&&leiPositionFinden(leiAngebotePositionen,l).status!=="gefunden"){
+  behalten=`<option value="behalten">Bisherige Zuordnung beibehalten: ${esc(leiHerkunftText(l))}${l.angebot_position_beschreibung?" – "+esc(leiBeschrKurz(l.angebot_position_beschreibung).slice(0,50)):""} (in der Offerte nicht eindeutig gefunden)</option>`;
+ }
+ sel.innerHTML=`<option value="">– keine Offertenposition (Zusatzleistung) –</option>${behalten}${optionen}`;
+ if(behalten)sel.value="behalten";
 }
 
 function leiRenderMassaufnahmenAuswahl(){
@@ -171,8 +234,8 @@ async function openLeistung(l){
  await leiLadeAngebotePositionen(l.project_id);
  leiRenderAngebotAuswahl();
  if($("leiAngebotPosition")&&l.angebot_id){
-  const idx=leiAngebotePositionen.findIndex(p=>p.angebotId===l.angebot_id&&p.pos===l.angebot_position);
-  if(idx>=0)$("leiAngebotPosition").value=String(idx);
+  const f=leiPositionFinden(leiAngebotePositionen,l);
+  if(f.status==="gefunden")$("leiAngebotPosition").value=String(f.index);
  }
  const {data:links}=await sb.from("leistung_massaufnahmen").select("measurement_id").eq("leistung_id",l.id);
  leiAusgewaehlteMassaufnahmen=(links||[]).map(r=>r.measurement_id);
@@ -194,37 +257,49 @@ async function leiEditZurueck(){
 async function leiSpeichern(){
  const e=leiEingabenAusFeldern();
  if(!e.bezeichnung){appAlert("Bitte eine Bezeichnung eintragen.");return}
- let angebotId=null,angebotPosition=null;
+ let angebotId=null,angebotPosition=null,angebotBeschr=null;
  const sel=$("leiAngebotPosition");
  if(sel&&sel.value!==""){
-  const p=leiAngebotePositionen[Number(sel.value)];
-  if(p){angebotId=p.angebotId;angebotPosition=p.pos}
+  if(sel.value==="behalten"&&currentLeistungMeta){
+   angebotId=currentLeistungMeta.angebot_id;angebotPosition=currentLeistungMeta.angebot_position;
+   angebotBeschr=currentLeistungMeta.angebot_position_beschreibung||null;
+  }else{
+   const p=leiAngebotePositionen[Number(sel.value)];
+   if(p){angebotId=p.angebotId;angebotPosition=p.pos;angebotBeschr=leiBeschrKurz(p.description)||null}
+  }
  }
  const payload={
   project_id:cockpitProjectId,
   bezeichnung:e.bezeichnung,menge:e.menge||null,einheit:e.einheit||null,
   bemerkung:e.bemerkung||null,status:e.status,ausgefuehrte_menge:e.ausgefuehrte_menge||null,
-  angebot_id:angebotId,angebot_position:angebotPosition
+  angebot_id:angebotId,angebot_position:angebotPosition,angebot_position_beschreibung:angebotBeschr
  };
  let leistungId=currentLeistungId;
  if(currentLeistungId){
   const {data,error}=await sb.from("leistungen").update(payload).eq("id",currentLeistungId).select();
-  if(error){appAlert("Fehler beim Speichern: "+error.message);return}
+  if(error){appAlert("Fehler beim Speichern: "+dbFehlerText(error));return}
   if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
  }else{
   const {data,error}=await sb.from("leistungen").insert(payload).select();
-  if(error){appAlert("Fehler beim Speichern: "+error.message);return}
+  if(error){appAlert("Fehler beim Speichern: "+dbFehlerText(error));return}
   if(!data||!data.length){appAlert("Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");return}
   leistungId=data[0].id;
  }
- // Massaufnahme-Verknuepfungen: bestehende loeschen, ausgewaehlte neu anlegen.
- const {error:delErr}=await sb.from("leistung_massaufnahmen").delete().eq("leistung_id",leistungId);
- if(delErr){appAlert("Fehler beim Aktualisieren der Massaufnahme-Verknüpfungen: "+delErr.message);return}
- if(leiAusgewaehlteMassaufnahmen.length){
-  const rows=leiAusgewaehlteMassaufnahmen.map(mid=>({leistung_id:leistungId,measurement_id:mid}));
-  const {data:ins,error:insErr}=await sb.from("leistung_massaufnahmen").insert(rows).select();
-  if(insErr){appAlert("Fehler beim Verknüpfen der Massaufnahmen: "+insErr.message);return}
-  if(!ins||ins.length!==rows.length){appAlert("Nicht alle Verknüpfungen konnten gespeichert werden. Fehlt die nötige Berechtigung?");return}
+ // Massaufnahme-Verknuepfungen: nur der UNTERSCHIED wird geschrieben (v3.319). Bis v3.318 wurden erst ALLE Verknuepfungen
+ // geloescht und dann neu angelegt - scheiterte das Anlegen (Verbindung, Recht), waren die bisherigen weg. Jetzt zuerst
+ // anlegen, dann entfernen; ein erneutes Speichern ohne Aenderung schreibt nichts und erzeugt keine Duplikate.
+ const {data:bisher,error:lesErr}=await sb.from("leistung_massaufnahmen").select("measurement_id").eq("leistung_id",leistungId);
+ if(lesErr){appAlert("Die Verknüpfungen konnten nicht gelesen werden: "+dbFehlerText(lesErr));return}
+ const diff=leiVerknuepfungsDiff((bisher||[]).map(r=>r.measurement_id),leiAusgewaehlteMassaufnahmen);
+ if(diff.neu.length){
+  const rows=diff.neu.map(mid=>({leistung_id:leistungId,measurement_id:mid}));
+  const {data:ins,error:insErr}=await sb.from("leistung_massaufnahmen").upsert(rows,{onConflict:"leistung_id,measurement_id",ignoreDuplicates:true}).select();
+  if(insErr){appAlert("Die Massaufnahmen konnten nicht verknüpft werden: "+dbFehlerText(insErr)+"\n\nBisherige Verknüpfungen sind unverändert.");return}
+  if(!ins||ins.length!==rows.length){appAlert("Nicht alle Verknüpfungen konnten gespeichert werden. Fehlt die nötige Berechtigung?\n\nBisherige Verknüpfungen sind unverändert.");return}
+ }
+ if(diff.weg.length){
+  const {error:delErr}=await sb.from("leistung_massaufnahmen").delete().eq("leistung_id",leistungId).in("measurement_id",diff.weg);
+  if(delErr){appAlert("Einige Verknüpfungen konnten nicht entfernt werden: "+dbFehlerText(delErr));return}
  }
  await leiEditZurueck();
 }
@@ -232,7 +307,7 @@ async function leiSpeichern(){
 async function leiLoeschen(id){
  if(!await appConfirm("Diese Leistung wirklich löschen?"))return;
  const {error}=await sb.from("leistungen").delete().eq("id",id);
- if(error){appAlert("Fehler beim Löschen: "+error.message);return}
+ if(error){appAlert("Fehler beim Löschen: "+dbFehlerText(error));return}
  await cockpitBereichAktualisieren("leistungen");
 }
 

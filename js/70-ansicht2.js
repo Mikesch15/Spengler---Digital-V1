@@ -2098,7 +2098,7 @@ function a2RegOfferte(p){
  const lei=a2Lei();
  html+=a2MehrBlockHtml("🧩 Leistungen",lei.length,
   lei.map(l=>{
-   const zusatz=[l.angebot_position?"Offerte-Pos. "+l.angebot_position:"Zusatzleistung",
+   const zusatz=[typeof leiHerkunftText==="function"?leiHerkunftText(l):(l.angebot_position?"Offerte-Pos. "+l.angebot_position:"Zusatzleistung"),
                  l.menge?String(l.menge)+" "+(l.einheit||""):""].filter(Boolean).join(" · ");
    return `<button type="button" class="a2-zeile" data-a2-lei="${esc(l.id)}">
     <span class="a2-zeile-text"><b>${esc(l.bezeichnung||"Ohne Bezeichnung")}</b>

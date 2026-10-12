@@ -34428,3 +34428,31 @@ Rückmeldung zu v3.313: Reset-Mail kommt an (im Spam), Link funktioniert → Gma
 ### v3.315 — App-Symbol wieder „SD“
 
 Auftraggeber: Logo wieder auf das blaue „SD“-Symbol (Bildschirmfoto Handy-Ordner). `icon-192.png`/`icon-512.png` = Stand Commit `3bf9d3a` (flaches Blau, weisses SD) statt Dach-Logo (v3.146); Cache-Parameter `?v=1` → `?v=2` in `index.html`, `manifest.json`, `sw.js`. Das Dach-Logo bleibt in der Git-Historie (`aeb63e1`). Das Symbol auf dem Handy aktualisiert Android nicht sofort – App vom Startbildschirm entfernen und neu hinzufügen. Datei dem Auftraggeber als Bild geschickt.
+
+### v3.316 — Nachtauftrag Paket A: Sicherheit der Edge Functions (Befunde, Fixes, Inventar)
+
+Auftrag „Grosse Weiterentwicklung“ (12.10.2026, Ausgangsstand v3.315 `d13b3df`). Roadmap-Dokument und Fachkonzept liegen NICHT im Repo (nur die Zusammenfassungen `Zusammenfassung_Auftrag_*.txt`); Paket B–G siehe unten bzw. folgende Versionen.
+**Behoben (alles deployt, live per pg_net gegengeprüft, Tests lokal):**
+- `smart-action` (v16, verify_jwt true): Startpasswort war `Rinnen_`+Initialen (erratbar) → zufällig `Start-xxxxxxxx`; Mail über Gmail mit Resend-Rückfall; kein Doppelversand. **Bestehende Konten unverändert:** laut DB haben 10 von 15 Profilen noch kein eigenes Passwort gesetzt (`passwort_gesetzt=false`) – wurden sie über `smart-action` angelegt, gilt noch das alte Muster → Passwort per 🔑 (Admin) zurücksetzen lassen (manueller Schritt für Mike).
+- `register-company` (v12): Einladung wird atomar beansprucht (`PATCH … used_at=is.null`), bei Fehler freigegeben; Rohtexte von Auth/PostgREST nicht mehr in Antworten; (Fund beim Testen: ein `if` ohne Klammern hätte jede Registrierung abgebrochen – im Prüfstand aufgefallen, vor dem Deploy behoben).
+- `system-admin-storage-cron` (v4): Geheimnis jetzt im **Supabase Vault** (`storage_cron_secret`, in der DB erzeugt, nie ausgegeben); Cron-Job liest es beim Lauf aus dem Vault; die Funktion fragt `public.system_cron_secret_ok(text)` (nur service_role; anon/authenticated ohne Recht). Migration `cron_geheimnis_im_vault`. **Rotation live belegt:** Lauf mit Vault-Geheimnis 200, ohne/falsch/ALTES Geheimnis 401. **Rest-Risiko:** `cron.job_run_details` enthält in 27 alten Läufen das ALTE (jetzt ungültige) Geheimnis im Klartext; nichts gelöscht. **Rotation künftig:** `update vault.secrets` bzw. `vault.update_secret(id, neuer_wert)` – Funktion und Job brauchen keine Änderung.
+- `extract-offer-positions` (v29): Abruf nur noch von https-Adressen des EIGENEN Supabase-Speichers (`/storage/v1/`), kein Redirect, Obergrenze rund 20 MB (413), Typprüfung auch für Abrufe; **Fund:** `err.message` von fetch() nennt die Gemini-Adresse samt `?key=` und ging roh an den Client → jetzt maskiert, nur in `detail`.
+- `extract-profile-shape` (v9): Obergrenze Bildgrösse (413).
+- `reset-password` (v7) und `password-reset`/`resolve-login-email` (v3.311): CORS-Preflight erlaubte `apikey`/`x-client-info` nicht → Admin-„Passwort zurücksetzen“ erreichte den Server vermutlich nie (aus Code und Logs der Schwesterfunktionen abgeleitet; für reset-password selbst keine Logs mehr verfügbar).
+- `password-reset`, `smart-action`, `register-company`: Gmail hat Mail angenommen, aber `close()` scheitert → kein zweiter Versand über Resend. Nicht beweisbar bleibt: ein Timeout VOR der Annahme-Antwort kann theoretisch doppelt zustellen.
+- Repo: neue Kopien `smart-action`, `reset-password`, `system-admin-delete-company`, `system-admin-storage-cron` (ohne Geheimnis); CI läuft jetzt mit Node 22 (Prüfstände nutzen `module.stripTypeScriptTypes`).
+**Inventar (alle 12 deployten Funktionen):**
+| Funktion | verify_jwt | eigene Prüfung | externe Kosten | Befund |
+|---|---|---|---|---|
+| extract-offer-positions | an | angemeldet + aktive Firma (my_company_id) | Gemini | oben |
+| extract-profile-shape | an | dito | Gemini | oben |
+| smart-action | an | angemeldet, Rolle admin, Firma aktiv | Mail | oben |
+| reset-password | an | admin, gleiche Firma, Firma aktiv | – | CORS; Passwortlänge nur ≥ 8 |
+| system-admin-delete-company | an | System-Admin + Firmenname exakt + Dry-Run | – | ok; liefert Rohgrund des Preflights an System-Admins |
+| system-admin-storage-aufraeumen / -ansehen | an | System-Admin (gelesen: im Repo) | – | nicht erneut geprüft |
+| register-company | **aus** | System-Admin ODER einmaliger Einladungstoken | Mail | oben |
+| resolve-login-email | **aus** | Passwortprüfung selbst, Limit 30/IP, 8/Eingabe | – | v3.311 |
+| password-reset | **aus** | Limit 3 Mails/Konto/15 Min, fester Link-Host | Mail | v3.310–313 |
+| system-admin-storage-cron | **aus** | Vault-Geheimnis (fail closed) | Mail (an Betreiber) | oben |
+**Offen / manuell:** (1) 10 Konten ohne eigenes Passwort prüfen/zurücksetzen (s. o.). (2) Supabase-Dashboard → Auth → „Leaked password protection“ ist AUS (Advisor-Warnung; Schalter im Dashboard, nicht per Code). (3) Mails an Dritte: Gmail-Weg läuft (Spam-Ordner); Resend nur an Kontoadresse. (4) `esm.sh/@supabase/supabase-js@2` in `reset-password` ist ungepinnt (Lieferkette). (5) Keine Live-Prüfung mit echtem Benutzer-Token (Erkennung, Mitarbeiter anlegen, Reset) – nur Absagen, Limits und Zugangsregeln am echten Endpunkt.
+**Tests:** neu `pruefstand-konten-funktionen-v3-316` (36), `pruefstand-cron-geheimnis-v3-316` (11), `pruefstand-edge-cors-v3-316` (19); erweitert `erkennung-fehlerfaelle-v3-306` (48), `profil-erkennung-sicherheit-v3-308` (26), `passwort-reset-sicherheit-v3-310` (27). Gegenproben (Fix entfernt → rot) für Einladung, Gmail-close, Passwortmuster, Abruf-Ziel, Schlüssel-Maskierung, CORS.

@@ -93,6 +93,11 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
      return Promise.resolve({data:neu,error:null});
     }};
    },
+   upsert:(d)=>{
+    const zeilen=Array.isArray(d)?d:[d];
+    window.__schreib.push({t,op:"insert",upsert:true,d:zeilen});
+    return {select:()=>Promise.resolve({data:zeilen,error:null})};
+   },
    update:d=>{
     const eintrag={t,op:"update",d,eq:[]};
     window.__schreib.push(eintrag);
@@ -111,11 +116,12 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    delete:()=>{
     const eintrag={t,op:"delete",eq:[]};
     window.__schreib.push(eintrag);
-    const obj={eq:(f,v)=>{
+    const obj={in:(f,v)=>{eintrag.eq.push([f,v]);return Promise.resolve({error:null})},eq:(f,v)=>{
      eintrag.eq.push([f,v]);
      const antwort=()=>(window.__deleteFehler&&window.__deleteFehler[t])
       ?{error:{message:"kaputt"}}:{error:null};
      const res={
+      in:(f2,v2)=>{eintrag.eq.push([f2,v2]);return Promise.resolve(antwort())},
       then:(res2,rej2)=>Promise.resolve(antwort()).then(res2,rej2),
       select:()=>{
        const a=antwort();
@@ -287,7 +293,8 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
    lmDelete:window.__schreib.find(x=>x.op==="delete"&&x.t==="leistung_massaufnahmen")
   };
  });
- p(!!verknuepft.lmDelete,"vor dem Neuanlegen der Verknüpfungen wird zuerst aufgeräumt (delete auf leistung_massaufnahmen)",verknuepft);
+ p(!verknuepft.lmDelete,"v3.319: es wird nichts gelöscht, wenn keine Verknüpfung entfällt (nur der Unterschied wird geschrieben)",verknuepft);
+ p(!!verknuepft.lmInsert&&verknuepft.lmInsert.upsert===true,"v3.319: Verknüpfung per upsert (idempotent)",verknuepft.lmInsert);
  const lmPayload=verknuepft.lmInsert&&verknuepft.lmInsert.d&&verknuepft.lmInsert.d[0];
  p(!!lmPayload&&lmPayload.measurement_id===87,"die Verknüpfung mit Massaufnahme 87 wird angelegt (Test 4)",lmPayload);
  p(!!lmPayload&&lmPayload.company_id===undefined,"auch hier ohne company_id vom Client",lmPayload);

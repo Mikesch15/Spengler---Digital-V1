@@ -3,9 +3,15 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.318`
+- Aktueller Entwicklungsstand: `v3.319`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.319 — Projekt-Leistungen: Zuordnung Offertenposition ↔ Leistung ↔ Massaufnahmen abgesichert
+
+Befund (vor der Änderung geprüft): Das Modell existiert bereits (`leistungen` mit `angebot_id`/`angebot_position`, `leistung_massaufnahmen` n:m mit Unique, RLS/tenant_boundary). Nachweisbare Lücken: (1) Position nur über Nummer gespeichert – leere/doppelte Nummern wählten beim Öffnen die falsche oder keine Position, beim nächsten Speichern ging die Zuordnung still verloren; (2) Speichern löschte ALLE Massaufnahme-Verknüpfungen und legte sie neu an (bei Fehler dazwischen weg); (3) DB erlaubte Verknüpfung mit Massaufnahme/Offerte aus anderem Projekt derselben Firma; (4) Offerte-Position ohne Nummer wurde als „Zusatzleistung“ angezeigt.
+Änderung: Migration `leistungen_zuordnung_integritaet` (Spalte `angebot_position_beschreibung`, Trigger `pruefe_leistung_massaufnahme`/`pruefe_leistung_angebot`, SECURITY INVOKER, idempotent); `js/65` Hilfsfunktionen `leiPositionFinden`/`leiHerkunftText`/`leiVerknuepfungsDiff`, Diff-Speichern (upsert, dann nur Entfernte löschen), Option „Bisherige Zuordnung beibehalten“, Anzeige Massaufnahmen-Zahl + Hinweis auf nicht zugeordnete (keine Zwangszuordnung); `js/70` nutzt `leiHerkunftText`. Preise/Mengen/Workflow unverändert. Live (Rollback-Tests mit Nutzer-Impersonation): gleiche Projekt ok, Duplikat/anderes Projekt/fremde Firma abgewiesen.
+Prüfstand: `pruefstand-leistungen-zuordnung-v3-319` (30), `pruefstand-leistungen-v3-37` angepasst.
 
 ### v3.318 — Nachtauftrag Paket F: Service Worker hebt nur Erfolgreiches auf
 
@@ -21,34 +27,6 @@
 - Supabase-Advisor (Sicherheit): 31 Warnungen „SECURITY DEFINER für Angemeldete ausführbar“ = beabsichtigt (jede prüft intern, s. o.); `anon`: keine Warnung; Info „RLS ohne Policy“ nur für die zwei Server-Tabellen (gewollt); Warnung „Leaked Password Protection aus“ (Dashboard-Schalter, offen).
 **Paket G – behoben:** `dbFehlerText(err, vorgabe)` (js/01-basis.js) übersetzt technische Meldungen (Failed to fetch, JWT expired, permission denied/RLS mit Tabellennamen, doppelter Schlüssel mit Constraint-Namen, Timeout, fehlende Funktion) in deutsche Sätze mit nächster Handlung; Datenbank-Sätze, die unsere Funktionen bewusst auf Deutsch auslösen, gehen unverändert durch. Eingebaut an allen Stellen, die `error.message` roh zeigten: js/44, 45, 46, 47, 50 (9×), 51, 52, 53. Prüfstand `pruefstand-fehlertext-v3-317` (30, inkl. Quelltext-Prüfung „keine rohe Meldung mehr“).
 **Nicht gebaut / offen:** Das Roadmap-Dokument und das Fachkonzept liegen nicht im Repo (nur `Zusammenfassung_Auftrag_*.txt`), ein vollständiger Roadmap-Abgleich ist deshalb nicht möglich. Push-Benachrichtigungen/„Änderungen seit letztem Besuch“ bleiben ungebaut (kein belegter, verlässlicher Verlauf als Quelle; ein zweites Benachrichtigungssystem wäre falsch). Paket C (Cockpit) und E (Offertenimport): keine neue belegte Lücke gefunden; E-Grenzen siehe v3.316.
-
-### v3.316 — Nachtauftrag Paket A: Sicherheit der Edge Functions (Befunde, Fixes, Inventar)
-
-Auftrag „Grosse Weiterentwicklung“ (12.10.2026, Ausgangsstand v3.315 `d13b3df`). Roadmap-Dokument und Fachkonzept liegen NICHT im Repo (nur die Zusammenfassungen `Zusammenfassung_Auftrag_*.txt`); Paket B–G siehe unten bzw. folgende Versionen.
-**Behoben (alles deployt, live per pg_net gegengeprüft, Tests lokal):**
-- `smart-action` (v16, verify_jwt true): Startpasswort war `Rinnen_`+Initialen (erratbar) → zufällig `Start-xxxxxxxx`; Mail über Gmail mit Resend-Rückfall; kein Doppelversand. **Bestehende Konten unverändert:** laut DB haben 10 von 15 Profilen noch kein eigenes Passwort gesetzt (`passwort_gesetzt=false`) – wurden sie über `smart-action` angelegt, gilt noch das alte Muster → Passwort per 🔑 (Admin) zurücksetzen lassen (manueller Schritt für Mike).
-- `register-company` (v12): Einladung wird atomar beansprucht (`PATCH … used_at=is.null`), bei Fehler freigegeben; Rohtexte von Auth/PostgREST nicht mehr in Antworten; (Fund beim Testen: ein `if` ohne Klammern hätte jede Registrierung abgebrochen – im Prüfstand aufgefallen, vor dem Deploy behoben).
-- `system-admin-storage-cron` (v4): Geheimnis jetzt im **Supabase Vault** (`storage_cron_secret`, in der DB erzeugt, nie ausgegeben); Cron-Job liest es beim Lauf aus dem Vault; die Funktion fragt `public.system_cron_secret_ok(text)` (nur service_role; anon/authenticated ohne Recht). Migration `cron_geheimnis_im_vault`. **Rotation live belegt:** Lauf mit Vault-Geheimnis 200, ohne/falsch/ALTES Geheimnis 401. **Rest-Risiko:** `cron.job_run_details` enthält in 27 alten Läufen das ALTE (jetzt ungültige) Geheimnis im Klartext; nichts gelöscht. **Rotation künftig:** `update vault.secrets` bzw. `vault.update_secret(id, neuer_wert)` – Funktion und Job brauchen keine Änderung.
-- `extract-offer-positions` (v29): Abruf nur noch von https-Adressen des EIGENEN Supabase-Speichers (`/storage/v1/`), kein Redirect, Obergrenze rund 20 MB (413), Typprüfung auch für Abrufe; **Fund:** `err.message` von fetch() nennt die Gemini-Adresse samt `?key=` und ging roh an den Client → jetzt maskiert, nur in `detail`.
-- `extract-profile-shape` (v9): Obergrenze Bildgrösse (413).
-- `reset-password` (v7) und `password-reset`/`resolve-login-email` (v3.311): CORS-Preflight erlaubte `apikey`/`x-client-info` nicht → Admin-„Passwort zurücksetzen“ erreichte den Server vermutlich nie (aus Code und Logs der Schwesterfunktionen abgeleitet; für reset-password selbst keine Logs mehr verfügbar).
-- `password-reset`, `smart-action`, `register-company`: Gmail hat Mail angenommen, aber `close()` scheitert → kein zweiter Versand über Resend. Nicht beweisbar bleibt: ein Timeout VOR der Annahme-Antwort kann theoretisch doppelt zustellen.
-- Repo: neue Kopien `smart-action`, `reset-password`, `system-admin-delete-company`, `system-admin-storage-cron` (ohne Geheimnis); CI läuft jetzt mit Node 22 (Prüfstände nutzen `module.stripTypeScriptTypes`).
-**Inventar (alle 12 deployten Funktionen):**
-| Funktion | verify_jwt | eigene Prüfung | externe Kosten | Befund |
-|---|---|---|---|---|
-| extract-offer-positions | an | angemeldet + aktive Firma (my_company_id) | Gemini | oben |
-| extract-profile-shape | an | dito | Gemini | oben |
-| smart-action | an | angemeldet, Rolle admin, Firma aktiv | Mail | oben |
-| reset-password | an | admin, gleiche Firma, Firma aktiv | – | CORS; Passwortlänge nur ≥ 8 |
-| system-admin-delete-company | an | System-Admin + Firmenname exakt + Dry-Run | – | ok; liefert Rohgrund des Preflights an System-Admins |
-| system-admin-storage-aufraeumen / -ansehen | an | System-Admin (gelesen: im Repo) | – | nicht erneut geprüft |
-| register-company | **aus** | System-Admin ODER einmaliger Einladungstoken | Mail | oben |
-| resolve-login-email | **aus** | Passwortprüfung selbst, Limit 30/IP, 8/Eingabe | – | v3.311 |
-| password-reset | **aus** | Limit 3 Mails/Konto/15 Min, fester Link-Host | Mail | v3.310–313 |
-| system-admin-storage-cron | **aus** | Vault-Geheimnis (fail closed) | Mail (an Betreiber) | oben |
-**Offen / manuell:** (1) 10 Konten ohne eigenes Passwort prüfen/zurücksetzen (s. o.). (2) Supabase-Dashboard → Auth → „Leaked password protection“ ist AUS (Advisor-Warnung; Schalter im Dashboard, nicht per Code). (3) Mails an Dritte: Gmail-Weg läuft (Spam-Ordner); Resend nur an Kontoadresse. (4) `esm.sh/@supabase/supabase-js@2` in `reset-password` ist ungepinnt (Lieferkette). (5) Keine Live-Prüfung mit echtem Benutzer-Token (Erkennung, Mitarbeiter anlegen, Reset) – nur Absagen, Limits und Zugangsregeln am echten Endpunkt.
-**Tests:** neu `pruefstand-konten-funktionen-v3-316` (36), `pruefstand-cron-geheimnis-v3-316` (11), `pruefstand-edge-cors-v3-316` (19); erweitert `erkennung-fehlerfaelle-v3-306` (48), `profil-erkennung-sicherheit-v3-308` (26), `passwort-reset-sicherheit-v3-310` (27). Gegenproben (Fix entfernt → rot) für Einladung, Gmail-close, Passwortmuster, Abruf-Ziel, Schlüssel-Maskierung, CORS.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
