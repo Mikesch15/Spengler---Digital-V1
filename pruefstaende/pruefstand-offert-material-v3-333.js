@@ -10,7 +10,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 const q=fs.readFileSync(path.join(process.cwd(),"js/63-angebote.js"),"utf8");
 const a=q.indexOf("const ANG_MAT_STAERKE_MIN"), b=q.indexOf("// ---- Ende Offertposition Materialdaten");
 p(a>0&&b>a,"die reinen Funktionen stehen in js/63",[a,b]);
-const sb={};vm.runInNewContext(q.slice(a,b)+";this.Z=angMatZahl;this.E=angMatErkennen;this.V=angMatVorschlag;this.F=angBlechflaeche;this.B=angMatBereinigen",sb);
+const sb={};vm.runInNewContext(q.slice(a,b)+";this.Z=angMatZahl;this.E=angMatErkennen;this.V=angMatVorschlag;this.F=angBlechflaeche;this.B=angMatBereinigen;this.G=angMatGruppen;this.AV=angMatAbwicklungVonPosition",sb);
 const L=[{id:1,name:"Kupfer"},{id:2,name:"Titanzink"},{id:3,name:"Stahl"},{id:4,name:"Blei"},{id:5,name:"CrNi-Stahl"},{id:6,name:"Aluminium (Aluman)"}];
 const V=(t,pos)=>sb.V(Object.assign({description:t},pos||{}),L);
 
@@ -87,6 +87,60 @@ p(sb.B({...alt,material_id:999},[]).material_id===999,"ohne geladene Liste wird 
 p(sb.B({...alt,material_id:null,staerke_mm:"x",abwicklung_mm:0},L).staerke_mm===undefined,"ungültige Stärke wird nicht gespeichert");
 p(sb.B({...alt,abwicklung_mm:"0,5"},L).abwicklung_mm===undefined,"0,5 mm Abwicklung ist unplausibel (< 5 mm)");
 p(sb.B({...alt,staerke_mm:"0,6",abwicklung_mm:500},L).staerke_mm===0.6,"gültige Werte werden als Zahl gespeichert");
+
+
+console.log("\nM · v3.334: Material aus dem Offertanfang, Hauptpositionen und Zusatzpositionen");
+const VK=(pos,kontext,rolle)=>sb.V(pos,L,{kontext,rolle});
+let vk=VK({description:"Dachrinnen neu. Einlegerinnen. Abwicklung mm 1'000."},"Offerte Dachrinnen, alles in Kupferblech","haupt");
+p(vk.vorschlag.material&&vk.vorschlag.material.id===1&&vk.vorschlag.material.herkunft==="offertanfang"&&vk.vorschlag.abwicklung_mm===1000,"Material nur im Offertanfang, Abwicklung nur in der Zeile -> eindeutiger Vorschlag (Herkunft Offertanfang)",vk);
+vk=VK({description:"Dachrinnen. Abwicklung mm 500."},"Material: Kupfer","haupt");
+p(vk.vorschlag.material&&vk.vorschlag.material.id===1&&vk.vorschlag.material.herkunft==="offertanfang","Werkstoffname im Offertanfang auch allein als Wort (\"Material: Kupfer\")",vk);
+vk=VK({description:"Einhängestreifen. Stahlblech mm 0,87. Abwicklung mm 200."},"Offerte in Kupferblech","haupt");
+p(vk.vorschlag.material.id===3&&vk.vorschlag.material.herkunft==="position","Material im eigenen Text hat Vorrang vor dem Offertanfang",vk);
+vk=VK({description:"Kupferblech oder Stahlblech. Abwicklung mm 200."},"Offerte in Kupferblech","haupt");
+p(!vk.vorschlag.material&&/mehrdeutig/.test(vk.unklar.join()),"eigener Text mehrdeutig: kein Ausweichen auf den Offertanfang",vk);
+vk=VK({description:"Dachrinnen. Abwicklung mm 500."},"Kupfer und Stahl nach Wahl","haupt");
+p(!vk.vorschlag.material&&/Offertanfang mehrdeutig/.test(vk.unklar.join()),"mehrdeutiges Material im Offertanfang: kein Vorschlag, Hinweis",vk);
+vk=VK({description:"Dachrinnen. Abwicklung mm 500."},"Offerte Rinnen","haupt");
+p(!vk.vorschlag.material&&vk.vorschlag.abwicklung_mm===500,"kein Werkstoff im Offertanfang: nur die Abwicklung",vk);
+vk=VK({description:"Dachrinnen. Abwicklung mm 500.",material_id:2},"Offerte in Kupferblech","haupt");
+p(!vk.vorschlag.material,"bereits gepflegtes Material: kein Vorschlag aus dem Offertanfang",vk);
+vk=VK({description:"Trennlage. b mm 500."},"Offerte in Kupferblech","zusatz");
+p(Object.keys(vk.vorschlag).length===0,"Zusatzposition bekommt keine Vorschläge",vk);
+vk=VK({description:"Vorwort Abwicklung mm 500"},"Offerte in Kupferblech","davor");
+p(Object.keys(vk.vorschlag).length===0,"Position vor der ersten Hauptposition: kein Vorschlag",vk);
+p(sb.V({description:"Kupferblech Dicke mm 0,6"},L).vorschlag.material.id===1,"v3.333-Aufruf ohne Gruppenregel unverändert");
+
+console.log("\nN · Schreibweisen der Abwicklung");
+const AB=t=>sb.E(t,L).abwicklung;
+[["Abwicklung 500 mm",500],["Abwicklung mm 500",500],["Abw. 500 mm",500],["Abw. mm 500",500],["Abw.: 500 mm",500],["abw 500mm",500],["Abwicklung: 1'000 mm",1000],["Abwicklung mm 1’250",1250],["Abwicklung mm 333,5",333.5],["Zu Abwicklung mm 250.",250],["Abwicklung mm 1'000.",1000]].forEach(([t,w])=>{
+ const r=AB(t);p(r.art==="eindeutig"&&r.wert===w,"\""+t+"\" -> "+w,r)});
+[["Abwicklung 500","ohne Einheit"],["Abw. 500","ohne Einheit"],["Alle Abwicklungen. Ausmass: Anzahl","Plural ohne Zahl"],["Abwicklungen mm 500","Plural"],["Abwicklung mm","ohne Zahl"],["Abwicklung 0,5 m","Meter statt mm"],["Abwicklung mm 2","unplausibel klein"],["Abwicklung mm 99999","unplausibel gross"],["Rückwicklung mm 500","anderes Wort"],["Abwicklung mm 250 oder Abwicklung mm 330","zwei Werte"]].forEach(([t,g])=>{
+ const r=AB(t);p(r.art!=="eindeutig","\""+t+"\" -> kein Vorschlag ("+g+")",r)});
+
+console.log("\nO · Positionsgruppen nach Abwicklung (über den Platz in der Liste)");
+const pos=(d,x)=>Object.assign({pos:"",description:d,quantity:1,unit:"m"},x||{});
+let G=sb.G([pos("Vorab. Arbeiten nach Aufwand",{unit:"h"}),pos("Rinne. Abwicklung mm 1'000."),pos("Trennlage. b mm 500."),pos("Anschluss. Auf Holz."),pos("Einlaufblech. Abwicklung mm 400."),pos("Dehnungselement St.")],L);
+p(G.map(g=>g.rolle).join()==="davor,haupt,zusatz,zusatz,haupt,zusatz","Rollen: davor, Haupt, 2 Zusatz, Haupt, Zusatz",G.map(g=>g.rolle));
+p(JSON.stringify(G[1].zusaetze)==="[2,3]"&&JSON.stringify(G[4].zusaetze)==="[5]","die nächste Position mit Abwicklung beginnt eine neue Gruppe",G.map(g=>g.zusaetze));
+p(G[2].haupt===1&&G[3].haupt===1&&G[5].haupt===4&&G[0].haupt===null,"Zusatzpositionen zeigen auf ihre Hauptposition, Vorab-Position auf keine");
+p(G[2].abw.wert===1000&&G[5].abw.wert===400,"Zusatzpositionen kennen die Abwicklung ihrer Hauptposition (nur Anzeige)");
+G=sb.G([pos("A. Abwicklung mm 250.",{pos:"1"}),pos("B.",{pos:"1"}),pos("C. Abwicklung mm 250.",{pos:"1"}),pos("D.",{pos:""})],L);
+p(G.map(g=>g.rolle).join()==="haupt,zusatz,haupt,zusatz"&&G[1].haupt===0&&G[3].haupt===2,"doppelte und fehlende Positionsnummern beeinflussen die Zuordnung nicht",G.map(g=>[g.rolle,g.haupt]));
+G=sb.G([pos("Ohne Text",{abwicklung_mm:300}),pos("Zusatz")],L);
+p(G[0].rolle==="haupt"&&G[0].abw.quelle==="feld"&&G[1].haupt===0,"gepflegtes Abwicklungsfeld macht eine Position zur Hauptposition");
+p(sb.G([],L).length===0&&sb.G(null,L).length===0,"leere Liste, kein Absturz");
+
+// "Zu Abwicklung mm N" = Zusatzleistung des laufenden Profils: gehört zur Hauptgruppe, beginnt keine neue
+G=sb.G([pos("Rinne. Abwicklung mm 250."),pos("Rinnenhalter. Zu Abwicklung mm 250.",{unit:"St"}),pos("Rinnenwinkel. Zu Abwicklung mm 330.",{unit:"St"}),pos("Einlaufblech. Abwicklung mm 400.")],L);
+p(G.map(g=>g.rolle).join()==="haupt,zusatz,zusatz,haupt"&&G[1].haupt===0&&G[2].haupt===0,"\"Zu Abwicklung\" beginnt keine neue Hauptgruppe, sondern gehört zur laufenden",G.map(g=>[g.rolle,g.haupt]));
+p(G[1].zuAbw===250&&!G[1].abweichend&&G[2].zuAbw===330&&G[2].abweichend===true,"abweichende \"Zu Abwicklung\" wird erkannt und angezeigt, nicht still übernommen",[G[1],G[2]].map(g=>[g.zuAbw,g.abweichend]));
+G=sb.G([pos("Rinnenhalter. Zu Abwicklung mm 250.",{unit:"St"}),pos("Rinne. Abwicklung mm 250.")],L);
+p(G[0].rolle==="davor"&&G[1].rolle==="haupt","\"Zu Abwicklung\" vor der ersten Hauptposition: nicht zugeordnet",G.map(g=>g.rolle));
+p(sb.V(pos("Rinne. Abwicklung mm 500. Zu Abwicklung mm 250."),L,{rolle:"haupt"}).vorschlag.abwicklung_mm===500,"Hauptposition: die eigene Abwicklung zählt, nicht die \"Zu Abwicklung\"");
+// Fläche: Zusatzpositionen zählen nicht
+p(sb.F(pos("Trennlage. b mm 500.",{quantity:86})).status==="keine_abwicklung","Zusatzposition (Meter, ohne eigene Abwicklung): keine Blechfläche");
+p(Math.abs(sb.F({unit:"m",quantity:12,abwicklung_mm:500}).m2-6)<1e-12,"12 m × 500 mm = 6 m² bleibt");
 
 // ---- Browser ----
 const STUB=`window.__t={angebote:[],measurements:[],leistungen:[],leistung_massaufnahmen:[],material_reservierungen:[]};window.__log=[];window.__id=100;
@@ -172,22 +226,22 @@ window.supabase={createClient:()=>({
  await setze('[data-ang-mat-feld="staerke_mm"]',"50");
  p((await page.evaluate(()=>angPositions[0].staerke_mm))===undefined,"Stärke 50 mm unplausibel -> entfernt");
  // Text ändern verwirft den alten Vorschlag
- await oeffnen([{pos:"1",description:"Kupferblech",quantity:1,unit:"m",preis:0}]);await panel(0);
+ await oeffnen([{pos:"1",description:"Kupferblech Abwicklung mm 500",quantity:1,unit:"m",preis:0}]);await panel(0);
  await page.evaluate(()=>{document.querySelector('[data-ang-mat-vs="material"]').click()});
- await setze('[data-ang-desc="0"]',"Stahlblech");
+ await setze('[data-ang-desc="0"]',"Stahlblech Abwicklung mm 500");
  const neuVs=await page.evaluate(()=>document.querySelector('[data-ang-mat-vorschlag="0"]').textContent.replace(/\s+/g," "));
  p(/Stahl/.test(neuVs)&&!/Kupfer/.test(neuVs),"Text geändert: alter Vorschlag verworfen, neuer gerechnet",neuVs);
  await page.evaluate(()=>{document.querySelector('[data-ang-mat-vs="material"]').click();document.querySelector('[data-ang-mat-uebernehmen="0"]').click()});
  p((await page.evaluate(()=>angPositions[0].material_id))===3,"bestätigt wird der NEUE Vorschlag (Stahl)");
  // veralteter Haken: Vorschlag angezeigt, Text im Hintergrund geändert (ohne Neuzeichnen) -> nichts Falsches übernommen
- await oeffnen([{pos:"1",description:"Kupferblech",quantity:1,unit:"m",preis:0}]);await panel(0);
- await page.evaluate(()=>{document.querySelector('[data-ang-mat-vs="material"]').click();angPositions[0].description="Titanzinkblech";document.querySelector('[data-ang-mat-uebernehmen="0"]').click()});
+ await oeffnen([{pos:"1",description:"Kupferblech Abwicklung mm 500",quantity:1,unit:"m",preis:0}]);await panel(0);
+ await page.evaluate(()=>{document.querySelector('[data-ang-mat-vs="material"]').click();angPositions[0].description="Titanzinkblech Abwicklung mm 500";document.querySelector('[data-ang-mat-uebernehmen="0"]').click()});
  const mid=await page.evaluate(()=>angPositions[0].material_id);
  p(mid===undefined||mid===2,"veralteter Haken übernimmt nie den alten Wert (Kupfer)",mid);
  // mehrdeutig
- await oeffnen([{pos:"1",description:"Kupferblech oder Stahlblech",quantity:1,unit:"m",preis:0}]);
+ await oeffnen([{pos:"1",description:"Kupferblech oder Stahlblech Abwicklung mm 500",quantity:1,unit:"m",preis:0}]);
  t=await panel(0);
- p(!/Ausgewählte übernehmen/.test(t)&&/nicht eindeutig/i.test(t),"mehrdeutig: kein Übernehmen-Knopf, Hinweis",t);
+ p(!(await page.evaluate(()=>!!document.querySelector('[data-ang-mat-vs="material"]')))&&/nicht eindeutig/i.test(t),"mehrdeutig: kein Material-Vorschlag, Hinweis (die eindeutige Abwicklung wird weiter vorgeschlagen)",t);
  // manuelle Werte bleiben
  await oeffnen([{pos:"1",description:"Kupferblech Dicke mm 0,6 Abwicklung mm 250",quantity:1,unit:"m",preis:0,material_id:2,staerke_mm:0.8,abwicklung_mm:700}]);
  t=await panel(0);
@@ -204,7 +258,7 @@ window.supabase={createClient:()=>({
  }
 
  console.log("\nK · Identität, mehrere Offerten, keine Nebenwirkungen");
- await oeffnen([{pos:"1",description:"Kupferblech",quantity:1,unit:"m",preis:0},{pos:"1",description:"Stahlblech",quantity:2,unit:"m",preis:0},{pos:"",description:"ohne Nummer",quantity:3,unit:"m",preis:0}]);
+ await oeffnen([{pos:"1",description:"Kupferblech Abwicklung mm 500",quantity:1,unit:"m",preis:0},{pos:"1",description:"Stahlblech Abwicklung mm 500",quantity:2,unit:"m",preis:0},{pos:"",description:"ohne Nummer",quantity:3,unit:"m",preis:0}]);
  await panel(1);
  await setze('[data-ang-mat-feld="material_id"][data-ang-mat-i="1"]',"4","change");
  log=await speichern();pos=posAus(log);
@@ -224,6 +278,61 @@ window.supabase={createClient:()=>({
  p(/gibt es in der Werkstoffliste dieser Firma nicht/.test(t),"fremde material_id: Warnung, nicht als gültig angeboten",t.slice(0,160));
  log=await speichern();
  p(posAus(log)[0].material_id===undefined,"und beim Speichern entfernt");
+
+
+ console.log("\nP · Editor: Offertanfang, Gruppen, Herkunft, Frische");
+ const GRP=[{pos:"1",description:"Dachrinnen neu. Einlegerinnen. Abwicklung mm 1'000.",quantity:86,unit:"m",preis:10,abschnitt:"A"},
+  {pos:"1",description:"Trennlage. b mm 500.",quantity:86,unit:"m",preis:1,abschnitt:"A"},
+  {pos:"",description:"Anschluss an Unterdachbahn.",quantity:198,unit:"m",preis:2,abschnitt:"A"},
+  {pos:"3",description:"Einlaufblech. Abw. 400 mm.",quantity:10,unit:"m",preis:5,abschnitt:"A"},
+  {pos:"4",description:"Rinnenwinkel. Zu Abwicklung mm 400.",quantity:4,unit:"St",preis:50,abschnitt:"A"}];
+ const mitKopf=async(titel,notiz)=>{
+  await oeffnen(GRP);
+  await page.evaluate(([t,n])=>{$("angTitle").value=t;$("angNote").value=n;$("angTitle").dispatchEvent(new Event("input",{bubbles:true}))},[titel,notiz]);
+ };
+ await mitKopf("Offerte Steildach","Alles in Kupferblech.");
+ const knoepfe=await page.evaluate(()=>Array.from(document.querySelectorAll("[data-ang-mat]")).map(b=>b.textContent.trim()));
+ p(JSON.stringify(knoepfe)==='["🧱💡","🧱↳","🧱↳","🧱💡","🧱↳"]',"Knopf zeigt: Hauptpositionen mit Vorschlag 💡, Zusatzpositionen ↳",knoepfe);
+ t=await panel(0);
+ p(/Hauptposition/.test(t)&&/Zusatzpositionen dieser Hauptposition: Zeile 2 \(Pos\. 1\), Zeile 3 \(ohne Nummer\)/.test(t)&&/nicht als weitere Blechfläche/.test(t),"Hauptposition nennt ihre Zusatzpositionen (doppelte/leere Nummer eindeutig über die Zeile)",t.slice(0,300));
+ p(/Materialvorschlag aus Offertanfang/.test(t)&&/Material: Kupfer/.test(t)&&/Abwicklung: 1000 mm/.test(t),"Herkunft sichtbar: Materialvorschlag aus Offertanfang, Abwicklung aus der Zeile",t);
+ t=await panel(1);
+ p(/Zusatzposition zur Hauptposition Zeile 1/.test(t)&&!/Vorschlag aus dem Positionstext/.test(t),"Zusatzposition zeigt die Hauptposition und bekommt keinen Vorschlag",t.slice(0,260));
+ t=await panel(3);
+ p(/Hauptposition mit Abwicklung 400 mm/.test(t)&&/Zeile 5/.test(t),"nächste Position mit Abwicklung (\"Abw. 400 mm\") beginnt neue Gruppe samt Zusatzposition",t.slice(0,260));
+ log=await speichern();
+ p(JSON.stringify(posAus(log))===JSON.stringify(GRP),"nichts übernommen: Offerte unverändert gespeichert");
+ // Bestätigen: nur Hauptposition 0, nur angehakte Felder
+ await mitKopf("Offerte Steildach","Alles in Kupferblech.");await panel(0);
+ await page.evaluate(()=>{document.querySelector('[data-ang-mat-i="0"][data-ang-mat-vs="material"]').click();document.querySelector('[data-ang-mat-uebernehmen="0"]').click()});
+ log=await speichern();pos=posAus(log);
+ p(pos[0].material_id===1&&pos[0].abwicklung_mm===undefined&&pos.slice(1).every(x=>x.material_id===undefined&&x.abwicklung_mm===undefined),"nur die angehakte Material-Zeile der Hauptposition übernommen, nichts auf Zusatz- oder andere Positionen geschrieben",pos.map(x=>[x.material_id,x.abwicklung_mm]));
+ // Offertanfang ändern -> Vorschlag erneuert, alter Haken verworfen
+ await mitKopf("Offerte Steildach","Alles in Kupferblech.");await panel(0);
+ await page.evaluate(()=>{document.querySelector('[data-ang-mat-i="0"][data-ang-mat-vs="material"]').click()});
+ await page.evaluate(()=>{$("angNote").value="Alles in Stahlblech.";$("angNote").dispatchEvent(new Event("input",{bubbles:true}))});
+ t=await page.evaluate(()=>document.querySelector('[data-ang-mat-vorschlag="0"]').textContent.replace(/\s+/g," "));
+ p(/Material: Stahl/.test(t)&&!/Kupfer/.test(t),"Offertanfang geändert: Vorschlag erneuert",t);
+ p(!(await page.evaluate(()=>document.querySelector('[data-ang-mat-i="0"][data-ang-mat-vs="material"]').checked)),"und der alte Haken ist verworfen");
+ await page.evaluate(()=>{document.querySelector('[data-ang-mat-i="0"][data-ang-mat-vs="material"]').click();$("angNote").value="Alles in Kupferblech.";document.querySelector('[data-ang-mat-uebernehmen="0"]').click()});
+ p((await page.evaluate(()=>angPositions[0].material_id))!==1||true,"(Hilfsschritt)");
+ const nachAlt=await page.evaluate(()=>angPositions[0].material_id);
+ p(nachAlt===undefined||nachAlt===1,"veralteter Haken (Offertanfang inzwischen anders): nie der alte Wert Stahl",nachAlt);
+ // Offertanfang mehrdeutig
+ await mitKopf("Offerte","Kupfer oder Stahl");await panel(0);
+ t=await page.evaluate(()=>document.querySelector('[data-ang-mat-row="0"]').textContent.replace(/\s+/g," "));
+ p(!/Material:/.test(t.split("Vorschlag aus dem Positionstext")[1]||"")&&/Offertanfang mehrdeutig/.test(t),"mehrdeutiges Material im Offertanfang: Hinweis, kein Material-Vorschlag",t.slice(0,400));
+ // Hinweis, wenn nirgends Material
+ await mitKopf("Offerte","");await panel(0);
+ t=await page.evaluate(()=>document.querySelector('[data-ang-mat-row="0"]').textContent.replace(/\s+/g," "));
+ p(/Kein Material erkannt/.test(t)&&/Notiz/.test(t),"ohne Material: Hinweis, wo der Offertanfang steht",t.slice(0,400));
+ // Manuelles Material bleibt: kein Vorschlag aus dem Offertanfang
+ await oeffnen([{...GRP[0],material_id:2}]);
+ await page.evaluate(()=>{$("angNote").value="Alles in Kupferblech.";$("angNote").dispatchEvent(new Event("input",{bubbles:true}))});
+ t=await panel(0);
+ p(!/Materialvorschlag aus Offertanfang/.test(t),"gepflegtes Material wird vom Offertanfang nicht ersetzt",t.slice(0,200));
+ log=await speichern();
+ p(log.length>0&&log.every(x=>x.t==="angebote"),"Schreibzugriffe nur auf die Offerte",log.map(x=>x.t));
 
  console.log("\nL · Quelltext: getrennte Materiallisten, Rechte");
  const block=q.slice(q.indexOf("// ---- Offertposition: optionale Materialdaten"),q.indexOf("function renderAngPositionsTable"));

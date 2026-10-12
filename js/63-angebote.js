@@ -195,7 +195,9 @@ function angMatTexttreffer(text,muster,min,max){
 // Welcher Werkstoff der Firma steht im Text? Nur als Werkstoff-Wort erkannt, nicht als beliebiges Wort: "Kupferblech",
 // "Stahlblech", "Titanzinkband", "Walzblei" - nicht "Auf Stahl nieten" oder "Bleilappen" allein. Genau ein Werkstoff = Treffer,
 // mehrere = mehrdeutig (Namen, nichts geraten). liste = measurement_materials der aktiven Firma (RLS-gefiltert geladen).
-function angMatWerkstoffErkennen(text,liste){
+// locker=true (nur Offertanfang: Titel/Notiz): der Werkstoffname darf auch allein als Wort stehen ("Material: Kupfer") - dort steht er
+// als Angabe zur ganzen Offerte, nicht als Befestigungsuntergrund einer Zeile. Mehrere Werkstoffe bleiben mehrdeutig.
+function angMatWerkstoffErkennen(text,liste,locker){
  const t=String(text||"");
  const treffer=[];
  (Array.isArray(liste)?liste:[]).forEach(m=>{
@@ -205,7 +207,7 @@ function angMatWerkstoffErkennen(text,liste){
   if(stamm.length<3)return;
   const varianten=Array.from(new Set([stamm,stamm.replace(/-/g,"")]))
     .map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
-  const re=new RegExp("(^|[^a-zäöüß-])(?:(?:walz)?(?:"+varianten.join("|")+")(?:bleche?|band|tafeln?|platte|folie)|walz(?:"+varianten.join("|")+"))(?![a-zäöüß])","i");
+  const re=new RegExp("(^|[^a-zäöüß-])(?:(?:walz)?(?:"+varianten.join("|")+")(?:bleche?|band|tafeln?|platte|folie)"+(locker?"?":"")+"|walz(?:"+varianten.join("|")+"))(?![a-zäöüß])","i");
   if(re.test(t))treffer.push(m);
  });
  if(!treffer.length)return {art:"keiner"};
@@ -213,32 +215,88 @@ function angMatWerkstoffErkennen(text,liste){
  if(ids.length===1)return {art:"eindeutig",id:treffer[0].id,name:treffer[0].name};
  return {art:"mehrdeutig",namen:treffer.map(m=>m.name)};
 }
-// Die rohe Erkennung aus dem Positionstext - ohne Rücksicht darauf, was schon ausgefüllt ist.
-function angMatErkennen(text,liste){
+// Abwicklung als Muster (v3.334 auch "Abw."); die Zahl braucht immer die Einheit mm (davor oder danach).
+const ANG_MAT_ABW_KERN="(?:abwicklung|abw\\.?)(?![a-zäöüß])\\s*(?:mm\\s*"+ANG_MAT_ZAHL+"|[:=]?\\s*"+ANG_MAT_ZAHL+"\\s*mm)";
+// "Zu Abwicklung mm 250" ist die Schreibweise der Mehr-/Zusatzleistungen ("Rinnenwinkel. Zu Abwicklung mm 250"): sie nennt die Abwicklung
+// des Profils, zu dem die Leistung gehört, und beginnt KEINE eigene Hauptgruppe. Hier wird dieser Teil vom Text getrennt.
+const ANG_MAT_ZU_ABW="(?:^|[^a-zäöüß])zu\\s+"+ANG_MAT_ABW_KERN;
+function angMatOhneZuAbwicklung(text){return String(text||"").replace(new RegExp(ANG_MAT_ZU_ABW,"gi")," ")}
+function angMatZuAbwicklung(text){
  const t=String(text||"");
+ const teile=t.match(new RegExp(ANG_MAT_ZU_ABW,"gi"));
+ return teile?angMatTexttreffer(teile.join(" "),"(?:^|[^a-zäöüß])zu\\s+"+ANG_MAT_ABW_KERN,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX):{art:"keiner"};
+}
+// Die rohe Erkennung aus dem Positionstext - ohne Rücksicht darauf, was schon ausgefüllt ist.
+// ohneZu=true: "Zu Abwicklung ..." (Zusatzleistung) zählt nicht als Abwicklung dieser Position.
+function angMatErkennen(text,liste,ohneZu){
+ const t=String(text||"");
+ const abwText=ohneZu?angMatOhneZuAbwicklung(t):t;
  return {
   material:angMatWerkstoffErkennen(t,liste),
   staerke:angMatTexttreffer(t,
    "(?:dicke|stärke|staerke|blechdicke|blechstärke)\\s*(?:mm\\s*"+ANG_MAT_ZAHL+"|[:=]?\\s*"+ANG_MAT_ZAHL+"\\s*mm)"
    +"|[a-zäöüß]*(?:blech|walzblei|bleiband)\\s+(?:gerippt\\s+)?mm\\s*"+ANG_MAT_ZAHL,ANG_MAT_STAERKE_MIN,ANG_MAT_STAERKE_MAX),
-  abwicklung:angMatTexttreffer(t,
-   "abwicklung\\s*(?:mm\\s*"+ANG_MAT_ZAHL+"|[:=]?\\s*"+ANG_MAT_ZAHL+"\\s*mm)",ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX)
+  // v3.334: auch die Kurzform "Abw." ("Abw. 500 mm", "Abw. mm 500", "Abw.: 500 mm") - die Zahl braucht immer die Einheit mm
+  // (davor oder danach); "Abwicklung 500" ohne Einheit und "Abwicklungen" bleiben unerkannt.
+  abwicklung:angMatTexttreffer(abwText,"(?:^|[^a-zäöüß])"+ANG_MAT_ABW_KERN,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX)
  };
+}
+// Hat die Position eine (eindeutige) Abwicklung? Aus dem gepflegten Feld oder eindeutig aus dem eigenen Text. Sie ist dann eine HAUPTposition.
+function angMatAbwicklungVonPosition(p,liste){
+ if(!p)return null;
+ const f=angMatZahl(p.abwicklung_mm,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX);
+ if(f!==null)return {wert:f,quelle:"feld"};
+ const r=angMatErkennen(p.description,liste,true).abwicklung;
+ return r.art==="eindeutig"?{wert:r.wert,quelle:"text"}:null;
+}
+// Positionsgruppen (v3.334): eine Position mit Abwicklung beginnt eine Hauptgruppe; alle folgenden Positionen OHNE Abwicklung sind
+// Zusatzpositionen dieser Hauptposition, bis die nächste Position mit Abwicklung kommt. Positionen vor der ersten Hauptposition werden
+// nicht zugeordnet. Gearbeitet wird mit dem Platz in der Liste (nicht mit "pos": doppelte oder leere Nummern sind egal).
+// Rückgabe je Platz: {rolle:"haupt"|"zusatz"|"davor", haupt:Platz der Hauptposition|null, abw:{wert,quelle}|null, zusaetze:[Plätze]}
+function angMatGruppen(positionen,liste){
+ const pos=Array.isArray(positionen)?positionen:[];
+ const g=pos.map(()=>({rolle:"davor",haupt:null,abw:null,zusaetze:[]}));
+ let aktuell=-1;
+ pos.forEach((p,i)=>{
+  const abw=angMatAbwicklungVonPosition(p,liste);
+  if(abw){aktuell=i;g[i]={rolle:"haupt",haupt:i,abw,zusaetze:[]}}
+  else if(aktuell>=0){
+   // "Zu Abwicklung mm N" gehört zur laufenden Hauptposition; weicht N von deren Abwicklung ab, wird das angezeigt (kein Vorschlag).
+   const zu=angMatZuAbwicklung(p&&p.description);
+   g[i]={rolle:"zusatz",haupt:aktuell,abw:g[aktuell].abw,zusaetze:[],zuAbw:zu.art==="eindeutig"?zu.wert:null,
+         abweichend:zu.art==="eindeutig"&&g[aktuell].abw&&zu.wert!==g[aktuell].abw.wert};
+   g[aktuell].zusaetze.push(i);
+  }
+ });
+ return g;
 }
 // Was für DIESE Position wirklich vorgeschlagen wird: nur eindeutige Treffer, und nur für Felder, die noch leer sind.
 // Bereits gepflegte Werte werden nie durch die Textanalyse ersetzt (kein Vorschlag für dieses Feld).
-function angMatVorschlag(p,liste){
- const r=angMatErkennen(p&&p.description,liste);
- const v={};
+// opt (v3.334): {kontext: Text des Offertanfangs (Titel + Notiz), rolle: "haupt"|"zusatz"|"davor"}.
+//  - Ohne opt (v3.333-Aufruf) verhält es sich wie bisher: nur der eigene Text, keine Gruppenregel.
+//  - Material: erst der eigene Text; steht dort keines, der Offertanfang ("Materialvorschlag aus Offertanfang"), aber nur wenn dort
+//    GENAU ein Werkstoff der Firma steht. Ist der eigene Text mehrdeutig, wird nicht auf den Offertanfang ausgewichen.
+//  - Zusatz- und Vorab-Positionen bekommen keine Vorschläge: Werte gehören zur Hauptposition und werden nie still auf andere geschrieben.
+function angMatVorschlag(p,liste,opt){
+ const o=opt||{};
+ const gruppenregel=o.rolle!==undefined;
+ const v={}, unklar=[];
+ if(gruppenregel&&o.rolle!=="haupt")return {vorschlag:v,unklar};
+ const r=angMatErkennen(p&&p.description,liste,gruppenregel);
  const leerMat=(p==null)||p.material_id===undefined||p.material_id===null||p.material_id==="";
  const leerSt=(p==null)||p.staerke_mm===undefined||p.staerke_mm===null||p.staerke_mm==="";
  const leerAb=(p==null)||p.abwicklung_mm===undefined||p.abwicklung_mm===null||p.abwicklung_mm==="";
- if(leerMat&&r.material.art==="eindeutig")v.material={id:r.material.id,name:r.material.name};
+ if(leerMat){
+  if(r.material.art==="eindeutig")v.material={id:r.material.id,name:r.material.name,herkunft:"position"};
+  else if(r.material.art==="mehrdeutig")unklar.push("Material mehrdeutig ("+r.material.namen.join(", ")+")");
+  else if(o.kontext){
+   const k=angMatWerkstoffErkennen(o.kontext,liste,true);
+   if(k.art==="eindeutig")v.material={id:k.id,name:k.name,herkunft:"offertanfang"};
+   else if(k.art==="mehrdeutig")unklar.push("Material im Offertanfang mehrdeutig ("+k.namen.join(", ")+")");
+  }
+ }
  if(leerSt&&r.staerke.art==="eindeutig")v.staerke_mm=r.staerke.wert;
  if(leerAb&&r.abwicklung.art==="eindeutig")v.abwicklung_mm=r.abwicklung.wert;
- // Was erkannt wurde, aber nicht eindeutig ist: wird angezeigt, aber nie vorgeschlagen.
- const unklar=[];
- if(leerMat&&r.material.art==="mehrdeutig")unklar.push("Material mehrdeutig ("+r.material.namen.join(", ")+")");
  if(leerSt&&(r.staerke.art==="mehrdeutig"||r.staerke.art==="unklar"))unklar.push("Stärke nicht eindeutig");
  if(leerAb&&(r.abwicklung.art==="mehrdeutig"||r.abwicklung.art==="unklar"))unklar.push("Abwicklung nicht eindeutig");
  return {vorschlag:v,unklar};
@@ -290,7 +348,7 @@ function angPositionZeileHtml(p,i,versteckt,sektionTitel){
 <td><input data-ang-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td><input data-ang-preis="${i}" type="number" step=".01" value="${p.preis||0}"></td>
 <td class="small" style="text-align:right;white-space:nowrap" data-ang-betrag="${i}">${money(angBetrag(p))}</td>
-<td style="white-space:nowrap"><button type="button" class="${angMatHatDaten(p)?"blue":"gray"}" data-ang-mat="${i}" style="padding:6px 8px" title="Materialdaten dieser Position (optional)">🧱</button><button type="button" class="gray" data-ang-meas="${i}" style="padding:6px 8px" title="Massaufnahme aus dieser Position anlegen">📐</button><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
+<td style="white-space:nowrap"><button type="button" class="${angMatHatDaten(p)?"blue":((angMatGruppenStand[i]&&angMatGruppenStand[i].rolle==="haupt"&&Object.keys(angMatVorschlagFuer(i).vorschlag).length)?"green":"gray")}" data-ang-mat="${i}" style="padding:6px 8px" title="Materialdaten dieser Position (optional) – 💡 = Vorschlag vorhanden, ↳ = Zusatzposition einer Hauptposition">${angMatKnopfText(i)}</button><button type="button" class="gray" data-ang-meas="${i}" style="padding:6px 8px" title="Massaufnahme aus dieser Position anlegen">📐</button><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
 </tr>
 <tr data-ang-mat-row="${i}"${angMatOffen.has(i)?"":" hidden"}${versteckt?' style="display:none"':""}${sektionTitel?` data-ang-sek-row="${esc(sektionTitel)}"`:""}><td colspan="7">${angMatOffen.has(i)?angMatPanelHtml(p,i):""}</td></tr>`;
 }
@@ -301,6 +359,40 @@ function angPositionZeileHtml(p,i,versteckt,sektionTitel){
 let angMatOffen=new Set();
 function angMatListe(){
  return (typeof measurementMaterials!=="undefined"&&Array.isArray(measurementMaterials))?measurementMaterials:[];
+}
+// Der Offertanfang: Bezeichnung und Notiz der Offerte (die einzigen Kopftexte, die die Offerte speichert - der Einleitungstext eines
+// importierten PDFs wird nicht mit abgelegt). Steht dort GENAU ein Werkstoff der Firma, wird er als Materialvorschlag angeboten.
+function angMatKontext(){
+ return [($("angTitle")&&$("angTitle").value)||"",($("angNote")&&$("angNote").value)||""].join("\n");
+}
+// Gruppen und Vorschläge werden bei jedem Zeichnen EINMAL frisch gerechnet (nie gespeichert).
+let angMatGruppenStand=[];
+function angMatGruppenNeu(){
+ angMatGruppenStand=angMatGruppen(angPositions,angMatListe());
+ return angMatGruppenStand;
+}
+function angMatVorschlagFuer(i){
+ const g=angMatGruppenStand[i]||{rolle:"davor"};
+ return angMatVorschlag(angPositions[i],angMatListe(),{kontext:angMatKontext(),rolle:g.rolle});
+}
+function angMatPosName(i){
+ const p=angPositions[i]||{};
+ const nr=String(p.pos||"").trim();
+ return "Zeile "+(i+1)+(nr?" (Pos. "+nr+")":" (ohne Nummer)");
+}
+function angMatGruppeText(i){
+ const g=angMatGruppenStand[i];
+ if(!g)return "";
+ const abw=x=>x?(x.wert.toLocaleString("de-CH")+" mm"+(x.quelle==="feld"?" (Feld)":" (aus dem Text)")):"";
+ if(g.rolle==="haupt"){
+  const z=g.zusaetze.length?`Zusatzpositionen dieser Hauptposition: ${esc(g.zusaetze.map(angMatPosName).join(", "))} – sie zählen <b>nicht</b> als weitere Blechfläche.`:"Keine Zusatzpositionen bis zur nächsten Position mit Abwicklung.";
+  return `<b>Hauptposition</b> mit Abwicklung ${esc(abw(g.abw))}. ${z}`;
+ }
+ if(g.rolle==="zusatz"){
+  const zu=g.zuAbw?(g.abweichend?` Diese Position nennt „Zu Abwicklung mm ${esc(g.zuAbw.toLocaleString("de-CH"))}“ – <b>abweichend</b> von der Hauptposition, bitte prüfen.`:` Sie nennt „Zu Abwicklung mm ${esc(g.zuAbw.toLocaleString("de-CH"))}“ – passt zur Hauptposition.`):"";
+  return `<b>Zusatzposition</b> zur Hauptposition ${esc(angMatPosName(g.haupt))} (Abwicklung ${esc(abw(g.abw))}).${zu} Werte werden bei der Hauptposition vorgeschlagen, nie hierher geschrieben.`;
+ }
+ return `Liegt <b>vor der ersten Position mit Abwicklung</b> – keiner Gruppe zugeordnet, kein Vorschlag.`;
 }
 function angMatZahlText(n){
  return (n===undefined||n===null||n==="")?"":String(n).replace(".",",");
@@ -315,16 +407,23 @@ function angMatFlaecheText(p){
  return "Für die Blechfläche fehlt eine gültige Menge.";
 }
 function angMatVorschlagHtml(p,i){
- const v=angMatVorschlag(p,angMatListe());
+ const v=angMatVorschlagFuer(i);
  const zeilen=[];
- if(v.vorschlag.material)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="material" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.material.id)}"> Material: <b>${esc(v.vorschlag.material.name)}</b></label>`);
- if(v.vorschlag.staerke_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="staerke_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.staerke_mm)}"> Stärke: <b>${esc(angMatZahlText(v.vorschlag.staerke_mm))} mm</b></label>`);
- if(v.vorschlag.abwicklung_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="abwicklung_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.abwicklung_mm)}"> Abwicklung: <b>${esc(angMatZahlText(v.vorschlag.abwicklung_mm))} mm</b></label>`);
+ if(v.vorschlag.material){
+  const her=v.vorschlag.material.herkunft==="offertanfang"?` <span class="small muted">– Materialvorschlag aus Offertanfang (Bezeichnung/Notiz der Offerte)</span>`:` <span class="small muted">– aus dem Text dieser Position</span>`;
+  zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="material" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.material.id)}"> Material: <b>${esc(v.vorschlag.material.name)}</b>${her}</label>`);
+ }
+ if(v.vorschlag.staerke_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="staerke_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.staerke_mm)}"> Stärke: <b>${esc(angMatZahlText(v.vorschlag.staerke_mm))} mm</b> <span class="small muted">– aus dem Text dieser Position</span></label>`);
+ if(v.vorschlag.abwicklung_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="abwicklung_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.abwicklung_mm)}"> Abwicklung: <b>${esc(angMatZahlText(v.vorschlag.abwicklung_mm))} mm</b> <span class="small muted">– aus dem Text dieser Position</span></label>`);
  const unklar=v.unklar.length?`<div class="small muted">Nicht eindeutig, deshalb kein Vorschlag: ${esc(v.unklar.join(" · "))}</div>`:"";
- if(!zeilen.length)return unklar;
+ const g=angMatGruppenStand[i];
+ const p0=angPositions[i]||{};
+ const materialHinweis=(g&&g.rolle==="haupt"&&!v.vorschlag.material&&(p0.material_id===undefined||p0.material_id===null||p0.material_id==="")&&!v.unklar.some(x=>/^Material/.test(x)))
+   ?`<div class="small muted">Kein Material erkannt. Steht es am Anfang der Offerte? Dann in „Bezeichnung“ oder „Notiz“ der Offerte eintragen (z. B. „Kupferblech“) – es wird dann als Vorschlag angeboten.</div>`:"";
+ if(!zeilen.length)return unklar+materialHinweis;
  return `<div class="small" style="margin-top:8px"><b>Vorschlag aus dem Positionstext</b> – nichts ist gespeichert, bis du es bestätigst:</div>
 ${zeilen.join("")}
-<button type="button" class="gray" data-ang-mat-uebernehmen="${i}" style="margin-top:4px">Ausgewählte übernehmen</button>${unklar}`;
+<button type="button" class="gray" data-ang-mat-uebernehmen="${i}" style="margin-top:4px">Ausgewählte übernehmen</button>${unklar}${materialHinweis}`;
 }
 function angMatPanelHtml(p,i){
  const liste=angMatListe();
@@ -334,6 +433,7 @@ function angMatPanelHtml(p,i){
  const warn=(!bekannt&&liste.length)?`<div class="small" style="color:var(--red)">Das gespeicherte Material gibt es in der Werkstoffliste dieser Firma nicht (mehr) – es wird beim Speichern entfernt.</div>`:"";
  return `<div class="ang-mat" style="padding:8px 4px 10px">
 <div class="small muted" style="margin-bottom:6px">Optionale Materialdaten dieser Position (Werkstoff wie bei der Massaufnahme). Es wird nichts reserviert oder gebucht.</div>
+<div class="small" style="margin-bottom:6px" data-ang-mat-gruppe="${i}">${angMatGruppeText(i)}</div>
 <div class="grid">
 <div><label>Material</label><select data-ang-mat-feld="material_id" data-ang-mat-i="${i}"><option value="">– kein Material –</option>${optionen}</select></div>
 <div><label>Blechstärke (mm)</label><input data-ang-mat-feld="staerke_mm" data-ang-mat-i="${i}" inputmode="decimal" placeholder="z. B. 0,6" value="${esc(angMatZahlText(p.staerke_mm))}"></div>
@@ -357,6 +457,30 @@ function angMatTeileAktualisieren(i){
  const fl=box.querySelector(`[data-ang-mat-flaeche="${i}"]`);
  if(fl)fl.innerHTML=angMatFlaecheText(p);
 }
+// Nach jeder Änderung, die Gruppen oder Vorschläge beeinflussen kann (Positionstext, Abwicklungsfeld, Offertanfang): Gruppen frisch
+// rechnen und in allen sichtbaren Teilen neu zeigen - Knopf-Kennzeichnung aller Positionen, Gruppenzeilen und Vorschläge offener Bereiche.
+function angMatAlleAktualisieren(){
+ const box=$("angPositionsBody");
+ if(!box)return;
+ angMatGruppenNeu();
+ angPositions.forEach((p,i)=>{
+  const k=box.querySelector(`[data-ang-mat="${i}"]`);
+  if(k){k.className=angMatHatDaten(p)?"blue":(angMatGruppenStand[i]&&angMatGruppenStand[i].rolle==="haupt"&&Object.keys(angMatVorschlagFuer(i).vorschlag).length?"green":"gray");k.textContent=angMatKnopfText(i)}
+  const gz=box.querySelector(`[data-ang-mat-gruppe="${i}"]`);
+  if(gz)gz.innerHTML=angMatGruppeText(i);
+  if(angMatOffen.has(i))angMatTeileAktualisieren(i);
+ });
+}
+// Beschriftung des Knopfes: 🧱 allein; 💡 = es gibt einen Vorschlag; ↳ = Zusatzposition einer Hauptposition.
+function angMatKnopfText(i){
+ const g=angMatGruppenStand[i];
+ if(g&&g.rolle==="zusatz")return "🧱↳";
+ if(g&&g.rolle==="haupt"&&Object.keys(angMatVorschlagFuer(i).vorschlag).length)return "🧱💡";
+ return "🧱";
+}
+["angTitle","angNote"].forEach(id=>{
+ if($(id))$(id).addEventListener("input",()=>{if(angPositions.length)angMatAlleAktualisieren()});
+});
 if($("angPositionsBody")){
  $("angPositionsBody").addEventListener("click",e=>{
   const tg=e.target.closest?e.target.closest("[data-ang-mat]"):null;
@@ -377,7 +501,8 @@ if($("angPositionsBody")){
   const p=angPositions[i];
   if(!p)return;
   // Frisch aus dem aktuellen Text rechnen: stimmt der angezeigte Vorschlag nicht mehr, wird nichts übernommen.
-  const aktuell=angMatVorschlag(p,angMatListe()).vorschlag;
+  angMatGruppenNeu();
+  const aktuell=angMatVorschlagFuer(i).vorschlag;
   const gewaehlt=Array.from(ok.closest("[data-ang-mat-vorschlag]").querySelectorAll("[data-ang-mat-vs]")).filter(c=>c.checked);
   let veraltet=false, uebernommen=0;
   gewaehlt.forEach(c=>{
@@ -416,9 +541,7 @@ if($("angPositionsBody")){
    else if(n===null){delete p[k];meld((k==="staerke_mm"?"Stärke":"Abwicklung")+": ungültig oder unplausibel (erlaubt "+angMatZahlText(mi)+" bis "+angMatZahlText(ma)+" mm) – nicht gespeichert.")}
    else{p[k]=n;meld("")}
   }
-  angMatTeileAktualisieren(i);
-  const knopf=$("angPositionsBody").querySelector(`[data-ang-mat="${i}"]`);
-  if(knopf)knopf.classList.toggle("blue",angMatHatDaten(p));
+  angMatAlleAktualisieren();      // Abwicklungsfeld/Material ändern Gruppen und Vorschläge
  };
  $("angPositionsBody").addEventListener("input",feldAenderung);
  $("angPositionsBody").addEventListener("change",feldAenderung);
@@ -427,6 +550,7 @@ if($("angPositionsBody")){
 
 function renderAngPositionsTable(){
  if(!$("angPositionsBody"))return;
+ angMatGruppenNeu();
  if(!angPositions.length){
   $("angPositionsBody").innerHTML='<tr><td colspan="7" class="small">Noch keine Positionen. Foto aufnehmen und "Alle Fotos erkennen" klicken, oder manuell hinzufügen.</td></tr>';
  }else{
@@ -475,8 +599,9 @@ if($("angPositionsBody")){
   else if(e.target.dataset.angQty!==undefined){angPositions[i].quantity=Number(e.target.value)||0;mengenAenderung=true;}
   else if(e.target.dataset.angPreis!==undefined){angPositions[i].preis=Number(e.target.value)||0;mengenAenderung=true;}
   if(mengenAenderung)angAktualisiereBetrag(i);
-  // v3.333: Text/Menge/Einheit ändern Vorschlag und Flächenvorschau - alte Vorschläge verfallen, neue werden gerechnet.
-  if(angMatOffen.has(i))angMatTeileAktualisieren(i);
+  // v3.333/334: Text/Menge/Einheit ändern Vorschlag, Gruppen und Flächenvorschau - alte Vorschläge verfallen, neue werden gerechnet.
+  if(e.target.dataset.angDesc!==undefined)angMatAlleAktualisieren();
+  else if(angMatOffen.has(i))angMatTeileAktualisieren(i);
  });
  $("angPositionsBody").addEventListener("click",e=>{
   const del=e.target.closest("[data-ang-del]");

@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.333`
+- Aktueller Entwicklungsstand: `v3.334`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
@@ -16,9 +16,11 @@ Prüfstand `offert-material-v3-333` (86, vier Gegenproben/Mutationen erkannt); `
 
 Rückmeldung: In der Massaufnahme stimmt der Zuschnitt, das Rüstblatt wird nicht aktualisiert. Ursache: `rbFinde` (js/80) nimmt die Zeile aus `rbExtern` (einmal abgelegte Aufgaben-Zeile, nie erneuert), `projectMeasurementsCache` oder `werkZeilen` – alles Zwischenspeicher, die nach dem Speichern einer Massaufnahme veralten. Neu `rbFrischLesen(ids)` (liest nur): holt die Zeilen aus `measurements`, arbeitet sie in die vorhandenen Objekte ein (Werkstatt-Listen ohne `data` nur über `rbExtern`) und wird beim Öffnen des Rüstblatts (danach Neuzeichnen) und vor dem Druck (`rbDruckenAufnahmen`, auch Rüstliste) aufgerufen. Fehler/offline: bisheriger Stand. Prüfstand `rollen-mischen-v3-328` Abschnitt H (50 gesamt).
 
-### v3.331 — Rollenwahl der jeweiligen Massaufnahme bestimmt den Zuschnitt (Fehlerbehebung)
+### v3.334 — Offert-Materialvorschläge: Offertanfang, Hauptpositionen/Zusatzpositionen, „Abw.“
 
-Ursache der Rückmeldung „Neuberechnung nach Rollenanpassung funktioniert nicht“ (am Datensatz 120 gemessen: gespeichert `auswahl:[1000,670]`, aber Plan „1000 + 330 + 250 mm“): `ebaFormate()` → `ebaRollenFormate()` → `ebaRollenAktiv()` las immer die Wahl der Einlaufblech-Aufnahme (`ebA.rollenAuswahl`). Alle anderen Module (Dachfenster, Kamin, Kehle, Lukarne, Rinne, Freies Profil, Mauerabdeckung, Einfassung, Anschlussblech, Konisch) übergaben ihre eigene Wahl nur an die Anzeige/Speicherung – der Plan ignorierte sie (bestand schon vor v3.328). Fix: `ebaFormate({…,rollen:<Wahl des Moduls>})` → `ebaRollenFormate(sel)` in js/29 und den 10 Modul-Aufrufen; ohne `rollen` bleibt das alte Verhalten (Einlaufblech, Projekt-Zuschnitt js/49). Prüfstand `rollen-mischen-v3-328` Abschnitt G (46 gesamt; Gegenprobe: ohne den Fix rot). Gespeicherte Pläne mit nicht gewählten Rollen werden beim Lesen (v3.330) korrigiert.
+Korrekturauftrag nach Live-Test von v3.333 („kein Textvorschlag sichtbar“). Ursachen (am Code und an den echten Offerten nachgewiesen): (1) ausgewertet wurde nur der Text der einzelnen Zeile – das Material steht in den echten Offerten kaum in den Zeilen (Offerte 13: 21 von 112 Positionen nennen ein Metall), der Einleitungstext des PDFs wird beim Import nicht gespeichert (angebote hat nur Bezeichnung und Notiz); (2) „Abw.“ wurde nicht erkannt; (3) der Vorschlag stand nur im zugeklappten 🧱-Bereich, ohne Hinweis am Knopf. Die gespeicherten Zeilen enthalten Abwicklung mit ASCII-Apostroph („Abwicklung mm 1'000“) – diese Schreibweise funktionierte schon.
+js/63: `angMatKontext()` = Bezeichnung + Notiz der Offerte (Offertanfang); Material daraus nur bei GENAU einem Werkstoff der Firma (Werkstoffname auch allein als Wort), eigener Zeilentext hat Vorrang, mehrdeutiger eigener Text weicht nicht aus. `angMatGruppen()`: Position mit eindeutiger Abwicklung (Feld oder Text) = Hauptposition, folgende ohne Abwicklung = Zusatzpositionen bis zur nächsten Hauptposition, davor = nicht zugeordnet; Zuordnung über den Platz in der Liste. Abweichung zur wörtlichen Regel, begründet: „Zu Abwicklung mm N“ (NPK-Schreibweise der Mehr-/Zusatzleistungen) beginnt keine neue Gruppe, sondern gehört zur laufenden; weicht N ab, wird es angezeigt. Vorschläge nur für Hauptpositionen; Zusatz-/Vorab-Positionen bekommen keine, nichts wird auf andere Positionen geschrieben. Herkunft sichtbar („Materialvorschlag aus Offertanfang“, „aus dem Text dieser Position“); Knopf 🧱💡 (Vorschlag) / 🧱↳ (Zusatzposition); Hinweis „Kein Material erkannt – im Offertanfang eintragen“. Erkennung „Abw. 500 mm“, „Abw. mm 500“ ergänzt (Zahl immer mit mm). Neuberechnung bei Text-/Abwicklungs-/Offertanfang-Änderung, Bestätigen prüft erneut. Fläche unverändert (nur Meter; Zusatz ohne eigene Abwicklung: keine). Keine Migration/Edge Function; Import unverändert.
+Prüfstand `offert-material-v3-333` erweitert (145); sechs Mutationen (Gruppenzuordnung, Zu-Abwicklung, Fläche Stk, Auto-Übernahme, Offertanfang ignoriert, Zusatz-Vorschlag) erkannt. Grenze: Der Einleitungstext importierter PDFs wird nicht gespeichert – er muss in Bezeichnung/Notiz stehen (Vorschlag: Extraktion später den Einleitungstext liefern lassen; Edge-Function-Änderung nur nach Freigabe).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
