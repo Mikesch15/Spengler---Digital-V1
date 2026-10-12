@@ -1,0 +1,65 @@
+ABSCHLUSSBERICHT – Offertpositionen: optionale Materialdaten und bestätigungspflichtige Textvorschläge (12.10.2026)
+
+1. VERSION / COMMITS
+Ausgang: v3.332, c77baa3 (main). Ende: v3.333, Commit 3503580. (Dieser Bericht folgt als reiner Doku-Commit.)
+
+2. DATENMODELL (am aktuellen Code geprüft, nicht nur dem Bericht vertraut)
+angebote.positions (JSON) trägt bisher pos, abschnitt, description, quantity, unit, preis. js/63 kopiert Positionen beim Öffnen per
+Objekt-Spread und speichert das ganze Array: zusätzliche JSON-Felder bleiben ohne Migration erhalten. Neu optional: material_id,
+staerke_mm, abwicklung_mm. Keine SQL-Migration, keine Edge Function, kein Deploy einer Funktion nötig. Der Import (PDF/Foto, js/17
+und Edge-Function-Prompts) ist unverändert und liefert die Felder nicht.
+
+3. VERHALTEN
+- Knopf 🧱 je Position öffnet einen Bereich unter der Zeile: Material (Auswahl NUR aus measurement_materials der Firma, geladen unter
+  RLS), Blechstärke (mm), Abwicklung (mm). Positionen werden über ihren Platz in der Liste angesprochen, nicht über "pos".
+- Eingabe: leer bleibt leer; 0, negativ, Text, NaN, unplausibel (Stärke 0,05–10 mm, Abwicklung 5–3000 mm) wird nicht gespeichert und
+  mit Hinweis angezeigt. "1.000" gilt als 1,0 (fällt bei der Abwicklung durch die Grenze) – nie still 1000.
+- Speichern bereinigt: nur gültige Felder; material_id muss in der Werkstoffliste der Firma stehen (sonst entfernt, im Editor vorher
+  gewarnt). Ist die Liste nicht geladen, wird nichts gelöscht, was sich nicht prüfen lässt.
+- Textvorschlag (deterministisch, ohne KI/Netz), nur aus dem Text DIESER Position (nie Abschnitt/Nachbarn):
+  Werkstoff nur als Werkstoff-Wort ("Kupferblech", "Stahlblech", "Titanzinkband", "Walzblei") und genau EIN Treffer; "Auf Stahl nieten"
+  oder "Bleilappen" allein zählen nicht; zwei Werkstoffe oder unbekannter Name → kein Vorschlag, Hinweis "nicht eindeutig".
+  Stärke: "Dicke mm 0,60", "Stahlblech mm 0,87", "Walzblei mm 0,75" (zwei verschiedene Werte → kein Vorschlag).
+  Abwicklung: "Abwicklung mm 1'000" / "Abwicklung 500 mm" (zwei verschiedene → kein Vorschlag).
+  Angezeigt unangehakt neben den Feldern; übernommen wird nur nach Haken + "Ausgewählte übernehmen" (dabei nochmals frisch aus dem
+  aktuellen Text geprüft; veralteter Haken übernimmt nichts). Bereits gefüllte Felder bekommen gar keinen Vorschlag. Textänderung
+  rechnet den Vorschlag neu. Keine Übernahme beim Import, Öffnen, Speichern oder Positionswechsel.
+- Blechflächen-Vorschau (nur Anzeige): Einheit "m": Menge × Abwicklung/1000 (12 m × 500 mm = 6 m²); "m2": Menge ist die Fläche, Abwicklung
+  wird nicht multipliziert; St, Stk, h, Fr, leer, kg, lfm, Std. u. a.: keine Flächenrechnung. Keine Rundung der Rechnung.
+- Bewusst NICHT gebaut (nicht beauftragt): Materialbedarfs-Vorschau im Projekt, Reservierung, Lagerbuchung, Zuschnitt aus Offerte.
+
+4. GEÄNDERTE DATEIEN
+js/63-angebote.js; pruefstaende/pruefstand-offert-material-v3-333.js (neu); pruefstaende/pruefstand-angebote-v3-34.js (zählt nur noch Positionszeilen);
+js/67-was-ist-neu.js, js/41-hilfe.js, index.html, sw.js (Versionsstand), Anleitung v3.333, PROJECT_STATE.md, CHANGELOG_HISTORIE.md.
+Keine neue Frontend-Datei (keine Änderung der App-Shell-Liste). Keine Migration.
+
+5. PRÜFERGEBNISSE
+- Neuer Prüfstand offert-material-v3-333: 86 ok, 0 fehlgeschlagen (3 Läufe stabil). Deckt Auftrag Punkt 1–16: alte Position unverändert;
+  Material gewählt/gespeichert; fremde/unbekannte material_id nicht angeboten bzw. entfernt; eindeutiger Name nur als Vorschlag;
+  mehrdeutig/unbekannt kein Treffer; Stärke/Abwicklung nur bei eindeutigem Muster; manuelle Felder nie überschrieben; Textänderung
+  verwirft Vorschlag; 12 m × 500 mm = 6 m²; m2/St/Stk/h/Fr/leer/kg/lfm: keine falsche Rechnung; leer/null/0/negativ/Text/NaN/gross;
+  doppelte und fehlende Positionsnummer (nur die angesprochene Position ändert sich); zwei Offerten beeinflussen sich nicht;
+  Schreibspur enthält ausschliesslich die Offerte (keine Reservierung/Buchung/Massaufnahme/Leistung); Quelltext-Prüfung: nur
+  measurementMaterials, keine Verwendung von materials/lieferanten_artikel/lager_varianten/Regiematerial.
+- Gegenproben (absichtlich eingebaute Fehler, vom Prüfstand erkannt): manuelle Werte überschreiben (4 rot), fremde material_id nicht
+  prüfen (3 rot), Fläche auch bei "Stk" (14 rot), automatische Übernahme beim Zeichnen (rot).
+- Live-Datenbank (Rollback-Test mit Nutzer-Impersonation, danach unverändert geprüft): PETER-Admin liest 8 Werkstoffe und ändert eigenes
+  Angebot; PETER-Mitarbeiter ohne Offerten-Feature liest 0 Angebote (feature_boundary), sieht 8 Werkstoffe; Testfirma-Admin liest nur
+  die eigenen 8 Werkstoffe, 0 fremde Angebote und ändert 0 Zeilen. RLS/tenant_boundary/feature_boundary nicht angefasst.
+- Schnellprüfung (19 Prüfstände: Angebote, Offerte, Leistungen, Hilfe, Versionen, Cockpit, Ansicht2 …): grün. Volle Regression 3503580: 177/177.
+- GitHub: Prüfstände success, pages build and deployment success (Commit 3503580).
+
+6. GRENZEN / NICHT LIVE GETESTET
+- Kein Test mit echtem Nutzer-Login und echten Offerten in der Live-App; Handy/Tablet nur mit Playwright-Attrappe (1200 px).
+- Eine in den Browser eingeschleuste fremde material_id lässt sich im JSON-Feld ohne Datenbank-Trigger nicht serverseitig verhindern (auftragsgemäss
+  keine Migration); sie bleibt wirkungslos (Liste unter RLS, Bereinigen beim Speichern) und würde bei späterer Nutzung nichts Fremdes zeigen.
+- Namen von Werkstoffen, die nicht mit dem Anfang eines Werkstoffwortes im Text übereinstimmen (z. B. "Zinkblech" statt Titanzink), werden bewusst nicht erkannt.
+
+7. BESTÄTIGUNG
+Es erfolgt keine Materialreservierung und keine Lagerbuchung; keine Massaufnahme, Leistung oder Zuschnittdaten werden verändert. measurement_materials,
+materials (Regie) und lieferanten_artikel blieben getrennt; lager_varianten, alte Lagerverwaltung und Regiematerial unangetastet.
+
+── Stand ──
+✅ Fertig: v3.333 online (Pages success): optionale Materialfelder und bestätigungspflichtige Textvorschläge bei Offertpositionen, Regression 177/177
+⏳ Läuft: nichts
+❓ Von dir: App neu laden (Version 3.333), in einer Offerte 🧱 bei einer Position öffnen und Vorschlag/Übernahme prüfen
