@@ -177,7 +177,7 @@ function keaRollenPlan(){
  const bleche=vor.bleche, netto=keaFlaecheM2();
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
- const fm=ebaFormate({material:kehleA&&kehleA.material,abwicklung:A});
+ const fm=ebaFormate({material:kehleA&&kehleA.material,abwicklung:A,rollen:kehleA&&kehleA.rollenAuswahl});
  const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
                         form:fm.form,netto});
  const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};

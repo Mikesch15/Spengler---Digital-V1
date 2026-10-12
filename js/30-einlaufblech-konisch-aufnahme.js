@@ -146,7 +146,7 @@ function ebkaRollenPlan(){
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme. Gerechnet wird beides mit DERSELBEN Packrechnung - eine
  // Tafel ist geometrisch ein Abschnitt mit fester Laenge und fester Breite.
- const fm=ebaFormate({material:(typeof ebkA!=="undefined"&&ebkA)?ebkA.material:null,abwicklung:A});
+ const fm=ebaFormate({material:(typeof ebkA!=="undefined"&&ebkA)?ebkA.material:null,abwicklung:A,rollen:(typeof ebkA!=="undefined"&&ebkA)?ebkA.rollenAuswahl:undefined});
  const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
                         form:fm.form,netto:ebkaFlaecheM2()});
  const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};

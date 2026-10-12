@@ -158,6 +158,30 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(nachtrag.w670_1000[1]&&JSON.stringify(nachtrag.w670_1000[2])==="[670,1000]","Wahl 670 + 1000: nur diese beiden gemischt",nachtrag.w670_1000);
  p(nachtrag.lager&&!/1.?000/.test(nachtrag.lager[0]),"Blechlager nachträglich ohne 1000er: Plan nutzt sie nicht mehr",nachtrag.lager);
  p(nachtrag.lagerGleich[1]&&Math.abs(nachtrag.p4Flaeche-nachtrag.gespFlaeche)<1e-9,"Lager unverändert: derselbe Plan wie gespeichert",nachtrag.lagerGleich);
+ console.log("\nG · Die Rollenwahl DER Massaufnahme bestimmt den Plan (nicht die der Einlaufblech-Aufnahme)");
+ const wahl=await page.evaluate(()=>{
+  const alt=window.dfaBleche;
+  window.dfaBleche=()=>[{nr:1,laenge:564,breite:280},{nr:3,laenge:1225,breite:190},{nr:5,laenge:1225,breite:190},{nr:2,laenge:595,breite:462},{nr:4,laenge:505,breite:219},{nr:6,laenge:505,breite:219}];
+  const aus={};
+  try{
+   const rolle=(auswahl)=>{dfaA.rollenAuswahl=auswahl;const pl=dfaRollenPlan();const b=pl.bestes;
+     return {text:b&&b.text,breiten:b?(b.mischung?b.mischung.map(m=>m.breite):[b.breite]):[]}};
+   aus.alle=rolle([]);aus.nur1000=rolle([1000]);aus.nur670=rolle([670]);aus.zwei=rolle([670,1000]);
+   // die Wahl der Einlaufblech-Aufnahme darf den Plan der Dachfenster-Aufnahme nicht beeinflussen
+   ebA.rollenAuswahl=[250];aus.fremd=rolle([670,1000]);ebA.rollenAuswahl=[];
+   // auch in den Vergleichszeilen (moeglich) kommt keine abgewählte Rolle vor
+   dfaA.rollenAuswahl=[670,1000];const pl=dfaRollenPlan();
+   aus.vergleich=pl.moeglich.filter(x=>!x.mischung).map(x=>x.breite);
+   dfaA.rollenAuswahl=[];
+  }finally{window.dfaBleche=alt}
+  return aus;
+ });
+ p(wahl.nur1000.breiten.length===1&&wahl.nur1000.breiten[0]===1000,"nur 1000er angewählt: nur 1000er",wahl.nur1000);
+ p(wahl.nur670.breiten.length===1&&wahl.nur670.breiten[0]===670,"nur 670er angewählt: nur 670er",wahl.nur670);
+ p(wahl.zwei.breiten.every(x=>[670,1000].includes(x)),"670 + 1000 angewählt: nie 330/250",wahl.zwei);
+ p(JSON.stringify(wahl.fremd)===JSON.stringify(wahl.zwei),"die Wahl der Einlaufblech-Aufnahme ändert nichts",wahl.fremd);
+ p(wahl.vergleich.every(x=>[670,1000].includes(x)),"auch der Vergleich nennt nur angewählte Rollen",wahl.vergleich);
+ p(wahl.alle.breiten.length>=2,"ohne Wahl: ganzes Lager, gemischt",wahl.alle);
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
  console.log("\nErgebnis: "+ok+" ok, "+fail+" fehlgeschlagen");

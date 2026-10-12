@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.330`
+- Aktueller Entwicklungsstand: `v3.331`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.331 — Rollenwahl der jeweiligen Massaufnahme bestimmt den Zuschnitt (Fehlerbehebung)
+
+Ursache der Rückmeldung „Neuberechnung nach Rollenanpassung funktioniert nicht“ (am Datensatz 120 gemessen: gespeichert `auswahl:[1000,670]`, aber Plan „1000 + 330 + 250 mm“): `ebaFormate()` → `ebaRollenFormate()` → `ebaRollenAktiv()` las immer die Wahl der Einlaufblech-Aufnahme (`ebA.rollenAuswahl`). Alle anderen Module (Dachfenster, Kamin, Kehle, Lukarne, Rinne, Freies Profil, Mauerabdeckung, Einfassung, Anschlussblech, Konisch) übergaben ihre eigene Wahl nur an die Anzeige/Speicherung – der Plan ignorierte sie (bestand schon vor v3.328). Fix: `ebaFormate({…,rollen:<Wahl des Moduls>})` → `ebaRollenFormate(sel)` in js/29 und den 10 Modul-Aufrufen; ohne `rollen` bleibt das alte Verhalten (Einlaufblech, Projekt-Zuschnitt js/49). Prüfstand `rollen-mischen-v3-328` Abschnitt G (46 gesamt; Gegenprobe: ohne den Fix rot). Gespeicherte Pläne mit nicht gewählten Rollen werden beim Lesen (v3.330) korrigiert.
 
 ### v3.330 — Rollen nachträglich ändern wirkt in Rüstblatt/Rüstliste/Werkstatt/Material
 
@@ -14,11 +18,6 @@ Rückmeldung: nachträglich geänderte verfügbare Rollen wurden nicht berücksi
 ### v3.329 — Rollen-Mischung auch für bereits gespeicherte Pläne (Rüstliste/Rüstblatt/Werkstatt)
 
 Rückmeldung: die Rüstliste zeigte die Mischung nicht. Ursache: Rüstblatt, Rüstliste, Werkstatt und Materialsicht lesen den GESPEICHERTEN Plan (`pmatPlanFuer`, js/48); vor v3.328 gespeicherte Massaufnahmen kannten die Mischung nicht. Neu `zuNeuMischen(p,r)` (js/33), gerufen in `pmatPlanFuer`: ein gespeicherter Rollenplan ohne `mischung` mit ≥2 Streifenbreiten und ≥2 gespeicherten Rollenbreiten (`r.breiten`, nach Auswahl der Massaufnahme) wird mit derselben Packrechnung `ebaFormatPlan` neu gerechnet (Stücke regroupiert nach ihrer Breite); übernommen wird NUR eine echte Mischung, sonst bleibt der gespeicherte Plan. Nichts wird zurückgeschrieben (kein Verfall erteilter Freigaben, Trigger schuetze_measurement_workflow), Stücknummern/Längen bleiben, Abhaken unberührt. Prüfstand `rollen-mischen-v3-328` um Abschnitt E erweitert (35).
-
-### v3.328 — Zuschnitt: Rollen mischen (je Streifenbreite eine der angewählten Rollen)
-
-Auftrag des Anwenders: mehrere Rollen dürfen in einer Massaufnahme gemischt werden, automatisch, aber nur mit den in der Massaufnahme angewählten Rollen. Umsetzung am EINEN Formatplan `ebaFormatPlan` (js/29): neue `ebaRollenMischung()` sucht per Teilmengen-DP die Aufteilung der Streifenbreiten (Gruppen) auf die angewählten Rollen mit der kleinsten Blechfläche; innerhalb einer Rolle rechnet unverändert `ebaFormatZeilen` (inkl. Mischung verschiedener Breiten in einem Abschnitt). Nur Rolle (nie Tafel), 2–6 Gruppen, ≥2 Rollen; Mischung ersetzt das beste Einzelformat nur bei Gewinn ≥ 0,02 m² und ≥ 2 %, jeder weitere Rollenwechsel muss ≥ 0,03 m² sparen (`EBA_MISCH_*`). Ergebnis: `moeglich[0]` mit `mischung:[{breite,gruppen,format}]`, `gruppen[].rolleBreite`, `zeilen[].rolleBreite`; Pläne ohne `mischung` (alle alten) laufen unverändert. js/33: `zuMischBloecke` – jeder Block wird wie ein eigener Plan behandelt (`zuGeometrie`, `zuAbschnittInfo` mit fortlaufenden Abschnittsnummern über alle Rollen → Bilanz, Reste, Zuschnittliste/Rüstblatt „ab 670er Rolle“); `zuFormatText`/`zuAbschnittText` nennen die Rollen. Beispiel (Dachfenster Süd Rechts): 670er + 1000er statt nur 670er = 1,416 statt 1,558 m².
-Prüfstand: `pruefstand-rollen-mischen-v3-328` (29). Angepasst: `kamin-app-v2-90` (beste Lösung jetzt gemischt 3,006 m², 1000er allein 3,6 m²); `ruestliste-offline-v3-23`, `reste-schnittfuge-v3-26`, `rolle-tafel-v3-33` prüfen das alte Rüstlisten-Kästchendokument (Rückfall) und schalten den neuen Druckweg (v3.325) ab. Vorher-Lauf der vollen Regression auf dem Arbeitsstand: nur diese vier rot.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

@@ -304,7 +304,7 @@ function einfaRollenPlan(){
           ...ebaFormLeer(einfA&&einfA.material),ausResten};
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme. Gepackt wird weiterhin mit DERSELBEN Packrechnung.
- const fm=ebaFormate({material:einfA&&einfA.material});
+ const fm=ebaFormate({material:einfA&&einfA.material,rollen:einfA&&einfA.rollenAuswahl});
  const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
  return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
          zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,

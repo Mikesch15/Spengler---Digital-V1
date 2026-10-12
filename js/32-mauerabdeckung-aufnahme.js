@@ -202,7 +202,7 @@ function madaRollenPlan(){
  const netto=bleche.reduce((s,x)=>s+x.laenge,0)*A/1e6;
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
- const fm=ebaFormate({material:madA&&madA.material,abwicklung:A});
+ const fm=ebaFormate({material:madA&&madA.material,abwicklung:A,rollen:madA&&madA.rollenAuswahl});
  const p=ebaFormatPlan({gruppen:[{breite:A,bleche}],formate:fm.formate,
                         form:fm.form,netto});
  const g=p.gruppen[0]||{streifen:[],abschnittLaenge:0,verteilung:{streifen:[]}};

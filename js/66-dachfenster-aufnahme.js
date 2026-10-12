@@ -790,7 +790,7 @@ function dfaRollenPlan(){
  if(!gruppen.length)
   return {gruppen:[],moeglich:[],zuSchmal:[],bestes:null,netto,optimal:true,
           ...ebaFormLeer(dfaA&&dfaA.material),ausResten};
- const fm=ebaFormate({material:dfaA&&dfaA.material});
+ const fm=ebaFormate({material:dfaA&&dfaA.material,rollen:dfaA&&dfaA.rollenAuswahl});
  const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
  return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
          zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,

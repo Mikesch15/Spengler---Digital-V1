@@ -162,7 +162,7 @@ function lukaRollenPlan(){
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme. Gepackt wird weiterhin je Zuschnittbreite mit DERSELBEN
  // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
- const fm=ebaFormate({material:(typeof lukA!=="undefined"&&lukA)?lukA.material:null});
+ const fm=ebaFormate({material:(typeof lukA!=="undefined"&&lukA)?lukA.material:null,rollen:(typeof lukA!=="undefined"&&lukA)?lukA.rollenAuswahl:undefined});
  const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
  if(p.optimal===false)optimal=false;
  return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,

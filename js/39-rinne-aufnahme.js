@@ -159,7 +159,7 @@ function rpaRollenPlan(){
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme. Gepackt wird weiterhin je Gruppe mit DERSELBEN
  // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
- const fm=ebaFormate({material:rpaMaterialWert()});
+ const fm=ebaFormate({material:rpaMaterialWert(),rollen:rpaRollenAuswahl});
  const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
  if(p.optimal===false)optimal=false;
  return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,

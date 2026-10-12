@@ -243,7 +243,7 @@ function fpaRollenPlan(){
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme. Gepackt wird weiterhin je Streifenbreite mit DERSELBEN
  // Packrechnung (ebaPackeInStreifen, js/29) - es gibt in der App nur EINE.
- const fm=ebaFormate({material:(typeof fpA!=="undefined"&&fpA)?fpA.material:null});
+ const fm=ebaFormate({material:(typeof fpA!=="undefined"&&fpA)?fpA.material:null,rollen:(typeof fpA!=="undefined"&&fpA)?fpA.rollenAuswahl:undefined});
  const p=ebaFormatPlan({gruppen,formate:fm.formate,form:fm.form,netto});
  return {gruppen:p.gruppen,ohne,ausResten,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
          zuLang:p.zuLang,zuKurz:p.zuKurz,bestes:p.bestes,netto:p.netto,

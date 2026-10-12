@@ -397,8 +397,10 @@ function ebaFormatText(f){
   ? Math.round(f.breite).toLocaleString("de-CH")+" mm"
   : Math.round(f.laenge).toLocaleString("de-CH")+" × "+Math.round(f.breite).toLocaleString("de-CH")+" mm";
 }
-function ebaRollenFormate(){
- return ebaRollenAktiv().map(B=>({breite:B,laenge:null,text:ebaFormatText({breite:B,laenge:null})}));
+// v3.331: die Rollenwahl der jeweiligen Massaufnahme (sel) - jedes Modul hat seine eigene. Bis v3.330 rechnete der Plan
+// ALLER Module mit der Wahl der Einlaufblech-Aufnahme (ebA), die Wahl in den anderen Modulen wirkte nur auf die Anzeige.
+function ebaRollenFormate(sel){
+ return (Array.isArray(sel)&&typeof zuRollenGefiltert==="function"?zuRollenGefiltert(sel):ebaRollenAktiv()).map(B=>({breite:B,laenge:null,text:ebaFormatText({breite:B,laenge:null})}));
 }
 function ebaFormate(kontext){
  const k=kontext||{};
@@ -417,14 +419,14 @@ function ebaFormate(kontext){
    return {form:"tafel",formate,grund:"",quelle:wahl?"wahl":"bestand",bedarf};
   // Tafel gewaehlt, aber kein Format hinterlegt: es wird keines erfunden.
   // Gerechnet wird weiter mit der Rolle, und das steht ausdruecklich da.
-  return {form:"rolle",formate:ebaRollenFormate(),
+  return {form:"rolle",formate:ebaRollenFormate(k.rollen),
           grund:wahl?"tafel-ohne-format":(bedarf.grund||"tafel-ohne-format"),
           quelle:"rueckfall",bedarf};
  }
  if(form==="rolle")
-  return {form:"rolle",formate:ebaRollenFormate(),grund:"",
+  return {form:"rolle",formate:ebaRollenFormate(k.rollen),grund:"",
           quelle:wahl?"wahl":"bestand",bedarf};
- return {form:"rolle",formate:ebaRollenFormate(),grund:bedarf.grund||"ohne-form",
+ return {form:"rolle",formate:ebaRollenFormate(k.rollen),grund:bedarf.grund||"ohne-form",
          quelle:"rueckfall",bedarf};
 }
 

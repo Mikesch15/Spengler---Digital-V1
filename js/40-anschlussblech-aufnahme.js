@@ -127,7 +127,7 @@ function anbaRollenPlan(){
  // v3.33: Rolle oder Tafel entscheidet der Materialbestand bzw. die Wahl an
  // der Massaufnahme - gerechnet wird beides mit DERSELBEN Packrechnung.
  const fm=ebaFormate({material:(typeof anbaMaterialWert==="function")?anbaMaterialWert():null,
-   abwicklung:B});
+   abwicklung:B,rollen:(typeof anbaRollenAuswahl!=="undefined")?anbaRollenAuswahl:undefined});
  const p=ebaFormatPlan({gruppen:[{breite:B,stuecke:bleche,bleche}],
    formate:fm.formate,form:fm.form,netto});
  return {gruppen:p.gruppen,moeglich:p.moeglich,zuSchmal:p.zuSchmal,
