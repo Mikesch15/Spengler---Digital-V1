@@ -1,0 +1,68 @@
+ABSCHLUSSBERICHT v3.335 – Offertmengen und Projekt-Rüstblatt mit gemeinsamer Rollenoptimierung (12.10.2026)
+
+1. VERSION / COMMITS
+Ausgang: v3.334 (7167da0). Ende: v3.335, Code-Commit 318d687. (Dieser Bericht folgt als reiner Doku-Commit.)
+
+2. BESTANDSAUFNAHME (am aktuellen Code geprüft)
+- Ziel C und die Auswahl existierten schon als "Projektweiter Zuschnitt" (js/49, Seite Material & Zuschnitt, v3.09/v3.86): Auswahl = bestehende Ausschlussliste
+  projects.zuschnitt_ausschluss (leer = alle), gepackt mit der EINEN Packrechnung ebaFormatPlan (js/29), Herkunft je Stück, Rüstlisten-Druck. Es wurde deshalb
+  erweitert, nicht neu gebaut. Gefundene Lücken: (a) gruppiert nur nach Werkstoff (Stärke, Form, Rollenwahl ignoriert); (b) Stangen/Normlängen (Rinne halbrund) gelangten
+  mit ihrer Rollenbreite als Streifen in den Rollenplan; (c) leere Gruppen; (d) Auswahl zeigte nur Namen, kein "Alle/Keine", kein Projekt-Rüstblatt.
+- Offerten: angebote.positions (JSON) hat pos, abschnitt, description, quantity, unit, preis und seit v3.333 optional material_id, staerke_mm, abwicklung_mm. Angebote haben
+  KEIN Status-/Archiv-/Gültig-Feld; mehrere Offerten pro Projekt sind möglich. Die Projektübersicht (Ansicht2, Register Offerte) und die Cockpit-Karte zeigten bisher nur die Liste.
+
+3. UMSETZUNG
+A · Offertmengen (js/63, Anzeige in js/70 Register Offerte und in der Cockpit-Offertenkarte; keine zweite Übersicht)
+- m2/m²: Menge ist die Fläche. m: Menge × BESTÄTIGTE Abwicklung (Feld abwicklung_mm) / 1000 (12 m × 500 mm = 6 m²). Nur im Text erkannte Abwicklung zählt nicht ("wartet auf
+  bestätigte Abwicklung"). St/Stk/Stück: nur Stücksumme. Andere Einheiten (h, Fr, kg, lfm, leer) und ungültige Mengen werden nicht eingerechnet, nur gezählt und genannt.
+  Zusatzpositionen ohne eigene Abwicklung erzeugen keine Fläche. Aufschlüsselung nach Werkstoff der Firma (measurement_materials).
+- Klar als "Offertmengen – keine Massaufnahme-, Zuschnitt-, Ausmass- oder verrechneten Mengen" gekennzeichnet; Unvollständiges steht ausdrücklich da.
+- Mehrere Offerten: je Offerte, NICHT addiert (mit Hinweis), weil an angebote nicht erkennbar ist, welche gilt. Eine Offerte: Summe.
+B · Projekt-Rüstblatt (Material & Zuschnitt; Einstieg über den bestehenden Weg, keine neue Navigation)
+- Auswahlübersicht: Art · Titel, Werkstoff · Stärke, Zuschnitt-/Rüststand, "n von m ausgewählt", Checkboxen, "Alle auswählen", "Auswahl aufheben", "📐 Rüstblatt erstellen/aktualisieren".
+  Die Auswahl ist die bestehende gespeicherte Ausschlussliste des Projekts (Persistenz existierte bereits; kein neues Datenmodell) und ändert keine Massaufnahme/keinen Plan.
+  Ids der gespeicherten Auswahl, die es im Projekt nicht mehr gibt, werden ignoriert und gemeldet.
+- Das Projekt-Rüstblatt öffnet im bestehenden Rüstblatt-Schirm: oben je Gruppe der gemeinsame Rollenzuschnitt (Rolle, Blech, Verschnitt, Vergleich "einzeln gerechnet / gemeinsam",
+  Abschnitt → Streifen → Stück mit Herkunft jedes Stücks), darunter je Massaufnahme ein aufklappbares Einzel-Rüstblatt. Frisch gelesen (RLS); fehlende/gelöschte und fremde Massaufnahmen
+  (anderes Projekt) werden ignoriert und verständlich gemeldet. PDF: Seite 1 gemeinsamer Zuschnitt, danach je Massaufnahme ihre Seite. Einzel-Rüstblatt, Werkstattlisten, Stück-Abhaken
+  und Rüstlisten-Druck unverändert (bestehende Prüfstände grün).
+C · Gemeinsame Rollenoptimierung (js/49, bestehende Rechnung)
+- Gemeinsam optimiert werden nur Stücke mit gleichem Werkstoff, gleicher Stärke, gleicher Form (Rolle/Tafel) und gleicher Rollenwahl der Massaufnahme (bestimmt die erlaubten Rollenbreiten);
+  innerhalb einer Gruppe nach Streifenbreite und – seit v3.328 – mit Rollen-Mischung. Stärke erfasst/nicht erfasst bleibt getrennt (nichts geraten).
+- Gemeinsam optimierbar: Rollen-Zuschnitte (alle Arten mit Rollenplan) und Tafel-Zuschnitte untereinander gleicher Form. Bewusst getrennt: Stangen/Normlängen (Rinne halbrund) – sie stehen separat
+  unter "Nicht im gemeinsamen Plan"; Rolle und Tafel; unterschiedliche Werkstoffe/Stärken/Rollenwahl.
+- Jedes Stück behält Massaufnahme-Id und Stücknummer (origNr, quelleId); Abmessungen/Anzahl ändern sich nicht. Zahlen (Rolle, Blech, Verschnitt) nur, wenn berechenbar; keine passende Rolle → Hinweis statt Zahl.
+- Vorschau/Speicherverhalten: reine Vorschau, nichts wird reserviert, gebucht, abgehakt oder in einen Einzelplan geschrieben. Einzige Schreibaktion: das bestehende, ausdrückliche Speichern der Auswahlliste (Alle/Keine/Haken).
+
+4. GEÄNDERTE DATEIEN
+js/49-projekt-zuschnitt.js, js/80-ruestblatt.js, js/63-angebote.js, js/70-ansicht2.js (Kernfile, daher breite Schnellprüfung), js/67-was-ist-neu.js, js/41-hilfe.js, index.html/sw.js (Versionsstand), Anleitung v3.335,
+PROJECT_STATE.md, CHANGELOG_HISTORIE.md, neuer Prüfstand pruefstand-projekt-mengen-ruestblatt-v3-335.js. Keine neue Frontend-Datei, keine Migration, keine Edge Function.
+
+5. PRÜFERGEBNISSE
+- Neuer Prüfstand projekt-mengen-ruestblatt-v3-335: 54 ok, 0 fehlgeschlagen. Deckt A (12 m × 500 mm = 6 m²; m² bleibt m²; St/Stk nur Stück; Zusatz ohne Fläche; ungültige/mehrdeutige/fehlende Daten; mehrere Offerten nicht addiert;
+  unbestätigte Abwicklung zählt nicht; keine Seiteneffekte; Werkstoffliste getrennt), B (einzeln/mehrere/alle/keine; Alle/Keine speichern nur die Ausschlussliste; gelöschte Id; fehlende und fremde Massaufnahme; Einzel-Rüstblatt und
+  Druckweg unverändert; Druck Seite 1 + je Massaufnahme), C (zwei kompatible Pläne: gemeinsam weniger Blech als einzeln; kein Stück verloren/verdoppelt; verschiedene Werkstoffe/Stärken/Rollenwahl/Formen getrennt; Stangen nie im Rollenplan;
+  leere/fehlerhafte Pläne gelistet; Vorschau ändert/schreibt nichts).
+- Gegenproben (absichtlich eingebaute Fehler, vom Prüfstand erkannt): Stärke ignoriert (2 rot), Werkstoffe gemischt (1), Stück verloren (1), Stück verdoppelt (2), schreibende Vorschau (5), Stück als Fläche (1), mehrere Offerten addiert (1).
+- Schnellprüfung (53 Prüfstände: Angebote/Offerte/Leistungen/Hilfe/Versionen/Cockpit/Ansicht2/Aufgaben/Startseite/Werkstatt/Rüstblatt/Rüstliste/Material/Zuschnitt/Projekt/Ablauf/Workflow): grün.
+  Volle Regression 318d687: 178/178.
+- GitHub: pages build and deployment success für 318d687; Prüfstände-Lauf success.
+
+6. GRENZEN / NICHT LIVE GETESTET
+- Keine echten Live-Projekte/-Offerten getestet (Prüfstand mit Browser-Attrappe, Fixtures aus der echten Packrechnung); keine Handy-/Tablet-Prüfung auf echtem Gerät.
+- Der gemeinsame Plan ist nicht mathematisch garantiert besser als einzeln (Heuristik der bestehenden Packrechnung); die Vorschau zeigt beide Zahlen und meldet "keine Verbesserung" ehrlich.
+- Der Rollenplan des Projekts berücksichtigt die Rollenwahl je Gruppe, nicht eine gemeinsame Wahl über Massaufnahmen mit unterschiedlicher Wahl (diese bleiben getrennt).
+- Offene Fachfrage (die eine wesentliche): Wenn ein Projekt mehrere importierte Offerten hat – welche gilt? Es gibt kein Status-/Gültig-Kennzeichen an angebote; bis dahin steht die Summe je Offerte. Vorschlag: ein Kennzeichen
+  "gilt für Projektsummen" je Offerte (ein Feld, eine Migration) – nur nach deiner Freigabe.
+
+7. MANUELLE PRÜFSCHRITTE FÜR MIKE
+1. Projekt mit importierter Offerte öffnen, Register Offerte: unter der Liste "Offertmengen" – Fläche m², Stück; bei fehlender bestätigter Abwicklung steht "unvollständig …". In der Offerte bei Hauptpositionen die Abwicklung per 🧱 bestätigen: die Fläche erscheint.
+2. Material & Zuschnitt: "Berücksichtigte Massaufnahmen" – Werkstoff, Stärke und Stand je Zeile; "Auswahl aufheben" / "Alle auswählen" ausprobieren.
+3. Zwei Massaufnahmen mit gleichem Werkstoff und gleicher Stärke auswählen, "📐 Rüstblatt erstellen/aktualisieren": gemeinsamer Zuschnitt mit "einzeln gerechnet / gemeinsam" und Herkunft je Stück.
+4. Eine Massaufnahme mit anderer Stärke: erscheint in eigener Gruppe. Rinne halbrund: erscheint unter "Nicht im gemeinsamen Plan".
+5. "Als PDF drucken": Seite 1 gemeinsamer Zuschnitt, danach die Einzel-Rüstblätter.
+
+── Stand ──
+✅ Fertig: v3.335 online (Pages success): Offertmengen m²/Stück in der Projektübersicht, Projekt-Rüstblatt mit Auswahl und gemeinsamem Rollenzuschnitt (Vorschau), Regression 178/178
+⏳ Läuft: nichts
+❓ Von dir: App neu laden (3.335) und die Schritte aus Abschnitt 7 prüfen; Antwort auf die eine Frage: welche Offerte gilt bei mehreren Offerten pro Projekt (Kennzeichen "gilt" je Offerte gewünscht?)
