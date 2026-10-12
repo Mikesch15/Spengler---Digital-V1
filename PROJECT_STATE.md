@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.323`
+- Aktueller Entwicklungsstand: `v3.324`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.324 — Rüstblatt-PDF: Stück-Nummern je Streifen sichtbar (Blitzanpassung, ohne Prüfstände/Regression)
+
+Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern der Zuschnittliste (`.zu-nr`) sind Knöpfe. Jetzt nur noch `.ze-alle`, `.ze-stand`, Foto-Kacheln und `.no-print` ausgeblendet, `.zu-nr` als Nummer im Rahmen. Per Druckvorschau mit eingefügter Beispielstruktur geprüft; keine Prüfstände/Regression.
 
 ### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
 
@@ -14,13 +18,6 @@
 ### v3.322 — Rüstblatt als PDF drucken (Blitzanpassung, ohne Prüfstände/Regression auf Ansage des Anwenders)
 
 Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` kopiert das gezeigte Blatt in einen Druckbereich `#rbDruck` und ruft `window.print()` (Muster `abwDrucken`, js/78); `css/01-basis.css`: im Druck nur dieser Bereich. Schreibt nichts. **Nicht getestet** (weder Prüfstand noch Regression, ausdrücklicher Wunsch).
-
-### v3.321 — Leistungsausführung: Statusvorschlag aus dem Montagefortschritt (nur Vorschlag)
-
-Befund: Verlässliche Fortschrittsquelle ist allein `measurements.workflow_status` mit Zeitstempel `montiert_am` (Werte montiert/abgeschlossen = ausgeführt; in_bearbeitung…zu_montieren = offen). Gerüstet/zugewiesen ist Vorbereitung, `zuschnitt_erledigt` ist Zuschnitt – beides keine Ausführung. Eine ausgeführte MENGE gibt keine Quelle her (`leistungen.menge`/`ausgefuehrte_menge` sind freier Text, Massaufnahmen speichern keine ausgeführte Menge in der Einheit der Leistung) → Menge wird nie vorgeschlagen (dokumentierte Grenze).
-Umsetzung (nur `js/65` + Feld `#leiVorschlag` in `index.html`): reine Funktion `leiAusfuehrungVorschlag(l,links,messungen)` (alle montiert → vollstaendig, einige → teilweise, keine → kein Vorschlag/kein Herabstufen; montiert ohne `montiert_am`, nicht lesbar oder unbekannter Status → Hinweis statt Vorschlag; nur verknüpfte Massaufnahmen; deterministisch). Anzeige im Leistungsdialog mit Quellenliste; Übernahme nur per Häkchen + Knopf; vor dem Schreiben frisch lesen (Fortschritt geändert → nichts), bestehender Status → Rückfrage, `update({status}).eq("status",bisher)` (nur dieses Feld; Doppelklick/parallele Änderung überschreibt nichts), Fehler/fehlende Berechtigung ehrlich gemeldet. Keine Migration, keine Edge Function, Materiallisten unberührt.
-Live (Rollback-Test, Nutzer-Impersonation): PETER-Admin liest Verknüpfung + Massaufnahme und ändert Status; bedingtes zweites Update 0 Zeilen; Testfirma liest/ändert nichts Fremdes (0). Mitarbeiter mit projects/edit darf ändern; Mitarbeiter ohne Recht nicht getestet.
-Prüfstand: `pruefstand-leistung-vorschlag-v3-321` (48); Gegenprobe (Bedingung entfernt) schlägt an.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

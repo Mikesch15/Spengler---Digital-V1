@@ -1858,6 +1858,8 @@ html.dark .rmat-unsicher{color:#e0a35c}
 @media print{
  body.rb-drucken>*{display:none !important}
  body.rb-drucken>.rb-druck{display:block !important;background:#fff;color:#17202a}
- body.rb-drucken .rb-druck button,body.rb-drucken .rb-druck .no-print{display:none !important}
+ body.rb-drucken .rb-druck .no-print,body.rb-drucken .rb-druck .ze-alle,body.rb-drucken .rb-druck .ze-stand,body.rb-drucken .rb-druck .medien-kachel{display:none !important}
+ /* Die Stueck-Nummern sind Knoepfe (abhakbar) - im Druck muessen sie als Nummer stehen bleiben (Streifen -> Stuecke) */
+ body.rb-drucken .rb-druck .zu-nr{display:inline-block !important;border:0.5pt solid #17202a;background:#fff !important;color:#17202a !important;padding:0 2mm;margin-right:1mm}
  body.rb-drucken .rb-druck img,body.rb-drucken .rb-druck svg{max-width:100%;break-inside:avoid}
 }
