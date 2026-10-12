@@ -1,0 +1,64 @@
+ABSCHLUSSBERICHT – Leistungsausführung: Vorschlag aus Montagefortschritt (12.10.2026)
+
+1. COMMITS / VERSION
+Start: ffd31e4 (v3.320, main). Ende: a836026 = v3.321. (Dieser Bericht folgt als reiner Doku-Commit.)
+
+2. BEFUND FORTSCHRITTSMODELL (gegen Live-DB und Code geprüft)
+- leistungen: status (nicht_ausgefuehrt/teilweise/vollstaendig), menge, ausgefuehrte_menge und einheit sind TEXT (frei).
+- leistung_massaufnahmen: n:m Leistung <-> Massaufnahme.
+- Verlässliche Fortschrittsquelle: measurements.workflow_status mit Zeitstempel montiert_am (js/44: in_bearbeitung, freigegeben,
+  zu_ruesten, geruestet, zu_montieren, montiert, abgeschlossen). Nur montiert/abgeschlossen = ausgeführt.
+- NICHT als Ausführung gewertet: geruestet/zugewiesen (Vorbereitung), zuschnitt_erledigt (Zuschnittstücke), Material-Reservierung.
+- Menge: Keine Quelle. Massaufnahmen speichern keine ausgeführte Menge in der Einheit der Leistung; leistungen.menge ist Freitext.
+  => Eine ausgeführte Menge wird NIE vorgeschlagen (dokumentierte Grenze, keine Formel).
+
+3. UMGESETZT / BEWUSST NICHT AUTOMATISCH
+Im Leistungsdialog (js/65, Feld #leiVorschlag in index.html) erscheint "Vorschlag aus dem Montagefortschritt" mit Quellenliste:
+alle verknüpften Massaufnahmen montiert/abgeschlossen -> Vollständig; einige -> Teilweise; keine -> kein Vorschlag (kein Herabstufen);
+unklar (nicht lesbar, unbekannter/leerer Status, montiert ohne Montagedatum) -> Hinweis statt Vorschlag. Nur verknüpfte Massaufnahmen,
+deterministisch. Reine Funktion leiAusfuehrungVorschlag().
+Schreiben NUR nach Häkchen "Status übernehmen" + Knopf; vorher frisches Lesen (hat sich der Fortschritt geändert -> nichts);
+bereits gesetzter Status -> Rückfrage; update nur {status} mit Bedingung auf den bisherigen Status (Doppelklick/parallele Änderung
+überschreibt nichts); Fehler/fehlende Berechtigung ehrlich gemeldet. Nichts wird beim Öffnen, Anzeigen, Neuladen, Speichern anderer
+Felder oder bei Workflow-Übergängen geschrieben. Ausgeführte Menge, Bemerkung, Offertenbezug, Verknüpfungen, Workflow bleiben unberührt.
+Materiallisten (measurement_materials, materials, lieferanten_artikel) werden nicht berührt.
+
+4. DATEIEN / MIGRATIONEN
+js/65-leistungen.js, index.html, js/67-was-ist-neu.js, js/41-hilfe.js, sw.js, Anleitung v3.321, PROJECT_STATE.md,
+CHANGELOG_HISTORIE.md, neuer Prüfstand pruefstand-leistung-vorschlag-v3-321.js.
+KEINE Migration, KEINE Edge Function (kein Edge-Function-Deploy nötig).
+
+5. ERGEBNISSE
+- Prüfstand leistung-vorschlag-v3-321: 48/48. Gegenprobe (Bedingung auf bisherigen Status entfernt): 2 Fehlschläge -> Test greift.
+- Schnellprüfung (28 Prüfstände: Leistungen, Angebote/Offerte, Ansicht2, Cockpit, Aufgaben, Startseite, Workflow, Werkstatt, Hilfe,
+  Versionen, email-auth, sw-cache, Vermassung, jeweils Exit-Code + FEHLGESCHLAGEN): alle grün.
+- Live-DB (Rollback-Test mit Nutzer-Impersonation, danach 0 Testzeilen): PETER-Admin liest Verknüpfung + Massaufnahme und ändert
+  Status (1 Zeile); bedingtes zweites Update 0 Zeilen; Mitarbeiter mit Recht darf ändern; Testfirma-Admin liest 0 Leistungen,
+  0 Verknüpfungen, 0 fremde Massaufnahmen und ändert 0 Zeilen.
+- Vollständige Regression a836026: 175/175, 0 Fehlschläge.
+- GitHub: Prüfstände success, pages build and deployment success (Commit a836026).
+
+6. NICHT DURCHGEFÜHRT
+- Echte Handy-/Browser-Tests mit Produktivdaten (nur Playwright-Attrappe, 390 px: kein horizontales Scrollen).
+- Nutzer-Token-Fluss der echten App; Mitarbeiter OHNE Bearbeitungsrecht; Live-DB hat 0 Leistungen, kein Test mit Altdaten.
+- Live-Seite nicht aufgerufen (Sandbox); Beleg ist der grüne Pages-Deploy.
+
+7. MANUELLE TESTS FÜR MIKE
+1. Projekt mit 2 Massaufnahmen, eine Leistung mit beiden verknüpfen (Leistung öffnen, Häkchen, speichern).
+2. Leistung erneut öffnen: Hinweis "noch keine Massaufnahme montiert" – kein Vorschlag.
+3. Eine Massaufnahme durch den Workflow bis "Montiert" führen, Leistung öffnen: Vorschlag "Teilweise" mit Quellenliste.
+4. Ohne Häkchen/Knopf: Dialog schliessen -> Status in der Liste unverändert.
+5. Häkchen + "Ausgewählte Werte übernehmen": Meldung, Status "Teilweise"; ausgeführte Menge unverändert.
+6. Zweite Massaufnahme montieren -> Vorschlag "Vollständig"; Übernehmen fragt wegen bestehendem Status nach.
+7. Leistung ohne Verknüpfung: Hinweis "Keine Massaufnahme verknüpft".
+8. Handy: Dialog ohne seitliches Scrollen bedienbar.
+
+8. NÄCHSTE SCHRITTE (ohne Roadmap zu erfinden)
+- Mengenvorschlag erst, wenn Mike festlegt, welche Massaufnahme-Grösse (Einheit) der Leistungsmenge entspricht.
+- Manuelle Tests auswerten; Mitarbeiter ohne projects/edit mit echtem Konto prüfen.
+- Aus früheren Aufträgen offen: 10 Konten ohne eigenes Passwort zurücksetzen, "Leaked password protection" im Supabase-Dashboard.
+
+── Stand ──
+✅ Fertig: v3.321 online (Pages success), Regression 175/175, Bericht im Repo
+⏳ Läuft: nichts
+❓ Von dir: manuelle Tests (Abschnitt 7)
