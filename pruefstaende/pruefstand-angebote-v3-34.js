@@ -345,7 +345,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  p(kiOk.anzahl===2,"beide von der (gemockten) KI gelieferten Positionen wurden uebernommen",kiOk);
  p(kiOk.ersteBezeichnung==="Titanzinkblech 0.7mm","die Positionsdaten (Bezeichnung/Menge/Einheit) kommen unveraendert an",kiOk);
  p(/2 Position/.test(kiOk.statusText),"der Status meldet die Anzahl",kiOk);
- p(await page.evaluate(()=>document.querySelectorAll("#angPositionsBody tr").length)===2,
+ p(await page.evaluate(()=>document.querySelectorAll("#angPositionsBody tr:not([data-ang-mat-row])").length)===2,
   "die Positionstabelle zeigt beide Zeilen");
 
  // Fehlerfall: KI-Server meldet einen fachlichen Fehler (Auftrag Test 12).

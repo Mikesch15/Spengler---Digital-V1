@@ -151,6 +151,7 @@ function angTotal(){
 // einzelnen Abschnitte starten zugeklappt (angSektionOffen leer).
 function angPositionsAufklappen(){
  angSektionOffen=new Set();
+ angMatOffen=new Set();
  const box=$("angPositionsKlapp");
  if(box){
   box.classList.add("open");
@@ -158,6 +159,129 @@ function angPositionsAufklappen(){
   if(kopf)kopf.setAttribute("aria-expanded","true");
  }
 }
+// ---- Offertposition: optionale Materialdaten (v3.333) ---------------------------------------------------------------
+// Eine Position darf optional tragen: material_id (Werkstoff aus measurement_materials der Firma), staerke_mm,
+// abwicklung_mm. Die Felder stehen im bestehenden Positions-JSON (angebote.positions) - keine Migration, alte Positionen ohne
+// die Felder laden, bearbeiten und speichern wie bisher. Material, Stärke und Abwicklung aus dem TEXT werden nur VORGESCHLAGEN
+// und erst nach ausdrücklicher Bestätigung übernommen. Es wird nichts reserviert, gebucht oder an Massaufnahmen geändert;
+// die drei Materiallisten bleiben getrennt (hier nur measurement_materials).
+const ANG_MAT_STAERKE_MIN=0.05, ANG_MAT_STAERKE_MAX=10, ANG_MAT_ABW_MIN=5, ANG_MAT_ABW_MAX=3000;
+// Eine Eingabe als positive Zahl in den Grenzen - sonst null (leer, 0, negativ, Text, NaN, unplausibel gross/klein).
+// Dezimalkomma oder -punkt, Tausender nur als Apostroph ("1'000"); "1.000" gilt als 1,0 und fällt bei der Abwicklung durch die Grenze.
+function angMatZahl(v,min,max){
+ if(v===null||v===undefined||typeof v==="boolean")return null;
+ if(typeof v==="number"){return (Number.isFinite(v)&&v>=min&&v<=max)?v:null}
+ const t=String(v).trim().replace(/['’\s]/g,"").replace(",",".");
+ if(!/^\d+(\.\d+)?$/.test(t))return null;
+ const n=Number(t);
+ return (Number.isFinite(n)&&n>=min&&n<=max)?n:null;
+}
+const ANG_MAT_ZAHL="(\\d{1,4}(?:['’]\\d{3})*(?:[.,]\\d{1,3})?)";
+// Alle (plausiblen) Zahlen, die ein Muster im Text findet; leer = nichts, ein Wert = eindeutig, mehrere verschiedene = mehrdeutig.
+function angMatTexttreffer(text,muster,min,max){
+ const werte=[];
+ let m;const re=new RegExp(muster,"gi");
+ while((m=re.exec(text))!==null){
+  const roh=m.slice(1).find(x=>x!==undefined);
+  const n=angMatZahl(roh,min,max);
+  werte.push(n);
+  if(m.index===re.lastIndex)re.lastIndex++;
+ }
+ if(!werte.length)return {art:"keiner"};
+ if(werte.some(x=>x===null))return {art:"unklar"};     // ein Treffer, der keine plausible Zahl ist: nichts raten
+ const eind=Array.from(new Set(werte));
+ return eind.length===1?{art:"eindeutig",wert:eind[0]}:{art:"mehrdeutig",werte:eind};
+}
+// Welcher Werkstoff der Firma steht im Text? Nur als Werkstoff-Wort erkannt, nicht als beliebiges Wort: "Kupferblech",
+// "Stahlblech", "Titanzinkband", "Walzblei" - nicht "Auf Stahl nieten" oder "Bleilappen" allein. Genau ein Werkstoff = Treffer,
+// mehrere = mehrdeutig (Namen, nichts geraten). liste = measurement_materials der aktiven Firma (RLS-gefiltert geladen).
+function angMatWerkstoffErkennen(text,liste){
+ const t=String(text||"");
+ const treffer=[];
+ (Array.isArray(liste)?liste:[]).forEach(m=>{
+  if(!m||m.id===undefined||m.id===null)return;
+  const name=String(m.name||"").toLowerCase().replace(/\([^)]*\)/g," ").split(/[,;\/]/)[0].trim();
+  const stamm=name.replace(/[^a-zäöüß-]/g,"");
+  if(stamm.length<3)return;
+  const varianten=Array.from(new Set([stamm,stamm.replace(/-/g,"")]))
+    .map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&"));
+  const re=new RegExp("(^|[^a-zäöüß-])(?:(?:walz)?(?:"+varianten.join("|")+")(?:bleche?|band|tafeln?|platte|folie)|walz(?:"+varianten.join("|")+"))(?![a-zäöüß])","i");
+  if(re.test(t))treffer.push(m);
+ });
+ if(!treffer.length)return {art:"keiner"};
+ const ids=Array.from(new Set(treffer.map(m=>String(m.id))));
+ if(ids.length===1)return {art:"eindeutig",id:treffer[0].id,name:treffer[0].name};
+ return {art:"mehrdeutig",namen:treffer.map(m=>m.name)};
+}
+// Die rohe Erkennung aus dem Positionstext - ohne Rücksicht darauf, was schon ausgefüllt ist.
+function angMatErkennen(text,liste){
+ const t=String(text||"");
+ return {
+  material:angMatWerkstoffErkennen(t,liste),
+  staerke:angMatTexttreffer(t,
+   "(?:dicke|stärke|staerke|blechdicke|blechstärke)\\s*(?:mm\\s*"+ANG_MAT_ZAHL+"|[:=]?\\s*"+ANG_MAT_ZAHL+"\\s*mm)"
+   +"|[a-zäöüß]*(?:blech|walzblei|bleiband)\\s+(?:gerippt\\s+)?mm\\s*"+ANG_MAT_ZAHL,ANG_MAT_STAERKE_MIN,ANG_MAT_STAERKE_MAX),
+  abwicklung:angMatTexttreffer(t,
+   "abwicklung\\s*(?:mm\\s*"+ANG_MAT_ZAHL+"|[:=]?\\s*"+ANG_MAT_ZAHL+"\\s*mm)",ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX)
+ };
+}
+// Was für DIESE Position wirklich vorgeschlagen wird: nur eindeutige Treffer, und nur für Felder, die noch leer sind.
+// Bereits gepflegte Werte werden nie durch die Textanalyse ersetzt (kein Vorschlag für dieses Feld).
+function angMatVorschlag(p,liste){
+ const r=angMatErkennen(p&&p.description,liste);
+ const v={};
+ const leerMat=(p==null)||p.material_id===undefined||p.material_id===null||p.material_id==="";
+ const leerSt=(p==null)||p.staerke_mm===undefined||p.staerke_mm===null||p.staerke_mm==="";
+ const leerAb=(p==null)||p.abwicklung_mm===undefined||p.abwicklung_mm===null||p.abwicklung_mm==="";
+ if(leerMat&&r.material.art==="eindeutig")v.material={id:r.material.id,name:r.material.name};
+ if(leerSt&&r.staerke.art==="eindeutig")v.staerke_mm=r.staerke.wert;
+ if(leerAb&&r.abwicklung.art==="eindeutig")v.abwicklung_mm=r.abwicklung.wert;
+ // Was erkannt wurde, aber nicht eindeutig ist: wird angezeigt, aber nie vorgeschlagen.
+ const unklar=[];
+ if(leerMat&&r.material.art==="mehrdeutig")unklar.push("Material mehrdeutig ("+r.material.namen.join(", ")+")");
+ if(leerSt&&(r.staerke.art==="mehrdeutig"||r.staerke.art==="unklar"))unklar.push("Stärke nicht eindeutig");
+ if(leerAb&&(r.abwicklung.art==="mehrdeutig"||r.abwicklung.art==="unklar"))unklar.push("Abwicklung nicht eindeutig");
+ return {vorschlag:v,unklar};
+}
+// Blechfläche als reine Vorschau: NUR bei Einheit Meter, Menge × Abwicklung (mm → m). Keine Rundung der Rechnung.
+function angMatEinheitArt(unit){
+ const u=String(unit==null?"":unit).trim().toLowerCase().replace(/\.$/,"");
+ if(u==="m")return "meter";
+ if(u==="m2"||u==="m²")return "flaeche";
+ return "andere";
+}
+function angBlechflaeche(p){
+ if(!p)return {status:"keine"};
+ const art=angMatEinheitArt(p.unit);
+ const menge=Number(p.quantity);
+ if(art==="flaeche"){
+  if(!(Number.isFinite(menge)&&menge>0))return {status:"keine_menge"};
+  return {status:"flaeche",m2:menge,hinweis:"Die Menge ist bereits eine Fläche."};
+ }
+ if(art!=="meter")return {status:"einheit"};
+ const abw=angMatZahl(p.abwicklung_mm,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX);
+ if(abw===null)return {status:"keine_abwicklung"};
+ if(!(Number.isFinite(menge)&&menge>0))return {status:"keine_menge"};
+ return {status:"meter",m2:menge*(abw/1000)};
+}
+// Eine Position für das Speichern bereinigen: nur gültige Materialfelder bleiben. material_id muss in der (RLS-gefilterten) Liste
+// der Firma vorkommen - ist die Liste leer/nicht geladen, bleibt sie unberührt (nichts löschen, was nicht geprüft werden kann).
+function angMatBereinigen(p,liste){
+ const q={...p};
+ const gueltig=Array.isArray(liste)&&liste.length>0;
+ if(q.material_id!==undefined&&q.material_id!==null&&q.material_id!==""){
+  if(gueltig&&!liste.some(m=>String(m.id)===String(q.material_id)))delete q.material_id;
+ }else delete q.material_id;
+ ["staerke_mm","abwicklung_mm"].forEach(k=>{
+  if(q[k]===undefined)return;
+  const [mi,ma]=k==="staerke_mm"?[ANG_MAT_STAERKE_MIN,ANG_MAT_STAERKE_MAX]:[ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX];
+  const n=angMatZahl(q[k],mi,ma);
+  if(n===null)delete q[k];else q[k]=n;
+ });
+ return q;
+}
+// ---- Ende Offertposition Materialdaten (rein)
+
 function angPositionZeileHtml(p,i,versteckt,sektionTitel){
  return `<tr${versteckt?' style="display:none"':""}${sektionTitel?` data-ang-sek-row="${esc(sektionTitel)}"`:""}>
 <td><input data-ang-pos="${i}" value="${esc(p.pos||"")}"></td>
@@ -166,9 +290,141 @@ function angPositionZeileHtml(p,i,versteckt,sektionTitel){
 <td><input data-ang-unit="${i}" value="${esc(p.unit||"")}"></td>
 <td><input data-ang-preis="${i}" type="number" step=".01" value="${p.preis||0}"></td>
 <td class="small" style="text-align:right;white-space:nowrap" data-ang-betrag="${i}">${money(angBetrag(p))}</td>
-<td style="white-space:nowrap"><button type="button" class="gray" data-ang-meas="${i}" style="padding:6px 8px" title="Massaufnahme aus dieser Position anlegen">📐</button><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
-</tr>`;
+<td style="white-space:nowrap"><button type="button" class="${angMatHatDaten(p)?"blue":"gray"}" data-ang-mat="${i}" style="padding:6px 8px" title="Materialdaten dieser Position (optional)">🧱</button><button type="button" class="gray" data-ang-meas="${i}" style="padding:6px 8px" title="Massaufnahme aus dieser Position anlegen">📐</button><button type="button" class="red" data-ang-del="${i}" style="padding:6px 8px">×</button></td>
+</tr>
+<tr data-ang-mat-row="${i}"${angMatOffen.has(i)?"":" hidden"}${versteckt?' style="display:none"':""}${sektionTitel?` data-ang-sek-row="${esc(sektionTitel)}"`:""}><td colspan="7">${angMatOffen.has(i)?angMatPanelHtml(p,i):""}</td></tr>`;
 }
+// ---- Offertposition: Materialfelder in der Oberfläche (v3.333) -----------------------------------------------------
+// Je Position ein einklappbarer Bereich unter der Zeile. Angesprochen wird die Position über ihren Platz in angPositions (nicht
+// über "pos": die Nummer kann doppelt oder leer sein). Vorschläge werden bei jedem Zeichnen NEU aus dem aktuellen Text gerechnet
+// und nie gespeichert; übernommen wird nur, was angehakt und ausdrücklich bestätigt wird.
+let angMatOffen=new Set();
+function angMatListe(){
+ return (typeof measurementMaterials!=="undefined"&&Array.isArray(measurementMaterials))?measurementMaterials:[];
+}
+function angMatZahlText(n){
+ return (n===undefined||n===null||n==="")?"":String(n).replace(".",",");
+}
+function angMatFlaecheText(p){
+ const r=angBlechflaeche(p);
+ const f=x=>x.toLocaleString("de-CH",{maximumFractionDigits:4});
+ if(r.status==="meter")return `Blechfläche (Vorschau): ${f(Number(p.quantity))} m × ${f(Number(p.abwicklung_mm)/1000)} m = <b>${f(r.m2)} m²</b>`;
+ if(r.status==="flaeche")return `Menge ist bereits eine Fläche: <b>${f(r.m2)} m²</b> (Abwicklung wird nicht zusätzlich gerechnet)`;
+ if(r.status==="einheit")return "Keine Flächenrechnung: die Einheit dieser Position ist nicht „m“ (Stunden, Pauschalen, Franken und Stück sind keine Blechfläche).";
+ if(r.status==="keine_abwicklung")return "Für die Blechfläche fehlt eine gültige Abwicklung.";
+ return "Für die Blechfläche fehlt eine gültige Menge.";
+}
+function angMatVorschlagHtml(p,i){
+ const v=angMatVorschlag(p,angMatListe());
+ const zeilen=[];
+ if(v.vorschlag.material)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="material" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.material.id)}"> Material: <b>${esc(v.vorschlag.material.name)}</b></label>`);
+ if(v.vorschlag.staerke_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="staerke_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.staerke_mm)}"> Stärke: <b>${esc(angMatZahlText(v.vorschlag.staerke_mm))} mm</b></label>`);
+ if(v.vorschlag.abwicklung_mm!==undefined)zeilen.push(`<label class="check-row"><input type="checkbox" data-ang-mat-vs="abwicklung_mm" data-ang-mat-i="${i}" data-ang-mat-wert="${esc(v.vorschlag.abwicklung_mm)}"> Abwicklung: <b>${esc(angMatZahlText(v.vorschlag.abwicklung_mm))} mm</b></label>`);
+ const unklar=v.unklar.length?`<div class="small muted">Nicht eindeutig, deshalb kein Vorschlag: ${esc(v.unklar.join(" · "))}</div>`:"";
+ if(!zeilen.length)return unklar;
+ return `<div class="small" style="margin-top:8px"><b>Vorschlag aus dem Positionstext</b> – nichts ist gespeichert, bis du es bestätigst:</div>
+${zeilen.join("")}
+<button type="button" class="gray" data-ang-mat-uebernehmen="${i}" style="margin-top:4px">Ausgewählte übernehmen</button>${unklar}`;
+}
+function angMatPanelHtml(p,i){
+ const liste=angMatListe();
+ const hatId=p.material_id!==undefined&&p.material_id!==null&&p.material_id!=="";
+ const bekannt=!hatId||liste.some(m=>String(m.id)===String(p.material_id));
+ const optionen=liste.map(m=>`<option value="${esc(m.id)}"${hatId&&String(m.id)===String(p.material_id)?" selected":""}>${esc(m.name)}</option>`).join("");
+ const warn=(!bekannt&&liste.length)?`<div class="small" style="color:var(--red)">Das gespeicherte Material gibt es in der Werkstoffliste dieser Firma nicht (mehr) – es wird beim Speichern entfernt.</div>`:"";
+ return `<div class="ang-mat" style="padding:8px 4px 10px">
+<div class="small muted" style="margin-bottom:6px">Optionale Materialdaten dieser Position (Werkstoff wie bei der Massaufnahme). Es wird nichts reserviert oder gebucht.</div>
+<div class="grid">
+<div><label>Material</label><select data-ang-mat-feld="material_id" data-ang-mat-i="${i}"><option value="">– kein Material –</option>${optionen}</select></div>
+<div><label>Blechstärke (mm)</label><input data-ang-mat-feld="staerke_mm" data-ang-mat-i="${i}" inputmode="decimal" placeholder="z. B. 0,6" value="${esc(angMatZahlText(p.staerke_mm))}"></div>
+<div><label>Abwicklung (mm)</label><input data-ang-mat-feld="abwicklung_mm" data-ang-mat-i="${i}" inputmode="decimal" placeholder="z. B. 500" value="${esc(angMatZahlText(p.abwicklung_mm))}"></div>
+</div>${warn}
+<div class="small" data-ang-mat-fehler="${i}" style="color:var(--red)"></div>
+<div class="small" data-ang-mat-flaeche="${i}" style="margin-top:6px">${angMatFlaecheText(p)}</div>
+<div data-ang-mat-vorschlag="${i}">${angMatVorschlagHtml(p,i)}</div>
+</div>`;
+}
+function angMatHatDaten(p){
+ return (p.material_id!==undefined&&p.material_id!==null&&p.material_id!=="")||p.staerke_mm!==undefined||p.abwicklung_mm!==undefined;
+}
+// Nur Vorschlag und Flächenzeile eines geöffneten Bereichs neu zeichnen (nach Änderung von Text, Menge, Einheit, Abwicklung).
+function angMatTeileAktualisieren(i){
+ const p=angPositions[i];
+ const box=$("angPositionsBody");
+ if(!p||!box)return;
+ const vs=box.querySelector(`[data-ang-mat-vorschlag="${i}"]`);
+ if(vs)vs.innerHTML=angMatVorschlagHtml(p,i);
+ const fl=box.querySelector(`[data-ang-mat-flaeche="${i}"]`);
+ if(fl)fl.innerHTML=angMatFlaecheText(p);
+}
+if($("angPositionsBody")){
+ $("angPositionsBody").addEventListener("click",e=>{
+  const tg=e.target.closest?e.target.closest("[data-ang-mat]"):null;
+  if(tg){
+   const i=Number(tg.dataset.angMat);
+   if(angMatOffen.has(i))angMatOffen.delete(i);else angMatOffen.add(i);
+   const zeile=$("angPositionsBody").querySelector(`[data-ang-mat-row="${i}"]`);
+   if(zeile){
+    zeile.hidden=!angMatOffen.has(i);
+    const zelle=zeile.firstElementChild;
+    if(angMatOffen.has(i)&&zelle&&!zelle.innerHTML.trim()&&angPositions[i])zelle.innerHTML=angMatPanelHtml(angPositions[i],i);
+   }
+   return;
+  }
+  const ok=e.target.closest?e.target.closest("[data-ang-mat-uebernehmen]"):null;
+  if(!ok)return;
+  const i=Number(ok.dataset.angMatUebernehmen);
+  const p=angPositions[i];
+  if(!p)return;
+  // Frisch aus dem aktuellen Text rechnen: stimmt der angezeigte Vorschlag nicht mehr, wird nichts übernommen.
+  const aktuell=angMatVorschlag(p,angMatListe()).vorschlag;
+  const gewaehlt=Array.from(ok.closest("[data-ang-mat-vorschlag]").querySelectorAll("[data-ang-mat-vs]")).filter(c=>c.checked);
+  let veraltet=false, uebernommen=0;
+  gewaehlt.forEach(c=>{
+   const k=c.dataset.angMatVs;
+   const soll=k==="material"?(aktuell.material?String(aktuell.material.id):null):(aktuell[k]!==undefined?String(aktuell[k]):null);
+   if(soll===null||soll!==c.dataset.angMatWert){veraltet=true;return}
+   if(k==="material")p.material_id=aktuell.material.id;else p[k]=aktuell[k];
+   uebernommen++;
+  });
+  if(veraltet)appAlert("Der Vorschlag passt nicht mehr zum aktuellen Positionstext. Es wurde nur übernommen, was noch stimmt.");
+  else if(!gewaehlt.length)appAlert("Bitte zuerst anhaken, was übernommen werden soll.");
+  if(uebernommen||veraltet){angMatOffen.add(i);renderAngPositionsTable()}
+ });
+ const feldAenderung=e=>{
+  const t=e.target;
+  if(!t.dataset||t.dataset.angMatFeld===undefined)return;
+  const i=Number(t.dataset.angMatI);
+  const p=angPositions[i];
+  if(!p)return;
+  const k=t.dataset.angMatFeld;
+  const fehler=$("angPositionsBody").querySelector(`[data-ang-mat-fehler="${i}"]`);
+  const meld=x=>{if(fehler)fehler.textContent=x};
+  if(k==="material_id"){
+   const id=t.value;
+   if(id===""){delete p.material_id;meld("")}
+   else{
+    const treffer=angMatListe().find(m=>String(m.id)===String(id));
+    if(treffer){p.material_id=treffer.id;meld("")}
+    else{delete p.material_id;t.value="";meld("Dieses Material gehört nicht zur Werkstoffliste der Firma – nicht gespeichert.")}
+   }
+  }else{
+   const leer=String(t.value).trim()==="";
+   const [mi,ma]=k==="staerke_mm"?[ANG_MAT_STAERKE_MIN,ANG_MAT_STAERKE_MAX]:[ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX];
+   const n=angMatZahl(t.value,mi,ma);
+   if(leer){delete p[k];meld("")}
+   else if(n===null){delete p[k];meld((k==="staerke_mm"?"Stärke":"Abwicklung")+": ungültig oder unplausibel (erlaubt "+angMatZahlText(mi)+" bis "+angMatZahlText(ma)+" mm) – nicht gespeichert.")}
+   else{p[k]=n;meld("")}
+  }
+  angMatTeileAktualisieren(i);
+  const knopf=$("angPositionsBody").querySelector(`[data-ang-mat="${i}"]`);
+  if(knopf)knopf.classList.toggle("blue",angMatHatDaten(p));
+ };
+ $("angPositionsBody").addEventListener("input",feldAenderung);
+ $("angPositionsBody").addEventListener("change",feldAenderung);
+}
+// ---- Ende Offertposition Materialfelder (Oberfläche)
+
 function renderAngPositionsTable(){
  if(!$("angPositionsBody"))return;
  if(!angPositions.length){
@@ -219,10 +475,12 @@ if($("angPositionsBody")){
   else if(e.target.dataset.angQty!==undefined){angPositions[i].quantity=Number(e.target.value)||0;mengenAenderung=true;}
   else if(e.target.dataset.angPreis!==undefined){angPositions[i].preis=Number(e.target.value)||0;mengenAenderung=true;}
   if(mengenAenderung)angAktualisiereBetrag(i);
+  // v3.333: Text/Menge/Einheit ändern Vorschlag und Flächenvorschau - alte Vorschläge verfallen, neue werden gerechnet.
+  if(angMatOffen.has(i))angMatTeileAktualisieren(i);
  });
  $("angPositionsBody").addEventListener("click",e=>{
   const del=e.target.closest("[data-ang-del]");
-  if(del){angPositions.splice(Number(del.dataset.angDel),1);renderAngPositionsTable();return}
+  if(del){angPositions.splice(Number(del.dataset.angDel),1);angMatOffen=new Set();renderAngPositionsTable();return}
   // v3.149: aus DIESER Position eine Massaufnahme - das gewohnte Formular,
   // vorbelegt. Vor dem Loeschen-Knopf abgefragt waere falsch herum, beide
   // sitzen in derselben Zelle und schliessen sich gegenseitig aus.
@@ -274,6 +532,7 @@ if($("angDeleteAllPositions")){
   if(!angPositions.length)return;
   if(!await appConfirm(`Wirklich alle ${angPositions.length} Position(en) löschen?`))return;
   angPositions=[];
+  angMatOffen=new Set();
   renderAngPositionsTable();
  };
 }
@@ -627,7 +886,8 @@ if($("saveAngebot")){
     date:$("angDate").value||new Date().toISOString().slice(0,10),
     photo_path:photoUrls[0]||null,
     photo_paths:photoUrls,
-    positions:angPositions,
+    // v3.333: nur gültige Materialfelder speichern (material_id muss zur Werkstoffliste der Firma gehören, Zahlen plausibel).
+    positions:angPositions.map(p=>angMatBereinigen(p,angMatListe())),
     pdf_path:pdfPath,
     pdf_name:pdfName
    };

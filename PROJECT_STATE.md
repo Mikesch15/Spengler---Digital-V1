@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.332`
+- Aktueller Entwicklungsstand: `v3.333`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.333 — Offertposition: optionale Materialdaten und bestätigungspflichtige Textvorschläge
+
+Auftrag des Anwenders (bestätigte Entscheidung nach `ABSCHLUSSBERICHT_Offerte-Materialbedarf.txt`): Positionen in `angebote.positions` (JSON) bekommen optional `material_id` (→ `measurement_materials` der Firma), `staerke_mm`, `abwicklung_mm`. Keine Migration, keine Edge Function, Import (js/17) unverändert; alte Positionen laden/speichern unverändert. js/63: reine Funktionen `angMatZahl` (Grenzen Stärke 0,05–10 mm, Abwicklung 5–3000 mm; 0/negativ/NaN/Text → ungültig), `angMatErkennen`/`angMatVorschlag` (deterministisch, nur Positionstext: Werkstoff nur als „Kupferblech/Walzblei…“ und genau ein Treffer; Stärke „Dicke mm 0,60“/„Stahlblech mm 0,87“; Abwicklung „Abwicklung mm 1'000“; mehrdeutig/unplausibel → kein Vorschlag; nie für bereits gefüllte Felder), `angBlechflaeche` (nur Einheit „m“: Menge × Abwicklung/1000; „m2“ = Menge ist die Fläche; alles andere keine Rechnung; reine Vorschau), `angMatBereinigen` (beim Speichern: nur gültige Felder, `material_id` muss in der RLS-gefilterten Werkstoffliste stehen). Oberfläche: Knopf 🧱 je Position öffnet einen Bereich unter der Zeile (Positionen werden über ihren Platz in der Liste angesprochen, nicht über `pos`); Vorschläge werden bei jedem Zeichnen neu gerechnet, sind unangehakt und werden nur per „Ausgewählte übernehmen“ übernommen (nochmals frisch geprüft). Keine Reservierung, Buchung, Massaufnahme-/Leistungsänderung; materials, lieferanten_artikel, lager_varianten, Regiematerial unberührt.
+Prüfstand `offert-material-v3-333` (86, vier Gegenproben/Mutationen erkannt); `angebote-v3-34` zählt Positionszeilen ohne Material-Bereiche. Live (Rollback, Nutzer-Impersonation): PETER-Admin sieht 8 Werkstoffe und ändert eigenes Angebot; Mitarbeiter ohne Offerten-Feature sieht 0 Angebote; Testfirma sieht nur eigene Werkstoffe, 0 fremde Angebote, ändert 0.
 
 ### v3.332 — Rüstblatt/Rüstliste lesen frisch aus der Datenbank
 
@@ -14,10 +19,6 @@ Rückmeldung: In der Massaufnahme stimmt der Zuschnitt, das Rüstblatt wird nich
 ### v3.331 — Rollenwahl der jeweiligen Massaufnahme bestimmt den Zuschnitt (Fehlerbehebung)
 
 Ursache der Rückmeldung „Neuberechnung nach Rollenanpassung funktioniert nicht“ (am Datensatz 120 gemessen: gespeichert `auswahl:[1000,670]`, aber Plan „1000 + 330 + 250 mm“): `ebaFormate()` → `ebaRollenFormate()` → `ebaRollenAktiv()` las immer die Wahl der Einlaufblech-Aufnahme (`ebA.rollenAuswahl`). Alle anderen Module (Dachfenster, Kamin, Kehle, Lukarne, Rinne, Freies Profil, Mauerabdeckung, Einfassung, Anschlussblech, Konisch) übergaben ihre eigene Wahl nur an die Anzeige/Speicherung – der Plan ignorierte sie (bestand schon vor v3.328). Fix: `ebaFormate({…,rollen:<Wahl des Moduls>})` → `ebaRollenFormate(sel)` in js/29 und den 10 Modul-Aufrufen; ohne `rollen` bleibt das alte Verhalten (Einlaufblech, Projekt-Zuschnitt js/49). Prüfstand `rollen-mischen-v3-328` Abschnitt G (46 gesamt; Gegenprobe: ohne den Fix rot). Gespeicherte Pläne mit nicht gewählten Rollen werden beim Lesen (v3.330) korrigiert.
-
-### v3.330 — Rollen nachträglich ändern wirkt in Rüstblatt/Rüstliste/Werkstatt/Material
-
-Rückmeldung: nachträglich geänderte verfügbare Rollen wurden nicht berücksichtigt. `zuNeuMischen` (js/33, aus `pmatPlanFuer`) rechnet jetzt jeden gespeicherten Rollenplan aus den JETZT gültigen Rollen neu: Blechlager der Firma (`zuLagerbreiten`) eingeschränkt auf die gespeicherte Wahl der Massaufnahme (`rollen.auswahl`, leer = ganzes Lager); ohne Lager die gespeicherten `breiten` ∩ Wahl. Gleiche Rollen wie beim Speichern und schon gemischt/nicht mischbar → gespeicherter Plan unverändert; passt keine Rolle → gespeicherter Plan bleibt. Nichts wird zurückgeschrieben. Prüfstand `rollen-mischen-v3-328` Abschnitt F (40 gesamt).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
