@@ -416,6 +416,12 @@ const RB_DRUCK_CSS=`
  .zu-nr{display:inline-block;border:.5pt solid #17202a;min-width:5mm;text-align:center;font-size:7.5pt;font-weight:700;padding:0 1.2mm;background:#fff;color:#17202a}
  .zu-st-mass,.zu-mass,.zu-anzahl{font-size:8pt;font-weight:700;white-space:nowrap}
  .zu-st-zusatz,.zu-zusatz{font-size:7pt;font-weight:600;color:#5b666e}
+ .zu-bilder{margin:2mm 0;padding:1.2mm 2mm;border:.5pt solid #b3bcc2;break-inside:avoid}
+ .zu-bilder-kopf{font-size:6.9pt;font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:1mm}
+ .zu-bilder-legende{font-weight:400;text-transform:none;letter-spacing:0;color:#5b666e}
+ .zu-bild{margin:1mm 0 2mm;break-inside:avoid}
+ .zu-bild figcaption{font-size:7pt;font-weight:700}
+ .zu-bild svg{display:block;width:100%;max-height:34mm;height:auto}
  .zu-nr.ze-ok{background:#17202a;color:#fff}
  .zu-nr.ze-ok::before{content:"✓ "}
  .ze-alle,.ze-stand,.medien-kachel,.rb-bilder,.ze-ein,.ze-aus-hinweis,.zu-abhak-hinweis{display:none !important}
@@ -512,7 +518,7 @@ async function rbProjektOeffnen(liste,opt){
  const alt=rbProjektAuswahl&&String(rbProjektAuswahl.projId)===String(projId)?rbProjektAuswahl.gewaehlt:null;
  const gewaehlt=new Set(ms.map(m=>String(m.id)).filter(id=>!alt||alt.has(id)));
  if(!gewaehlt.size)ms.forEach(m=>gewaehlt.add(String(m.id)));
- rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false};
+ rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false,rollen:null};
  rbOffenId=null;
  if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
  if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
@@ -529,10 +535,23 @@ function rbProjektZeichnen(){
  const koerper=$("ruestblattBody"), a=rbProjektAuswahl;
  if(!koerper||!a)return;
  const ms=rbProjektGewaehlt();
- rbProjektModus={liste:ms};
+ rbProjektModus={liste:ms,rollen:a.rollen};
+ // v3.337: Rollen für den gemeinsamen Zuschnitt separat wählbar. Ohne eigene Wahl (rollen=null) gilt je Massaufnahme ihre Wahl; angezeigt
+ // wird dann die Vereinigung dieser Wahlen (leer = das ganze Lager).
+ const lager=(typeof zuLagerbreiten==="function")?zuLagerbreiten():[];
+ const eigen=new Set();
+ ms.forEach(m=>{const r=(typeof pmatPlanRoh==="function")?pmatPlanRoh(m):null;((r&&r.auswahl)||[]).forEach(b=>eigen.add(Number(b)))});
+ const an=b=>a.rollen?a.rollen.indexOf(b)>=0:(eigen.size?eigen.has(b):true);
+ const rollenHtml=lager.length?`<div class="pzu-rollen" style="margin:6px 0">
+  <div class="pmat-unter">Rollen für den gemeinsamen Zuschnitt <span class="small muted">· ${a.rollen?"eigene Wahl für dieses Blatt":"Wahl der einzelnen Massaufnahmen"}</span></div>
+  <div class="small muted">Mehrere Rollen werden automatisch gemischt, wenn das Blech spart. Gilt nur für dieses Blatt.</div>
+  ${lager.map(b=>`<label style="display:inline-block;margin-right:12px"><input type="checkbox" data-rbp-rolle="${b}" ${an(b)?"checked":""}> ${b} mm</label>`).join("")}
+  ${a.rollen?'<button type="button" class="gray mz-klein" data-rbp-rollen-eigene="1">Wahl der Massaufnahmen verwenden</button>':""}
+ </div>`:"";
  const auswahl=`<div class="pzu-auswahl">
   <div class="pmat-unter">Massaufnahmen für das Rüstblatt <span class="small muted">· ${ms.length} von ${a.alle.length} ausgewählt</span></div>
   <div class="small muted">Nur Auswahl für dieses Blatt – sie ändert keine Massaufnahme und keinen Zuschnitt und wird nicht gespeichert. Abgeschlossene Massaufnahmen sind nicht aufgeführt.</div>
+  ${rollenHtml}
   <div class="bar" style="margin:6px 0">
    <button type="button" class="gray mz-klein" data-rbp-alle="1">Alle auswählen</button>
    <button type="button" class="gray mz-klein" data-rbp-keine="1">Auswahl aufheben</button>
@@ -548,7 +567,7 @@ function rbProjektZeichnen(){
  let ergebnis;
  if(!ms.length){ergebnis='<div class="small muted">Keine Massaufnahme ausgewählt.</div>'}
  else{
-  const rb=pzuProjektRuestblattHtml(ms);
+  const rb=pzuProjektRuestblattHtml(ms,{rollen:a.rollen});
   const einzel=ms.map(m=>`<details class="rb-einzel" style="margin:6px 0"><summary><b>${esc(rbTitel(m))}</b> <span class="small muted">${esc(pzuMatText(m))}</span></summary>${rbBlattHtml(m,{kopf:false,ausfuehrung:"ruesten"})}</details>`).join("");
   ergebnis=`<div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
 ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der ausgewählten Massaufnahmen hat Rollenstücke.</div>'}
@@ -563,6 +582,16 @@ ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der
  if(typeof zeMarkierungAuffrischen==="function")zeMarkierungAuffrischen(koerper);
 }
 document.addEventListener("change",e=>{
+ const rc=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-rolle]"):null;
+ if(rc&&rbProjektAuswahl){
+  const a=rbProjektAuswahl;
+  const alle=[...document.querySelectorAll("#ruestblattBody [data-rbp-rolle]")];
+  const gew=alle.filter(c=>c.checked).map(c=>Number(c.dataset.rbpRolle));
+  a.rollen=gew.length?gew:null;   // nie leer rechnen: keine Rolle gewählt = Wahl der Massaufnahmen
+  a.geaendert=false;
+  rbProjektZeichnen();
+  return;
+ }
  const cb=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-auswahl]"):null;
  if(!cb||!rbProjektAuswahl)return;
  const id=String(cb.dataset.rbpAuswahl);
@@ -594,11 +623,12 @@ function rbStandAuffrischen(){
 }
 
 document.addEventListener("click",e=>{
- const rbp=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-alle],#ruestblattBody [data-rbp-keine],#ruestblattBody [data-rbp-erstellen]"):null;
+ const rbp=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-alle],#ruestblattBody [data-rbp-keine],#ruestblattBody [data-rbp-erstellen],#ruestblattBody [data-rbp-rollen-eigene]"):null;
  if(rbp&&rbProjektAuswahl){
   const a=rbProjektAuswahl;
   if(rbp.hasAttribute("data-rbp-alle")){a.alle.forEach(m=>a.gewaehlt.add(String(m.id)));a.geaendert=true}
   else if(rbp.hasAttribute("data-rbp-keine")){a.gewaehlt.clear();a.geaendert=true}
+  else if(rbp.hasAttribute("data-rbp-rollen-eigene")){a.rollen=null;a.geaendert=true}
   else a.geaendert=false;
   rbProjektZeichnen();
   return;
@@ -611,7 +641,7 @@ document.addEventListener("click",e=>{
   return;
  }
  if(e.target.closest("#ruestblattDrucken")){
-  if(rbProjektModus)rbDruckenAufnahmen(rbProjektModus.liste,{gemeinsamFn:ms=>pzuProjektRuestblattHtml(ms).html});
+  if(rbProjektModus)rbDruckenAufnahmen(rbProjektModus.liste,{gemeinsamFn:ms=>pzuProjektRuestblattHtml(ms,{rollen:rbProjektModus.rollen}).html});
   else rbDrucken();
   return;
  }

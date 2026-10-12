@@ -459,6 +459,67 @@ function zuListeAbschnitteHtml(p){
   return `<div class="zu-abschnitt"><div class="zu-abschnitt-kopf">${esc(kopf)}</div>${zeilen}</div>`;
  }).join("");
 }
+// v3.337: Schnittbild - je Abschnitt ein Rechteck (Länge der Rolle, Breite = Rollenbreite), darin die Streifen und darin die Stücke
+// mit ihrer Nummer, in Schnittreihenfolge. Zeigt, wo welches Stück im Abschnitt liegt; abgehakte Stücke sind grün. Reine Anzeige aus
+// zuAlleStuecke() (dieselben Angaben wie die Liste), nichts wird gerechnet oder gespeichert. Stücke aus Resten stehen nicht im Abschnitt.
+function zuSchnittbildHtml(p){
+ if(!p||!p.gruppen&&p.art!=="stange")return "";
+ const alle=zuAlleStuecke(p).filter(x=>x.abschnitt!==undefined&&x.abschnitt!==null&&zuZahl(x.abLaenge)>0);
+ if(!alle.length)return "";
+ const stange=p.art==="stange";
+ const best=(p.moeglich||[])[0];
+ const mid=zuErledigtFuer(p);
+ const erledigt=x=>{
+  if(typeof zeIstErledigt!=="function")return false;
+  if(p.sammel)return x.quelleId!==undefined&&x.quelleId!==null&&zeIstErledigt(x.quelleId,x.origNr);
+  return mid!==null&&mid!==undefined&&zeIstErledigt(mid,x.nr);
+ };
+ const marke=x=>(p.sammel&&x.origNr!==undefined&&x.origNr!==null)?x.origNr:x.nr;
+ const bloecke=new Map();
+ alle.forEach(x=>{
+  if(!bloecke.has(x.abschnitt))bloecke.set(x.abschnitt,{L:zuZahl(x.abLaenge),rolle:zuZahl(x.rolle),streifen:new Map()});
+  const b=bloecke.get(x.abschnitt);
+  if(!b.streifen.has(x.strKey))b.streifen.set(x.strKey,{idx:x.strIdx||0,A:zuZahl(x.breite),st:[]});
+  b.streifen.get(x.strKey).st.push(x);
+ });
+ const reihenfolge=Array.from(bloecke.keys()).sort((a,b)=>a-b);
+ const W=1000;
+ const svg=reihenfolge.map(k=>{
+  const b=bloecke.get(k);
+  const zeilen=Array.from(b.streifen.values()).sort((x,y)=>x.idx-y.idx);
+  const summe=zeilen.reduce((s,z)=>s+z.A,0);
+  const B=stange?zuZahl(p.breite)||summe:(b.rolle||zuZahl(best&&best.breite)||summe);
+  const Bm=Math.max(B,summe,1);
+  const L=Math.max(b.L,zeilen.reduce((m,z)=>Math.max(m,z.st.reduce((s,x)=>s+zuZahl(x.laenge),0)),0),1);
+  const H=Math.max(70,Math.min(240,Math.round(W*Bm/L)));
+  const sx=W/L, sy=H/Bm;
+  let y=0, el="";
+  zeilen.forEach(z=>{
+   const h=z.A*sy;
+   let x0=0;
+   z.st.forEach(x=>{
+    const w=zuZahl(x.laenge)*sx, ok=erledigt(x), t=String(marke(x));
+    el+=`<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${ok?"#9fd3a8":"#dbe7f3"}" stroke="#17202a" stroke-width="1.5"/>`;
+    const fs=Math.max(12,Math.min(30,h*0.55,w/(t.length+0.6)));
+    if(w>=fs*0.9&&h>=12)el+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+    // Im gemeinsamen Plan tragen Stücke aus verschiedenen Massaufnahmen dieselbe Nummer: darunter steht die Herkunft.
+    if(p.sammel&&x.hinweis&&w>=60&&h>=40){
+     const hk=String(x.hinweis).slice(0,Math.max(4,Math.floor(w/11)));
+     el+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35+15).toFixed(1)}" font-size="13" text-anchor="middle" fill="#3d4850">${esc(hk)}</text>`;
+    }
+    x0+=w;
+   });
+   y+=h;
+  });
+  const rest=Bm-summe;
+  const rand=`<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#17202a" stroke-width="2.5"/>`;
+  const rst=(rest>0.5?`<rect x="0" y="${(summe*sy).toFixed(1)}" width="${W}" height="${(rest*sy).toFixed(1)}" fill="#f1f1f1" stroke="#9aa5ab" stroke-width="1" stroke-dasharray="6 4"/>`:"");
+  const kopf=stange?("Stange "+k):(zuWort(p).abschnitt+" "+k);
+  return `<figure class="zu-bild"><figcaption>${esc(kopf)} · ${esc(zuMm(Math.round(L)))} × ${esc(zuMm(Math.round(Bm)))} mm</figcaption>`
+   +`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}: Lage der Stücke">${rst}${el}${rand}</svg></figure>`;
+ }).join("");
+ return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild – wo welches Stück liegt <span class="zu-bilder-legende">(grün = bereits abgehakt)</span></div>${svg}</div>`:"";
+}
 function zuHerkunftNoetig(p){
  if(!p)return false;
  if(p.art==="stange")return (p.stangen||[]).length>=2;
@@ -538,6 +599,7 @@ function zuListeHtml(p,opt){
  }
  return `<div class="zu-liste">
 <div class="zu-liste-kopf">${esc(kopf)}</div>
+${(opt&&opt.herkunft)?zuSchnittbildHtml(p):""}
 ${(opt&&opt.herkunft&&zuHerkunftNoetig(p))?zuListeAbschnitteHtml(p):gruppen.map(g=>zuGruppenZeileHtml(g,p.einheit,p)).join("")}
 ${fuss?`<div class="zu-liste-fuss">${esc(fuss)}</div>`:""}
 ${zuAbhakenHinweis(p)}

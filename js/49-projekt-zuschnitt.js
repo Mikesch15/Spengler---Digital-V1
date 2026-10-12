@@ -52,16 +52,22 @@ function pzuStaerkeText(v){
  const n=Number(v);
  return (v===null||v===undefined||v===""||!Number.isFinite(n)||n<=0)?"":String(n).replace(".",",")+" mm";
 }
-function pzuGruppenKey(m){
+function pzuGruppenKey(m,ovr){
  const r=(typeof pmatPlanRoh==="function")?pmatPlanRoh(m):null;
  const d=(m&&m.data)||{};
  const form=(r&&r.form==="tafel")?"tafel":"rolle";
- const wahl=((r&&r.auswahl)||[]).map(Number).filter(x=>x>0).sort((a,b)=>a-b);
+ let wahl=((r&&r.auswahl)||[]).map(Number).filter(x=>x>0).sort((a,b)=>a-b);
+ // v3.337: im Projekt-Rüstblatt wählt man die Rollen für den gemeinsamen Zuschnitt separat (ovr); sie ersetzen die Wahl der Massaufnahme
+ // (Tafelmaterial hat keine Rollenwahl).
+ if(form==="rolle"&&Array.isArray(ovr)&&ovr.length)wahl=ovr.map(Number).filter(x=>x>0).sort((a,b)=>a-b);
  const st=Number(m&&m.staerke_mm);
  return {key:[String(d.material||""),Number.isFinite(st)&&st>0?String(st):"",form,wahl.join(",")].join("|"),
          form,wahl,staerke:Number.isFinite(st)&&st>0?st:null};
 }
-function pzuSammeln(liste){
+// opt.rollen: erlaubte Rollenbreiten für alle Gruppen (ersetzt die Wahl der Massaufnahmen). opt.ohneErledigte: bereits abgehakte Stücke
+// kommen nicht in den Plan, sondern in M.erledigt - ein Abschnitt soll nicht abgehakte und offene Stücke mischen (v3.337).
+function pzuSammeln(liste,opt){
+ opt=opt||{};
  const nachMaterial=new Map();
  const ohne=[];
  let nr=0;
@@ -77,7 +83,7 @@ function pzuSammeln(liste){
    if(d.rollen||d.zuschnitt)ohne.push({id:m.id,text:pzuQuelle(m),grund:"kein Zuschnitt im gespeicherten Plan"});
    return;
   }
-  const gk=pzuGruppenKey(m);
+  const gk=pzuGruppenKey(m,opt.rollen);
   const baseName=(typeof pmatMaterialName==="function")?pmatMaterialName((m.data||{}).material):"Ohne Material";
   const matName=[baseName,gk.staerke?pzuStaerkeText(gk.staerke):"",gk.form==="tafel"?"Tafeln":"",
                  gk.wahl.length?"Rollen "+gk.wahl.join("/")+" mm":""].filter(Boolean).join(" · ");
@@ -85,11 +91,15 @@ function pzuSammeln(liste){
   // damit die Merkmale des Lagerbestands nachschlaegt. Der Name allein
   // genuegt dafuer nicht.
   if(!nachMaterial.has(gk.key))nachMaterial.set(gk.key,
-    {material:matName,materialId:(m.data||{}).material||null,staerke:gk.staerke,form:gk.form,auswahl:gk.wahl,gruppen:[],quellen:new Map()});
+    {material:matName,materialId:(m.data||{}).material||null,staerke:gk.staerke,form:gk.form,auswahl:gk.wahl,gruppen:[],erledigt:[],quellen:new Map()});
   const M=nachMaterial.get(gk.key);
   M.quellen.set(m.id,m);
   stuecke.forEach(s=>{
    const breite=Number(s.breite)||0;
+   if(opt.ohneErledigte&&typeof zeIstErledigt==="function"&&zeIstErledigt(m.id,s.nr)){
+    M.erledigt.push({quelleId:m.id,origNr:s.nr,laenge:s.laenge,breite,merkmal:s.merkmal||"",hinweis:pzuQuelle(m)});
+    return;
+   }
    if(!(breite>0)){ohne.push({id:m.id,text:pzuQuelle(m),grund:"keine Streifenbreite gespeichert"});return}
    let g=M.gruppen.find(x=>x.breite===breite);
    if(!g){g={breite,stuecke:[]};M.gruppen.push(g)}
@@ -130,7 +140,7 @@ function pzuSammeln(liste){
   M.gruppen=M.gruppen.filter(g=>g.stuecke.length);
   M.quellen=[...M.quellen.values()];
   return M;
- }).filter(M=>M.gruppen.length)     // v3.335: eine Gruppe ohne verwertbares Stück (z. B. keine Streifenbreite gespeichert) ist keine Gruppe
+ }).filter(M=>M.gruppen.length||M.erledigt.length)     // v3.335: eine Gruppe ohne verwertbares Stück (z. B. keine Streifenbreite gespeichert) ist keine Gruppe
  .sort((a,b)=>a.material.localeCompare(b.material,"de"));
  return {materialien:raus,ohne};
 }
@@ -310,10 +320,10 @@ function pzuAuswahlHtml(alle){
 // Keine zweite Rechnung: gruppiert wird mit pzuSammeln (Werkstoff + Stärke + Form + Rollenwahl), gepackt mit ebaFormatPlan (js/29),
 // dargestellt mit zuListeHtml (js/33) samt Herkunft je Stück. Es wird NICHTS gespeichert, reserviert, gebucht oder abgehakt.
 // Zum Vergleich wird dieselbe Rechnung je Massaufnahme einzeln gemacht ("getrennt"); Zahlen nur, wo sie zuverlässig vorliegen.
-function pzuGetrenntFlaeche(M){
+function pzuGetrenntFlaeche(M,opt){
  let summe=0;
  for(const m of M.quellen){
-  const E=pzuSammeln([m]).materialien[0];
+  const E=pzuSammeln([m],opt).materialien[0];
   if(!E)return null;
   const b=pzuRollenPlan(E).bestes;
   if(!b||!Number.isFinite(Number(b.flaeche)))return null;
@@ -323,21 +333,19 @@ function pzuGetrenntFlaeche(M){
 }
 // v3.336: abgeschlossene (und archivierte) Massaufnahmen kommen auf kein Rüstblatt und in keine Rüstliste.
 function pzuRuestbar(m){return !!m&&m.workflow_status!=="abgeschlossen"&&m.archived!==true}
-function pzuProjektRuestblattHtml(liste){
+// opt.rollen: separat gewählte Rollenbreiten (null = die Wahl der einzelnen Massaufnahmen). Bereits abgehakte Stücke sind nicht Teil des
+// Plans (sie sind geschnitten) und stehen je Gruppe in einem eigenen Block „Bereits zugeschnitten“.
+function pzuProjektRuestblattHtml(liste,opt){
  const q=(liste||[]).filter(m=>m&&pzuRuestbar(m));
- const {materialien,ohne}=pzuSammeln(q);
+ const so={rollen:(opt&&Array.isArray(opt.rollen)&&opt.rollen.length)?opt.rollen:null,ohneErledigte:true};
+ const {materialien,ohne}=pzuSammeln(q,so);
  const qm=x=>(Number(x)).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
  const gruppen=materialien.map(M=>{
   const plan=pzuPlan(M);
-  const best=(plan.moeglich||[])[0];
+  const best=M.gruppen.length?(plan.moeglich||[])[0]:null;
   const zahlen=[];
-  // v3.336: wie viele Stücke dieser Gruppe in ihrer eigenen Massaufnahme schon als zugeschnitten abgehakt sind
-  let stGes=0, stOk=0;
-  M.gruppen.forEach(g=>(g.stuecke||[]).forEach(x=>{
-   if(x.quelleId===undefined||x.origNr===undefined)return;
-   stGes++; if(typeof zeIstErledigt==="function"&&zeIstErledigt(x.quelleId,x.origNr))stOk++;
-  }));
-  if(stGes)zahlen.push(`Bereits abgehakt: <b>${stOk} von ${stGes}</b> Stück`);
+  const nOff=M.gruppen.reduce((z,g)=>z+(g.stuecke||[]).length,0), nOk=(M.erledigt||[]).length;
+  if(nOk)zahlen.push(`Bereits abgehakt: <b>${nOk} von ${nOk+nOff}</b> Stück – nicht mehr im Plan`);
   if(best&&Number.isFinite(Number(best.flaeche))){
    zahlen.push(`Rolle: <b>${esc(typeof zuFormatText==="function"?zuFormatText(best,plan):"")}</b>`,
      `Blech: <b>${qm(best.flaeche)} m²</b>`);
@@ -345,20 +353,23 @@ function pzuProjektRuestblattHtml(liste){
   }
   let vergleich="";
   if(M.quellen.length>1&&best&&Number.isFinite(Number(best.flaeche))){
-   const getrennt=pzuGetrenntFlaeche(M);
+   const getrennt=pzuGetrenntFlaeche(M,so);
    if(getrennt!==null){
     const diff=getrennt-Number(best.flaeche);
     vergleich=`<div class="small">Einzeln gerechnet: ${qm(getrennt)} m² Blech · gemeinsam: ${qm(best.flaeche)} m² – `
       +(diff>1e-9?`<b>${qm(diff)} m² weniger</b>`:(diff<-1e-9?`gemeinsam ${qm(-diff)} m² mehr (keine Verbesserung)`:"kein Unterschied"))+`</div>`;
    }
   }
-  const liste=(typeof zuListeHtml==="function")?zuListeHtml(plan,{herkunft:true}):"";
-  const fehlt=(plan.zuSchmal||[]).length||(plan.zuLang||[]).length||(plan.zuKurz||[]).length||!best
-    ?`<div class="small" style="color:var(--red)">Für diese Gruppe passt keine hinterlegte Rolle bzw. kein Format – kein gemeinsamer Plan berechenbar.</div>`:"";
+  const liste=(M.gruppen.length&&typeof zuListeHtml==="function")?zuListeHtml(plan,{herkunft:true}):"";
+  const erl=(M.erledigt||[]).length?`<div class="pzu-erledigt"><div class="small"><b>Bereits zugeschnitten</b> (abgehakt, nicht mehr im Plan):</div>
+   <div class="zu-streifen-stuecke">${M.erledigt.map(x=>`<span class="zu-st"><span class="zu-nr zu-nr-ist ze-ok">${esc(x.origNr)}</span><span class="zu-st-mass">${esc(typeof zuMm==="function"?zuMm(Math.round(Number(x.laenge)||0)):x.laenge)} mm <span class="zu-st-zusatz">· ${esc(x.hinweis)}</span></span></span>`).join("")}</div></div>`:"";
+  const keinePlan=!M.gruppen.length?`<div class="small"><b>Alle Stücke dieser Gruppe sind bereits abgehakt</b> – nichts mehr zuzuschneiden.</div>`:"";
+  const fehlt=!M.gruppen.length?"":((plan.zuSchmal||[]).length||(plan.zuLang||[]).length||(plan.zuKurz||[]).length||!best
+    ?`<div class="small" style="color:var(--red)">Für diese Gruppe passt keine hinterlegte Rolle bzw. kein Format – kein gemeinsamer Plan berechenbar.</div>`:"");
   return `<div class="pzu-rb-gruppe">
    <div class="rb-kopf"><b>Gemeinsamer Zuschnitt · ${esc(M.material)}</b><span class="small">Vorschau · ${M.quellen.length} Massaufnahme${M.quellen.length===1?"":"n"}, gemeinsam optimiert</span></div>
    ${zahlen.length?`<div class="small">${zahlen.join(" · ")}</div>`:""}
-   ${vergleich}${fehlt}${liste}
+   ${vergleich}${fehlt}${keinePlan}${liste}${erl}
   </div>`;
  }).join("");
  const nicht=ohne.length?`<div class="small muted" style="margin-top:6px"><b>Nicht im gemeinsamen Plan:</b> ${esc(ohne.map(o=>o.text+" ("+o.grund+")").join(" · "))}</div>`:"";

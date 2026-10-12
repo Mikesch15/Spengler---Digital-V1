@@ -112,7 +112,7 @@ const tipp=async(page,sel,was)=>{
   const h=rbBlattHtml(m,{kopf:true});
   const d=document.createElement("div"); d.innerHTML=h;
   return {skizzen:[...d.querySelectorAll(".werk-skizze figcaption")].map(x=>x.textContent.trim().toLowerCase()),
-          svg:d.querySelectorAll("svg").length,
+          svg:d.querySelectorAll("svg:not(.zu-bild svg)").length,
           stuecke:d.querySelectorAll("[data-ze-nr]").length,
           kopf:(d.querySelector(".rb-kopf")||{}).textContent||"",
           text:d.textContent.replace(/\s+/g," ")};
@@ -127,7 +127,7 @@ const tipp=async(page,sel,was)=>{
  const A2=await page.evaluate(()=>{
   const m=werkZeilen.find(z=>z.id===12);      // Kehle: rechnet nur, keine Zeichnung
   const d=document.createElement("div"); d.innerHTML=rbBlattHtml(m);
-  return {leer:/keine Skizze/.test(d.textContent),svg:d.querySelectorAll("svg").length};
+  return {leer:/keine Skizze/.test(d.textContent),svg:d.querySelectorAll("svg:not(.zu-bild svg)").length};
  });
  p(A2.leer&&A2.svg===0,"eine Art ohne Zeichnung sagt das ausdruecklich",A2);
 
@@ -168,7 +168,7 @@ const tipp=async(page,sel,was)=>{
  await tipp(page,'#werkstattBody [data-rb-gross="11"]',"Gross ansehen");
  const D=await page.evaluate(()=>({
   offen:!$("ruestblattModal").hidden,
-  svg:$("ruestblattBody").querySelectorAll("svg").length,
+  svg:$("ruestblattBody").querySelectorAll("svg:not(.zu-bild svg)").length,
   stuecke:$("ruestblattBody").querySelectorAll("[data-ze-nr]").length,
   kopf:($("ruestblattBody").querySelector(".rb-kopf")||{}).textContent||"",
   eingaben:$("ruestblattBody").querySelectorAll("input:not([data-ze-nr]),textarea,select").length

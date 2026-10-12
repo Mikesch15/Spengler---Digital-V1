@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.336.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.337.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -362,6 +362,11 @@ Sie die Massaufnahmen aus (<i>Alle auswählen</i>, <i>Auswahl aufheben</i>,
 <i>Rüstblatt erstellen/aktualisieren</i>), darunter steht der gemeinsame
 Rollenzuschnitt als Vorschau – abgeschlossene Massaufnahmen fehlen, bereits
 geschnittene Stücke sind abgehakt – und von dort lässt es sich drucken.
+Die Rollen für den gemeinsamen Zuschnitt wählen Sie dort separat; mehrere
+Rollen werden automatisch gemischt, wenn das Blech spart. Bereits abgehakte
+Stücke stehen nicht im Plan, sondern in „Bereits zugeschnitten“. Jedes
+Rüstblatt hat ein <b>Schnittbild</b>: je Abschnitt eine Grafik, die zeigt, wo
+welches Stück liegt (grün = abgehakt).
 Es ist ein Blatt zum Mitnehmen mit Kästchen zum Abhaken von Hand. Das <b>🖨️</b> an einer Karte druckt dasselbe für nur diese eine
 Massaufnahme.
 
