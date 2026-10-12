@@ -1852,3 +1852,12 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .zu-st{display:inline-flex;align-items:center;gap:6px}
 .zu-st-mass{font-size:15px;font-weight:800;white-space:nowrap}
 .zu-st-zusatz{font-size:12px;font-weight:600;color:var(--muted)}
+
+/* ---- Ruestblatt als PDF drucken (v3.322): nur das Blatt, keine App-Oberflaeche ---- */
+.rb-druck{display:none}
+@media print{
+ body.rb-drucken>*{display:none !important}
+ body.rb-drucken>.rb-druck{display:block !important;background:#fff;color:#17202a}
+ body.rb-drucken .rb-druck button,body.rb-drucken .rb-druck .no-print{display:none !important}
+ body.rb-drucken .rb-druck img,body.rb-drucken .rb-druck svg{max-width:100%;break-inside:avoid}
+}

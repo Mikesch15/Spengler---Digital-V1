@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.321`
+- Aktueller Entwicklungsstand: `v3.322`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.322 — Rüstblatt als PDF drucken (Blitzanpassung, ohne Prüfstände/Regression auf Ansage des Anwenders)
+
+Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` kopiert das gezeigte Blatt in einen Druckbereich `#rbDruck` und ruft `window.print()` (Muster `abwDrucken`, js/78); `css/01-basis.css`: im Druck nur dieser Bereich. Schreibt nichts. **Nicht getestet** (weder Prüfstand noch Regression, ausdrücklicher Wunsch).
 
 ### v3.321 — Leistungsausführung: Statusvorschlag aus dem Montagefortschritt (nur Vorschlag)
 
@@ -18,12 +22,6 @@ Prüfstand: `pruefstand-leistung-vorschlag-v3-321` (48); Gegenprobe (Bedingung e
 
 Schliesst die Lücke Offerte → Massaufnahme → Leistung: bis v3.319 stand die Herkunft nur in der Notiz der Massaufnahme. Neu `leiAusOffertePositionen()` (js/65): je gewählter Position Leistung wiederverwenden (gleiche Offerte + Nummer, bei doppelter Nummer + Beschreibung) oder anlegen (Status offen, Menge/Einheit aus der Position, nur Zuordnung – Preise unberührt) und Massaufnahme per upsert verknüpfen. Mehrere passende Leistungen → übersprungen und gemeldet (nie geraten). Offerte ungespeichert → nur Massaufnahmen + Hinweis. Fehler bei Leistungen rollen die Massaufnahmen NICHT zurück; Meldung ehrlich. Auswahlfeld `angMeasLeistungen` (Standard an) im Dialog (index.html). Die Leistungsliste (js/65) nutzt für den „nicht zugeordnet"-Hinweis `projectMeasurementsCache` statt einer zweiten Abfrage; Prüfstand 151 angepasst (Fixture mit angebot_id). Keine Migration, keine Edge Function.
 Prüfstand: `pruefstand-offerte-leistungen-v3-320` (30).
-
-### v3.319 — Projekt-Leistungen: Zuordnung Offertenposition ↔ Leistung ↔ Massaufnahmen abgesichert
-
-Befund (vor der Änderung geprüft): Das Modell existiert bereits (`leistungen` mit `angebot_id`/`angebot_position`, `leistung_massaufnahmen` n:m mit Unique, RLS/tenant_boundary). Nachweisbare Lücken: (1) Position nur über Nummer gespeichert – leere/doppelte Nummern wählten beim Öffnen die falsche oder keine Position, beim nächsten Speichern ging die Zuordnung still verloren; (2) Speichern löschte ALLE Massaufnahme-Verknüpfungen und legte sie neu an (bei Fehler dazwischen weg); (3) DB erlaubte Verknüpfung mit Massaufnahme/Offerte aus anderem Projekt derselben Firma; (4) Offerte-Position ohne Nummer wurde als „Zusatzleistung“ angezeigt.
-Änderung: Migration `leistungen_zuordnung_integritaet` (Spalte `angebot_position_beschreibung`, Trigger `pruefe_leistung_massaufnahme`/`pruefe_leistung_angebot`, SECURITY INVOKER, idempotent); `js/65` Hilfsfunktionen `leiPositionFinden`/`leiHerkunftText`/`leiVerknuepfungsDiff`, Diff-Speichern (upsert, dann nur Entfernte löschen), Option „Bisherige Zuordnung beibehalten“, Anzeige Massaufnahmen-Zahl + Hinweis auf nicht zugeordnete (keine Zwangszuordnung); `js/70` nutzt `leiHerkunftText`. Preise/Mengen/Workflow unverändert. Live (Rollback-Tests mit Nutzer-Impersonation): gleiche Projekt ok, Duplikat/anderes Projekt/fremde Firma abgewiesen.
-Prüfstand: `pruefstand-leistungen-zuordnung-v3-319` (30), `pruefstand-leistungen-v3-37` angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

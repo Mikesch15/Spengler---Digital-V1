@@ -336,6 +336,21 @@ function rbAktionZeichnen(m,ausf){
  box.innerHTML=`<button type="button" class="blue" data-aufgabe="${esc(ausf)}" data-aufgabe-id="${esc(m.id)}">${esc(r.knopf)}</button>`;
 }
 
+// v3.322: Das Ruestblatt als PDF drucken ("Als PDF speichern" im Druckdialog). Eine Kopie des gerade gezeigten Blatts
+// kommt in einen Druckbereich; nur der wird gedruckt (gleiches Muster wie abwDrucken, js/78). Schreibt nichts.
+function rbDrucken(){
+ const quelle=$("ruestblattBody");
+ if(!quelle||!quelle.innerHTML.trim()){appAlert("Es ist kein Rüstblatt geöffnet.");return}
+ const alt=document.getElementById("rbDruck");if(alt)alt.remove();
+ const box=document.createElement("div");
+ box.id="rbDruck";box.className="rb-druck";
+ box.innerHTML=quelle.innerHTML;
+ document.body.appendChild(box);
+ document.body.classList.add("rb-drucken");
+ const weg=()=>{box.remove();document.body.classList.remove("rb-drucken");window.removeEventListener("afterprint",weg)};
+ window.addEventListener("afterprint",weg);
+ try{window.print()}catch(err){weg();appAlert("Das Drucken ist hier nicht möglich.")}
+}
 function rbZu(){
  const schirm=$("ruestblattModal");
  if(schirm)schirm.hidden=true;
@@ -361,6 +376,7 @@ document.addEventListener("click",e=>{
   rbGross(gross.getAttribute("data-rb-gross"),gross.getAttribute("data-rb-zurueck")||"");
   return;
  }
+ if(e.target.closest("#ruestblattDrucken")){ rbDrucken(); return }
  if(e.target.closest("#closeRuestblatt")){ rbZu(); return }
  if(e.target.closest("#ruestblattFormular")){
   const m=rbOffenId===null?null:rbFinde(rbOffenId);
