@@ -299,6 +299,8 @@ function rbGross(id,zurueck,opt){
  const schirm=$("ruestblattModal"), koerper=$("ruestblattBody");
  if(!schirm||!koerper)return false;
  rbOffenId=m.id;
+ rbProjektModus=null;
+ if($("ruestblattFormular"))$("ruestblattFormular").style.display="";
  rbZurueck=zurueck||"";
  const ausf=(opt&&opt.ausfuehrung)||"";
  rbZeichnen(m,ausf);
@@ -328,9 +330,9 @@ function rbZeichnen(m,ausf){
 async function rbFrischLesen(ids){
  try{
   const liste=(ids||[]).filter(x=>x!==undefined&&x!==null);
-  if(!liste.length||typeof sb==="undefined"||!sb||typeof sb.from!=="function")return;
+  if(!liste.length||typeof sb==="undefined"||!sb||typeof sb.from!=="function")return null;
   const {data,error}=await sb.from("measurements").select("*").in("id",liste);
-  if(error||!Array.isArray(data))return;
+  if(error||!Array.isArray(data))return null;
   data.forEach(z=>{
    let da=false;
    const quellen=[
@@ -342,7 +344,8 @@ async function rbFrischLesen(ids){
    if(rbExtern[String(z.id)]){Object.assign(rbExtern[String(z.id)],z);da=true}
    if(!da)rbExternMerken(z);
   });
- }catch(e){ /* ohne Verbindung: der bisherige Stand bleibt */ }
+  return data.map(z=>String(z.id));      // v3.335: welche Zeilen die Datenbank (unter RLS) wirklich geliefert hat
+ }catch(e){ /* ohne Verbindung: der bisherige Stand bleibt */ return null }
 }
 // v3.292: Der Bestaetigen-Knopf der Ausfuehrungsansicht. Er traegt dieselbe Marke wie in
 // der Werkstatt (data-aufgabe -> aufgabeAusfuehren, js/45): dieselbe Rueckfrage, derselbe
@@ -414,7 +417,7 @@ const RB_DRUCK_CSS=`
  .zu-st-zusatz,.zu-zusatz{font-size:7pt;font-weight:600;color:#5b666e}
  .ze-alle,.ze-stand,.medien-kachel,.rb-bilder,.ze-ein,.ze-aus-hinweis,.zu-abhak-hinweis{display:none !important}
 `;
-async function rbDokumentHtml(ms){
+async function rbDokumentHtml(ms,opt){
  let logoSrc="";
  try{ logoSrc=(typeof storageSignedUrl==="function"&&typeof logoUrl!=="undefined")?await storageSignedUrl(logoUrl):(typeof logoUrl!=="undefined"?logoUrl:"") }catch(e){ logoSrc="" }
  const erste=ms[0];
@@ -423,23 +426,25 @@ async function rbDokumentHtml(ms){
  const kopf=(typeof pdfKopfHtml==="function")?pdfKopfHtml({
   datensatz:alleGleich?erste:{project_id:null},projekt:alleGleich?p:null,
   bezeichnung:ms.length===1?(erste.title||""):"",dokumenttyp:"Rüstblatt",
-  unterart:ms.length===1?rbTitel(erste):ms.length+" Massaufnahmen",
+  unterart:(opt&&opt.gemeinsam)?"Projekt-Rüstblatt · "+ms.length+" Massaufnahmen":(ms.length===1?rbTitel(erste):ms.length+" Massaufnahmen"),
   datum:new Date().toISOString().slice(0,10),
   bearbeiter:(typeof currentProfile!=="undefined"&&currentProfile)?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
   logoSrc
  }):"";
- const seiten=ms.map((m,i)=>'<div class="rb-druck-seite">'+(i===0?kopf:"")+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
+ // v3.335 Projekt-Rüstblatt: erste Seite = Kopf + gemeinsamer Rollenzuschnitt (Vorschau), danach je Massaufnahme ihr Rüstblatt.
+ const gem=(opt&&opt.gemeinsam)?'<div class="rb-druck-seite">'+kopf+opt.gemeinsam+"</div>":"";
+ const seiten=gem+ms.map((m,i)=>'<div class="rb-druck-seite">'+((i===0&&!gem)?kopf:"")+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
  const foot=(typeof pdfFooterHtml==="function")?pdfFooterHtml(alleGleich?erste:null):"";
  return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seiten}${foot}</body></html>`;
 }
-async function rbDruckenAufnahmen(liste){
+async function rbDruckenAufnahmen(liste,opt){
  let ms=(liste||[]).filter(Boolean);
  if(!ms.length){appAlert("Es gibt nichts zu drucken.");return}
  // v3.332: vor dem Druck frisch lesen - gedruckt wird der aktuelle Stand, nicht ein alter Zwischenspeicher.
  await rbFrischLesen(ms.map(m=>m.id));
  ms=ms.map(m=>rbFinde(m.id)||m);
  let html;
- try{ html=await rbDokumentHtml(ms) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
+ try{ html=await rbDokumentHtml(ms,(opt&&typeof opt.gemeinsamFn==="function")?{gemeinsam:opt.gemeinsamFn(ms)}:undefined) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
  const alt=document.getElementById("rbDruckRahmen");if(alt)alt.remove();
  const fr=document.createElement("iframe");
  fr.id="rbDruckRahmen";fr.setAttribute("aria-hidden","true");
@@ -467,10 +472,51 @@ async function rbDruckenAufnahmen(liste){
  fr.srcdoc=html;
  document.body.appendChild(fr);
 }
+// v3.335: Projekt-Rüstblatt (Vorschau) - die ausgewählten Massaufnahmen eines Projekts gemeinsam: oben der gemeinsame Rollenzuschnitt
+// (js/49 pzuProjektRuestblattHtml), darunter je Massaufnahme ihr Einzel-Rüstblatt. Liest frisch (rbFrischLesen) und meldet Ids, die es
+// nicht (mehr) gibt oder die nicht zum geöffneten Projekt gehören; diese werden ignoriert. Schreibt nichts.
+let rbProjektModus=null;
+async function rbProjektOeffnen(liste){
+ const schirm=$("ruestblattModal"), koerper=$("ruestblattBody");
+ if(!schirm||!koerper||typeof pzuProjektRuestblattHtml!=="function")return false;
+ const projId=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+ let ms=(liste||[]).filter(Boolean);
+ const ids=ms.map(m=>String(m.id));
+ const gefunden=await rbFrischLesen(ids);
+ const hinweise=[];
+ if(gefunden!==null){
+  const fehlen=ids.filter(id=>gefunden.indexOf(id)<0);
+  if(fehlen.length){hinweise.push(fehlen.length+" Massaufnahme"+(fehlen.length===1?"":"n")+" gibt es nicht mehr oder sie ist für dich nicht sichtbar – ignoriert.");ms=ms.filter(m=>fehlen.indexOf(String(m.id))<0)}
+ }else hinweise.push("Ohne Verbindung: es wird der zuletzt geladene Stand gezeigt.");
+ ms=ms.map(m=>rbFinde(m.id)||m);
+ const fremd=ms.filter(m=>projId!==null&&String(m.project_id)!==String(projId));
+ if(fremd.length){hinweise.push(fremd.length+" Massaufnahme"+(fremd.length===1?"":"n")+" gehört nicht zu diesem Projekt – ignoriert.");ms=ms.filter(m=>fremd.indexOf(m)<0)}
+ if(!ms.length){appAlert("Keine der ausgewählten Massaufnahmen kann gezeigt werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):""));return false}
+ const rb=pzuProjektRuestblattHtml(ms);
+ const einzel=ms.map(m=>`<details class="rb-einzel" style="margin:6px 0"><summary><b>${esc(rbTitel(m))}</b> <span class="small muted">${esc(typeof pzuMatText==="function"?pzuMatText(m):"")}</span></summary>${rbBlattHtml(m,{kopf:false,ausfuehrung:"ruesten"})}</details>`).join("");
+ koerper.innerHTML=`<div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
+${hinweise.map(h=>`<div class="small" style="color:var(--red)">${esc(h)}</div>`).join("")}
+${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der ausgewählten Massaufnahmen hat Rollenstücke.</div>'}
+<h2 style="margin-top:12px">Einzelne Rüstblätter</h2>${einzel}`;
+ koerper.querySelectorAll("details.rb-einzel").forEach(d=>d.addEventListener("toggle",()=>{
+  if(!d.open)return;
+  if(typeof rsZuschneiden==="function")rsZuschneiden(d);
+  if(typeof medienThumbsAufloesen==="function")medienThumbsAufloesen(d);
+ }));
+ rbProjektModus={liste:ms};
+ rbOffenId=null;
+ if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
+ if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
+ schirm.hidden=false;
+ window.scrollTo(0,0);
+ return true;
+}
 function rbZu(){
  const schirm=$("ruestblattModal");
  if(schirm)schirm.hidden=true;
  rbOffenId=null;
+ rbProjektModus=null;
+ if($("ruestblattFormular"))$("ruestblattFormular").style.display="";
 }
 // Nach einem Haken nur die Zahl nachziehen, NICHT neu zeichnen - sonst
 // spraenge das Blatt unter dem Finger weg und die gerade angetippte Nummer
@@ -492,7 +538,11 @@ document.addEventListener("click",e=>{
   rbGross(gross.getAttribute("data-rb-gross"),gross.getAttribute("data-rb-zurueck")||"");
   return;
  }
- if(e.target.closest("#ruestblattDrucken")){ rbDrucken(); return }
+ if(e.target.closest("#ruestblattDrucken")){
+  if(rbProjektModus)rbDruckenAufnahmen(rbProjektModus.liste,{gemeinsamFn:ms=>pzuProjektRuestblattHtml(ms).html});
+  else rbDrucken();
+  return;
+ }
  if(e.target.closest("#closeRuestblatt")){ rbZu(); return }
  if(e.target.closest("#ruestblattFormular")){
   const m=rbOffenId===null?null:rbFinde(rbOffenId);

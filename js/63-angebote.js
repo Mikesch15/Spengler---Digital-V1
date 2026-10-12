@@ -121,7 +121,7 @@ async function loadProjectAngebote(projectId){
 <button class="red" data-del-project-angebot="${a.id}" title="Löschen">×</button>
 </div>
 </div>`;
- }).join(""):'<div class="empty">Noch keine Offerte zu diesem Projekt.</div>';
+ }).join("")+(typeof angMengenHtml==="function"?angMengenHtml(list,angMatListe()):""):'<div class="empty">Noch keine Offerte zu diesem Projekt.</div>';
  return list.length;
 }
 
@@ -337,6 +337,83 @@ function angMatBereinigen(p,liste){
   if(n===null)delete q[k];else q[k]=n;
  });
  return q;
+}
+// ---- Offertmengen (v3.335) -------------------------------------------------------------------------------------------
+// Gesamtmengen einer Offerte in m² und Stück - ausdrücklich OFFERTMENGEN: keine Massaufnahme-, Zuschnitt-, Ausmass- oder verrechneten
+// Mengen. Nur was die Positionen eindeutig hergeben:
+//  - Einheit m2/m²: die Menge ist die Fläche.
+//  - Einheit m: Fläche = Menge × bestätigte Abwicklung (Feld abwicklung_mm) / 1000. Eine nur im Text erkannte, nicht bestätigte
+//    Abwicklung zählt NICHT (wird als "wartet auf bestätigte Abwicklung" gezählt); eine Zusatzposition ohne eigene Abwicklung erzeugt
+//    keine Fläche.
+//  - Einheit St/Stk/Stück: nur Stücksumme. Alle anderen Einheiten (h, Fr, kg, lfm, leer …) werden nicht eingerechnet, nur gezählt.
+//  - Ungültige Menge (leer, 0, negativ, keine Zahl): nicht gerechnet, gezählt. Nichts wird geraten oder umgerechnet.
+function angMengenEinheit(unit){
+ const u=String(unit==null?"":unit).trim().toLowerCase().replace(/\.$/,"");
+ if(u==="m")return "meter";
+ if(u==="m2"||u==="m²")return "flaeche";
+ if(u==="st"||u==="stk"||u==="stück"||u==="stueck")return "stueck";
+ return "andere";
+}
+function angMengenUebersicht(positionen,liste){
+ const pos=Array.isArray(positionen)?positionen:[];
+ const gr=angMatGruppen(pos,liste);
+ const r={positionen:pos.length,flaeche_m2:0,stueck:0,flaecheAus:0,stueckAus:0,zusatzOhneFlaeche:0,wartetAufAbwicklung:0,
+          ohneAbwicklung:0,ungueltigeMenge:0,andere:{},nachMaterial:{}};
+ const mat=(p)=>{
+  const id=p&&p.material_id;
+  const m=(Array.isArray(liste)?liste:[]).find(x=>id!==undefined&&id!==null&&id!==""&&String(x.id)===String(id));
+  const k=m?String(m.name):"ohne Material";
+  if(!r.nachMaterial[k])r.nachMaterial[k]={flaeche_m2:0,stueck:0};
+  return r.nachMaterial[k];
+ };
+ pos.forEach((p,i)=>{
+  const art=angMengenEinheit(p&&p.unit);
+  const menge=Number(p&&p.quantity);
+  const gueltig=Number.isFinite(menge)&&menge>0&&!(typeof (p&&p.quantity)==="boolean");
+  if(art==="andere"){const k=String((p&&p.unit)||"").trim()||"(leer)";r.andere[k]=(r.andere[k]||0)+1;return}
+  if(!gueltig){r.ungueltigeMenge++;return}
+  if(art==="stueck"){r.stueck+=menge;r.stueckAus++;mat(p).stueck+=menge;return}
+  if(art==="flaeche"){r.flaeche_m2+=menge;r.flaecheAus++;mat(p).flaeche_m2+=menge;return}
+  // Meter
+  const abw=angMatZahl(p.abwicklung_mm,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX);
+  if(abw!==null){const f=menge*(abw/1000);r.flaeche_m2+=f;r.flaecheAus++;mat(p).flaeche_m2+=f;return}
+  const g=gr[i]||{rolle:"davor"};
+  if(g.rolle==="zusatz")r.zusatzOhneFlaeche++;
+  else if(g.rolle==="haupt")r.wartetAufAbwicklung++;
+  else r.ohneAbwicklung++;
+ });
+ r.vollstaendig=r.wartetAufAbwicklung===0&&r.ohneAbwicklung===0&&r.ungueltigeMenge===0;
+ return r;
+}
+// Anzeige für das Projekt: je Offerte eigene Summen; bei GENAU einer Offerte zugleich die Projektsumme. Bei mehreren Offerten wird NICHT
+// addiert (es ist nicht erkennbar, ob es Alternativen oder Revisionen derselben Leistung sind) - ein klarer Hinweis steht dabei.
+function angMengenHtml(offerten,liste){
+ const o=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
+ if(!o.length)return "";
+ const f=x=>Number(x).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
+ const n=x=>Number(x).toLocaleString("de-CH",{maximumFractionDigits:2});
+ const zeile=a=>{
+  const r=angMengenUebersicht(a.positions,liste);
+  const teile=[`Fläche <b>${f(r.flaeche_m2)} m²</b>`,`<b>${n(r.stueck)} Stück</b>`];
+  const hinw=[];
+  if(r.wartetAufAbwicklung)hinw.push(r.wartetAufAbwicklung+" Hauptposition"+(r.wartetAufAbwicklung===1?"":"en")+" in Metern wartet auf eine bestätigte Abwicklung");
+  if(r.ohneAbwicklung)hinw.push(r.ohneAbwicklung+" Meter-Position"+(r.ohneAbwicklung===1?"":"en")+" ohne Abwicklung");
+  if(r.ungueltigeMenge)hinw.push(r.ungueltigeMenge+" Position"+(r.ungueltigeMenge===1?"":"en")+" mit ungültiger Menge");
+  const andere=Object.keys(r.andere);
+  const rest=[];
+  if(r.zusatzOhneFlaeche)rest.push(r.zusatzOhneFlaeche+" Zusatzposition"+(r.zusatzOhneFlaeche===1?"":"en")+" ohne eigene Fläche");
+  if(andere.length)rest.push("andere Einheiten nicht eingerechnet: "+andere.map(k=>k+" ("+r.andere[k]+")").join(", "));
+  const mats=Object.keys(r.nachMaterial).filter(k=>k!=="ohne Material"||Object.keys(r.nachMaterial).length>1);
+  const matZeile=mats.length?`<div class="small muted">${mats.map(k=>esc(k)+": "+f(r.nachMaterial[k].flaeche_m2)+" m² · "+n(r.nachMaterial[k].stueck)+" Stück").join(" · ")}</div>`:"";
+  return `<div style="padding:3px 0"><b>${esc(a.title||"Ohne Bezeichnung")}</b>: ${teile.join(" · ")}
+${r.vollstaendig?"":`<span class="small" style="color:var(--red)"> – unvollständig: ${esc(hinw.join("; "))}</span>`}
+${rest.length?`<div class="small muted">${esc(rest.join(" · "))}</div>`:""}${matZeile}</div>`;
+ };
+ return `<div class="small ang-mengen" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)">
+<b>Offertmengen</b> <span class="muted">(nur aus den Offertpositionen – keine Massaufnahme-, Zuschnitt-, Ausmass- oder verrechneten Mengen)</span>
+${o.map(zeile).join("")}
+${o.length>1?`<div class="small muted">Mehrere Offerten: die Summen stehen je Offerte und sind nicht addiert, weil nicht erkennbar ist, welche gilt.</div>`:""}
+</div>`;
 }
 // ---- Ende Offertposition Materialdaten (rein)
 
