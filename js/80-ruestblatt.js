@@ -441,7 +441,8 @@ async function rbDokumentHtml(ms,opt){
   logoSrc
  }):"";
  // v3.335 Projekt-Rüstblatt: erste Seite = Kopf + gemeinsamer Rollenzuschnitt (Vorschau), danach je Massaufnahme ihr Rüstblatt.
- const gem=(opt&&opt.gemeinsam)?'<div class="rb-druck-seite">'+kopf+opt.gemeinsam+"</div>":"";
+ // Jede Rollengruppe des gemeinsamen Plans bekommt ihre eigene Seite (die erste trägt den Kopf), statt alles auf eine Seite zu stauchen.
+ const gem=(opt&&opt.gemeinsam)?String(opt.gemeinsam).split("<!--rb-seite-->").map((t,i)=>'<div class="rb-druck-seite">'+(i===0?kopf:"")+t+"</div>").join(""):"";
  const seiten=gem+ms.map((m,i)=>'<div class="rb-druck-seite">'+((i===0&&!gem)?kopf:"")+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
  // v3.336: bereits abgehakte Stücke sind auch im Druck abgehakt (das Dokument ist statisch, die Haken kommen aus dem Speicher).
  const seitenMitHaken=typeof zeIstErledigt==="function"
@@ -512,13 +513,18 @@ async function rbProjektOeffnen(liste,opt){
  if(fremd.length){hinweise.push(fremd.length+" Massaufnahme"+(fremd.length===1?"":"n")+" gehört nicht zu diesem Projekt – ignoriert.");ms=ms.filter(m=>fremd.indexOf(m)<0)}
  const zu=ms.filter(m=>!pzuRuestbar(m));
  if(zu.length){hinweise.push(zu.length+" abgeschlossene Massaufnahme"+(zu.length===1?"":"n")+" nicht aufgeführt.");ms=ms.filter(m=>pzuRuestbar(m))}
+ const ohnePlan=ms.filter(m=>!pzuHatPlan(m));
  ms=ms.filter(m=>pzuHatPlan(m));
  if(!ms.length){appAlert("Keine Massaufnahme dieses Projekts kann gerüstet werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):""));return false}
  if(typeof zeLaden==="function"){try{await zeLaden(ms.map(m=>m.id),true)}catch(e){}}
- const alt=rbProjektAuswahl&&String(rbProjektAuswahl.projId)===String(projId)?rbProjektAuswahl.gewaehlt:null;
- const gewaehlt=new Set(ms.map(m=>String(m.id)).filter(id=>!alt||alt.has(id)));
- if(!gewaehlt.size)ms.forEach(m=>gewaehlt.add(String(m.id)));
- rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false,rollen:null};
+ // Vorbelegung: die gespeicherte Auswahl des Projekts (projects.zuschnitt_ausschluss, Projekt-Zuschnitt) - nur gelesen, nie geschrieben.
+ // So gibt es keine zweite, widersprüchliche Quelle: wer dort Massaufnahmen abgewählt hat, startet hier ohne sie.
+ const proj=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects.find(x=>String(x.id)===String(projId)):null;
+ const ausschluss=new Set(((proj&&Array.isArray(proj.zuschnitt_ausschluss))?proj.zuschnitt_ausschluss:[]).map(String));
+ let gewaehlt=new Set(ms.map(m=>String(m.id)).filter(id=>!ausschluss.has(id)));
+ const vorAbgewaehlt=ms.length-gewaehlt.size;
+ if(!gewaehlt.size){gewaehlt=new Set(ms.map(m=>String(m.id)));}
+ rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false,rollen:null,ohnePlan,vorAbgewaehlt:gewaehlt.size<ms.length?vorAbgewaehlt:0};
  rbOffenId=null;
  if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
  if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
@@ -557,12 +563,14 @@ function rbProjektZeichnen(opt){
    <button type="button" class="gray mz-klein" data-rbp-keine="1">Auswahl aufheben</button>
    <button type="button" class="blue mz-klein" data-rbp-erstellen="1">📐 Rüstblatt erstellen/aktualisieren</button>
   </div>
+  ${a.vorAbgewaehlt?`<div class="small muted">Vorbelegt nach der Auswahl im Projekt-Zuschnitt (${a.vorAbgewaehlt} dort abgewählt) – hier frei änderbar, die gespeicherte Auswahl bleibt unverändert.</div>`:""}
   ${a.alle.map(m=>`<label class="pzu-auswahl-zeile" style="padding:4px 0">
     <input type="checkbox" data-rbp-auswahl="${esc(m.id)}" ${a.gewaehlt.has(String(m.id))?"checked":""}>
     <b>${esc(typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m))}</b>
     <span class="small muted">· ${esc(pzuMatText(m))} · ${esc(pzuStandText(m))}</span>
    </label>`).join("")}
-  ${a.geaendert?'<div class="small" style="color:var(--red)">Auswahl geändert – „Rüstblatt erstellen/aktualisieren“ tippen.</div>':""}
+  ${(a.ohnePlan||[]).length?`<div class="small" style="color:var(--red)">Ohne gespeicherten Zuschnitt, nicht im Blatt: ${esc(a.ohnePlan.map(m=>typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m)).join(" · "))}</div>`:""}
+  ${a.geaendert?'<div class="small" style="color:var(--red)">Auswahl geändert – das Blatt unten zeigt noch den alten Stand. „Rüstblatt erstellen/aktualisieren“ tippen.</div>':""}
  </div>`;
  let ergebnis;
  if(!ms.length){ergebnis='<div class="small muted">Keine Massaufnahme ausgewählt.</div>'}
@@ -659,6 +667,8 @@ document.addEventListener("click",e=>{
   return;
  }
  if(e.target.closest("#ruestblattDrucken")){
+  // Vorschau und Druck zeigen dasselbe: vor dem Druck wird die Vorschau auf den jetzigen Stand gebracht (Haken, Rollenwahl, Auswahl).
+  if(rbProjektModus&&rbProjektAuswahl)rbProjektZeichnen();
   if(rbProjektModus)rbDruckenAufnahmen(rbProjektModus.liste,{gemeinsamFn:ms=>pzuProjektRuestblattHtml(ms,{rollen:rbProjektModus.rollen}).html});
   else rbDrucken();
   return;

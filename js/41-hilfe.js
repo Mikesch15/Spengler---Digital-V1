@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.339.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.340.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -367,6 +367,7 @@ Rollen werden automatisch gemischt, wenn das Blech spart. Bereits abgehakte
 Stücke stehen nicht im Plan, sondern in „Bereits zugeschnitten“. Jedes
 Rüstblatt hat ein <b>Schnittbild</b>: je Abschnitt eine Grafik, die zeigt, wo
 welches Stück liegt (grün = abgehakt). Ein Stück im Schnittbild antippen hakt es ab, wie die Nummer in der Liste.
+Die Auswahl startet so, wie sie im Projekt-Zuschnitt gespeichert ist (hier frei änderbar, ohne sie zu verändern); Massaufnahmen ohne Zuschnitt werden genannt, fehlende Stärke oder fehlendes Material stehen dabei. Gedruckt wird genau, was die Vorschau zeigt, jede Rollengruppe auf einer eigenen Seite.
 Es ist ein Blatt zum Mitnehmen mit Kästchen zum Abhaken von Hand. Das <b>🖨️</b> an einer Karte druckt dasselbe für nur diese eine
 Massaufnahme.
 

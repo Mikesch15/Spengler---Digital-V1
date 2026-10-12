@@ -96,11 +96,20 @@ if(typeof COCKPIT_BEREICHE==="object"&&COCKPIT_BEREICHE){
 // keine Netzwerkanfrage aus, nicht nur eine leere Anzeige (dasselbe
 // Vorgehen wie cockpitMatZuStand()/pmSichtbarkeitAuffrischen() bei
 // abgeschalteten Projektmodulen, js/56/js/47).
+// v3.340: Offertmengen auf einen Blick im Arbeitsstand des Cockpits (nur aus Offertpositionen, klar beschriftet, nie addiert).
+function angMengenZeileSetzen(list){
+ const z=$("cockpitStandMengenZeile"), w=$("cockpitMengenStand");
+ if(!z||!w)return;
+ const t=(typeof angMengenKurz==="function")?angMengenKurz(list,angMatListe()):"";
+ z.hidden=!t||!offerteZugriff;
+ w.textContent=t;
+}
 async function loadProjectAngebote(projectId){
  const box=$("cockpitAngeboteBody");
  if(!offerteZugriff){
   if(box)box.innerHTML="";
   projectAngeboteCache=[];
+  angMengenZeileSetzen([]);
   return 0;
  }
  if(box)box.innerHTML='<div class="small">Lädt…</div>';
@@ -108,10 +117,12 @@ async function loadProjectAngebote(projectId){
  if(error){
   if(box)box.innerHTML=`<div class="small" style="color:var(--red)">Fehler: ${esc(error.message)}</div>`;
   projectAngeboteCache=[];
+  angMengenZeileSetzen([]);
   return undefined;
  }
  const list=data||[];
  projectAngeboteCache=list;
+ angMengenZeileSetzen(list);
  if(box)box.innerHTML=list.length?list.map(a=>{
   const zusatz=a.date?datumCH(a.date):"";
   return `<div class="report-row">
@@ -387,6 +398,24 @@ function angMengenUebersicht(positionen,liste){
 }
 // Anzeige für das Projekt: je Offerte eigene Summen; bei GENAU einer Offerte zugleich die Projektsumme. Bei mehreren Offerten wird NICHT
 // addiert (es ist nicht erkennbar, ob es Alternativen oder Revisionen derselben Leistung sind) - ein klarer Hinweis steht dabei.
+// v3.340: Anzeige-Teile einer Offerte. Ein Wert, der nicht berechnet werden konnte, steht als „nicht erfasst“ da - nie als 0.
+function angMengenTeile(r){
+ const f=x=>Number(x).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
+ const n=x=>Number(x).toLocaleString("de-CH",{maximumFractionDigits:2});
+ const offen=!!(r.wartetAufAbwicklung||r.ohneAbwicklung||r.ungueltigeMenge);
+ const flaeche=(r.flaeche_m2===0&&offen)?"nicht erfasst":f(r.flaeche_m2)+" m²";
+ const stueck=(r.stueck===0&&r.ungueltigeMenge&&!r.flaeche_m2)?"Stück nicht erfasst":n(r.stueck)+" Stück";
+ return {flaeche,stueck};
+}
+// Kurztext für die Arbeitsstand-Zeile im Cockpit: eine Offerte = ihre Summe, mehrere = nie addiert.
+function angMengenKurz(offerten,liste){
+ const o=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
+ if(!o.length)return "";
+ if(o.length>1)return o.length+" Offerten – je Offerte getrennt, nicht addiert";
+ const r=angMengenUebersicht(o[0].positions,liste);
+ const t=angMengenTeile(r);
+ return "Fläche "+t.flaeche+" · "+t.stueck+(r.vollstaendig?"":" (unvollständig)");
+}
 function angMengenHtml(offerten,liste){
  const o=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
  if(!o.length)return "";
@@ -394,7 +423,8 @@ function angMengenHtml(offerten,liste){
  const n=x=>Number(x).toLocaleString("de-CH",{maximumFractionDigits:2});
  const zeile=a=>{
   const r=angMengenUebersicht(a.positions,liste);
-  const teile=[`Fläche <b>${f(r.flaeche_m2)} m²</b>`,`<b>${n(r.stueck)} Stück</b>`];
+  const tt=angMengenTeile(r);
+  const teile=[`Fläche <b>${tt.flaeche}</b>`,`<b>${tt.stueck}</b>`];
   const hinw=[];
   if(r.wartetAufAbwicklung)hinw.push(r.wartetAufAbwicklung+" Hauptposition"+(r.wartetAufAbwicklung===1?"":"en")+" in Metern wartet auf eine bestätigte Abwicklung");
   if(r.ohneAbwicklung)hinw.push(r.ohneAbwicklung+" Meter-Position"+(r.ohneAbwicklung===1?"":"en")+" ohne Abwicklung");

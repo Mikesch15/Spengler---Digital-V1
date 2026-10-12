@@ -1,0 +1,41 @@
+ABSCHLUSSBERICHT v3.340 – Projektübersicht und Projekt-Rüstblatt
+Datum: 12.10.2026
+Ausgangscommit: c6e78e9 (v3.339, Pages success, Regression 180/180)
+Zielcommit: siehe unten („Commit/Deploy“) – wird nach dem Push eingetragen.
+Auftrag: XXL-Nachtauftrag Projektübersicht / Projekt-Rüstblatt (Komplettausmass ausdrücklich NICHT Teil; eigener Auftrag danach, v3.341).
+
+1. BESTANDSAUFNAHME (am Code festgestellt, nicht geraten)
+- Projektliste (js/09): Adresse als Titel, Zusatz (Name/Auftrags-Nr./Auftraggeber), Statusmarke, Suche, Status-/Art-Filter, Leerzustand – vorhanden.
+- Cockpit (js/24, index.html): Arbeitsstand-Zeilen (Anzahlen, nächster Schritt, Material & Zuschnitt, letzte Aktivität), Klappkarten, Rechte/Freigaben über bestehende Schalter – vorhanden.
+- Offertmengen (js/63, v3.335): nur tief in der Offerten-Karte; unberechenbare Werte standen als „0,00 m²“.
+- Projekt-Rüstblatt (js/80, js/49, js/33): Auswahl, Rollenwahl, Schnittbild, Abhaken – vorhanden (v3.335–v3.339).
+Echte Lücken: (A) kein Stand je Projekt in der Liste; Offertmengen nicht im Arbeitsstand; „0“ statt „nicht erfasst“. (B) Dialog-Auswahl unabhängig von der gespeicherten Projektauswahl; Massaufnahmen ohne Zuschnitt stillschweigend weggelassen; fehlende Stärke unmarkiert; Druck konnte von der Vorschau abweichen (Haken seit letztem Aktualisieren); alle Rollengruppen auf einer Druckseite.
+
+2. ÄNDERUNGEN (nur Erweiterungen, keine parallelen Systeme)
+A – Projektübersicht
+- js/09: dieselbe EINE Abfrage `measurements` (jetzt `project_id,type,workflow_status,archived`) füllt `projectMeasStand`. Je Projektkarte eine Zeile: „n Massaufnahmen · k offen (nicht abgeschlossen/archiviert) · z zu rüsten (nur bei eingeschaltetem Arbeitsablauf)“; „Noch keine Massaufnahme“; bei Ladefehler oder vor dem Laden steht nichts (kein erfundener Stand). CSS: css/05-ansicht2.css (.a2-pz-stand).
+- js/63 + index.html: `angMengenTeile`/`angMengenKurz` (rein); neue Arbeitsstand-Zeile „📏 Offertmengen“ (`cockpitStandMengenZeile`) nur mit Offerten-Freigabe: eine Offerte = ihre Summe, mehrere = „je Offerte getrennt, nicht addiert“. Nicht berechenbare Fläche/Stück: „nicht erfasst“ statt 0 (auch in der Karte). Tooltip grenzt die Quelle ab (keine Massaufnahme-, Zuschnitt-, Ausmass- oder verrechneten Mengen). Mengenlogik von v3.335 unverändert.
+B – Projekt-Rüstblatt
+- js/80: Auswahl wird aus `projects.zuschnitt_ausschluss` vorbelegt (nur gelesen, nie geschrieben; Hinweis „Vorbelegt nach der Auswahl im Projekt-Zuschnitt (n dort abgewählt)“) – so gibt es keine zweite, widersprüchliche Quelle. Massaufnahmen ohne gespeicherten Zuschnitt werden ausdrücklich genannt. Hinweis „Blatt zeigt noch den alten Stand“ nach Änderungen.
+- js/49: `pzuMatText` markiert „Material fehlt“ / „Stärke nicht erfasst“.
+- Druck = Vorschau: vor dem Druck wird die Vorschau auf den aktuellen Stand gebracht (Haken, Rollenwahl, Auswahl). Jede Rollengruppe bekommt eine eigene Druckseite (`<!--rb-seite-->`), die erste trägt den Kopf.
+- Unverändert (bereits korrekt und weiter geprüft): Gruppierung nach Werkstoff/Stärke/Form/Rollenwahl, unbekannte Stärke getrennt, Stangen nicht im Rollenplan, abgehakte Stücke nicht im Plan, Herkunft/Originalnummer, Rollenwahl nur für das Blatt.
+Keine Migration, keine RLS-/Edge-Function-Änderung, keine Änderung an lager_varianten/Lager/Regiematerial. Die drei Materiallisten bleiben getrennt (nur Werkstoffe der Massaufnahmen bzw. angMatListe = measurement_materials). Anzeige/Auswahl/Druck schreiben nichts.
+
+3. TESTS
+- Neuer Prüfstand `pruefstand-projektuebersicht-v3-340.js`: 39 Prüfungen (Offertmengen m²/m mit und ohne bestätigte Abwicklung/Stück/Zusatz/ungültig/mehrere Offerten; Projektliste: Stand je Karte, Ladefehler, Suche, Leerzustand, Titel ohne Adresse, Viewports 360/390/430/768 px ohne horizontales Scrollen; Cockpit-Zeile; Rüstblatt: Vorbelegung, ohne Zuschnitt, Stärke fehlt, Druck = Vorschau, Seiten je Gruppe, unbekannte Stärke/anderer Werkstoff getrennt, keine Schreibvorgänge).
+- Mutationsproben (alle erkannt): unbekannt als 0 (5 Fehlschläge); Offertmengen als „Komplettausmass“ bezeichnet (2); Status aus falschem Feld (1); Vorbelegung ignoriert (1); Druck ohne Vorschau-Abgleich (1); keine Seiten je Gruppe (1); fehlende Stärke unmarkiert (1); Stand leer (3). Die Mutationen zu Gruppierung, abgehakten Stücken, Rollenwahl, Herkunft und Schreibzugriffen aus dem Auftrag decken die Prüfstände `projekt-mengen-ruestblatt-v3-335`, `werkstatt-ruestblatt-auswahl-v3-336` und `ruestblatt-schnittbild-v3-337` ab (siehe deren Berichte; erneut grün).
+- Schnellprüfung vor dem Push: siehe „Commit/Deploy“.
+
+4. GRENZEN / NICHT GETAN
+- Offertmengen erscheinen nicht in der Projektliste (bräuchte eine Abfrage je Projekt).
+- Keine Live-, Handy- oder Tablet-Tests mit der echten App; Viewport-Prüfung nur im Testbrowser mit Attrappen.
+- Mehrere Offerten je Projekt: weiterhin je Offerte getrennt (kein Gültig-Kennzeichen auf `angebote`; wäre eine Migration).
+
+5. MANUELLE TESTSCHRITTE
+1) App neu laden (3.340). Projektliste: unter jeder Karte steht der Massaufnahme-Stand.
+2) Projekt öffnen, Arbeitsstand: Zeile „Offertmengen“ (nur mit Offerten-Freigabe und importierter Offerte).
+3) Werkstatt → „Rüstliste“ am Projekt: Auswahl ist wie im Projekt-Zuschnitt vorbelegt; Massaufnahmen ohne Zuschnitt werden genannt; Stück abhaken, Drucken: Druck zeigt dasselbe wie die Vorschau, jede Rollengruppe auf eigener Seite.
+
+6. COMMIT/DEPLOY
+(wird nach Push und Kontrolle ergänzt)

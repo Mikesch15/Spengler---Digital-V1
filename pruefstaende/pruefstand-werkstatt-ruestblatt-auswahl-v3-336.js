@@ -259,7 +259,7 @@ const MESS3=MESS.concat([{id:13,project_id:7,type:"einlaufblech_gerade",title:"D
  p(/rbProjektOeffnen\(g\.aufnahmen/.test(q51)&&/workflow_status!=="abgeschlossen"/.test(q51),"Werkstatt-Knopf ruft die Auswahl; Rückfall-Weg ohne Abgeschlossene");
  const q80=require("fs").readFileSync("js/80-ruestblatt.js","utf8");
  const blk=q80.slice(q80.indexOf("async function rbProjektOeffnen"),q80.indexOf("function rbZu()"));
- p(!/\.insert\(|\.update\(|\.upsert\(|\.rpc\(|sb\.from\([^)]*\)\.delete/.test(blk)&&!/zuschnitt_ausschluss|pzuAuswahlSpeichern/.test(blk),"Projekt-Rüstblatt schreibt nichts und speichert die Auswahl nicht");
+ p(!/\.insert\(|\.update\(|\.upsert\(|\.rpc\(|sb\.from\([^)]*\)\.delete/.test(blk)&&!/pzuAuswahlSpeichern|from\("projects"\)/.test(blk),"Projekt-Rüstblatt schreibt nichts und speichert die Auswahl nicht");
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await br.close();
  console.log("\nErgebnis: "+ok+" ok, "+fail+" fehlgeschlagen");

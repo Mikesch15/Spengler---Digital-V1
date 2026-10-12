@@ -280,7 +280,10 @@ async function pzuAuswahlSpeichern(ausschlussIds){
 function pzuMatText(m){
  const name=(typeof pmatMaterialName==="function")?pmatMaterialName(((m&&m.data)||{}).material):"";
  const st=pzuStaerkeText(m&&m.staerke_mm);
- return [name&&name!=="Ohne Material"?name:"",st].filter(Boolean).join(" · ")||"kein Material erfasst";
+ const hatName=!!name&&name!=="Ohne Material";
+ // v3.340: was fehlt, steht ausdrücklich da (nichts wird ergänzt oder geraten)
+ if(!hatName&&!st)return "kein Material erfasst";
+ return [hatName?name:"Material fehlt",st||"Stärke nicht erfasst"].join(" · ");
 }
 function pzuStandText(m){
  if(!pzuHatPlan(m))return "noch kein Zuschnitt";
@@ -371,7 +374,7 @@ function pzuProjektRuestblattHtml(liste,opt){
    ${zahlen.length?`<div class="small">${zahlen.join(" · ")}</div>`:""}
    ${vergleich}${fehlt}${keinePlan}${liste}${erl}
   </div>`;
- }).join("");
+ }).join("<!--rb-seite-->");
  const nicht=ohne.length?`<div class="small muted" style="margin-top:6px"><b>Nicht im gemeinsamen Plan:</b> ${esc(ohne.map(o=>o.text+" ("+o.grund+")").join(" · "))}</div>`:"";
  return {html:gruppen+nicht,gruppen:materialien.length,ohne:ohne.length};
 }

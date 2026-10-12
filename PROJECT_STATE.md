@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.339`
+- Aktueller Entwicklungsstand: `v3.340`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.340 — Projektübersicht informativer, Projekt-Rüstblatt vervollständigt
+
+Auftrag „XXL-Nachtauftrag Projektübersicht/Projekt-Rüstblatt“ (Komplettausmass ausdrücklich später). Bestandsaufnahme: Projektliste (js/09) und Cockpit-Arbeitsstand (js/24) hatten schon Adresse, Status, Suche, Filter und Schrittzeile; echte Lücken waren (A) kein Stand je Projekt in der Liste, Offertmengen nur tief in der Karte, „0“ statt „nicht erfasst“; (B) Vorbelegung vs. gespeicherte Projektauswahl, Massaufnahmen ohne Zuschnitt stillschweigend ausgelassen, fehlende Stärke unmarkiert, Druck konnte von der Vorschau abweichen, alle Gruppen auf einer Seite. Umsetzung: js/09 – dieselbe EINE Abfrage `measurements` (jetzt `project_id,type,workflow_status,archived`) füllt `projectMeasStand`; Zeile je Karte „n Massaufnahmen · k offen (nicht abgeschlossen/archiviert) · z zu rüsten (nur bei eingeschaltetem Arbeitsablauf)“, bei Ladefehler nichts. js/63 – `angMengenTeile`/`angMengenKurz` (rein): unberechenbare Fläche/Stück „nicht erfasst“ statt 0; Cockpit-Zeile „Offertmengen“ (`cockpitStandMengenZeile`, nur mit Offerten-Freigabe, mehrere Offerten nie addiert). js/80/js/49 – Auswahl vorbelegt aus `projects.zuschnitt_ausschluss` (nur gelesen, nie geschrieben), „Ohne gespeicherten Zuschnitt, nicht im Blatt: …“, „Material fehlt“/„Stärke nicht erfasst“, Hinweis „Blatt zeigt noch den alten Stand“, Druck bringt die Vorschau vorher auf den jetzigen Stand (Druck = Vorschau), je Rollengruppe eine Druckseite (`<!--rb-seite-->`). Keine Migration, keine RLS-/Edge-Änderung, nichts wird geschrieben. Nicht gemacht: Offertmengen in der Projektliste (bräuchte eine Abfrage je Projekt), Live-/Gerätetests.
+Prüfstand `projektuebersicht-v3-340` (39); acht Mutationen (unbekannt als 0, Komplettausmass-Etikett, Status aus falschem Feld, Vorbelegung ignoriert, Druck ohne Abgleich, keine Seiten je Gruppe, Stärke unmarkiert, Stand leer) erkannt.
 
 ### v3.339 — Abhaken im Schnittbild
 
@@ -14,11 +19,6 @@ Auftrag: „es muss da auch abgehakt werden können“. `zuSchnittbildHtml` (js/
 ### v3.338 — Projekt-Rüstblatt: Rückmeldung beim Aktualisieren
 
 Rückmeldung (Handy): „Knopf erstellen/aktualisieren geht nicht“. Ursache: das Blatt steht unter der langen Auswahlliste, ein Neuzeichnen mit gleichem Ergebnis war nicht zu sehen. Fix (js/80): Klick springt zum Blatt (`#rbpErgebnis`) und hängt „aktualisiert HH:MM“ an; Checkboxen der Auswahl/Rollen in Normalgrösse (css/01, global sind sie riesig). Keine Logikänderung am Plan. Prüfstand `werkstatt-ruestblatt-auswahl-v3-336` um die Bestätigung erweitert (26).
-
-### v3.337 — Schnittbild in jedem Rüstblatt, Rollenwahl und Plan ohne abgehakte Stücke
-
-Rückmeldung zu v3.336: (1) Im Projekt-Rüstblatt sollen die Rollen separat wählbar sein, und mehrere Rollen sollen gemischt werden; (2) abgehakte und offene Stücke dürfen nicht im selben Abschnitt stehen; (3) jedes Rüstblatt soll eine Grafik haben, wo welches Stück im Abschnitt liegt. Umsetzung: (1) `rbProjektAuswahl.rollen` (nur Speicher, Standard = Wahl der Massaufnahmen): Checkboxen der Lagerrollen (`zuLagerbreiten`) im Dialog (js/80), `pzuSammeln(liste,{rollen})`/`pzuGruppenKey(m,ovr)` ersetzen die Wahl der Massaufnahmen für alle Rollengruppen (Tafel ausgenommen), gerechnet wird weiter mit `ebaFormatPlan` (Mischung automatisch wie in js/29); Druck nimmt dieselbe Wahl. (2) `pzuSammeln(liste,{ohneErledigte:true})` nimmt abgehakte Stücke aus dem Plan (`M.erledigt`); sie stehen je Gruppe im Block „Bereits zugeschnitten“, Stand „n von m – nicht mehr im Plan“, sind alle abgehakt kommt eine Meldung. Nur im Projekt-Rüstblatt; die Einzelblätter zeigen den gespeicherten Plan der Massaufnahme unverändert. (3) `zuSchnittbildHtml(p)` (js/33), eingebunden in `zuListeHtml(..,{herkunft:true})` (Einzel- und Projekt-Rüstblatt, App und Druck): je Abschnitt ein Rechteck (Länge × Rollenbreite), darin Streifen und Stücke mit Nummer in Schnittreihenfolge, abgehakt grün, im gemeinsamen Plan mit Herkunft; Reststücke fehlen im Bild (stehen in der Liste). Reine Anzeige, nichts wird gespeichert.
-Prüfstand `ruestblatt-schnittbild-v3-337` (18); fünf Mutationen (Erledigte im Plan, Rollenwahl ignoriert, Bild fehlt, Haken-Farbe, Druck ohne Rollenwahl) erkannt. Angepasst: `ruestblatt-v3-211` (zählt Zeichnungen ohne Schnittbild).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

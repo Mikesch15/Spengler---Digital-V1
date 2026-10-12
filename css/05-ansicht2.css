@@ -172,6 +172,7 @@ html.dark .a2-karte-hinweis{background:var(--blue-light)}
 .a2-zeile-text{flex:1;min-width:0}
 .a2-zeile-text b{display:block;font-size:14px;font-weight:700}
 .a2-zeile-text span{display:block;font-size:12px;color:var(--muted)}
+.a2-zeile-text .a2-pz-stand{color:var(--ink);font-weight:600}
 .a2-zeile-pfeil{flex:none;color:var(--line);font-size:19px;font-weight:800}
 
 /* ---- Aufgabenkarte (Heute) ---------------------------------------------- */

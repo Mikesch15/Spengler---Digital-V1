@@ -199,17 +199,35 @@ function renderProjectStatusFilter(list){
 // selbst zwischen zwei Ladevorgaengen nicht "live" ist.
 let projectMeasTypen=null;
 let projectMeasTypenLaedt=false;
+// v3.340: dieselbe EINE Abfrage liefert auch den Stand je Projekt (Anzahl, davon offen = nicht abgeschlossen/archiviert, zu rüsten).
+// null = nicht geladen oder fehlgeschlagen: dann steht in der Karte nichts (kein erfundener Stand).
+let projectMeasStand=null;
+function projektStandZeile(id){
+ if(!projectMeasStand)return "";
+ const s=projectMeasStand.get(id);
+ if(!s)return "Noch keine Massaufnahme";
+ const teile=[s.gesamt+" Massaufnahme"+(s.gesamt===1?"":"n")];
+ if(s.offen<s.gesamt)teile.push(s.offen?s.offen+" offen":"alle abgeschlossen");
+ if(s.zuRuesten&&typeof mwAktiv==="function"&&mwAktiv())teile.push(s.zuRuesten+" zu rüsten");
+ return teile.join(" · ");
+}
 async function ladeProjectMeasTypen(){
  if(projectMeasTypen||projectMeasTypenLaedt)return;
  projectMeasTypenLaedt=true;
  try{
-  const {data,error}=await sb.from("measurements").select("project_id,type");
+  const {data,error}=await sb.from("measurements").select("project_id,type,workflow_status,archived");
   if(error)throw error;
-  const map=new Map();
+  const map=new Map(), stand=new Map();
   (data||[]).forEach(m=>{
    if(!map.has(m.project_id))map.set(m.project_id,new Set());
    map.get(m.project_id).add(m.type);
+   if(!stand.has(m.project_id))stand.set(m.project_id,{gesamt:0,offen:0,zuRuesten:0});
+   const s=stand.get(m.project_id);
+   s.gesamt++;
+   if(m.workflow_status!=="abgeschlossen"&&m.archived!==true)s.offen++;
+   if(m.workflow_status==="zu_ruesten")s.zuRuesten++;
   });
+  projectMeasStand=stand;
   projectMeasTypen=map;
   renderProjectList();
  }catch(err){
@@ -298,7 +316,8 @@ function renderProjectList(){
   const marken=(st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:"")
    +(p.archived?'<span class="a2-marke a2-m-grau">🗄 Archiviert</span>':"")
    +(p.wartet?'<span class="a2-marke a2-m-orange">📤 Wartet auf die Übertragung</span>':"");
-  const text=`<span class="a2-zeile-text"><b>${esc(titel)}</b><span>${esc(zusatz)}</span></span>`;
+  const stand=projektStandZeile(p.id);
+  const text=`<span class="a2-zeile-text"><b>${esc(titel)}</b><span>${esc(zusatz)}</span>${stand?`<span class="a2-pz-stand">${esc(stand)}</span>`:""}</span>`;
   return `<div class="project-row a2-pz${p.archived?" project-row-archiviert":""}">
 ${p.wartet?`<div class="a2-zeile a2-zeile-still">${text}<span class="a2-pz-marken">${marken}</span></div>
 <div class="small" style="color:var(--muted);margin:0 2px 4px">Massaufnahmen, Ausmasse und Rapporte lassen sich schon jetzt dazu erfassen – sie warten mit. Öffnen, Bearbeiten, Archivieren und Löschen geht erst nach der Übertragung.</div>`
