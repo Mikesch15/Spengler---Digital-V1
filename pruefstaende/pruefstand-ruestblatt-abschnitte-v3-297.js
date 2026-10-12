@@ -21,6 +21,10 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  await stubSchuetzen(page); await page.addInitScript(STUB);
  await page.goto("file://"+path.join(process.cwd(),"index.html"));
  await page.waitForFunction(()=>typeof rbBlattHtml==="function"&&typeof zuHerkunftNoetig==="function");
+ // v3.328–330: gespeicherte Rollenpläne werden beim Lesen aus den jetzt gültigen Rollen neu gerechnet (zuNeuMischen).
+ // Dieser Prüfstand prüft die DARSTELLUNG eines gespeicherten Plans (Abschnitt → Streifen → Stück) - die Neuberechnung ist
+ // in pruefstand-rollen-mischen-v3-328 geprüft und wird hier abgeschaltet.
+ await page.evaluate(()=>{window.zuNeuMischen=undefined});
  const r=await page.evaluate(()=>{
   measurementMaterials=[{id:2,name:"Titanzink"}];
   window.zeAbhakenMoeglich=()=>true;   // Abhaken eingeschaltet (Untermodul "zuschnitt")
