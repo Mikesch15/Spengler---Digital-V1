@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.337`
+- Aktueller Entwicklungsstand: `v3.338`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.338 — Projekt-Rüstblatt: Rückmeldung beim Aktualisieren
+
+Rückmeldung (Handy): „Knopf erstellen/aktualisieren geht nicht“. Ursache: das Blatt steht unter der langen Auswahlliste, ein Neuzeichnen mit gleichem Ergebnis war nicht zu sehen. Fix (js/80): Klick springt zum Blatt (`#rbpErgebnis`) und hängt „aktualisiert HH:MM“ an; Checkboxen der Auswahl/Rollen in Normalgrösse (css/01, global sind sie riesig). Keine Logikänderung am Plan. Prüfstand `werkstatt-ruestblatt-auswahl-v3-336` um die Bestätigung erweitert (26).
 
 ### v3.337 — Schnittbild in jedem Rüstblatt, Rollenwahl und Plan ohne abgehakte Stücke
 

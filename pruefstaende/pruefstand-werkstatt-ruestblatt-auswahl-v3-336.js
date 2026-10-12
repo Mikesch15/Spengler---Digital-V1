@@ -185,6 +185,7 @@ const MESS3=MESS.concat([{id:13,project_id:7,type:"einlaufblech_gerade",title:"D
  await page.evaluate(()=>{document.querySelector("#ruestblattBody [data-rbp-erstellen]").click()});
  t2=await page.evaluate(()=>({t:$("ruestblattBody").textContent.replace(/\s+/g," "),modus:rbProjektModus.liste.map(m=>m.id).sort(),einzel:document.querySelectorAll("#ruestblattBody details.rb-einzel").length}));
  p(JSON.stringify(t2.modus)==="[11,13]"&&t2.einzel===2&&!/Kehle West/.test(t2.t.split("Einzelne")[1])&&!/Gemeinsamer Zuschnitt · Kupfer/.test(t2.t),"aktualisieren: nur die 2 ausgewählten (11, 13); Kehle West/Kupfer nicht im Blatt",t2.modus);
+ p(await page.evaluate(()=>/aktualisiert \d\d:\d\d/.test(document.querySelector("#rbpErgebnis .rb-kopf").textContent)),"„erstellen/aktualisieren“ zeigt sichtbar, dass aktualisiert wurde (und springt zum Blatt)");
  await page.evaluate(()=>{document.querySelector("#ruestblattBody [data-rbp-keine]").click()});
  t2=await page.evaluate(()=>({t:$("ruestblattBody").textContent.replace(/\s+/g," "),n:rbProjektModus.liste.length}));
  p(t2.n===0&&/0 von 3 ausgewählt/.test(t2.t)&&/Keine Massaufnahme ausgewählt/.test(t2.t),"Auswahl aufheben: leer, klare Meldung",t2.t.slice(0,200));

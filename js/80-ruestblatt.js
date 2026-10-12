@@ -531,7 +531,7 @@ function rbProjektGewaehlt(){
  const a=rbProjektAuswahl;
  return a?a.alle.filter(m=>a.gewaehlt.has(String(m.id))):[];
 }
-function rbProjektZeichnen(){
+function rbProjektZeichnen(opt){
  const koerper=$("ruestblattBody"), a=rbProjektAuswahl;
  if(!koerper||!a)return;
  const ms=rbProjektGewaehlt();
@@ -557,7 +557,7 @@ function rbProjektZeichnen(){
    <button type="button" class="gray mz-klein" data-rbp-keine="1">Auswahl aufheben</button>
    <button type="button" class="blue mz-klein" data-rbp-erstellen="1">📐 Rüstblatt erstellen/aktualisieren</button>
   </div>
-  ${a.alle.map(m=>`<label class="pzu-auswahl-zeile" style="display:block;padding:4px 0">
+  ${a.alle.map(m=>`<label class="pzu-auswahl-zeile" style="padding:4px 0">
     <input type="checkbox" data-rbp-auswahl="${esc(m.id)}" ${a.gewaehlt.has(String(m.id))?"checked":""}>
     <b>${esc(typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m))}</b>
     <span class="small muted">· ${esc(pzuMatText(m))} · ${esc(pzuStandText(m))}</span>
@@ -569,9 +569,9 @@ function rbProjektZeichnen(){
  else{
   const rb=pzuProjektRuestblattHtml(ms,{rollen:a.rollen});
   const einzel=ms.map(m=>`<details class="rb-einzel" style="margin:6px 0"><summary><b>${esc(rbTitel(m))}</b> <span class="small muted">${esc(pzuMatText(m))}</span></summary>${rbBlattHtml(m,{kopf:false,ausfuehrung:"ruesten"})}</details>`).join("");
-  ergebnis=`<div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
+  ergebnis=`<div id="rbpErgebnis"><div class="rb-kopf"><b>Projekt-Rüstblatt</b><span class="small">${ms.length} Massaufnahme${ms.length===1?"":"n"} · Vorschau – nichts wird gespeichert, reserviert oder gebucht</span></div>
 ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der ausgewählten Massaufnahmen hat Rollenstücke.</div>'}
-<h2 style="margin-top:12px">Einzelne Rüstblätter</h2>${einzel}`;
+<h2 style="margin-top:12px">Einzelne Rüstblätter</h2>${einzel}</div>`;
  }
  koerper.innerHTML=auswahl+(a.hinweise||[]).map(h=>`<div class="small" style="color:var(--red)">${esc(h)}</div>`).join("")+ergebnis;
  koerper.querySelectorAll("details.rb-einzel").forEach(d=>d.addEventListener("toggle",()=>{
@@ -580,6 +580,17 @@ ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der
   if(typeof medienThumbsAufloesen==="function")medienThumbsAufloesen(d);
  }));
  if(typeof zeMarkierungAuffrischen==="function")zeMarkierungAuffrischen(koerper);
+ // Das Blatt steht unter der Auswahl: nach „erstellen/aktualisieren“ dorthin springen und die Aktualisierung bestätigen,
+ // sonst sieht man auf dem Handy nichts passieren (die Auswahl ist lang).
+ if(opt&&opt.springen){
+  const z=koerper.querySelector("#rbpErgebnis");
+  if(z){
+   const t=new Date().toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+   const k=z.querySelector(".rb-kopf .small");
+   if(k)k.textContent+=" · aktualisiert "+t;
+   try{z.scrollIntoView({behavior:"smooth",block:"start"})}catch(e){z.scrollIntoView()}
+  }
+ }
 }
 document.addEventListener("change",e=>{
  const rc=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-rolle]"):null;
@@ -630,7 +641,7 @@ document.addEventListener("click",e=>{
   else if(rbp.hasAttribute("data-rbp-keine")){a.gewaehlt.clear();a.geaendert=true}
   else if(rbp.hasAttribute("data-rbp-rollen-eigene")){a.rollen=null;a.geaendert=true}
   else a.geaendert=false;
-  rbProjektZeichnen();
+  rbProjektZeichnen({springen:rbp.hasAttribute("data-rbp-erstellen")});
   return;
  }
  const bild=e.target.closest("#ruestblattBody [data-medien-gross]");
