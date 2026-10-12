@@ -1,0 +1,58 @@
+ABSCHLUSSBERICHT – Offerte → Materialbedarf (12.10.2026)
+
+1. COMMITS / VERSION
+Ausgangspunkt: 9570c85 (v3.332, main; GitHub Prüfstände + Pages dort success). Es wurde BEWUSST KEIN Code geändert und keine
+Version erhöht (reine Analyse laut Auftrag Abschnitt 6). Geändert sind nur Doku-Dateien (dieser Bericht, Zeile im Roadmap-Abgleich).
+
+2. BEFUND (am echten Code und an der Live-Datenbank gemessen, nur lesend)
+a) Datenmodell Offerte (Tabelle angebote, importierte/erfasste Offerten): Positionen als JSON in angebote.positions mit genau
+   diesen Feldern: pos, abschnitt, description (Freitext), quantity, unit, preis. KEIN Feld für Material, Artikel, Stärke,
+   Abwicklung oder Form. Dasselbe in offerten.positionen (Regieofferte). js/63 (Editor/Import) kennt kein Material-Feld.
+b) Leistungen (leistungen, leistung_massaufnahmen) tragen ebenfalls kein Material (nur Bezeichnung, Menge, Einheit als Text).
+c) Material steht in der Offerte nur im Freitext. Messung an den 3 vorhandenen Offerten (244 Positionen):
+   - Offerte 13 (112 Positionen): nur 21 nennen überhaupt ein Werkstoffwort (Kupfer 8, Zink 8, Blei 4); bei 91 Positionen steht
+     das Material nicht in der Position (steht bei der ersten Position einer Gruppe oder in der Abschnittsüberschrift).
+   - 61 Positionen nennen „Abwicklung mm …“ im Text (nötig, um aus Metern Blech zu rechnen), aber nie als Feld.
+   - Einheiten: Fr, h, m, m2, St, Stk – Arbeitsstunden und Pauschalen sind kein Material; m ist die Länge des fertigen Profils,
+     nicht die Blechfläche (Blech = Länge × Abwicklung, Stärke nur im Text).
+   - Doppelte Positionsnummern 3 je Offerte, 1 Position ohne Nummer.
+d) Die drei Materiallisten sind getrennt und bleiben es: measurement_materials (Werkstoffarten der Massaufnahme, 8 Namen,
+   ohne Stärke/Form), materials (Regie/Regiematerial; lieferanten_artikel.material_id zeigt auf materials), lieferanten_artikel
+   (439 Handelsartikel). Zwischen Offertposition und einer dieser Listen gibt es keine Verknüpfung.
+e) Bestehende Teilfunktion: Der Materialbedarf eines Projekts wird bereits aus den MASSAUFNAHMEN abgeleitet (js/48 Projektmaterial,
+   js/49 projektweiter Zuschnitt, js/56 Material & Zuschnitt, js/50 Reservierung). „Massaufnahmen ableiten“ (js/63, v3.149/v3.320)
+   erzeugt aus Offertpositionen Massaufnahmen und Leistungen, setzt aber kein Material.
+
+3. ENTSCHEIDUNG
+Aus dem Offertbestand lässt sich KEIN belastbarer Materialbedarf ableiten: keine strukturierte Materialzuordnung, keine
+Stärke/Abwicklung als Feld, Mengen in gemischten Einheiten. Eine Zuordnung aus dem Freitext wäre geraten (Auftrag Abschnitt 4).
+Eine reine „Vorschau der vorhandenen Daten“ (Summen je Einheit) wäre ohne Material kein Materialbedarf und führt zu
+Missverständnissen – deshalb nichts Halbfertiges gebaut. Bestehende Offerten, Leistungen, Massaufnahmen, Reservierungen und
+Zuschnittdaten, Lager, Regiematerial: unverändert. Keine Migration, keine Edge Function, keine RLS-Änderung.
+
+4. KONKRETER VORSCHLAG (kleinste sichere Lösung, braucht eine Entscheidung)
+Schritt 1 (Datenfeld): Offertposition bekommt optionale Felder in angebote.positions (JSON, keine Migration nötig):
+  material_id (Verweis auf measurement_materials der Firma), staerke_mm, abwicklung_mm. Gesetzt von Hand im Positions-Editor
+  per Auswahl; für Positionen ohne Feld bleibt alles wie heute.
+Schritt 2 (Hilfe, nie automatisch): Im Editor zeigt die App neben leeren Feldern einen Vorschlag aus dem Text
+  („Text nennt ‚Kupferblech‘, ‚Dicke mm 0,60‘, ‚Abwicklung mm 1'000‘ – übernehmen?“). Übernommen wird nur per Klick.
+Schritt 3 (Vorschau): In der bestehenden Projektmaterial-Ansicht (js/48) eine ausdrücklich als „aus Offerte, noch nicht
+  aufgenommen“ gekennzeichnete Zeilengruppe: nur Positionen mit gesetztem Material UND vergleichbarer Einheit
+  (m2 direkt; m × Abwicklung → m2; Stk/h/Fr nie), jede Zeile mit Offerte/Position als Herkunft; reine Vorschau, keine Reservierung,
+  keine Buchung, keine Änderung an Massaufnahmen. Ist eine Massaufnahme zur Position schon da (Verknüpfung über Leistung,
+  v3.319–320), zählt die Massaufnahme, nicht die Offerte (keine Doppelzählung).
+Schritt 4 (optional): „Massaufnahmen ableiten“ übernimmt Material/Stärke aus der Position in die neue Massaufnahme (als
+  Vorbelegung, vom Anwender bestätigt).
+
+5. DIE EINE FRAGE
+Soll ich Schritt 1 und 2 umsetzen (Material, Stärke, Abwicklung als optionale Felder der Offertposition, mit Textvorschlag nur
+zum Bestätigen) – und gilt für „m“-Positionen: Blechfläche = Länge × Abwicklung (m²)?
+
+6. TESTS / DEPLOY
+Keine Codeänderung, daher keine neuen Prüfstände und keine neue Regression (Stand 9570c85: volle Regression grün, GitHub success).
+Alle Abfragen waren lesend (execute_sql select). Nicht live getestet: nichts Neues – es gibt keine neue Funktion.
+
+── Stand ──
+✅ Fertig: Analyse und Bericht im Repo; bewusst keine Funktion gebaut (Material fehlt als Feld der Offertposition)
+⏳ Läuft: nichts
+❓ Von dir: Entscheidung über Schritt 1+2 (Material/Stärke/Abwicklung als optionale Felder der Offertposition) und die Regel „m × Abwicklung = m²“
