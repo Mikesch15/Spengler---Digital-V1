@@ -34493,3 +34493,7 @@ Prüfstand: `pruefstand-leistung-vorschlag-v3-321` (48); Gegenprobe (Bedingung e
 ### v3.322 — Rüstblatt als PDF drucken (Blitzanpassung, ohne Prüfstände/Regression auf Ansage des Anwenders)
 
 Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` kopiert das gezeigte Blatt in einen Druckbereich `#rbDruck` und ruft `window.print()` (Muster `abwDrucken`, js/78); `css/01-basis.css`: im Druck nur dieser Bereich. Schreibt nichts. **Nicht getestet** (weder Prüfstand noch Regression, ausdrücklicher Wunsch).
+
+### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
+
+`rbDrucken()` (js/80) baut das Blatt frisch mit `rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})` (Zeichnung, alle Masse, Zuschnittliste, Baustellenangaben; ohne Fotos), hängt es sichtbar ausserhalb des Bildschirms ein und schneidet die Zeichnung zu (`rsZuschneiden`), dann Druck. Nur mit Playwright-Druckvorschau (PDF gerendert, Schnittzeichnung + Masse sichtbar) geprüft; keine Prüfstände, keine Regression.

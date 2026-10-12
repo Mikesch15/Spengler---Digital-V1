@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.325`
+- Aktueller Entwicklungsstand: `v3.326`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.326 — Rüstblatt-/Rüstlisten-Druck im Layout der übrigen Dokumente (Blitzanpassung, ohne Prüfstände/Regression)
+
+`rbDruckenAufnahmen` (js/80) baut jetzt ein eigenes Dokument (`rbDokumentHtml`: `pdfKopfHtml` mit Logo/Projekt, `PDF_LAYOUT_CSS`, `RB_DRUCK_CSS` im PDF-Schriftmass, `pdfFooterHtml`, Seitenzahl) und druckt es aus einem unsichtbaren iframe (`srcdoc`, Zeichnungen per `rsZuschneiden` zugeschnitten); je Massaufnahme eine Seite. Die Bildschirm-Druckregeln `#rbDruck` aus v3.322–325 sind entfernt. Per gerendertem PDF geprüft (2 Seiten für 2 Massaufnahmen); keine Prüfstände/Regression.
 
 ### v3.325 — Rüstliste druckt das volle Rüstblatt (Blitzanpassung, ohne Prüfstände/Regression)
 
@@ -14,10 +18,6 @@ Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Pop
 ### v3.324 — Rüstblatt-PDF: Stück-Nummern je Streifen sichtbar (Blitzanpassung, ohne Prüfstände/Regression)
 
 Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern der Zuschnittliste (`.zu-nr`) sind Knöpfe. Jetzt nur noch `.ze-alle`, `.ze-stand`, Foto-Kacheln und `.no-print` ausgeblendet, `.zu-nr` als Nummer im Rahmen. Per Druckvorschau mit eingefügter Beispielstruktur geprüft; keine Prüfstände/Regression.
-
-### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
-
-`rbDrucken()` (js/80) baut das Blatt frisch mit `rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})` (Zeichnung, alle Masse, Zuschnittliste, Baustellenangaben; ohne Fotos), hängt es sichtbar ausserhalb des Bildschirms ein und schneidet die Zeichnung zu (`rsZuschneiden`), dann Druck. Nur mit Playwright-Druckvorschau (PDF gerendert, Schnittzeichnung + Masse sichtbar) geprüft; keine Prüfstände, keine Regression.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

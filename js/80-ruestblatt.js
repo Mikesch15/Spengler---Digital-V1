@@ -343,26 +343,85 @@ function rbDrucken(){
  if(!m){appAlert("Es ist kein Rüstblatt geöffnet.");return}
  rbDruckenAufnahmen([m]);
 }
-// v3.325: Eine oder mehrere Massaufnahmen als Rüstblätter drucken (je Massaufnahme eine neue Seite). Auch die "Rüstliste" der
-// Werkstatt (js/58) druckt darüber: Schnittzeichnung, alle Masse, Zuschnittliste nach Abschnitt/Streifen/Stück, Baustellenangaben.
-function rbDruckenAufnahmen(liste){
+// v3.326: Druck im Aufbau und Aussehen der uebrigen Dokumente (PDF_LAYOUT_CSS, Kopf mit Logo, Abschnittsbalken, Fusszeile,
+// Seitenzahl), Schrift im PDF-Mass. Gedruckt wird ein eigenes Dokument in einem unsichtbaren Rahmen (kein Popup, keine
+// Bildschirm-Stile): je Massaufnahme eine Seite mit Zeichnung, allen Massen, Zuschnittliste (Abschnitt/Streifen/Stueck),
+// Baustellenangaben. Auch die "Ruestliste" der Werkstatt (js/58) druckt darueber.
+const RB_DRUCK_CSS=`
+ .rb-druck-seite+.rb-druck-seite{break-before:page;page-break-before:always}
+ .rb-blatt{margin:0}
+ .rb-kopf{background:#17202a;color:#fff;padding:1.6mm 2.4mm;margin:4mm 0 2.5mm;display:flex;gap:4mm;align-items:baseline;flex-wrap:wrap}
+ .rb-kopf b{font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+ .rb-kopf .small{font-size:7pt;color:#d7dde1}
+ .rb-info{display:grid;grid-template-columns:30mm 1fr;gap:.6mm 3mm;font-size:8pt;margin:0 0 2mm}
+ .rb-info dt{font-size:6pt;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6b757c;align-self:center}
+ .rb-info dd{margin:0;font-weight:700}
+ .a2-hinweis{border:.5pt solid #b3bcc2;padding:1.5mm 2.4mm;margin:2mm 0;font-size:7.5pt}
+ .a2-hinweis b{display:block;font-size:7pt;text-transform:uppercase;letter-spacing:.06em}
+ .a2-h-warnung{border-color:#c0392b;color:#7a1f14}
+ .werk-skizzen{display:flex;flex-wrap:wrap;gap:4mm;justify-content:center;margin:2mm 0 3mm}
+ .werk-skizze{flex:1 1 70mm;max-width:105mm;margin:0;text-align:center;break-inside:avoid}
+ .werk-skizze figcaption{font-size:6.2pt;text-transform:uppercase;letter-spacing:.1em;color:#6b757c}
+ .werk-skizze svg{max-width:100%;height:auto;max-height:68mm}
+ .werk-skizze-leer{font-size:7.5pt;color:#6b757c}
+ .rb-masse{margin:3mm 0 0}
+ .note,.small{font-size:7.5pt}
+ .zu-liste{margin:4mm 0 0}
+ .zu-liste-kopf{background:#17202a;color:#fff;font-size:6.9pt;font-weight:800;text-transform:uppercase;letter-spacing:.11em;padding:1.6mm 2.4mm}
+ .zu-liste-fuss{font-size:7pt;color:#5b666e;padding:1mm 2.4mm}
+ .zu-abschnitt{border:.5pt solid #b3bcc2;border-top:0;break-inside:avoid}
+ .zu-abschnitt-kopf{background:#e9edf0;font-size:7.5pt;font-weight:800;padding:1mm 2.4mm}
+ .zu-streifen-zeile,.zu-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:1mm 5mm;padding:1.2mm 2.4mm;border-top:.5pt solid #cfd6db}
+ .zu-liste>.zu-zeile{border:.5pt solid #b3bcc2;border-top:0}
+ .zu-streifen-name{flex:1 1 100%;font-size:7pt;font-weight:700;color:#3d4850}
+ .zu-streifen-stuecke,.zu-pos{display:flex;flex-wrap:wrap;gap:1mm 4mm;align-items:center}
+ .zu-st{display:inline-flex;align-items:center;gap:1.5mm}
+ .zu-nr{display:inline-block;border:.5pt solid #17202a;min-width:5mm;text-align:center;font-size:7.5pt;font-weight:700;padding:0 1.2mm;background:#fff;color:#17202a}
+ .zu-st-mass,.zu-mass,.zu-anzahl{font-size:8pt;font-weight:700;white-space:nowrap}
+ .zu-st-zusatz,.zu-zusatz{font-size:7pt;font-weight:600;color:#5b666e}
+ .ze-alle,.ze-stand,.medien-kachel,.rb-bilder,.ze-ein,.ze-aus-hinweis,.zu-abhak-hinweis{display:none !important}
+`;
+async function rbDokumentHtml(ms){
+ let logoSrc="";
+ try{ logoSrc=(typeof storageSignedUrl==="function"&&typeof logoUrl!=="undefined")?await storageSignedUrl(logoUrl):(typeof logoUrl!=="undefined"?logoUrl:"") }catch(e){ logoSrc="" }
+ const erste=ms[0];
+ const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects.find(x=>String(x.id)===String(erste.project_id)):null;
+ const alleGleich=ms.every(m=>m.project_id===erste.project_id);
+ const kopf=(typeof pdfKopfHtml==="function")?pdfKopfHtml({
+  datensatz:alleGleich?erste:{project_id:null},projekt:alleGleich?p:null,
+  bezeichnung:ms.length===1?(erste.title||""):"",dokumenttyp:"Rüstblatt",
+  unterart:ms.length===1?rbTitel(erste):ms.length+" Massaufnahmen",
+  datum:new Date().toISOString().slice(0,10),
+  bearbeiter:(typeof currentProfile!=="undefined"&&currentProfile)?`${currentProfile.first_name} ${currentProfile.last_name}`:"",
+  logoSrc
+ }):"";
+ const seiten=ms.map((m,i)=>'<div class="rb-druck-seite">'+(i===0?kopf:"")+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
+ const foot=(typeof pdfFooterHtml==="function")?pdfFooterHtml(alleGleich?erste:null):"";
+ return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seiten}${foot}</body></html>`;
+}
+async function rbDruckenAufnahmen(liste){
  const ms=(liste||[]).filter(Boolean);
  if(!ms.length){appAlert("Es gibt nichts zu drucken.");return}
- const alt=document.getElementById("rbDruck");if(alt)alt.remove();
- const box=document.createElement("div");
- box.id="rbDruck";box.className="rb-druck";
- // Immer das VOLLE Rüstblatt - auch wenn am Bildschirm die Montage-Ansicht offen ist. Fotos bleiben weg (asynchron geladen).
- box.innerHTML=ms.map(m=>'<div class="rb-druck-seite">'+rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})+"</div>").join("");
- box.querySelectorAll(".rb-bilder").forEach(x=>x.remove());
- // Ausserhalb des Bildschirms, aber sichtbar eingehaengt: nur dann kann die Zeichnung auf ihren Inhalt zugeschnitten werden (js/60).
- box.style.cssText="display:block;position:absolute;left:-99999px;top:0;width:190mm";
- document.body.appendChild(box);
- if(typeof rsZuschneiden==="function")rsZuschneiden(box);
- box.style.cssText="";
- document.body.classList.add("rb-drucken");
- const weg=()=>{box.remove();document.body.classList.remove("rb-drucken");window.removeEventListener("afterprint",weg)};
- window.addEventListener("afterprint",weg);
- try{window.print()}catch(err){weg();appAlert("Das Drucken ist hier nicht möglich.")}
+ let html;
+ try{ html=await rbDokumentHtml(ms) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
+ const alt=document.getElementById("rbDruckRahmen");if(alt)alt.remove();
+ const fr=document.createElement("iframe");
+ fr.id="rbDruckRahmen";fr.setAttribute("aria-hidden","true");
+ fr.style.cssText="position:fixed;left:-10000px;top:0;width:210mm;height:297mm;border:0;visibility:hidden";
+ const weg=()=>{try{fr.remove()}catch(e){}};
+ fr.onload=()=>{
+  const w=fr.contentWindow;
+  if(!w)return;
+  // Zeichnung auf ihren Inhalt zuschneiden (js/60) - geht nur im gerenderten Dokument.
+  try{ if(typeof rsZuschneiden==="function")rsZuschneiden(w.document.body) }catch(e){}
+  setTimeout(()=>{
+   try{ w.focus(); w.addEventListener("afterprint",()=>setTimeout(weg,500)); w.print() }
+   catch(e){ weg();appAlert("Das Drucken ist hier nicht möglich.") }
+  },300);
+  setTimeout(weg,10*60*1000);
+ };
+ fr.srcdoc=html;
+ document.body.appendChild(fr);
 }
 function rbZu(){
  const schirm=$("ruestblattModal");

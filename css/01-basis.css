@@ -1852,16 +1852,3 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .zu-st{display:inline-flex;align-items:center;gap:6px}
 .zu-st-mass{font-size:15px;font-weight:800;white-space:nowrap}
 .zu-st-zusatz{font-size:12px;font-weight:600;color:var(--muted)}
-
-/* ---- Ruestblatt als PDF drucken (v3.322): nur das Blatt, keine App-Oberflaeche ---- */
-.rb-druck{display:none}
-@media print{
- .rb-druck-seite{break-after:page;page-break-after:always}
- .rb-druck-seite:last-child{break-after:auto;page-break-after:auto}
- body.rb-drucken>*{display:none !important}
- body.rb-drucken>.rb-druck{display:block !important;background:#fff;color:#17202a}
- body.rb-drucken .rb-druck .no-print,body.rb-drucken .rb-druck .ze-alle,body.rb-drucken .rb-druck .ze-stand,body.rb-drucken .rb-druck .medien-kachel{display:none !important}
- /* Die Stueck-Nummern sind Knoepfe (abhakbar) - im Druck muessen sie als Nummer stehen bleiben (Streifen -> Stuecke) */
- body.rb-drucken .rb-druck .zu-nr{display:inline-block !important;border:0.5pt solid #17202a;background:#fff !important;color:#17202a !important;padding:0 2mm;margin-right:1mm}
- body.rb-drucken .rb-druck img,body.rb-drucken .rb-druck svg{max-width:100%;break-inside:avoid}
-}
