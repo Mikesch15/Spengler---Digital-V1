@@ -143,7 +143,12 @@ const tipp=async(page,sel,was)=>{
  const q80=lies("js/80-ruestblatt.js");
  p(/rsSkizzen\(/.test(q80)&&/zuListeHtml\(/.test(q80)&&/pmatPlanFuer/.test(q80),
    "js/80 nimmt Zeichner, Liste und Plan aus den bestehenden Quellen");
- p(!/\.from\(/.test(q80),"und fragt selbst keine Tabelle - es wird nichts nachgeladen");
+ // v3.332: Ansage des Anwenders - das Rüstblatt muss nach Änderungen in der Massaufnahme aktuell sein. Erlaubt ist deshalb
+ // genau EINE lesende Abfrage (rbFrischLesen: measurements, select ... in) - keine andere Tabelle, nie ein Schreibzugriff.
+ const abfragen=q80.match(/\.from\(([^)]*)\)/g)||[];
+ p(abfragen.length===1&&/from\("measurements"\)/.test(abfragen[0])&&/\.select\("\*"\)\.in\("id"/.test(q80)
+   &&!/\.(insert|update|upsert|delete)\(/.test(q80),
+   "und fragt nur die Massaufnahme selbst, lesend (frisch lesen, v3.332) - keine andere Tabelle, nichts wird geschrieben",abfragen);
 
  // ---- C  Werkstatt nach Projekt --------------------------------------------
  console.log("\nC · Werkstatt nach Projekt");
