@@ -40,4 +40,8 @@ Kleinste sichere Umsetzung: reine Anzeige aus den bereits geladenen Massaufnahme
 4) Unter „Zu prüfen“ stehen unvollständige Zeilen; mm-Masse sind nicht in den Summen.
 
 6. COMMIT/DEPLOY
-(wird nach Push und Kontrolle ergänzt)
+Code-Commit c6d1d83 (Bericht-Commit 38e6b30, nur Doku).
+- GitHub Actions „Prüfstände“ für c6d1d83: success. Für 38e6b30: success.
+- GitHub Pages „pages build and deployment“ für c6d1d83: success. Für 38e6b30: success.
+- Vollständige lokale Regression im sauberen Worktree auf c6d1d83, bis zum Ende gelaufen: 182/182 Prüfstände, 0 Fehlschläge.
+- Nicht geprüft: echte Live-App, Handy, Tablet, Datenbank-Live-Tests der Ansicht (die Ansicht liest nur den bereits geladenen Zwischenspeicher).
