@@ -95,6 +95,36 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   return {css:h.includes("pdf-head")||h.includes(".pdf-head"),seiten:(h.match(/class="rb-druck-seite"/g)||[]).length,kopf:/RÜSTBLATT|Rüstblatt/i.test(h)};
  });
  p(doc.css&&doc.seiten===2&&doc.kopf,"Dokument: PDF-Kopf, je Massaufnahme eine Seite",doc);
+ console.log("\nE · Ältere gespeicherte Pläne (vor v3.328) zeigen die Mischung in Rüstblatt und Rüstliste");
+ const alt=await page.evaluate(()=>{
+  const gr=[{breite:280,bleche:[{nr:1,laenge:564,merkmal:"Vorderteil"}]},
+   {breite:190,bleche:[{nr:3,laenge:1225,merkmal:"Seitenteil",hinweis:"links"},{nr:5,laenge:1225,merkmal:"Seitenteil",hinweis:"rechts"}]},
+   {breite:462,bleche:[{nr:2,laenge:595,merkmal:"Hinterteil"}]},
+   {breite:219,bleche:[{nr:4,laenge:505,merkmal:"Seitenteil hinten",hinweis:"links"},{nr:6,laenge:505,merkmal:"Seitenteil hinten",hinweis:"rechts"}]}];
+  const netto=gr.reduce((s,g)=>s+g.breite*g.bleche.reduce((a,x)=>a+x.laenge,0),0)/1e6;
+  // So sah der gespeicherte Plan vor v3.328 aus: nur die 670er gerechnet, die Rollenbreiten des Lagers daneben.
+  const einzel=ebaFormatPlan({gruppen:gr.map(g=>({breite:g.breite,bleche:g.bleche.map(x=>Object.assign({breite:g.breite},x))})),formate:[{breite:670,laenge:null,text:"670 mm"}],form:"rolle",netto});
+  const gespeichert=JSON.parse(JSON.stringify(Object.assign({},einzel,{breiten:[250,330,670,1000],auswahl:[]})));
+  gespeichert.gruppen.forEach(g=>(g.streifen||[]).forEach(st=>(st.stuecke||[]).forEach(x=>{if(!x.breite)x.breite=g.breite})));
+  const m={id:7,type:"kehle",title:"Alt",project_id:1,workflow_status:"zu_ruesten",data:{rollen:gespeichert}};
+  const plan=pmatPlanFuer(m);
+  const vorher=JSON.stringify(gespeichert);
+  const blatt=rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"}).replace(/<[^>]+>/g," ").replace(/[’']/g,".");
+  return {misch:!!(plan&&plan.moeglich[0].mischung),text:plan&&plan.moeglich[0].text,flaeche:plan&&plan.moeglich[0].flaeche,
+   einzelFlaeche:einzel.bestes.flaeche,unveraendert:JSON.stringify(m.data.rollen)===vorher,
+   nrs:plan?zuAlleStuecke(plan).map(x=>x.nr).sort():[],blatt};
+ });
+ p(alt.misch,"Plan aus dem Datensatz wird beim Lesen gemischt",alt);
+ p(alt.flaeche<alt.einzelFlaeche-0.1,"und braucht weniger Blech als der gespeicherte",[alt.flaeche,alt.einzelFlaeche]);
+ p(alt.unveraendert,"der gespeicherte Datensatz selbst bleibt unverändert");
+ p(JSON.stringify(alt.nrs)==="[1,2,3,4,5,6]","alle Stücke bleiben erhalten",alt.nrs);
+ p(/ab 1.000er Rolle/.test(alt.blatt)&&/ab 670er Rolle/.test(alt.blatt),"das Rüstblatt (und damit die Rüstliste) nennt beide Rollen",alt.blatt.slice(0,200));
+ const gleichAlt=await page.evaluate(()=>{
+  const r={form:"rolle",breiten:[670,1000],netto:0.5,gruppen:[{breite:250,streifen:[{stuecke:[{nr:1,breite:250,laenge:1000}],rest:0}],abschnittLaenge:1000,jeAbschnitt:2,abschnitte:1}],moeglich:[{breite:670,laenge:null,flaeche:0.67,zeilen:[]}]};
+  const m={id:8,type:"kehle",title:"Eine",project_id:1,data:{rollen:r}};
+  const pl=pmatPlanFuer(m);return pl&&!pl.moeglich[0].mischung&&pl.moeglich[0].breite===670;
+ });
+ p(gleichAlt,"ein Plan mit nur einer Streifenbreite bleibt, wie gespeichert");
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
  console.log("\nErgebnis: "+ok+" ok, "+fail+" fehlgeschlagen");

@@ -1161,6 +1161,34 @@ function zuPlanAusGespeichert(r,breite,einheit){
   ausResten:r.ausResten||[],
   tafelLaenge:r.tafelLaenge,optimal};
 }
+// v3.328: Ein VOR v3.328 gespeicherter Rollenplan kennt die Mischung mehrerer Rollen nicht - Werkstatt, Rüstblatt und
+// Rüstliste lesen immer den gespeicherten Plan. Damit sie die Mischung trotzdem zeigen, wird so ein Plan beim Lesen mit
+// derselben EINEN Packrechnung (ebaFormatPlan) neu gerechnet - aus seinen eigenen Stücken und den gespeicherten
+// Rollenbreiten (r.breiten, schon nach der Auswahl der Massaufnahme gefiltert). Übernommen wird NUR eine echte Mischung;
+// sonst bleibt der gespeicherte Plan unverändert. Nichts wird zurückgeschrieben. Stücknummern und Längen bleiben gleich,
+// das Abhaken (nach Nummer/Länge/Breite) ist davon nicht betroffen.
+function zuNeuMischen(p,r){
+ try{
+  if(!p||p.art==="stange"||zuIstTafel(p)||typeof ebaFormatPlan!=="function")return p;
+  const b0=(p.moeglich||[])[0];
+  if(!b0||Array.isArray(b0.mischung))return p;
+  const breiten=((r&&r.breiten)||[]).map(Number).filter(x=>x>0);
+  if(breiten.length<2||(p.gruppen||[]).length<2)return p;
+  const nachBreite=new Map();
+  (p.gruppen||[]).forEach(g=>(g.streifen||[]).forEach(st=>(st.stuecke||[]).forEach(x=>{
+   const A=zuZahl(x.breite)||zuZahl(g.breite);
+   if(!(A>0)||!(zuZahl(x.laenge)>0))return;
+   if(!nachBreite.has(A))nachBreite.set(A,[]);
+   nachBreite.get(A).push({nr:x.nr,laenge:zuZahl(x.laenge),merkmal:x.merkmal,hinweis:x.hinweis});
+  })));
+  if(nachBreite.size<2)return p;
+  const gruppen=Array.from(nachBreite.keys()).sort((a,c)=>c-a).map(A=>({breite:A,bleche:nachBreite.get(A)}));
+  const neu=ebaFormatPlan({gruppen,formate:breiten.map(b=>({breite:b,laenge:null,text:b+" mm"})),form:"rolle",netto:zuZahl(p.netto)});
+  const nb=neu&&neu.bestes;
+  if(!nb||!Array.isArray(nb.mischung))return p;
+  return Object.assign({},p,{gruppen:neu.gruppen,moeglich:neu.moeglich,streifenbreiten:gruppen.map(g=>g.breite)});
+ }catch(e){return p}
+}
 function zuDruckHtml(r,breite,einheit,zusatz){
  const p=zuPlanAusGespeichert(r,breite,einheit);
  if(!p||!p.gruppen.length)return "";

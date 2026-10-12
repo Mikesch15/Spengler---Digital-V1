@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.328`
+- Aktueller Entwicklungsstand: `v3.329`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.329 — Rollen-Mischung auch für bereits gespeicherte Pläne (Rüstliste/Rüstblatt/Werkstatt)
+
+Rückmeldung: die Rüstliste zeigte die Mischung nicht. Ursache: Rüstblatt, Rüstliste, Werkstatt und Materialsicht lesen den GESPEICHERTEN Plan (`pmatPlanFuer`, js/48); vor v3.328 gespeicherte Massaufnahmen kannten die Mischung nicht. Neu `zuNeuMischen(p,r)` (js/33), gerufen in `pmatPlanFuer`: ein gespeicherter Rollenplan ohne `mischung` mit ≥2 Streifenbreiten und ≥2 gespeicherten Rollenbreiten (`r.breiten`, nach Auswahl der Massaufnahme) wird mit derselben Packrechnung `ebaFormatPlan` neu gerechnet (Stücke regroupiert nach ihrer Breite); übernommen wird NUR eine echte Mischung, sonst bleibt der gespeicherte Plan. Nichts wird zurückgeschrieben (kein Verfall erteilter Freigaben, Trigger schuetze_measurement_workflow), Stücknummern/Längen bleiben, Abhaken unberührt. Prüfstand `rollen-mischen-v3-328` um Abschnitt E erweitert (35).
 
 ### v3.328 — Zuschnitt: Rollen mischen (je Streifenbreite eine der angewählten Rollen)
 
@@ -15,10 +19,6 @@ Prüfstand: `pruefstand-rollen-mischen-v3-328` (29). Angepasst: `kamin-app-v2-90
 ### v3.327 — Rüstblatt-Druck: pro Massaufnahme möglichst eine Seite (Blitzanpassung, ohne Prüfstände/Regression)
 
 In `rbDruckenAufnahmen` (js/80) misst der Druckrahmen jede Blattseite und verkleinert zu hohe per `zoom` (Untergrenze 55 %) auf die verfügbare Seitenhöhe (297 − Ränder − Fusszeile); darüber hinaus läuft es auf die nächste Seite. Zeichnung höchstens 58 mm hoch. Per gerendertem PDF mit 14 Stücken geprüft (eine Seite je Massaufnahme); keine Prüfstände/Regression.
-
-### v3.326 — Rüstblatt-/Rüstlisten-Druck im Layout der übrigen Dokumente (Blitzanpassung, ohne Prüfstände/Regression)
-
-`rbDruckenAufnahmen` (js/80) baut jetzt ein eigenes Dokument (`rbDokumentHtml`: `pdfKopfHtml` mit Logo/Projekt, `PDF_LAYOUT_CSS`, `RB_DRUCK_CSS` im PDF-Schriftmass, `pdfFooterHtml`, Seitenzahl) und druckt es aus einem unsichtbaren iframe (`srcdoc`, Zeichnungen per `rsZuschneiden` zugeschnitten); je Massaufnahme eine Seite. Die Bildschirm-Druckregeln `#rbDruck` aus v3.322–325 sind entfernt. Per gerendertem PDF geprüft (2 Seiten für 2 Massaufnahmen); keine Prüfstände/Regression.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

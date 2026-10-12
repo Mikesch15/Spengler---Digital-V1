@@ -34505,3 +34505,7 @@ Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern de
 ### v3.325 — Rüstliste druckt das volle Rüstblatt (Blitzanpassung, ohne Prüfstände/Regression)
 
 Befund: Die Werkstatt-„Rüstliste“ (`js/58` `rlDrucken`) war ein eigenes Popup-Dokument nur mit Kästchentabelle – ohne Schnittzeichnung, Masse, Streifen-Gliederung. Jetzt ruft `rlDrucken` `rbDruckenAufnahmen(liste)` (js/80) auf: je Massaufnahme eine Seite mit dem vollen Rüstblatt (Zeichnung, Masse, Abschnitt→Streifen→Stück, Baustellenangaben), Druck über `#rbDruck` im selben Dokument. Der Einzel-Knopf im Rüstblatt nutzt dieselbe Funktion. Altes Popup-Dokument bleibt als Rückfall im Code (nur wenn `rbDruckenAufnahmen` fehlt). **Bekannt:** bestehende Rüstlisten-Prüfstände prüfen das alte Popup und werden voraussichtlich rot; auf Ansage keine Prüfstände/Regression gelaufen – bei Bedarf anpassen. Per Druckvorschau mit echten Dachfenster-Werten (Datensatz 120) geprüft.
+
+### v3.326 — Rüstblatt-/Rüstlisten-Druck im Layout der übrigen Dokumente (Blitzanpassung, ohne Prüfstände/Regression)
+
+`rbDruckenAufnahmen` (js/80) baut jetzt ein eigenes Dokument (`rbDokumentHtml`: `pdfKopfHtml` mit Logo/Projekt, `PDF_LAYOUT_CSS`, `RB_DRUCK_CSS` im PDF-Schriftmass, `pdfFooterHtml`, Seitenzahl) und druckt es aus einem unsichtbaren iframe (`srcdoc`, Zeichnungen per `rsZuschneiden` zugeschnitten); je Massaufnahme eine Seite. Die Bildschirm-Druckregeln `#rbDruck` aus v3.322–325 sind entfernt. Per gerendertem PDF geprüft (2 Seiten für 2 Massaufnahmen); keine Prüfstände/Regression.

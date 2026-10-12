@@ -72,7 +72,8 @@ function pmatPlanFuer(m){
  const d=(m&&m.data)||{};
  const breite=(r.abwicklung!==undefined&&r.abwicklung!==null)?r.abwicklung
              :((d.abwicklung!==undefined&&d.abwicklung!==null)?d.abwicklung:null);
- const p=zuPlanAusGespeichert(r,breite,"Stück");
+ let p=zuPlanAusGespeichert(r,breite,"Stück");
+ if(p&&typeof zuNeuMischen==="function")p=zuNeuMischen(p,r);   // v3.328: ältere Pläne zeigen die Rollen-Mischung auch
  // v3.79: ein Normlaengen-Plan (art:"stange", Rinne halbrund) hat keine
  // gruppen - er hat stangen. Beide Formen pruefen, sonst waere fuer diese
  // Art nie ein Plan da (siehe zuFlach, js/33).
