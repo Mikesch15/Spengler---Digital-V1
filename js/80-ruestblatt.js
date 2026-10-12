@@ -362,7 +362,7 @@ const RB_DRUCK_CSS=`
  .werk-skizzen{display:flex;flex-wrap:wrap;gap:4mm;justify-content:center;margin:2mm 0 3mm}
  .werk-skizze{flex:1 1 70mm;max-width:105mm;margin:0;text-align:center;break-inside:avoid}
  .werk-skizze figcaption{font-size:6.2pt;text-transform:uppercase;letter-spacing:.1em;color:#6b757c}
- .werk-skizze svg{max-width:100%;height:auto;max-height:68mm}
+ .werk-skizze svg{max-width:100%;height:auto;max-height:58mm}
  .werk-skizze-leer{font-size:7.5pt;color:#6b757c}
  .rb-masse{margin:3mm 0 0}
  .note,.small{font-size:7.5pt}
@@ -414,6 +414,14 @@ async function rbDruckenAufnahmen(liste){
   if(!w)return;
   // Zeichnung auf ihren Inhalt zuschneiden (js/60) - geht nur im gerenderten Dokument.
   try{ if(typeof rsZuschneiden==="function")rsZuschneiden(w.document.body) }catch(e){}
+  // Alles auf eine Seite, wenn moeglich: zu hohe Seiten werden verkleinert (nicht unter 55 %), danach laeuft es notfalls auf die naechste Seite.
+  try{
+   const verfuegbar=Math.round((297-14-17-14)*96/25.4);
+   w.document.querySelectorAll(".rb-druck-seite").forEach(sei=>{
+    const h=sei.getBoundingClientRect().height;
+    if(h>verfuegbar){ sei.style.zoom=String(Math.max(0.55,Math.floor(verfuegbar/h*97)/100)) }
+   });
+  }catch(e){}
   setTimeout(()=>{
    try{ w.focus(); w.addEventListener("afterprint",()=>setTimeout(weg,500)); w.print() }
    catch(e){ weg();appAlert("Das Drucken ist hier nicht möglich.") }

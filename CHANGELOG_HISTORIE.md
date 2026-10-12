@@ -34497,3 +34497,7 @@ Knopf `#ruestblattDrucken` im Rüstblatt (index.html), `rbDrucken()` in `js/80` 
 ### v3.323 — Rüstblatt-PDF immer vollständig (Blitzanpassung, ohne Prüfstände/Regression auf Ansage)
 
 `rbDrucken()` (js/80) baut das Blatt frisch mit `rbBlattHtml(m,{kopf:true,ausfuehrung:"ruesten"})` (Zeichnung, alle Masse, Zuschnittliste, Baustellenangaben; ohne Fotos), hängt es sichtbar ausserhalb des Bildschirms ein und schneidet die Zeichnung zu (`rsZuschneiden`), dann Druck. Nur mit Playwright-Druckvorschau (PDF gerendert, Schnittzeichnung + Masse sichtbar) geprüft; keine Prüfstände, keine Regression.
+
+### v3.324 — Rüstblatt-PDF: Stück-Nummern je Streifen sichtbar (Blitzanpassung, ohne Prüfstände/Regression)
+
+Ursache: das Druck-CSS (v3.322) blendete alle Knöpfe aus; die Stück-Nummern der Zuschnittliste (`.zu-nr`) sind Knöpfe. Jetzt nur noch `.ze-alle`, `.ze-stand`, Foto-Kacheln und `.no-print` ausgeblendet, `.zu-nr` als Nummer im Rahmen. Per Druckvorschau mit eingefügter Beispielstruktur geprüft; keine Prüfstände/Regression.
