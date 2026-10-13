@@ -225,16 +225,16 @@ const bl=await page.evaluate(()=>{
  projectMeasurementsCache=[mk2(1,6),mk2(2,8)];kaFilter="alle";kaGeladen();
  const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
  const out={zeile:(d.querySelector(".ka-bleilappen")||{}).textContent||"",details:d.querySelectorAll("details.ka-kachel").length,zu:[...d.querySelectorAll("details.ka-kachel")].map(x=>x.hasAttribute("open")?"open":"zu").join(),liste:/Massaufnahmen in dieser Übersicht/.test(d.textContent),
-  gruppe:/Bleilappen.*14 Stk/.test(d.textContent.replace(/\s+/g," "))};
+  gruppe:/Bleilappen\s*14 Stk/.test(d.textContent.replace(/\s+/g," ")),teil:/\(Teil\)/.test(d.textContent),anz:(d.textContent.match(/Bleilappen/g)||[]).length};
  projectMeasurementsCache=[{id:3,project_id:7,company_id:"A",type:"kehle",title:"Y",workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1",einheit:"m²",teil:false}]}}];
  kaGeladen();
  out.ohne=!document.querySelector(".ka-bleilappen")&&!/Bleilappen/.test($("cockpitKomplettBody").textContent);
  projectMeasurementsCache=[mk2(1,6),{...mk2(2,8),project_id:9}];kaGeladen();
- out.fremd=((document.querySelector(".ka-bleilappen")||{}).textContent||"").indexOf("6 Stk")>=0&&((document.querySelector(".ka-bleilappen")||{}).textContent||"").indexOf("14")<0;
+ {const t=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");out.fremd=/Bleilappen\s*6 Stk/.test(t)&&t.indexOf("14")<0;}
  return out;
 });
-p(/Bleilappen: 14 Stk/.test(bl.zeile)&&/Summe aller Massaufnahmen/.test(bl.zeile),"Bleilappen: feste Zeile oben mit der Summe aller Massaufnahmen (6 + 8 = 14 Stk)",bl.zeile);
-p(bl.gruppe,"Bleilappen bleibt zusätzlich als Mengenposition (Stück) in den Summen");
+p(!bl.zeile&&bl.anz===1,"v3.350: Bleilappen nur noch einmal (keine feste Zeile oben)",bl);
+p(bl.gruppe&&!bl.teil,"Bleilappen als Kachel mit der Summe (6 + 8 = 14 Stk), ohne „(Teil)“",bl);
 p(bl.details>=1&&!bl.liste&&!/open/.test(bl.zu),"Kacheln sind zugeklappt (antippen = woher); keine Liste „Massaufnahmen in dieser Übersicht“",bl);
 p(bl.ohne,"ohne Bleilappen: keine Zeile, kein 0-Wert");
 p(bl.fremd,"Bleilappen einer Massaufnahme eines anderen Projekts zählen nicht (nur 6 Stk)",bl);

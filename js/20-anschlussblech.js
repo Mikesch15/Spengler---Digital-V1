@@ -673,10 +673,17 @@ function berechneAnschlussblech(e) {
   // Der Verweis auf die Einfassung Rund stimmte zuletzt nicht mehr: js/21
   // rundet seit v3.70 AB, waehrend hier noch aufgerundet wurde. Jetzt
   // rechnen beide gleich.
-  let anzahlBleilappen = null;
+  let anzahlBleilappen = null, bleilappenBerechnet = null, bleilappenManuell = false;
   if (e.art === "bleilappen") {
     const lattenabstand = Math.max(1, Number(e.lattenabstand) || 0);
     anzahlBleilappen = laenge > 0 ? Math.floor(laenge / lattenabstand) : 0;
+    // v3.350: Die Anzahl kann von Hand gesetzt werden (leer = berechnet).
+    bleilappenBerechnet = anzahlBleilappen;
+    const mr = e.bleilappenManuell;
+    if (mr !== "" && mr !== null && mr !== undefined && Number(mr) >= 0) {
+      anzahlBleilappen = Math.round(Number(mr));
+      bleilappenManuell = true;
+    }
   }
 
   return {
@@ -688,6 +695,8 @@ function berechneAnschlussblech(e) {
     stuecke: stuecke,
     flaeche: Math.round(flaeche * 100) / 100,
     anzahlBleilappen: anzahlBleilappen,
+    bleilappenBerechnet: bleilappenBerechnet,
+    bleilappenManuell: bleilappenManuell,
     profil: p
   };
 }
@@ -843,6 +852,7 @@ function anbEingabenAusFeldern() {
     stossLaenge: zahl("anb_stossLaenge"),
     ueberlappung: zahl("anb_ueberlappung"),
     lattenabstand: zahl("anb_lattenabstand"),
+    bleilappenManuell: ($("anb_bleilappenManuell") && $("anb_bleilappenManuell").value !== "") ? Math.max(0, Math.round(Number($("anb_bleilappenManuell").value) || 0)) : "",
     firstgehrung: $("anb_firstgehrung") ? !!$("anb_firstgehrung").checked : false
   };
   document.querySelectorAll("#anb_masse [data-anb],#anb_abschluss [data-anb]")
@@ -858,7 +868,8 @@ function anbEingabenRoh() {
   const wert = id => $(id) ? $(id).value : "";
   const roh = {
     saum: wert("anb_saum"), stossLaenge: wert("anb_stossLaenge"),
-    ueberlappung: wert("anb_ueberlappung"), lattenabstand: wert("anb_lattenabstand")
+    ueberlappung: wert("anb_ueberlappung"), lattenabstand: wert("anb_lattenabstand"),
+    bleilappenManuell: wert("anb_bleilappenManuell")
   };
   document.querySelectorAll("#anb_masse [data-anb],#anb_abschluss [data-anb]")
     .forEach(el => { roh[el.dataset.anb] = el.value; });
@@ -883,6 +894,7 @@ function anbFesteFelderFuellen(w) {
   $("anb_stossLaenge").value = leerWert(w.stossLaenge);
   $("anb_ueberlappung").value = leerWert(w.ueberlappung);
   $("anb_lattenabstand").value = leerWert(w.lattenabstand);
+  if ($("anb_bleilappenManuell")) $("anb_bleilappenManuell").value = leerWert(w.bleilappenManuell);
   // v3.67: Vorschlag-Chip mit dem Firmen-Richtwert neben jedem leeren Feld -
   // Antippen uebernimmt ihn (js/01-basis.js), er wird nie still uebernommen.
   const s = anschlussblechSettings || ANSCHLUSSBLECH_STANDARD;
@@ -899,6 +911,7 @@ function anbFesteFelderFuellen(w) {
   chip("anb_ueberlappungChip", "anb_ueberlappung", w.ueberlappung === "" || w.ueberlappung === null || w.ueberlappung === undefined, s.ueberlappung);
   chip("anb_lattenabstandChip", "anb_lattenabstand", w.lattenabstand === "" || w.lattenabstand === null || w.lattenabstand === undefined, s.lattenabstand);
   $("anb_lattenabstandField").hidden = w.art !== "bleilappen";
+  if ($("anb_bleilappenManuellField")) $("anb_bleilappenManuellField").hidden = w.art !== "bleilappen";
   if ($("anb_firstgehrung")) $("anb_firstgehrung").checked = !!w.firstgehrung;
 }
 
@@ -975,7 +988,7 @@ function renderAnbResult() {
     + erg.teile.map(t => kasten("Abwicklung " + t.name, t.abwicklung + " mm")).join("")
     + kasten("Anzahl Stücke", erg.stuecke.length || "–")
     + kasten("Materialfläche", erg.flaeche ? erg.flaeche.toFixed(2) + " m²" : "–")
-    + (erg.anzahlBleilappen !== null ? kasten("Anzahl Bleilappen", erg.anzahlBleilappen || "–") : "");
+    + (erg.anzahlBleilappen !== null ? kasten("Anzahl Bleilappen" + (erg.bleilappenManuell ? " (von Hand)" : ""), erg.anzahlBleilappen || "–") : "");
 
   $("anb_stuecklisteBody").innerHTML = erg.stuecke.length
     ? erg.stuecke.map(s => `<tr><td>${s.nr}${s.gehrung ? " · First" : ""}</td><td>${s.laenge}</td><td>${erg.abwicklung}</td></tr>`).join("")
@@ -1065,7 +1078,7 @@ function applyAnschlussblechSettings() {
     anbMassfelderZeichnen(anbEingabenAusFeldern());
     renderAnbResult();
   };
-  ["anb_saum", "anb_stossLaenge", "anb_ueberlappung", "anb_lattenabstand"]
+  ["anb_saum", "anb_stossLaenge", "anb_ueberlappung", "anb_lattenabstand", "anb_bleilappenManuell"]
     .forEach(id => { const el = $(id); if (el) el.addEventListener("input", renderAnbResult); });
   if ($("anb_firstgehrung")) $("anb_firstgehrung").addEventListener("change", renderAnbResult);
 

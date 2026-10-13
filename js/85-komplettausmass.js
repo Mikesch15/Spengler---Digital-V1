@@ -231,9 +231,6 @@ function kaBauen(host){
  if(!alle.massaufnahmen.length)return {html:kopf+'<div class="empty">Noch keine Massaufnahme in diesem Projekt.</div>',n:"0"};
  const stArr=Object.keys(alle.nachStatus);
  // v3.345: die Anzahl Bleilappen steht fest oben im Gesamtausmass (Summe aller Massaufnahmen, Einheit Stk) - sonst nur, wenn es welche gibt
- const bl=R.gruppen.filter(g=>g.einheit==="Stk"&&kaNorm(g.bezeichnung)==="bleilappen");
- const blSumme=bl.reduce((s2,g)=>s2+g.summe,0);
- const blZeile=bl.length?`<div class="ka-bleilappen" style="margin:6px 0;padding:6px 10px;border:1px solid var(--line);border-radius:10px"><b>🔩 Bleilappen: ${esc(kaMengeText(blSumme))} Stk</b> <span class="small muted">· Summe aller Massaufnahmen dieses Projekts</span></div>`:"";
  const kenn=[`<b>${alle.massaufnahmen.length}</b> Massaufnahme${alle.massaufnahmen.length===1?"":"n"}`+(alle.ohneAusmass?` (${alle.ohneAusmass} ohne Ausmasszeilen)`:""),
   `<b>${alle.gruppen.length}</b> Mengenposition${alle.gruppen.length===1?"":"en"}`,
   alle.pruefen.length?`<b style="color:var(--red)">${alle.pruefen.length}</b> zu prüfen`:"nichts zu prüfen"];
@@ -257,7 +254,7 @@ function kaBauen(host){
    const nachMa=new Map();g.quellen.forEach(q=>{if(!nachMa.has(q.id))nachMa.set(q.id,{q,zeilen:[]});nachMa.get(q.id).zeilen.push(q)});
    const herkunft=[...nachMa.values()].map(({q,zeilen})=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>${wf?`<span class="small muted"> · ${esc(statusText(q.status))}</span>`:""}
      ${zeilen.map(r=>`<div class="small">Pos. ${esc(r.pos)} · ${esc(String(r.menge))} ${esc(e)}${r.original&&kaNorm(r.original)!==kaNorm(g.bezeichnung)?` · „${esc(r.original)}“`:""}${r.herkunft?` <span class="muted">· ${esc(r.herkunft)}</span>`:""}</div>`).join("")}</div>`).join("");
-   return `<details class="ka-kachel" data-ka-key="${esc(key)}"${kaOffen[key]?" open":""}><summary><div class="ka-kachel-name">${ICON[e]||""} ${esc(g.bezeichnung)}${g.teil?' <span class="muted">(Teil)</span>':""}</div>
+   return `<details class="ka-kachel" data-ka-key="${esc(key)}"${kaOffen[key]?" open":""}><summary><div class="ka-kachel-name">${ICON[e]||""} ${esc(g.bezeichnung)}</div>
     <div class="ka-kachel-wert">${esc(kaMengeText(g.summe))} <span>${esc(e)}</span></div>
     <div class="small muted">aus ${nm} Massaufnahme${nm===1?"":"n"} · antippen = woher</div></summary>
     ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel – nicht zusammengeführt, bitte prüfen.</div>`:""}
@@ -274,7 +271,7 @@ function kaBauen(host){
  return {n:String(alle.massaufnahmen.length),kenn:{mas:alle.massaufnahmen.length,gruppen:alle.gruppen.length,pruefen:alle.pruefen.length},
   html:kopf+`<div style="margin:6px 0">${kenn.join(" · ")}</div>`
   +(statusZeile?`<div class="small">${statusZeile} <span class="muted">(Status je Massaufnahme, nicht je Position)</span></div>`:"")
-  +blZeile+filter+mengen+pruef+masse+aus
+  +filter+mengen+pruef+masse+aus
   +(art?`<div class="small muted" style="margin-top:6px">Nach Art: ${art}</div>`:"")
   +(mat?`<div class="small muted">Nach Werkstoff: ${mat}</div>`:"")};
 }
@@ -365,4 +362,19 @@ document.addEventListener("toggle",e=>{
  if(!d||!d.matches||!d.matches("details.ka-kachel"))return;
  const k=d.getAttribute("data-ka-key");
  if(d.open)kaOffen[k]=true; else delete kaOffen[k];
+},true);
+
+// v3.350: Aus dem normalen Ausmass (Formular) ist das Komplettausmass des Projekts abrufbar - nur Anzeige, nichts wird geschrieben.
+function kaAmZeigen(){
+ const box=$("amKomplettBody");
+ if(!box)return;
+ const pid=(typeof amSelectedProjectId!=="undefined")?amSelectedProjectId:null;
+ const cp=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+ if(!pid){box.innerHTML='<div class="muted">Zuerst ein Projekt wählen.</div>';return}
+ if(pid!==cp){box.innerHTML='<div class="muted">Das Komplettausmass steht zur Verfügung, wenn das Ausmass aus dem Projekt geöffnet wird.</div>';return}
+ box.innerHTML=kaBauen("card").html;
+}
+document.addEventListener("toggle",e=>{
+ const d=e.target;
+ if(d&&d.id==="amKomplett"&&d.open)kaAmZeigen();
 },true);

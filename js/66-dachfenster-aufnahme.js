@@ -173,7 +173,7 @@ function dfaLeer(){
  // dfaMasseHtml/dfaUmschlaegeHtml und dfaPruefungen).
  const s=dfaSettings||DFA_STANDARD;
  return {
-  material:"", deckung:s.deckung, lattenabstand:"",
+  material:"", deckung:s.deckung, lattenabstand:"", bleilappenManuell:"",
   getrennt:false, skizzeSeite:"l",
   // v3.271: Bauart und Ausfuehrung sind PFLICHTWAHLEN (zwei Dropdowns) und
   // beginnen deshalb LEER - ein vorgewaehlter Wert wuerde unbemerkt
@@ -391,9 +391,13 @@ function dfaBleilappen(){
   zeilen.push(teil("Vorderteil "+s.name,dfaSeite("a",s.k)+dfaLaenge(s.k)));
   zeilen.push(teil("Hinterteil "+s.name,bu+dfaSeite("d",s.k)));
  });
- const gesamt=zeilen.every(x=>x.anzahl===null)?null
+ const berechnet=zeilen.every(x=>x.anzahl===null)?null
    :zeilen.reduce((s,x)=>s+(x.anzahl||0),0);
- return {lattenabstand:la,zeilen,gesamt};
+ // v3.350: Die Anzahl kann von Hand gesetzt werden (leer = berechnet).
+ const mr=dfaA.bleilappenManuell;
+ const manuell=(mr!==""&&mr!==null&&mr!==undefined&&dfaZahl(mr)>=0)?Math.round(dfaZahl(mr)):null;
+ const gesamt=manuell!==null?manuell:berechnet;
+ return {lattenabstand:la,zeilen,gesamt,berechnet,manuell:manuell!==null};
 }
 
 // ---- Schnittskizze nach der DXF -----------------------------------------------
@@ -834,7 +838,7 @@ function dfaAusmassZeilen(){
  zeile("Blechfläche Zuschnitt",dfaQm(dfaFlaecheM2()),"m²","Summe Länge × Abwicklung");
  const bl=dfaBleilappen();
  if(bl.gesamt!==null)
-  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
+  zeile("Bleilappen",String(bl.gesamt),"Stk.",bl.manuell?"von Hand gesetzt (berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":"je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
  const bcFormel=dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" − Überlappung";
  if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm",bcFormel);
@@ -1133,6 +1137,7 @@ werden für die Bleilappen gebraucht.</div>
 ${dfaFeld("Werkstoff",`<select id="dfa_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("dfa_material","dachfenstereinfassung",a.material),true)}
 ${dfaFeld("Deckungsmaterial",`<select id="dfa_deckung">${deckOpt}</select>`)}
 ${dfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","dfa_lattenabstand",a.lattenabstand,"1",true,dfaSettings.lattenabstand)}
+${dfaZahlFeld("Anzahl Bleilappen von Hand (leer = berechnet)","dfa_bleilappenManuell",a.bleilappenManuell,"1",false)}
 </div>
 <label class="kam-schalter"><input type="checkbox" id="dfa_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
@@ -1149,7 +1154,7 @@ function dfaKennzahlenHtml(){
  return `<div class="grid ra-kennzahlen" id="dfa_kennzahlen">
 ${wert("Länge Seitenteil"+(dfaA.getrennt?" links":""),Ll>0?dfaMm(Ll)+" mm":"–")}
 ${dfaA.getrennt?wert("Länge Seitenteil rechts",Lr>0?dfaMm(Lr)+" mm":"–"):""}
-${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
+${wert("Anzahl Bleilappen"+(bl.manuell?" (von Hand)":""),bl.gesamt!==null?String(bl.gesamt):"–")}
 </div>`;
 }
 function dfaMasseHtml(){
@@ -1249,7 +1254,7 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <thead><tr><th>Seitenteil</th><th>Länge (mm)</th><th>Bleilappen</th></tr></thead>
 <tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${dfaMm(x.laenge)}</td>
 <td>${x.anzahl===null?"–":x.anzahl}</td></tr>`).join("")}
-<tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
+<tr><td colspan="2"><b>Gesamt${bl.manuell?" (von Hand gesetzt, berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":""}</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil abgerundet aus
 Länge ÷ Lattenabstand (${dfaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
  return `<div class="info">${dfaMitKnick()?"Sechs":"Acht"} Zuschnitte: Vorderteil, Hinterteil und je Seite
@@ -1413,7 +1418,7 @@ const DFA_FELDER={dfa_ueberlappung:"ueberlappung",
  dfa_e:"e",dfa_eUmschlag:"eUmschlag",dfa_anreiff:"anreiff",dfa_anreiffUmschlag:"anreiffUmschlag",
  dfa_breiteVorne:"breiteVorne",dfa_breiteHinten:"breiteHinten",
  dfa_umschlagVorne:"umschlagVorne",
- dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand"};
+ dfa_umschlagSeite:"umschlagSeite",dfa_lattenabstand:"lattenabstand",dfa_bleilappenManuell:"bleilappenManuell"};
 const DFA_SEITENFELDER={dfa_a:"a",dfa_b:"b",dfa_c:"c",dfa_d:"d",dfa_f:"f",dfa_g:"g"};
 function dfaFeldZuweisen(id,wert){
  if(DFA_FELDER[id]!==undefined){dfaA[DFA_FELDER[id]]=wert;return true}
@@ -1601,6 +1606,7 @@ function dfaDaten(){
  const paar=k=>({l:dfaSeite(k,"l"),r:dfaSeite(k,"r")});
  return {
   material:a.material, deckung:a.deckung, lattenabstand:dfaZahl(a.lattenabstand),
+  bleilappenManuell:bl.manuell?bl.gesamt:"",
   getrennt:!!a.getrennt,
   // Die Bauart MUSS mitgespeichert werden: Ruestblatt, Ausdruck und das
   // spaetere Oeffnen lesen nur den Datensatz. Fehlte sie, faelle jede mit
@@ -1660,7 +1666,7 @@ function dfaFuellen(d){
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
- ["lattenabstand","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
+ ["lattenabstand","bleilappenManuell","ueberlappung","saumVorne","breiteOben","breiteUnten","randAbstand","randStrich",
   "e","eUmschlag","anreiff","anreiffUmschlag",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagSeite"].forEach(k=>nimm(k));
  // aufVorne/aufHinten sind seit dieser Version nicht mehr seitenabhaengig.

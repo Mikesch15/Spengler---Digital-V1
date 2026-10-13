@@ -179,7 +179,7 @@ function anbaAusmassZeilen(){
  const knicke=segmente.filter(s=>s.knick).length;
  if(knicke)zeile("Knicke im Verlauf",String(knicke),"Stk.","erfasste Knicke");
  if(erg.anzahlBleilappen!==null&&erg.anzahlBleilappen!==undefined)
-  zeile("Bleilappen",String(erg.anzahlBleilappen),"Stk.","Länge ÷ Lattenabstand",true);
+  zeile("Bleilappen",String(erg.anzahlBleilappen),"Stk.",erg.bleilappenManuell?"von Hand gesetzt (berechnet: "+erg.bleilappenBerechnet+")":"Länge ÷ Lattenabstand",true);
  const letztes=(erg.stuecke||[])[(erg.stuecke||[]).length-1];
  if(letztes&&letztes.gehrung)
   zeile("Endstück mit Firstgehrung","1","Stk.","Zuschlag aus den Einstellungen");

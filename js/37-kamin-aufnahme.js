@@ -119,7 +119,7 @@ function kamaLeer(){
  // kamaMasseHtml/kamaUmschlaegeHtml und kamaPruefungen).
  const s=kaminSettings||KAMIN_STANDARD;
  return {
-  material:"", deckung:s.deckung, lattenabstand:"",
+  material:"", deckung:s.deckung, lattenabstand:"", bleilappenManuell:"",
   getrennt:false, skizzeSeite:"l",
   a:{l:"",r:""}, d:{l:"",r:""}, e:"", keil:"",
   // Der laufende Zustand traegt IMMER den Innenwinkel Dach/Wand - das Merkmal
@@ -305,9 +305,13 @@ function kamaBleilappen(){
  const zeilen=kamaZuschnitte().filter(x=>x.rolle==="seite")
   .map(x=>({name:x.name+" "+x.seite,laenge:x.laenge,
     anzahl:(la>0&&x.laenge>0)?Math.floor(x.laenge/la):null}));
- const gesamt=zeilen.every(x=>x.anzahl===null)?null
+ const berechnet=zeilen.every(x=>x.anzahl===null)?null
    :zeilen.reduce((s,x)=>s+(x.anzahl||0),0);
- return {lattenabstand:la,zeilen,gesamt};
+ // v3.350: Die Anzahl kann von Hand gesetzt werden (leer = berechnet).
+ const mr=kamA.bleilappenManuell;
+ const manuell=(mr!==""&&mr!==null&&mr!==undefined&&kamaZahl(mr)>=0)?Math.round(kamaZahl(mr)):null;
+ const gesamt=manuell!==null?manuell:berechnet;
+ return {lattenabstand:la,zeilen,gesamt,berechnet,manuell:manuell!==null};
 }
 
 // ---- Schnittskizze nach der DXF -------------------------------------------
@@ -577,7 +581,7 @@ function kamaAusmassZeilen(){
  zeile("Blechfläche Zuschnitt",kamaQm(kamaFlaecheM2()),"m²","Summe Länge × Abwicklung");
  const bl=kamaBleilappen();
  if(bl.gesamt!==null)
-  zeile("Bleilappen",String(bl.gesamt),"Stk.","je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
+  zeile("Bleilappen",String(bl.gesamt),"Stk.",bl.manuell?"von Hand gesetzt (berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":"je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  const bcFormel=kamaBuchstabe("b")+" + "+kamaBuchstabe("c")+" − Überlappung";
  if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm",bcFormel);
@@ -858,6 +862,7 @@ Keil und Aufbug. Deckmaterial und Lattenabstand werden für die Bleilappen gebra
 ${kamaFeld("Werkstoff",`<select id="kam_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("kam_material","kamineinfassung",a.material),true)}
 ${kamaFeld("Deckungsmaterial",`<select id="kam_deckung">${deckOpt}</select>`)}
 ${kamaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","kam_lattenabstand",a.lattenabstand,"1",true,kaminSettings.lattenabstand)}
+${kamaZahlFeld("Anzahl Bleilappen von Hand (leer = berechnet)","kam_bleilappenManuell",a.bleilappenManuell,"1",false)}
 </div>
 <label class="kam-schalter"><input type="checkbox" id="kam_getrennt"${a.getrennt?" checked":""}>
 <span>Links und rechts getrennt erfassen</span></label>
@@ -880,7 +885,7 @@ ${kamA.getrennt?wert("Kaminlänge rechts",Lr>0?kamaMm(Lr)+" mm":"–"):""}
 ${wert("Seitliche Höhe für Vorder-/Hinterteil",kamaHoeheDurchgehend()>0?kamaMm(kamaHoeheDurchgehend())+" mm":"–")}
 ${wert("Keil: Abbug / Höhenanteil",kamaZahl(kamA.keil)>0
    ?kamaKeilAbbug(kamaWhIntern(kamA)).toFixed(1).replace(".",",")+"° / "+kamaMm(kh)+" mm":"–")}
-${wert("Anzahl Bleilappen",bl.gesamt!==null?String(bl.gesamt):"–")}
+${wert("Anzahl Bleilappen"+(bl.manuell?" (von Hand)":""),bl.gesamt!==null?String(bl.gesamt):"–")}
 </div>`;
 }
 function kamaMasseHtml(){
@@ -956,7 +961,7 @@ berechnet werden – bitte in den Grunddaten eintragen.</div>`
 <thead><tr><th>Seitenteil</th><th>Länge (mm)</th><th>Bleilappen</th></tr></thead>
 <tbody>${bl.zeilen.map(x=>`<tr><td>${esc(x.name)}</td><td>${kamaMm(x.laenge)}</td>
 <td>${x.anzahl===null?"–":x.anzahl}</td></tr>`).join("")}
-<tr><td colspan="2"><b>Gesamt</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
+<tr><td colspan="2"><b>Gesamt${bl.manuell?" (von Hand gesetzt, berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":""}</b></td><td><b>${bl.gesamt}</b></td></tr></tbody></table></div>
 <div class="small" style="color:var(--muted);margin-top:4px">Je Seitenteil abgerundet aus
 Länge ÷ Lattenabstand (${kamaMm(bl.lattenabstand)} mm) – ein Lappen je Ziegelreihe.</div>`;
  return `<div class="info">Sechs Zuschnitte: Vorderteil, Hinterteil und je ein Seitenteil
@@ -1122,7 +1127,7 @@ const KAM_FELDER={kam_e:"e",kam_keil:"keil",
  kam_breiteVorne:"breiteVorne",kam_breiteHinten:"breiteHinten",
  kam_umschlagVorne:"umschlagVorne",kam_umschlagHinten:"umschlagHinten",
  kam_umschlagSeite:"umschlagSeite",kam_ueberlappung:"ueberlappung",
- kam_lattenabstand:"lattenabstand"};
+ kam_lattenabstand:"lattenabstand", kam_bleilappenManuell:"bleilappenManuell"};
 const KAM_SEITENFELDER={kam_a:"a",kam_b:"b",kam_c:"c",kam_d:"d",kam_f:"f",kam_g:"g",kam_hoehe:"hoehe"};
 function kamaFeldZuweisen(id,wert){
  if(KAM_FELDER[id]!==undefined){kamA[KAM_FELDER[id]]=wert;return true}
@@ -1280,6 +1285,7 @@ function kamaDaten(){
  const paar=k=>({l:kamaSeite(k,"l"),r:kamaSeite(k,"r")});
  return {
   material:a.material, deckung:a.deckung, lattenabstand:kamaZahl(a.lattenabstand),
+  bleilappenManuell:bl.manuell?bl.gesamt:"",
   getrennt:!!a.getrennt,
   a:paar("a"), d:paar("d"), e:kamaZahl(a.e), keil:kamaZahl(a.keil),
   // Seit v2.95 sind das die am Bau gemessenen Innenwinkel Dach/Wand. Das
@@ -1340,7 +1346,7 @@ function kamaFuellen(d){
  const nimm=(k,ziel)=>{if(w[k]===0||w[k])a[ziel||k]=w[k]};
  a.material=w.material??"";
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
- ["lattenabstand","e","keil","winkelVorne","winkelHinten",
+ ["lattenabstand","bleilappenManuell","e","keil","winkelVorne","winkelHinten",
   "breiteVorne","breiteHinten","umschlagVorne","umschlagHinten",
   "umschlagSeite","ueberlappung"].forEach(k=>nimm(k));
  // Datensaetze bis v2.94 trugen die Neigung VOM SENKRECHTEN (auf einem

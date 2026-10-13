@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.349`
+- Aktueller Entwicklungsstand: `v3.350`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.350 — Anzahl Bleilappen von Hand, Bleilappen nur einmal, Freies Profil mit Bezeichnung, Komplettausmass im Ausmass
+
+Wünsche: (1) Bleilappen standen doppelt im Komplettausmass → feste Zeile oben entfernt, die Kachel heisst jetzt „Bleilappen“ ohne „(Teil)“. (2) Anzahl Bleilappen in allen Massaufnahmen mit Bleilappen anpassbar: neues Feld „Anzahl Bleilappen von Hand (leer = berechnet)“ bei Dachfenster (js/66), Kamin (js/37), Einfassung rund (js/38, Gesamtzahl) und Anschlussblech Art Bleilappen (js/20, index.html `anb_bleilappenManuell`); `bleilappenManuell` wird gespeichert/wiederhergestellt, ersetzt die berechnete Gesamtzahl (auch im Ausmass und damit im Komplettausmass; Herkunft „von Hand gesetzt (berechnet: n)“); leer = wie bisher. 0 ist ein gültiger Handwert. (3) Freies Profil: erste Ausmass-Zeile trägt die Bezeichnung der Massaufnahme (Titelfeld), ohne Bezeichnung die bisherige Zeile. (4) Im Ausmass-Formular (`ausmassEditModal`) gibt es „📊 Komplettausmass dieses Projekts ansehen“ (nur Anzeige; nur wenn das Ausmass aus dem Projekt geöffnet wurde, sonst Hinweis).
+Prüfstand `bleilappen-hand-v3-350` (23); Mutationen (Handwert ignoriert je Modul, Freies Profil ohne Bezeichnung) erkannt; `komplettausmass-v3-341` angepasst.
 
 ### v3.349 — Komplettausmass: Positionen antippen (Herkunft), Blechfläche zusammengeführt
 
@@ -15,11 +20,6 @@ Prüfstand `komplettausmass-v3-341` auf 66 erweitert; Mutationen (Blechfläche n
 ### v3.348 — Komplettausmass: Ecken, Scharen, Knicke ausgeblendet
 
 Wunsch: „Raus kann noch Ecken, Scharen, Knicke.“ js/85 `KA_AUSGEBLENDET` um `^ecken?`, `^schar(en)?`, `^knick` ergänzt (Stückzahlen wie „Ecken“ bei Mauerabdeckung, „Scharen“ bei Lukarne, „Knicke im Verlauf“ bei Anschlussblech); Hinweistext und Prüfstand `komplettausmass-v3-341` (58, Mutationen je Muster erkannt) angepasst. Weiterhin NICHT ausgeblendet: Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m.
-
-### v3.347 — Komplettausmass aufgeräumt, als Kacheln, offen auf der Projektübersicht
-
-Wunsch (3 Nachrichten): ins Komplettausmass gehören nicht: Biegungen, Blechstösse, Umschläge, Einfassungen nur als Komplettstückzahl je Einfassungsart, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Stücke; nicht so versteckt platzieren; schöner auflisten wie die Bleilappen. Grundlage: alle echten Ausmass-Bezeichnungen der Firma abgefragt (nur lesend). js/85: `kaAusgeblendet` (Muster für biegung, stoss/stösse, umschlag/umschläge, endzugabe, ^gehrung, gava/haltebleche, ^segment, stück/zuschnitte – Stückzahlen; „Blechfläche Zuschnitt“ in m² bleibt) – solche Zeilen werden vor allem anderen verworfen (auch ungültige Mengen erscheinen nicht unter „Zu prüfen“), ihre Zahl steht als Hinweis dabei; `kaEinfassungArt`: „Dachfenstereinfassung, <Deckart>“ → „Dachfenstereinfassungen“, „Kamineinfassung, …“ → „Kamineinfassungen“, „Einfassungen rund“ bleibt, „Einfassung N · Titel“ entfällt; Quellen bleiben in der Gruppe. Stk-Spalte der Material- und Mengenübersicht = diese Einfassungs-Stückzahlen. Anzeige: je Mengenposition eine Kachel (Name, fette Summe, „aus n Massaufnahmen“, Dubletten-Hinweis), Bleilappen weiter als feste Zeile oben. Platzierung: `kaA2Html()` jetzt offen auf der Projektübersicht (js/70, zwischen Projekt-/Mengenübersicht und Ablauf; auch weiter im Register Ausmass); die Kurzzeile „Komplettausmass“ mit Knopf entfällt. Bewusst NICHT ausgeblendet (nicht genannt): Ecken, Scharen, Knicke, Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m. Keine Datenänderung.
-Prüfstand `komplettausmass-v3-341` 58; Mutationen (Biegungen/GAVA/Segmente nicht ausgeblendet, Einfassung nicht je Art, Einzel-Einfassungen bleiben, Komplettausmass wieder versteckt, nichts ausgeblendet) erkannt; `cockpit-dashboard-v3-343` angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

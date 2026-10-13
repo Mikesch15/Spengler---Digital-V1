@@ -83,7 +83,7 @@ function einfaLeer(){
  return {
   // v3.65: der Lattenabstand ist nur noch ein Richtwert (Einstellungen) -
   // die Eindeckungsart bleibt vorbelegt, sie ist eine Auswahl und kein Mass.
-  material:"", deckung:s.deckung, lattenabstand:"",
+  material:"", deckung:s.deckung, lattenabstand:"", bleilappenManuell:"",
   einfassungen:[einfaNeue()], aktiv:0, rollenAuswahl:[]
  };
 }
@@ -247,7 +247,16 @@ function einfaZuschnitte(quelle){
 function einfaFlaecheM2(quelle){
  return einfaZuschnitte(quelle).reduce((s,x)=>s+(x.laenge*x.breite)/1e6,0);
 }
+// v3.350: Die Gesamtzahl kann von Hand gesetzt werden (leer = berechnet).
+function einfaBleilappenManuell(quelle){
+ const q=quelle||einfA, mr=q.bleilappenManuell;
+ return (mr!==""&&mr!==null&&mr!==undefined&&einfaZahl(mr)>=0)?Math.round(einfaZahl(mr)):null;
+}
 function einfaBleilappenGesamt(quelle){
+ const m=einfaBleilappenManuell(quelle);
+ return m!==null?m:einfaBleilappenBerechnet(quelle);
+}
+function einfaBleilappenBerechnet(quelle){
  const q=quelle||einfA;
  let summe=0, offen=false;
  einfaListe(q).forEach(e=>{
@@ -354,7 +363,7 @@ function einfaAusmassZeilen(quelle){
  const fl=einfaFlaecheM2(q);
  if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Breite");
  const bl=einfaBleilappenGesamt(q);
- if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk","Umfang ÷ Lattenabstand, aufgerundet",true);
+ if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk",einfaBleilappenManuell(q)!==null?"von Hand gesetzt (berechnet: "+(einfaBleilappenBerechnet(q)===null?"–":einfaBleilappenBerechnet(q))+")":"Umfang ÷ Lattenabstand, aufgerundet",true);
  return z;
 }
 function einfaMaterialTabelle(){
@@ -457,7 +466,7 @@ function einfaKennzahlenHtml(){
  return `<div class="grid ra-kennzahlen" id="einfa_kennzahlen">
 ${wert("Einfassungen",z.length+" Stk")}
 ${wert("Blechfläche",einfaQm(einfaFlaecheM2())+" m²")}
-${wert("Anzahl Bleilappen",bl===null?"–":String(bl))}
+${wert("Anzahl Bleilappen"+(einfaBleilappenManuell()!==null?" (von Hand)":""),bl===null?"–":String(bl))}
 ${wert("Beste Rollenbreite",plan.bestes?einfaMm(plan.bestes.breite)+" mm":"–")}
 </div>`;
 }
@@ -477,6 +486,7 @@ Deckmaterial und Lattenabstand werden für die Bleilappen gebraucht.</div>
 ${einfaFeld("Werkstoff",`<select id="einfa_material" data-pflicht="1">${matOpt}</select>`+zwMaterialChip("einfa_material","einfassung_rund",a.material),true)}
 ${einfaFeld("Eindeckungsart",`<select id="einfa_deckung">${deckOpt}</select>`)}
 ${einfaZahlFeld("Lattenabstand, für Anzahl Bleilappen (mm)","einfa_lattenabstand",a.lattenabstand,"1",true,(einfassungSettings||{}).lattenabstand)}
+${einfaZahlFeld("Anzahl Bleilappen gesamt von Hand (leer = berechnet)","einfa_bleilappenManuell",a.bleilappenManuell,"1",false)}
 </div>
 <div class="bar" style="margin-top:8px">
 <button type="button" class="gray" id="einfa_einstellungen">⚙️ Einstellungen</button>
@@ -723,7 +733,7 @@ function einfaLive(){
  }
 }
 // Zuordnung Eingabefeld -> Zustand. Die Felder der Liste tragen den Index.
-const EINFA_FELDER={einfa_lattenabstand:"lattenabstand"};
+const EINFA_FELDER={einfa_lattenabstand:"lattenabstand",einfa_bleilappenManuell:"bleilappenManuell"};
 const EINFA_LISTENFELDER=["bez","durchmesser","winkel","a","b","c","anzahl"];
 function einfaFeldZuweisen(id,wert){
  if(EINFA_FELDER[id]!==undefined){einfA[EINFA_FELDER[id]]=wert;return true}
@@ -819,6 +829,7 @@ function einfaDaten(){
  const plan=einfaRollenPlan();
  return {
   material:a.material, deckung:a.deckung, lattenabstand:einfaZahl(a.lattenabstand),
+  bleilappenManuell:einfaBleilappenManuell()!==null?einfaBleilappenManuell():"",
   // --- unveraendert wie bis v2.95 (erste Einfassung) ---
   durchmesser:einfaZahl(erste.durchmesser), winkel:einfaZahl(erste.winkel),
   a:einfaZahl(erste.a), b:einfaZahl(erste.b), c:einfaZahl(erste.c),
@@ -876,6 +887,7 @@ function einfaFuellen(d){
  a.material=w.material==null?"":w.material;
  if(w.deckung&&(typeof EINF_DECKUNGEN!=="object"||EINF_DECKUNGEN[w.deckung]))a.deckung=w.deckung;
  if(w.lattenabstand===0||w.lattenabstand)a.lattenabstand=w.lattenabstand;
+ if(w.bleilappenManuell===0||w.bleilappenManuell)a.bleilappenManuell=w.bleilappenManuell;
  if(Array.isArray(w.einfassungen)&&w.einfassungen.length){
   a.einfassungen=w.einfassungen.map(e=>({
    bez:(e&&e.bez)||"", durchmesser:einfaZahl(e&&e.durchmesser), winkel:einfaZahl(e&&e.winkel),

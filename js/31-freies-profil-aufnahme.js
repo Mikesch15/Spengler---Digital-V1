@@ -152,7 +152,9 @@ function fpaAusmassZeilen(){
  if(!fpA.schenkel.length||!segs.length)return z;
  const konisch=fpaKonisch();
  const L=fpaLaufmeter();
- if(L>0)zeile("Freies Profil, "+fpA.schenkel.length+" Schenkel",fpaMeter(L),"m","Summe der Segmentlängen");
+ // v3.350: Die Bezeichnung der Massaufnahme (Titelfeld) ist die Bezeichnung im Ausmass.
+ const mt=(typeof $==="function"&&$("measTitle")&&String($("measTitle").value||"").trim())||"";
+ if(L>0)zeile(mt||("Freies Profil, "+fpA.schenkel.length+" Schenkel"),fpaMeter(L),"m","Summe der Segmentlängen");
  zeile("Segmente",segs.length,"Stk.","Segmentliste");
  segs.forEach((seg,i)=>{
   const a=fpaAbwicklungSegment(seg);
