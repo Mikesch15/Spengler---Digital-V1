@@ -1,7 +1,7 @@
 ABSCHLUSSBERICHT v3.353 – Startseite „Heute“, Nachbesserung
 Datum: 13.10.2026
 Ausgangscommit: 6bdda0b (v3.352; Pages success, Regression 186/186)
-Zielcommit: (siehe Git-Log, Commit „v3.353“)
+Zielcommit: c8c49ce (v3.353; GitHub-Prüfstände success, Pages success, lokale Regression 186/186)
 
 1. VERGLEICH CODE / REFERENZ
 Die Startseite ist die Seite „Heute“ (js/70 a2SeiteHeute, css/05). Der Screenshot lag mir nicht als Datei vor; verglichen habe ich nach der Auftragsbeschreibung mit dem Code und mit eigenen Testbrowser-Aufnahmen (390px und 1100px). Vorhandene Tokens (--blue, --card-bg, --muted, --a2-*) und Komponenten (.a2-karte, .a2-kpi, .a2-zahl, .a2-register-klein, .a2-fort/.a2-balken, #a2Leiste) wurden wiederverwendet.
