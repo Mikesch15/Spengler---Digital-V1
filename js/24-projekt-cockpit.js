@@ -281,7 +281,7 @@ function renderCockpitStatus(){
  const info=projektStatusInfo(p);
  $("cockpitStatusBadge").innerHTML=projektStatusBadge(p);
  const sel=$("cockpitStatus");
- sel.innerHTML=PROJEKT_STATUS.map(x=>`<option value="${x.wert}"${x.wert===info.wert?" selected":""}>${esc(x.icon+" "+x.label)}</option>`).join("");
+ sel.innerHTML=PROJEKT_STATUS.map(x=>`<option value="${x.wert}"${x.wert===info.wert?" selected":""}>${esc(x.label)}</option>`).join("");
  sel.value=info.wert;
  $("cockpitStatusMsg").hidden=true;
 }

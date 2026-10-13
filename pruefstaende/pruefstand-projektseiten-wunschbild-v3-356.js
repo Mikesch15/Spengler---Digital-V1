@@ -91,9 +91,41 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(k.zeile,"Positionen als Zeilen mit Symbolfeld und Pfeil",k);
  p(k.farbe[0]!==k.farbe[1]&&k.farbe[2]==="#c9d1d8","Werkstoff-Farbfeld: bekannte Metalle eigene Farbe, sonst neutral",k.farbe);
 
+ console.log("\nE · Stammdaten nach dem Wunschbild (v3.357)");
+ await page.evaluate(()=>{a2Zustand.seite="projekt";a2Zustand.projektId=allProjects[0].id;a2Zustand.reg="uebersicht";cockpitProjectId=allProjects[0].id;a2Zeichnen()});
+ await page.waitForTimeout(600);
+ await page.evaluate(()=>a2StammdatenOeffnen(allProjects[0].id));
+ await page.waitForTimeout(1500);
+ const sd=await page.evaluate(()=>{
+  const q=s=>document.querySelector(s);
+  const cs=(el,pr)=>el?getComputedStyle(el)[pr]:"";
+  const sel=q("#cockpitStatus");
+  const personen=[...document.querySelectorAll("#cockpitZuteilung .zuteilung-person")];
+  return {sichtbar:!!q("#projectCockpitModal.a2-nur-stammdaten")&&!q("#projectCockpitModal").hidden,
+   badge:cs(q("#cockpitStatusBadge"),"display"),
+   optionen:sel?[...sel.options].map(o=>o.textContent):[],
+   punkt:sel?getComputedStyle(sel).backgroundImage.indexOf("radial-gradient")>=0:false,
+   kopf:!!q("#cockpitStammdaten .stamm-kopf"),
+   labelCase:cs(q("#cockpitStammdaten label"),"textTransform"),
+   spalten:q("#cockpitZuteilung")?getComputedStyle(q("#cockpitZuteilung")).gridTemplateColumns.split(" ").length:0,
+   personCase:personen.length?cs(personen[0],"textTransform"):"keine",
+   felder:["cockpitName","cockpitOrderNo","cockpitObject","cockpitCustomer","cockpitHinweis"].every(i=>!!document.getElementById(i)),
+   speichern:!!q("#cockpitSaveStammdaten")&&!q("#cockpitSaveStammdaten").disabled,
+   zurueck:cs(q("#cockpitBack"),"backgroundColor"),
+   sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth};
+ });
+ p(sd.sichtbar,"Stammdaten öffnen im Rahmen der Ansicht",sd);
+ p(sd.badge==="none"&&sd.optionen.length>=3&&sd.optionen.every(o=>!/[◐○✓×]/.test(o)),"Status: doppelte Marke entfällt, Auswahl ohne unklares Zeichen",[sd.badge,sd.optionen]);
+ p(sd.punkt,"Status-Auswahl mit farbigem Punkt",sd.punkt);
+ p(sd.kopf&&sd.labelCase==="none"&&sd.personCase==="none","Überschrift „Projektinformationen“, Beschriftungen in normaler Schrift",sd);
+ p(sd.spalten===2||sd.personCase==="keine","Zuteilung zweispaltig",sd.spalten);
+ p(sd.felder&&sd.speichern,"alle Felder und der Speichern-Knopf vorhanden (derselbe Weg)",sd);
+ p(sd.zurueck!=="rgb(15, 118, 74)"&&sd.zurueck!=="rgb(0, 128, 0)"&&sd.sw<=sd.cw+1,"Zurück-Knopf ruhig (nicht grün), kein Überlaufen",[sd.zurueck,sd.sw,sd.cw]);
+
  console.log("\nD · Kopf der Startseite: Logo transparent und gross");
  const l=await page.evaluate(()=>{
   const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  if(a2Zustand.bereich)a2BereichSchliessen();
   $("startLogo").src=gif;$("startLogo").hidden=false;
   a2Zustand.seite="heute";a2Zeichnen();
   const i=document.querySelector("#a2Inhalt .a2-hero-logo");

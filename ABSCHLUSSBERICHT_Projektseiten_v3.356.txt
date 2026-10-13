@@ -25,3 +25,5 @@ Keine Geräte-/Live-Tests; Darstellung im Testbrowser mit Attrappen (390 px). Ma
 
 6. MANUELLE PRÜFUNG
 App neu laden (3.356). Startseite: Titelbild rechts im Kopf, Logo gross/transparent. Projekte: Karten, Suche, Filterknopf. Projekt öffnen: Register-Leiste, „Als Nächstes“, Projektübersicht, Mengen, Komplettausmass.
+
+NACHTRAG v3.357 – STAMMDATEN: Stammdaten-Seite nach dem Wunschbild umgebaut (nur Darstellung; Status mit Punkt, Überschrift Projektinformationen, Zuteilung zweispaltig, Zurück-Knopf ruhig). Prüfstand projektseiten-wunschbild-v3-356 jetzt 25 Prüfungen.

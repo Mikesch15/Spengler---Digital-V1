@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.356`
+- Aktueller Entwicklungsstand: `v3.357`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.357 — Stammdaten nach dem Wunschbild
+
+Wunsch („Danach das umbauen“, Bild der Seite Stammdaten). Nur Darstellung im Rahmen der Ansicht (`a2-nur-stammdaten`, css/05; dieselben Felder, derselbe Speichern-Weg `cockpitSaveStammdaten`): Titel gross in Blau, Status-Zeile mit Beschriftung und Auswahl mit farbigem Punkt (die doppelte Marke daneben entfällt; die Optionen heissen ohne unklares Zeichen, js/24), Überschrift „Projektinformationen“ (index.html, `.stamm-kopf`), Beschriftungen in normaler Schrift, grosse Eingabefelder, „Zugeteilt an“ als Abschnitt mit zweispaltigen Personenfeldern, Speichern-Knopf voll breit, „Zurück zur Projektübersicht“ als ruhiger Rahmen-Knopf statt grün. Prüfstand `projektseiten-wunschbild-v3-356` auf 25 (Abschnitt E); Mutationen (Zeichen in Optionen, doppelte Marke, einspaltige Zuteilung, fehlende Überschrift) erkannt.
 
 ### v3.356 — Projektliste und Projektseite nach dem Wunschbild; Titelbild lesbar; grösseres, transparentes Logo
 
@@ -19,10 +23,6 @@ Prüfstand `projektseiten-wunschbild-v3-356` (18); `uebersichtlichkeit-v3-289` (
 ### v3.355 — Titelbild der Startseite in den Firmeneinstellungen
 
 Wunsch: „Mache das Bild im Kopfteil so wie in der Vorlage, man soll es in den Firmeneinstellungen hochladen können.“ Neu: Firmeneinstellungen → „Titelbild der Startseite“ (Hochladen mit Vorschau, Entfernen; Bild wird auf 1200 px Breite verkleinert, JPEG) – gleicher Weg wie das Logo (`uploadMeasurementImage`, Bucket `measurements`, signierte Adresse über `storageSignedUrl`). **Datenbank:** eine neue, leere Textspalte `app_settings.kopf_bild_url` (Migration „app_settings_kopf_bild_url“, additiv, Datei `supabase/migrations/v3355_app_settings_kopf_bild_url.sql`; vorher Spalten und Rechte der Tabelle geprüft, keine Policy geändert). Anzeige: Kopf der Startseite (js/70 `a2HeuteHeroHtml`, css/05 `.a2-hero-mit-bild`) mit dem Bild rechts, links ins Markenblau ausgeblendet; ohne Bild bleibt der blaue Kopf. Zustand `kopfBildUrl/kopfBildDataUrl/kopfBildSigniert` (js/01), Laden js/05, Speichern js/07. Prüfstand `startseite-dashboard-v3-352` auf 34; Mutationen (Bild ignoriert, Feld nicht gespeichert, Entfernen setzt nicht zurück) erkannt. Nicht live getestet: das Hochladen mit echtem Storage (Testumgebung ohne Supabase). Bericht: `ABSCHLUSSBERICHT_Startseite_Titelbild_v3.355.txt`.
-
-### v3.354 — Startseite nach dem Wunschbild (Kopf, Suche, Kennzahlen mit Symbol, Filter-Chips)
-
-Wunsch (Bild): „Ich würde mir das irgendwie so vorstellen.“ Umgesetzt auf der Seite Heute (js/70, css/05; nur Heute): Kopfbereich in Markenblau mit Logo (auf weissem Feld), Begrüssung nach Tageszeit, Datum und Name; Suchfeld „Projekte suchen …“ (filtert die Liste darunter mit `projektPasstZuSuche`, dieselbe Regel wie die Projektliste) mit Filterknopf (öffnet „Archiv und Filter“); Kennzahlen als vier Felder mit Symbol (Offene Projekte, Offene Aufgaben, Teile zu produzieren, Montagen vorbereitet – letztere beiden nur mit Werkstatt, aus `a2WerkZahlen`; „…“ beim Laden, „–“ bei Fehler); der Abschnitt „Werkstatt heute“ zeigt nur noch die Rüstlisten (je Zahl eine Stelle); „Wichtige Hinweise“ rötlich hinterlegt; Projektkarten mit Standortzeichen vor der Adresse; Filter-Chips „Meine (n) · Alle (n) · In Arbeit (n) · Nahe Montage (n)“ („Nahe Montage“ = Massaufnahme „zu montieren“ mit eingetragenem Termin heute bis +7 Tage, nur mit Werkstatt). Nicht übernommen: Dachfoto im Kopf und Projektfotos in den Karten (keine Bildquelle am Projekt, nichts Erfundenes), Chip „Offen“ (wäre dasselbe wie „Alle“). Prüfstand `startseite-dashboard-v3-352` auf 29; `startseite-v3-158` und `ansicht2-vorgabe-v3-151` an das neue Layout angepasst (Zahlenquelle `data-kpi`, Kopf `.a2-hero`). Bericht: `ABSCHLUSSBERICHT_Startseite_Wunschbild_v3.354.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

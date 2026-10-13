@@ -1918,3 +1918,6 @@ details.ka-kachel[open] .ka-kachel-pfeil{transform:rotate(90deg)}
 .ka-farbe{display:inline-block;width:16px;height:16px;border-radius:4px;margin-right:8px;vertical-align:-3px}
 .ka-farbe-leer{background:#c9d1d8}
 .ka-tabelle tfoot tr{background:var(--blue-light)}
+
+/* v3.356/357: Überschrift im Stammdaten-Formular (beide Ansichten) */
+.stamm-kopf{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
