@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.352`
+- Aktueller Entwicklungsstand: `v3.353`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.353 — Startseite „Heute“: verdichtet und beruhigt (Nachbesserung)
+
+Nachbesserungsauftrag zur Startseite. Nur CSS (css/05, Block „STARTSEITE HEUTE“) und zwei kleine Stellen in js/70: `a2Zeichnen` setzt die Klasse `a2-heute` (auf `#a2Inhalt`) und `a2-heute-an` (auf `html`) nur auf der Seite Heute – alle anderen Seiten bleiben unverändert. Kennzahlen als schlanke Zeilen (Zahl + Beschriftung, ~40px statt ~90px), Projektkarten kompakt (Rundung 8px, kein Schatten, ruhiger Hintergrund `--a2-heute-bg`), Typografie gestaffelt, „Meine/Alle“ als kompakte Auswahl, Status als Klartext mit Punkt statt unklarem Zeichen (`a2-st`, Blau = In Arbeit, Grün = Abgeschlossen, Orange = Offen), „Noch keine Teile erfasst“ dezent, Balken 5px, lange Namen/Adressen brechen um (vorher lief die Aufgabengruppe bei langen Projektnamen horizontal über), untere Navigation mit einheitlicher Symbolgrösse und klarem aktivem Zustand. Keine Datenlogik, Navigation oder Rechte geändert. Prüfstand `startseite-dashboard-v3-352` auf 22; Mutationen (unklares Zeichen, hohe Kennzahlen, grosse Rundung/Schatten, Klasse auf allen Seiten, kein Umbruch) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_Nachbesserung_v3.353.txt`.
 
 ### v3.352 — Startseite: Handlungen, Arbeitsstand, „Nächster Schritt“
 
@@ -14,11 +18,6 @@ Auftrag „Professionelle Startseite“ (Datei). Bestandsaufnahme: beim Start ö
 ### v3.351 — Freies Profil: „Freies Profil, <Name der Massaufnahme>“
 
 Wunsch (Screenshot): statt „Freies Profil, 6 Schenkel“ soll „Freies Profil, PV Brustblech“ stehen. js/31 `fpaAusmassZeilen` schreibt „Freies Profil, <Titel>“ (ohne Titel wie bisher); js/85 `kaSammeln` zeigt für ältere gespeicherte Zeilen „Freies Profil, N Schenkel“ den Titel der Massaufnahme (nur Anzeige, nichts wird umgeschrieben; die Herkunft zeigt den Originaltext). Prüfstand `bleilappen-hand-v3-350` auf 24.
-
-### v3.350 — Anzahl Bleilappen von Hand, Bleilappen nur einmal, Freies Profil mit Bezeichnung, Komplettausmass im Ausmass
-
-Wünsche: (1) Bleilappen standen doppelt im Komplettausmass → feste Zeile oben entfernt, die Kachel heisst jetzt „Bleilappen“ ohne „(Teil)“. (2) Anzahl Bleilappen in allen Massaufnahmen mit Bleilappen anpassbar: neues Feld „Anzahl Bleilappen von Hand (leer = berechnet)“ bei Dachfenster (js/66), Kamin (js/37), Einfassung rund (js/38, Gesamtzahl) und Anschlussblech Art Bleilappen (js/20, index.html `anb_bleilappenManuell`); `bleilappenManuell` wird gespeichert/wiederhergestellt, ersetzt die berechnete Gesamtzahl (auch im Ausmass und damit im Komplettausmass; Herkunft „von Hand gesetzt (berechnet: n)“); leer = wie bisher. 0 ist ein gültiger Handwert. (3) Freies Profil: erste Ausmass-Zeile trägt die Bezeichnung der Massaufnahme (Titelfeld), ohne Bezeichnung die bisherige Zeile. (4) Im Ausmass-Formular (`ausmassEditModal`) gibt es „📊 Komplettausmass dieses Projekts ansehen“ (nur Anzeige; nur wenn das Ausmass aus dem Projekt geöffnet wurde, sonst Hinweis).
-Prüfstand `bleilappen-hand-v3-350` (23); Mutationen (Handwert ignoriert je Modul, Freies Profil ohne Bezeichnung) erkannt; `komplettausmass-v3-341` angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

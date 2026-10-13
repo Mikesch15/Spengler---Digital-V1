@@ -797,11 +797,11 @@ function a2SeiteHeute(){
        <div class="a2-karte-titel">${esc(p.name||titel)}</div>
        <p class="a2-karte-unter">${esc(p.object||"")}</p>
       </div>
-      ${st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:""}
+      ${st?`<span class="a2-st a2-st-${esc(st.wert)}">${esc(st.label)}</span>`:""}
      </div>
      ${naechster?`<p class="a2-naechster"><b>Nächster Schritt:</b> ${esc(naechster)}${gAuf.aufgaben.length>1?" (+"+(gAuf.aufgaben.length-1)+")":""}</p>`:""}
      ${stand&&stand.gesamt?a2FortschrittHtml(stand.erledigt,stand.gesamt,"Produziert")
-       :`<p class="a2-karte-unter" style="margin-top:8px">${
+       :`<p class="a2-karte-unter a2-kein-teil">${
          a2WerkstattSichtbar()&&!a2WerkGeladen?"Zuschnittstand wird geladen …"
                                               :"Noch keine Teile erfasst."}</p>`}
     </button>`;
@@ -1176,6 +1176,10 @@ function a2Zeichnen(){
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
+ // v3.353: Die verdichtete Gestaltung gilt nur für die Startseite (Klasse a2-heute); alle anderen Seiten bleiben unverändert.
+ {const istHeute=a2Zustand.seite==="heute"&&!ber;
+  $("a2Inhalt").classList.toggle("a2-heute",istHeute);
+  document.documentElement.classList.toggle("a2-heute-an",istHeute);}
  // v3.280: Die Fotos im Register "Dateien" holen ihre Vorschau erst jetzt - vor
  // dem Einfuegen gaebe es die Bilder noch nicht. Nur Seiten mit Fotos haben
  // solche Bilder, alle anderen Seiten kostet das nichts.

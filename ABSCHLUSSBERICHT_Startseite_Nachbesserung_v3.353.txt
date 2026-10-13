@@ -1,0 +1,35 @@
+ABSCHLUSSBERICHT v3.353 – Startseite „Heute“, Nachbesserung
+Datum: 13.10.2026
+Ausgangscommit: 6bdda0b (v3.352; Pages success, Regression 186/186)
+Zielcommit: (siehe Git-Log, Commit „v3.353“)
+
+1. VERGLEICH CODE / REFERENZ
+Die Startseite ist die Seite „Heute“ (js/70 a2SeiteHeute, css/05). Der Screenshot lag mir nicht als Datei vor; verglichen habe ich nach der Auftragsbeschreibung mit dem Code und mit eigenen Testbrowser-Aufnahmen (390px und 1100px). Vorhandene Tokens (--blue, --card-bg, --muted, --a2-*) und Komponenten (.a2-karte, .a2-kpi, .a2-zahl, .a2-register-klein, .a2-fort/.a2-balken, #a2Leiste) wurden wiederverwendet.
+
+2. SICHTBARE VERBESSERUNGEN (nur Seite Heute; Klasse a2-heute)
+- Kennzahlen: aus hohen Kacheln werden schlanke Felder (Zahl + Beschriftung, ca. 40px hoch), Rundung 8px, kein Schatten, dezenter Rand.
+- Projektkarten: Innenabstand 9/12px, Rundung 8px, kein Schatten, klare Trennlinie; Projektname 15px, Adresse 12.5px, „Nächster Schritt“ 12.5px; Balken 5px; „Noch keine Teile erfasst“ klein und grau.
+- Status: Klartext mit farbigem Punkt statt unklarem Zeichen (In Arbeit blau, Abgeschlossen grün, Offen orange, Storniert grau); bei sehr schmalen Displays (≤380px) steht der Name über die volle Breite, das Badge darunter – es engt lange Namen nicht ein.
+- Hintergrund: ruhiges, helles Neutralgrau (--a2-heute-bg) statt des blaugrauen Grundtons; Dunkelmodus nutzt die vorhandene Hintergrundvariable.
+- Filter „Meine / Alle“: kompakte Auswahl mit klar markiertem aktivem Zustand (34px hoch); „Alle Projekte ›“ in gleicher Höhe wie der Abschnittstitel.
+- Abstände: Abschnitte 14px, Titelzeile 32px hoch, Kennzahlen 6px Abstand – einheitlich.
+- Lange Projektnamen/Adressen brechen um. Vorher lief die Zeile der Aufgabengruppe bei einem sehr langen Namen horizontal über (am Testbrowser gemessen: Seitenbreite 723px bei 360px Anzeige).
+- Untere Navigation (alle Seiten): einheitliche Symbolgrösse (22px), Beschriftung 11px, aktiver Eintrag mit Linie oben; Safe-Area-Abstand blieb unverändert.
+
+3. NICHT GEÄNDERT
+Datenlogik, Kennzahlen-Bedeutung, Projektfilter, Status, Projektlinks, Navigation (Ziele/Namen), Rechte, Freigaben, Datenbank, Materiallisten, Fachseiten. js/70 nur: Klassen setzen und Statusmarke der Projektkarte (Klartext statt Zeichen).
+
+4. TESTS
+- Prüfstand startseite-dashboard-v3-352 auf 22 Prüfungen erweitert (Kennzahl-Höhe, Rundung/Schatten, Status ohne Zeichen, lange Namen bei 360px ohne Überlaufen, Navigation vollständig und im Bild, andere Seiten unverändert, Breiten 360/390/768/1280).
+- Mutationen erkannt: unklares Statuszeichen; hohe Kennzahlen; grosse Rundung + Schatten; Klasse auf allen Seiten; fehlender Umbruch.
+- Schnellprüfung (46 Prüfstände rund um Ansicht, Startseite, Aufgaben, Navigation, Übersicht, Hilfe, Versionen, Cache): grün. Volle Regression und Actions: siehe Antwort/Git-Log.
+
+5. EINSCHRÄNKUNGEN
+- Keine Tests auf echten Geräten (Handy/Android-Systemleisten); Safe-Area-Regeln wurden nicht verändert, nur im Testbrowser mit Attrappen geprüft.
+- Werkstattzahlen und Montage waren in der Testumgebung nicht sichtbar (Stub ohne Werkstatt); ihre Karten erben die Verdichtung über dieselben Klassen.
+
+6. MANUELLE PRÜFUNG AM SMARTPHONE
+1) App neu laden (3.353). Startseite: Kennzahlen schlank, mehrere Projektkarten sichtbar, Status als Text mit Punkt.
+2) „Meine/Alle“ umschalten; „Alle Projekte ›“ tippen.
+3) Projekt mit sehr langem Namen/Adresse ansehen: nichts läuft über den Rand.
+4) Untere Navigation: Heute/Projekte/Werkstatt/Lager/Mehr sichtbar, nichts von Android-Navigationsleiste verdeckt.

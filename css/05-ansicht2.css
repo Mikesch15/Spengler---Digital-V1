@@ -1190,3 +1190,68 @@ html.a2-an .a2-zeile.a2-zeile-still:active{
 .a2-dash{display:grid;gap:0;grid-template-columns:minmax(0,1fr)}
 .a2-dash>*{min-width:0}
 @media(min-width:900px){.a2-dash{grid-template-columns:minmax(260px,1fr) minmax(360px,1.4fr);gap:14px;align-items:start}}
+
+
+/* ==========================================================================
+   STARTSEITE „HEUTE“ – VERDICHTET UND BERUHIGT  (v3.353)
+   --------------------------------------------------------------------------
+   Gilt NUR, solange js/70 die Klasse a2-heute auf #a2Inhalt (und a2-heute-an
+   auf html) setzt. Alle anderen Seiten behalten ihr Aussehen. Farben und
+   Abstände kommen aus den vorhandenen Variablen; kein zweites Designsystem.
+   ========================================================================== */
+html.a2-an{--a2-heute-bg:#f6f7f9;--a2-trenn:#e3e8ed}
+html.dark.a2-an{--a2-heute-bg:var(--bg);--a2-trenn:#2c3944}
+html.a2-an.a2-heute-an body{background:var(--a2-heute-bg)}
+#a2Inhalt.a2-heute{padding-top:10px}
+#a2Inhalt.a2-heute .a2-marke{margin:0 0 8px;min-height:28px}
+/* Kopf: Handlungen und Arbeitsstand */
+#a2Inhalt.a2-heute .a2-aktionen{gap:6px;margin:0 0 8px}
+#a2Inhalt.a2-heute .a2-aktionen .a2-knopf{flex:1 1 0;min-width:0;min-height:42px;border-radius:8px;font-size:13.5px;padding:0 6px;white-space:nowrap}
+#a2Inhalt.a2-heute .a2-kpis{gap:6px;margin:0 0 10px}
+#a2Inhalt.a2-heute .a2-kpi,#a2Inhalt.a2-heute .a2-zahl{border-radius:8px;box-shadow:none;border:1px solid var(--a2-trenn);
+ padding:7px 10px;text-align:left;min-height:0}
+#a2Inhalt.a2-heute .a2-kpi{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+#a2Inhalt.a2-heute .a2-kpi b,#a2Inhalt.a2-heute .a2-zahl b{display:inline;font-size:21px;font-weight:800;line-height:1.15}
+#a2Inhalt.a2-heute .a2-kpi span,#a2Inhalt.a2-heute .a2-zahl span{display:inline;font-size:12.5px;margin:0;color:var(--muted)}
+#a2Inhalt.a2-heute .a2-kpi em{flex-basis:100%;margin:0}
+#a2Inhalt.a2-heute .a2-zahlen{gap:6px;margin:0 0 8px}
+#a2Inhalt.a2-heute .a2-zahl b{display:block}
+#a2Inhalt.a2-heute .a2-zahl span{display:block;line-height:1.25}
+/* Abschnitte: einheitliche Abstände, ruhige Titel */
+#a2Inhalt.a2-heute .a2-abschnitt{margin:0 0 14px}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf{margin:0 0 6px;align-items:center;min-height:32px}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf h2{font-size:12px;letter-spacing:.07em}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf button{font-size:13px;min-height:32px;padding:0 2px}
+/* Filter Meine / Alle als kompakte Auswahl */
+#a2Inhalt.a2-heute .a2-register-klein{display:inline-flex;gap:0;margin:0 0 8px;border:1px solid var(--a2-trenn);
+ border-radius:8px;overflow:hidden;background:var(--card-bg)}
+#a2Inhalt.a2-heute .a2-register-klein button{min-height:34px;padding:0 16px;border:0;border-radius:0;background:transparent;
+ color:var(--muted);font-size:13px;font-weight:700}
+#a2Inhalt.a2-heute .a2-register-klein button.ist-auf{background:var(--blue);color:#fff}
+/* Projektkarten */
+#a2Inhalt.a2-heute .a2-karte{border-radius:8px;box-shadow:none;border:1px solid var(--a2-trenn);padding:9px 12px;margin:0 0 6px}
+#a2Inhalt.a2-heute .a2-zeile-text b,#a2Inhalt.a2-heute .a2-zeile-text span{overflow-wrap:anywhere}
+#a2Inhalt.a2-heute .a2-zeile,#a2Inhalt.a2-heute .a2-auf{border-radius:8px;box-shadow:none;border-color:var(--a2-trenn)}
+#a2Inhalt.a2-heute .a2-karte-kopf{align-items:center;gap:8px}
+#a2Inhalt.a2-heute .a2-karte-titel{font-size:15px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+#a2Inhalt.a2-heute .a2-karte-unter{font-size:12.5px;overflow-wrap:anywhere}
+#a2Inhalt.a2-heute .a2-naechster{margin:4px 0 0;font-size:12.5px}
+#a2Inhalt.a2-heute .a2-kein-teil{margin:4px 0 0;font-size:12px;color:var(--muted);opacity:.85}
+#a2Inhalt.a2-heute .a2-karte-klick .a2-fort{margin-top:6px}
+#a2Inhalt.a2-heute .a2-fort-kopf{font-size:12px}
+#a2Inhalt.a2-heute .a2-balken{height:5px}
+/* Status: Punkt statt unklarem Zeichen; Name behält Vorrang */
+.a2-st{display:inline-flex;align-items:center;gap:5px;flex:none;font-size:11.5px;font-weight:700;line-height:1.4;
+ padding:1px 8px;border-radius:999px;white-space:nowrap;background:var(--a2-grau-hell);color:var(--muted)}
+.a2-st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+.a2-st-in_arbeit{background:var(--blue-light);color:var(--blue)}
+.a2-st-abgeschlossen{background:var(--a2-gruen-hell);color:var(--green)}
+.a2-st-offen{background:var(--a2-orange-hell);color:var(--a2-orange)}
+@media(max-width:380px){
+ #a2Inhalt.a2-heute .a2-karte-kopf{flex-wrap:wrap}
+ #a2Inhalt.a2-heute .a2-karte-kopf-text{flex:1 1 100%}
+}
+/* Untere Navigation: einheitliche Symbolgrösse, Beschriftung, aktiver Zustand */
+#a2Leiste button{font-size:11px;gap:3px;font-weight:700}
+#a2Leiste button i svg{width:22px;height:22px}
+#a2Leiste button.ist-auf{font-weight:800;box-shadow:inset 0 2px 0 var(--blue);border-radius:0}

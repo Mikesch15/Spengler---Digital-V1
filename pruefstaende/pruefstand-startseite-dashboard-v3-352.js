@@ -86,6 +86,37 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const fok=await page.evaluate(()=>{const k=document.querySelector("#a2Inhalt .a2-kpi");k.focus();return document.activeElement===k&&k.tagName==="BUTTON"});
  p(fok,"Kennzahlen sind per Tastatur fokussierbare Knöpfe");
 
+ console.log("\nF · Verdichtung und Darstellung (v3.353)");
+ await page.setViewportSize({width:360,height:800});
+ const v=await page.evaluate(()=>{
+  const alt=allProjects;
+  const lang="Sanierung des Mehrfamilienhauses am Bahnhofplatz mit sehr langem Projektnamen ohne Leerzeichen"+"X".repeat(60);
+  allProjects=alt.map((q,i)=>i===0?{...q,name:lang,object:"Sehr lange Adresse "+"Y".repeat(80)+" 12, 3011 Bern"}:q);
+  a2Zustand.seite="heute";a2Zeichnen();
+  const kpi=document.querySelector("#a2Inhalt .a2-kpi").getBoundingClientRect().height;
+  const kar=[...document.querySelectorAll("#a2HeuteProjekte .a2-karte-klick")];
+  const st=kar.map(c=>c.querySelector(".a2-st")).filter(Boolean);
+  const r={sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth,kpi,
+   karteH:kar.length?Math.round(kar[0].getBoundingClientRect().height):0,
+   glyph:st.some(x=>/[◐○✓×]/.test(x.textContent)),statusTexte:st.map(x=>x.textContent.trim()),
+   klasse:document.getElementById("a2Inhalt").classList.contains("a2-heute"),
+   radius:kar.length?getComputedStyle(kar[0]).borderRadius:"",schatten:kar.length?getComputedStyle(kar[0]).boxShadow:"",
+   ueberlauf:kar.some(c=>c.scrollWidth>c.clientWidth+1),
+   nav:[...document.querySelectorAll("#a2Leiste button")].map(x=>x.textContent.replace(/\s+/g,"").trim()),
+   navUeber:(()=>{const l=document.getElementById("a2Leiste").getBoundingClientRect();return l.bottom<=window.innerHeight+1&&l.height>=50})()};
+  allProjects=alt;
+  a2Zustand.seite="projekte";a2Zeichnen();
+  r.andere=document.getElementById("a2Inhalt").classList.contains("a2-heute")||document.documentElement.classList.contains("a2-heute-an");
+  a2Zustand.seite="heute";a2Zeichnen();
+  return r;
+ });
+ p(v.sw<=v.cw+1&&!v.ueberlauf,"lange Projektnamen und Adressen (360px): kein Überlaufen",v);
+ p(v.kpi>0&&v.kpi<=62,"Kennzahlen kompakt (Höhe ≤ 62px)",v.kpi);
+ p(v.klasse&&parseFloat(v.radius)<=10&&(v.schatten==="none"||v.schatten===""),"Projektkarten: ruhige Fläche (Rundung ≤ 10px, kein Schatten)",[v.radius,v.schatten]);
+ p(v.statusTexte.length>0&&!v.glyph&&v.statusTexte.every(x=>/^(Offen|In Arbeit|Abgeschlossen|Storniert)$/.test(x)),"Status ohne unklares Zeichen, nur Klartext (Punkt per CSS)",v.statusTexte);
+ p(v.nav.length>=3&&v.nav.some(x=>/Heute/.test(x))&&v.nav.some(x=>/Projekte/.test(x))&&v.nav.some(x=>/Mehr/.test(x))&&v.navUeber,"untere Navigation vollständig und im Bild",[v.nav,v.navUeber]);
+ p(!v.andere,"andere Seiten bleiben unverändert (Klasse nur auf Heute)",v.andere);
+
  console.log("\nE · Leerer Bestand");
  const l=await page.evaluate(()=>{
   const alt=allProjects;allProjects=[];a2Zeichnen();
