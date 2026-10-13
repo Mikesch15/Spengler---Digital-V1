@@ -89,10 +89,10 @@ p(Object.keys(U.nachMatStaerke).length===3&&U.nachMatStaerke["Kupfer|"].staerke=
 let T=sbx.M([MA(1,1,0.6,[z("Blechfläche Zuschnitt","40,5","m²"),z("Bleilappen","8","Stk."),z("Bleilappen","3","Stk.",{teil:true}),z("Fläche","99","m²")]),
  MA(2,1,0.6,[z("Blechfläche Zuschnitt","6","m²"),z("Haupt","4","Stk")])],sbx.U([ps("a",{quantity:48,material_id:1,staerke_mm:0.6})],LST),ctx);
 let r=T.zeilen[0];
-p(T.zeilen.length===1&&r.material==="Kupfer"&&r.staerke===0.6&&r.offerteM2===48&&Math.abs(r.masseM2-46.5)<1e-9&&r.masseStk===12,"Offerte und Massaufnahme landen in EINER Zeile; m² nur aus „Blechfläche Zuschnitt“ (99 m² „Fläche“ zählt nicht), Stk nur Hauptstücke (Teile nicht)",r);
+p(T.zeilen.length===1&&r.material==="Kupfer"&&r.staerke===0.6&&r.off[0].m2===48&&Math.abs(r.masseM2-46.5)<1e-9&&r.masseStk===12,"Offerte und Massaufnahme landen in EINER Zeile; m² nur aus „Blechfläche Zuschnitt“ (99 m² „Fläche“ zählt nicht), Stk nur Hauptstücke (Teile nicht)",r);
 T=sbx.M([MA(1,2,0.7,[z("Blechfläche Zuschnitt","10","m²")])],sbx.U([ps("a",{quantity:5,material_id:1,staerke_mm:0.6})],LST),ctx);
-p(T.zeilen.length===2&&T.zeilen.find(x=>x.material==="Kupfer").masseM2===null&&T.zeilen.find(x=>x.material==="Titanzink").offerteM2===null,"fehlende Quelle ist null (Anzeige „–“), nicht 0",T.zeilen);
-p(T.summe.offerteM2.wert===5&&T.summe.offerteM2.vollstaendig===false&&T.summe.masseM2.vollstaendig===false,"Summe nur über Zeilen mit Wert und als „nicht vollständig“ gekennzeichnet",T.summe);
+p(T.zeilen.length===2&&T.zeilen.find(x=>x.material==="Kupfer").masseM2===null&&T.zeilen.find(x=>x.material==="Titanzink").off[0].m2===null,"fehlende Quelle ist null (Anzeige „–“), nicht 0",T.zeilen);
+p(T.summe.off[0].m2.wert===5&&T.summe.off[0].m2.vollstaendig===false&&T.summe.masseM2.vollstaendig===false,"Summe nur über Zeilen mit Wert und als „nicht vollständig“ gekennzeichnet",T.summe);
 T=sbx.M([MA(1,1,null,[z("Blechfläche Zuschnitt","2","m²")]),MA(2,1,0.6,[z("Blechfläche Zuschnitt","3","m²")]),MA(3,"",0.6,[z("Blechfläche Zuschnitt","1","m²")])],null,ctx);
 p(T.zeilen.length===3,"gleicher Werkstoff mit/ohne Stärke und Massaufnahme ohne Werkstoff: drei getrennte Zeilen",T.zeilen.map(x=>x.material+"|"+x.staerke));
 T=sbx.M([MA(1,1,0.6,[z("Blechfläche Zuschnitt","2","m²")]),MA(2,1,0.6,[z("Blechfläche Zuschnitt","50","m²")],{project_id:8}),MA(3,1,0.6,[z("Blechfläche Zuschnitt","70","m²")],{company_id:"B"})],null,ctx);
@@ -117,11 +117,21 @@ const off=(t,q)=>({id:1,title:t,positions:[{pos:"1",description:"R",quantity:q,u
 let t1=await tab([off("Offerte A",48)],mas);
 p(/Material- und Mengenübersicht/.test(t1.t)&&t1.kopf.join("|")==="Werkstoff|Stärke|m² (Offerte)|m² (Massaufn.)"&&t1.zeilen===1,"Tabelle: Werkstoff, Stärke, m² (Offerte), m² (Massaufn.)",t1.kopf);
 p(t1.zellen[0]==="Kupfer"&&t1.zellen[1]==="0,6 mm"&&/^48[.,]00$/.test(t1.zellen[2])&&/^46[.,]50$/.test(t1.zellen[3]),"Zeile Kupfer 0,6 mm: Offerte 48.00 in der Offerte-Spalte, Massaufnahme 46.50 in der Massaufn.-Spalte",t1.zellen);
-p(/Summe/.test(t1.t)&&/Zwei getrennte Quellen/.test(t1.t)&&/keine Massaufnahme-, Ausmass- oder verrechneten Mengen/.test(t1.t),"Summenzeile und Hinweis, dass es zwei getrennte Quellen sind");
+p(/Summe/.test(t1.t)&&/Getrennte Quellen/.test(t1.t)&&/keine Massaufnahme-, Ausmass- oder verrechneten Mengen/.test(t1.t),"Summenzeile und Hinweis, dass es zwei getrennte Quellen sind");
 let t2=await page.evaluate(()=>{document.querySelector("[data-ka-ansicht='stk']")&&0;kaAnsicht="stk";const d=document.createElement("div");d.innerHTML=kaMengenKarteHtml();kaAnsicht="m2";return {kopf:[...d.querySelectorAll("thead th")].map(x=>x.textContent),t:d.textContent.replace(/\s+/g," ")}});
 p(t2.kopf.join("|")==="Werkstoff|Stärke|Stück (Offerte)|Stück (Massaufn.)"&&/12/.test(t2.t),"Umschalter Stk.: Stück (Offerte) / Stück (Massaufn.)",t2.kopf);
-let t3=await tab([off("Offerte A",48),off("Offerte B",30)],mas);
-p(t3.chips===2&&/48[.,]00/.test(t3.t)&&!/78[.,]00/.test(t3.t)&&/nie die Summe aller/.test(t3.t),"mehrere Offerten: Auswahl, es steht genau eine – nie die Summe (78,00 kommt nicht vor)",t3.t.slice(0,300));
+let t3=await page.evaluate(()=>{
+ const off=(t,q,g)=>({id:t==="Offerte A"?1:2,title:t,gilt:g,positions:[{pos:"1",description:"R",quantity:q,unit:"m2",material_id:1,staerke_mm:0.6}]});
+ const ma=[{id:1,project_id:7,company_id:"A",type:"kehle",title:"A",staerke_mm:0.6,workflow_status:"zu_ruesten",data:{material:"1",ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"46,5",einheit:"m²",teil:false}]}}];
+ const hol=(a)=>{projectAngeboteCache=a;projectMeasurementsCache=ma;kaGeladen();const d=document.createElement("div");d.innerHTML=kaMengenKarteHtml();
+  return {kopf:[...d.querySelectorAll("thead th")].map(x=>x.textContent),zellen:[...d.querySelectorAll("tbody tr:first-child td")].map(x=>x.textContent.trim()),t:d.textContent.replace(/\s+/g," ")}};
+ return {beide:hol([off("Offerte A",48,true),off("Offerte B",30,true)]),eine:hol([off("Offerte A",48,true),off("Offerte B",30,false)]),keine:hol([off("Offerte A",48,false),off("Offerte B",30,false)]),
+  standard:hol([off("Offerte A",48),off("Offerte B",30)])};
+});
+p(t3.beide.kopf.length===5&&/Offerte „Offerte A“/.test(t3.beide.kopf[2])&&/Offerte „Offerte B“/.test(t3.beide.kopf[3])&&/^48[.,]00$/.test(t3.beide.zellen[2])&&/^30[.,]00$/.test(t3.beide.zellen[3])&&!/78[.,]00/.test(t3.beide.t),"zwei geltende Offerten: je eine eigene Spalte (48 und 30), nie die Summe (78 kommt nicht vor)",t3.beide);
+p(t3.eine.kopf.length===4&&/^48[.,]00$/.test(t3.eine.zellen[2])&&!/30[.,]00/.test(t3.eine.t),"eine Offerte abgewählt (gilt=false): sie steht nicht mehr in der Übersicht",t3.eine);
+p(/Keine Offerte ist als geltend markiert/.test(t3.keine.t)&&t3.keine.kopf.length===3,"keine als geltend markiert: klarer Hinweis, nur Massaufnahme-Spalte",t3.keine.t.slice(0,200));
+p(t3.standard.kopf.length===5,"Standard (gilt nicht gesetzt): alle gelten – bestehende Offerten ändern sich nicht",t3.standard.kopf);
 let t4=await tab([],mas);
 p(/Keine Offerte importiert/.test(t4.t)&&/46[.,]50/.test(t4.t)&&/–/.test(t4.t),"ohne Offerte: nur Massaufnahme, Offerte-Zelle „–“ (nicht 0)",t4.t.slice(0,200));
 let t5=await tab([off("Offerte A",48)],[]);

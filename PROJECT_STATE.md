@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.345`
+- Aktueller Entwicklungsstand: `v3.346`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.346 — Geltende Offerten wählbar (angebote.gilt)
+
+Wunsch: „Die geltenden Offerten sollen ausgewählt werden können, wenn mehrere dann getrennt anzeigen.“ Das ist die seit v3.335 offene Frage „welche Offerte gilt“. Einzige Datenbankänderung (additiv, vorab geprüft: Spalten und Policies von `angebote` angesehen – `has_permission('angebote','edit')` plus RESTRICTIVE `tenant_boundary_angebote`/`feature_boundary_angebote`, spaltenunabhängig): Migration `angebote_gilt_kennzeichen` = `alter table public.angebote add column gilt boolean not null default true` (Standard true: bestehende Offerten gelten, nichts ändert sich). Rollback-Test mit Nutzer-Impersonation (alles per Exception zurückgerollt): PETER-Admin ändert 1 Zeile, Mitarbeiter ohne Offerten-Freigabe 0, Testfirma-Admin 0 und sieht 0. Code: js/63 – `angGeltende` (nur ein ausdrückliches false schliesst aus), `angMengenKurz`/`angMengenHtml` zeigen nur geltende (mehrere = je Offerte getrennt, nie addiert; Hinweis „n von m nicht als geltend markiert“; keine geltend = ausdrücklicher Text), `angGiltHtml` (Kontrollkästchen je Offerte, ab zwei Offerten; im Register Offerte der Ansicht und in der Cockpit-Karte), Handler schreibt genau `{gilt}` auf die eine Offerte (`update … eq id … select id`; 0 Zeilen = RLS blockiert → Kästchen springt zurück, Meldung). js/85 – Material- und Mengenübersicht: jede geltende Offerte bekommt eine eigene Spalte (kein Umschalter mehr zwischen Offerten, `kaMaterialZeilen` nimmt eine Liste). js/70 enthält nur das Markup, keinen Schreibweg. Nicht geändert: Offertpositionen, Massaufnahmen, Rechenkerne.
+Prüfstand `offerte-gilt-v3-346` (14); Mutationen (gilt ignoriert, falsches Flag, RLS-0-Zeilen nicht geprüft, Summe statt getrennt, Karte ignoriert gilt) erkannt; `cockpit-dashboard-v3-343` (36), `komplettausmass-v3-341`, `projektuebersicht-v3-340` angepasst.
 
 ### v3.345 — Komplettausmass: Bleilappen oben, einzelne Massaufnahmen entfernt
 
@@ -15,11 +20,6 @@ Prüfstand `komplettausmass-v3-341` auf 51 angepasst/erweitert; Mutationen (Blei
 ### v3.344 — Korrektur zu v3.343 (Regression)
 
 Die volle Regression zu v3.343 war rot (2 Prüfstände): `uebersichtlichkeit-v3-289` prüfte die alte Reihenfolge (Stammdaten zuunterst) – die Projektübersicht steht jetzt gewollt vor Ablauf und Stand, Erwartung angepasst; `navigation-v3-203` verlangt in JEDEM Register einen bedienbaren Knopf – das Register Rüstblatt hatte im Leer-/Ladezustand keinen. Fix: Knopfreihe über dem Rüstblatt (Zu den Massaufnahmen; Material & Zuschnitt nur mit Modul Material). Keine Logikänderung. Die Schnellprüfung zu v3.343 hatte diese zwei Prüfstände nicht enthalten (Auswahl nach Namen) – ab sofort bei Änderungen an js/70 und css/05 alle `ansicht2`-, `navigation`-, `uebersichtlichkeit`- und `startseite`-Prüfstände mitnehmen.
-
-### v3.343 — Projekt-Cockpit im Dashboard-Stil (Übersicht, Reiter Rüstblatt, Rollenband)
-
-Wunsch: Cockpit „in dieser Art“ (Mockup: Projektübersicht + Material-/Mengenübersicht, Massaufnahme-Auswahl, Rüstblatt erstellen, Zuschnittoptimierung mit Rollenbalken). Entscheide des Anwenders: alles in einem Auftrag; „m² (Massaufn.)“ = Zeilen „Blechfläche Zuschnitt“; Rüstblatt als eigener Reiter. Umsetzung (Ansicht2, js/70): Übersicht – Raster `a2-dash` (ab 900 px zwei Spalten, darunter untereinander): links „Projektübersicht“ (Stammdaten + Status), rechts `kaMengenKarteHtml()` (js/85): je Werkstoff + Stärke Spalten Offerte und Massaufnahme (m² oder Stk., Umschalter); Offerte = genau EINE Offerte (Auswahl bei mehreren, nie addiert), Quellen getrennt, fehlende Quelle „–“ (null, nie 0), Summe nur über Zeilen mit Wert und so gekennzeichnet; reiner Kern `kaMaterialZeilen`, `angMengenUebersicht` liefert zusätzlich `nachMatStaerke` (js/63). Reiter „Rüstblatt“ (`a2RegRuestblatt`, nur mit Modul Zuschnitt/Material): das bestehende Projekt-Rüstblatt (js/80 `rbProjektOeffnen` mit `inline:true`, Container `#a2RbProjekt`; selber Zustand/Druck/Haken wie im Fenster der Werkstatt): Auswahl mit Status, m² und Stk., Rollenwahl, „Rüstblatt erstellen/aktualisieren“, „Rüstblatt als PDF“ (Vorschau = Druck). Neu im gemeinsamen Plan (auch im Fenster und im Druck): Summenleiste (offene Zuschnitte, Rollenlänge, Blechfläche, Verschnitt; „spart x m²“ nur wenn gemeinsam wirklich weniger braucht, sonst „keine Einsparung“; nur bei vollständigen Zahlen) und `zuRollenbandHtml` (js/33): Abschnitte fortlaufend auf der Rolle (Reihen à ca. 6 m), Streifen/Stücke nach Massaufnahme eingefärbt, mit Legende – reine Darstellung der bestehenden Packrechnung. Nicht übernommen (bewusst): Projektfoto im Kopf (kein verlässliches Titelbild), Gruppen-Chips als reiner Anzeigefilter (würden Vorschau und Druck auseinanderlaufen lassen), erfundene Beispielzahlen. Keine Migration, keine RLS-/Edge-Änderung, nichts wird geschrieben.
-Prüfstand `cockpit-dashboard-v3-343` (33); sechs Mutationen (Quellen vertauscht, fehlend als 0, Stärke ignoriert, Rollenband fehlt, Einsparung immer, Stückzahl falsch) erkannt. Angepasst: `komplettausmass-v3-341` (Abgrenzung), CSS-Regeln ausserhalb `.a2-` nach css/01 (Prüfstand ansicht2-v3-150 F3).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

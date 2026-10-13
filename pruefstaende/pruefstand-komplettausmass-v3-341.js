@@ -227,7 +227,7 @@ p(bl.fremd,"Bleilappen einer Massaufnahme eines anderen Projekts zählen nicht (
 // Offerte vs Komplettausmass
 const ang=fs.readFileSync("js/63-angebote.js","utf8");
 p(!/Komplettausmass/.test(ang)&&/Offertmengen/.test(ang),"12 · Offertmengen werden nirgends als Komplettausmass bezeichnet");
-p(!/angebote|projectAngeboteCache|angMengen/.test(q85.slice(0,q85.indexOf("let kaOfferte")).replace(/\/\/.*$/gm,"")),"12 · das Komplettausmass (Summen, Zu prüfen, Ansicht) liest keine Offertdaten – nur die getrennte Mengenübersicht darunter");
+p(!/angebote|projectAngeboteCache|angMengen/.test(q85.slice(0,q85.indexOf("let kaAnsicht")).replace(/\/\/.*$/gm,"")),"12 · das Komplettausmass (Summen, Zu prüfen, Ansicht) liest keine Offertdaten – nur die getrennte Mengenübersicht darunter");
 // Mobile
 for(const w of [360,390,430,768]){
  await page.setViewportSize({width:w,height:900});

@@ -2137,6 +2137,7 @@ function a2RegOfferte(p){
      <span class="a2-zeile-pfeil">›</span></button>`).join(""),
    "neueang","＋ Offerte importieren","Noch keine importierte Offerte.");
   // v3.335: Offertmengen (nur aus den Offertpositionen) - m² und Stück, mit Hinweis bei Unvollständigem
+  if(typeof angGiltHtml==="function")html+=angGiltHtml(ang);
   if(typeof angMengenHtml==="function")html+=angMengenHtml(ang,(typeof angMatListe==="function")?angMatListe():[]);
  }
  const lei=a2Lei();

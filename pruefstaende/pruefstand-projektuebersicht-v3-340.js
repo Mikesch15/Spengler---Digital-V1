@@ -86,7 +86,7 @@ p(/Fläche nicht erfasst/.test(k)&&/Stück nicht erfasst/.test(k),"ungültige Me
 k=sbx.K([o("A",[pos("R",{quantity:12,abwicklung_mm:500}),pos("Trennlage. b mm 500.",{quantity:86})])],L);
 p(/Fläche 6\.00 m²/.test(k),"Zusatzposition ohne Abwicklung erzeugt keine Fläche",k);
 k=sbx.K([o("A",[pos("R",{quantity:12,abwicklung_mm:500})]),o("B",[pos("R",{quantity:12,abwicklung_mm:500})])],L);
-p(/2 Offerten/.test(k)&&/nicht addiert/.test(k)&&!/12\.00/.test(k),"mehrere Offerten: nie addiert",k);
+p(/2 geltende Offerten/.test(k)&&/nicht addiert/.test(k)&&!/12\.00/.test(k),"mehrere Offerten: nie addiert",k);
 p(sbx.K([],L)===""&&sbx.K([o("leer",[])],L)==="","keine Offerte/Position: keine Zeile");
 const h=sbx.H([o("A",[pos("R",{quantity:12})])],L);
 p(/Fläche <b>nicht erfasst<\/b>/.test(h)&&!/Fläche <b>0\.00/.test(h),"Karte: unberechenbare Fläche als „nicht erfasst“",h.slice(0,200));

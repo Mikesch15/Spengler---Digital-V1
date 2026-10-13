@@ -132,7 +132,7 @@ async function loadProjectAngebote(projectId){
 <button class="red" data-del-project-angebot="${a.id}" title="Löschen">×</button>
 </div>
 </div>`;
- }).join("")+(typeof angMengenHtml==="function"?angMengenHtml(list,angMatListe()):""):'<div class="empty">Noch keine Offerte zu diesem Projekt.</div>';
+ }).join("")+angGiltHtml(list)+(typeof angMengenHtml==="function"?angMengenHtml(list,angMatListe()):""):'<div class="empty">Noch keine Offerte zu diesem Projekt.</div>';
  return list.length;
 }
 
@@ -418,17 +418,23 @@ function angMengenTeile(r){
  return {flaeche,stueck};
 }
 // Kurztext für die Arbeitsstand-Zeile im Cockpit: eine Offerte = ihre Summe, mehrere = nie addiert.
+// v3.346: Welche importierten Offerten gelten? Kennzeichen angebote.gilt (Standard true; nur ein ausdrückliches false schliesst aus).
+// Mehrere geltende Offerten werden immer getrennt gezeigt, nie addiert.
+function angGeltende(offerten){return (offerten||[]).filter(a=>a&&a.gilt!==false)}
 function angMengenKurz(offerten,liste){
- const o=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
- if(!o.length)return "";
- if(o.length>1)return o.length+" Offerten – je Offerte getrennt, nicht addiert";
+ const alle=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
+ if(!alle.length)return "";
+ const o=angGeltende(alle);
+ if(!o.length)return "keine Offerte als geltend markiert";
+ if(o.length>1)return o.length+" geltende Offerten – je Offerte getrennt, nicht addiert";
  const r=angMengenUebersicht(o[0].positions,liste);
  const t=angMengenTeile(r);
  return "Fläche "+t.flaeche+" · "+t.stueck+(r.vollstaendig?"":" (unvollständig)");
 }
 function angMengenHtml(offerten,liste){
- const o=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
- if(!o.length)return "";
+ const alle=(offerten||[]).filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
+ if(!alle.length)return "";
+ const o=angGeltende(alle);
  const f=x=>Number(x).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
  const n=x=>Number(x).toLocaleString("de-CH",{maximumFractionDigits:2});
  const zeile=a=>{
@@ -452,8 +458,17 @@ ${rest.length?`<div class="small muted">${esc(rest.join(" · "))}</div>`:""}${ma
  return `<div class="small ang-mengen" style="margin-top:8px;padding-top:6px;border-top:1px solid var(--line)">
 <b>Offertmengen</b> <span class="muted">(nur aus den Offertpositionen – keine Massaufnahme-, Zuschnitt-, Ausmass- oder verrechneten Mengen)</span>
 ${o.map(zeile).join("")}
-${o.length>1?`<div class="small muted">Mehrere Offerten: die Summen stehen je Offerte und sind nicht addiert, weil nicht erkennbar ist, welche gilt.</div>`:""}
+${!o.length?`<div class="small" style="color:var(--red)">Keine Offerte ist als geltend markiert.</div>`:""}
+${o.length>1?`<div class="small muted">Mehrere geltende Offerten: die Summen stehen je Offerte und sind nicht addiert.</div>`:""}
+${alle.length>o.length?`<div class="small muted">${alle.length-o.length} von ${alle.length} Offerten sind nicht als geltend markiert und stehen hier nicht.</div>`:""}
 </div>`;
+}
+// Auswahl der geltenden Offerten (Kontrollkästchen je importierter Offerte); das Schreiben macht der Handler weiter unten.
+function angGiltHtml(offerten){
+ const o=(offerten||[]).filter(a=>a);
+ if(o.length<2)return "";
+ return `<div class="ang-gilt" style="margin:8px 0"><b>Geltende Offerten</b> <span class="small muted">· mehrere dürfen gelten, sie werden getrennt angezeigt</span>
+ ${o.map(a=>`<label style="display:flex;align-items:flex-start;gap:8px;padding:4px 0"><input type="checkbox" data-ang-gilt="${esc(a.id)}" ${a.gilt===false?"":"checked"} style="width:20px;min-width:20px;height:20px;min-height:0;padding:0;margin:2px 0 0;flex:0 0 auto"><span>${esc(a.title||"Ohne Bezeichnung")}${a.date?` <span class="small muted">· ${esc(String(a.date))}</span>`:""}</span></label>`).join("")}</div>`;
 }
 // ---- Ende Offertposition Materialdaten (rein)
 
@@ -1466,3 +1481,25 @@ if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
   knopf.disabled=false;
  }
 };
+
+// v3.346: Kennzeichen „gilt“ setzen. Eine Spalte der Offerte, geschrieben mit den bestehenden Rechten (RLS prüft Firma, Freigabe und Recht edit);
+// ein von RLS blockiertes UPDATE meldet keinen Fehler, sondern betrifft 0 Zeilen - deshalb wird das Ergebnis geprüft.
+document.addEventListener("change",async e=>{
+ const cb=e.target&&e.target.closest?e.target.closest("[data-ang-gilt]"):null;
+ if(!cb)return;
+ const id=Number(cb.dataset.angGilt), neu=cb.checked;
+ cb.disabled=true;
+ let ok=false;
+ try{
+  const {data,error}=await sb.from("angebote").update({gilt:neu}).eq("id",id).select("id");
+  ok=!error&&Array.isArray(data)&&data.length>0;
+ }catch(err){ok=false}
+ cb.disabled=false;
+ if(!ok){cb.checked=!neu;if(typeof appAlert==="function")appAlert("Die Auswahl konnte nicht gespeichert werden (keine Verbindung oder keine Berechtigung).");return}
+ const a=projectAngeboteCache.find(x=>Number(x.id)===id);
+ if(a)a.gilt=neu;
+ angMengenZeileSetzen(projectAngeboteCache);
+ const box=$("cockpitAngeboteBody");
+ if(box&&typeof cockpitProjectId!=="undefined"&&cockpitProjectId)loadProjectAngebote(cockpitProjectId);
+ if(typeof a2Zeichnen==="function")a2Zeichnen();
+});
