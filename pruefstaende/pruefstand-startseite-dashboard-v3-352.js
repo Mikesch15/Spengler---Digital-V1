@@ -159,6 +159,33 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(g.chips.length>=3&&/^Meine \(\d+\)$/.test(g.chips[0])&&/^Alle \(\d+\)$/.test(g.chips[1])&&/^In Arbeit \(\d+\)$/.test(g.chips[2]),"Filter-Chips mit Anzahl",g.chips);
  p(JSON.stringify(g.nah)===JSON.stringify(g.nahSoll),"Nahe Montage: nur Termin heute bis 7 Tage; später oder ohne Termin zählt nicht",g.nah);
 
+ console.log("\nH · Titelbild aus den Firmeneinstellungen (v3.355)");
+ const kb=await page.evaluate(()=>{
+  const r={};
+  const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  a2Zustand.seite="heute";
+  kopfBildSigniert="";a2Zeichnen();
+  r.ohne=!document.querySelector("#a2Inhalt .a2-hero-mit-bild");
+  kopfBildSigniert=gif;a2Zeichnen();
+  const h=document.querySelector("#a2Inhalt .a2-hero-mit-bild");
+  r.mit=!!h&&h.getAttribute("style").indexOf("--a2-hero-bild")>=0&&h.getAttribute("style").indexOf("data:image/gif")>=0;
+  r.text=!!h&&!!h.querySelector(".a2-hero-gruss");
+  r.felder=!!document.getElementById("kopfBildInput")&&!!document.getElementById("kopfBildPreview")&&!!document.getElementById("kopfBildRemove");
+  r.accept=(document.getElementById("kopfBildInput")||{}).accept;
+  // Entfernen setzt Zustand zurück
+  kopfBildUrl="x";document.getElementById("kopfBildRemove").click();
+  r.entfernt=kopfBildUrl===""&&kopfBildSigniert==="";
+  a2Zeichnen();
+  r.nachEntfernen=!document.querySelector("#a2Inhalt .a2-hero-mit-bild");
+  return r;
+ });
+ p(kb.ohne,"ohne Titelbild: Kopf wie bisher (kein Bildhintergrund)",kb);
+ p(kb.mit&&kb.text,"mit Titelbild: Bild als Kopfhintergrund, Begrüssung bleibt",kb);
+ p(kb.felder&&kb.accept==="image/*","Firmeneinstellungen: Hochladen, Vorschau und Entfernen vorhanden",kb);
+ p(kb.entfernt&&kb.nachEntfernen,"Titelbild entfernen setzt Zustand zurück, Kopf ohne Bild",kb);
+ const quelle=require("fs").readFileSync(path.join(process.cwd(),"js/07-einstellungen.js"),"utf8");
+ p(/kopf_bild_url:newKopfBildUrl/.test(quelle)&&/uploadMeasurementImage\(kopfBildDataUrl/.test(quelle),"Speichern schreibt kopf_bild_url über den bestehenden Weg (Bucket measurements, app_settings)");
+
  console.log("\nE · Leerer Bestand");
  const l=await page.evaluate(()=>{
   const alt=allProjects;allProjects=[];a2Zeichnen();

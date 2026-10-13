@@ -123,6 +123,7 @@ async function loadAllData(){
  if(geladen.appSettings){
   companyAddress=geladen.appSettings.company_address||"";
   logoUrl=geladen.appSettings.logo_url||"";
+  kopfBildUrl=geladen.appSettings.kopf_bild_url||"";
   defaultVat=geladen.appSettings.default_vat||"8.1 %";
   offerteVortext=geladen.appSettings.offerte_vortext||"";
   offerteSchlusstext=geladen.appSettings.offerte_schlusstext||"";
@@ -207,6 +208,20 @@ function applyCompanyName(){
    if(logoEl)logoEl.innerHTML=`<img src="${esc(url)}" style="max-height:60px;max-width:280px;display:block">`;
    if(logoPrev&&!logoDataUrl){logoPrev.src=url;logoPrev.hidden=false;if($("logoRemove"))$("logoRemove").hidden=false;}
    if(startLogo){startLogo.src=url;startLogo.hidden=false;}
+  });
+ }
+ // v3.355: Titelbild der Startseite - gleicher Weg wie das Logo (privater Bucket, signierte Adresse).
+ const kbPrev=$("kopfBildPreview");
+ if(!kopfBildUrl){
+  kopfBildSigniert="";
+  if(kbPrev&&!kopfBildDataUrl){kbPrev.hidden=true;kbPrev.src="";if($("kopfBildRemove"))$("kopfBildRemove").hidden=true;}
+ }else{
+  storageSignedUrl(kopfBildUrl).then(url=>{
+   if(!url)return;
+   const neu=(kopfBildSigniert!==url);
+   kopfBildSigniert=url;
+   if(kbPrev&&!kopfBildDataUrl){kbPrev.src=url;kbPrev.hidden=false;if($("kopfBildRemove"))$("kopfBildRemove").hidden=false;}
+   if(neu&&typeof a2Zeichnen==="function"&&typeof a2Aktiv==="function"&&a2Aktiv())a2Zeichnen();
   });
  }
 }

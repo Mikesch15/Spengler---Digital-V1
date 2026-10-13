@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.354`
+- Aktueller Entwicklungsstand: `v3.355`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.355 — Titelbild der Startseite in den Firmeneinstellungen
+
+Wunsch: „Mache das Bild im Kopfteil so wie in der Vorlage, man soll es in den Firmeneinstellungen hochladen können.“ Neu: Firmeneinstellungen → „Titelbild der Startseite“ (Hochladen mit Vorschau, Entfernen; Bild wird auf 1200 px Breite verkleinert, JPEG) – gleicher Weg wie das Logo (`uploadMeasurementImage`, Bucket `measurements`, signierte Adresse über `storageSignedUrl`). **Datenbank:** eine neue, leere Textspalte `app_settings.kopf_bild_url` (Migration „app_settings_kopf_bild_url“, additiv, Datei `supabase/migrations/v3355_app_settings_kopf_bild_url.sql`; vorher Spalten und Rechte der Tabelle geprüft, keine Policy geändert). Anzeige: Kopf der Startseite (js/70 `a2HeuteHeroHtml`, css/05 `.a2-hero-mit-bild`) mit dem Bild rechts, links ins Markenblau ausgeblendet; ohne Bild bleibt der blaue Kopf. Zustand `kopfBildUrl/kopfBildDataUrl/kopfBildSigniert` (js/01), Laden js/05, Speichern js/07. Prüfstand `startseite-dashboard-v3-352` auf 34; Mutationen (Bild ignoriert, Feld nicht gespeichert, Entfernen setzt nicht zurück) erkannt. Nicht live getestet: das Hochladen mit echtem Storage (Testumgebung ohne Supabase). Bericht: `ABSCHLUSSBERICHT_Startseite_Titelbild_v3.355.txt`.
 
 ### v3.354 — Startseite nach dem Wunschbild (Kopf, Suche, Kennzahlen mit Symbol, Filter-Chips)
 
@@ -14,10 +18,6 @@ Wunsch (Bild): „Ich würde mir das irgendwie so vorstellen.“ Umgesetzt auf d
 ### v3.353 — Startseite „Heute“: verdichtet und beruhigt (Nachbesserung)
 
 Nachbesserungsauftrag zur Startseite. Nur CSS (css/05, Block „STARTSEITE HEUTE“) und zwei kleine Stellen in js/70: `a2Zeichnen` setzt die Klasse `a2-heute` (auf `#a2Inhalt`) und `a2-heute-an` (auf `html`) nur auf der Seite Heute – alle anderen Seiten bleiben unverändert. Kennzahlen als schlanke Zeilen (Zahl + Beschriftung, ~40px statt ~90px), Projektkarten kompakt (Rundung 8px, kein Schatten, ruhiger Hintergrund `--a2-heute-bg`), Typografie gestaffelt, „Meine/Alle“ als kompakte Auswahl, Status als Klartext mit Punkt statt unklarem Zeichen (`a2-st`, Blau = In Arbeit, Grün = Abgeschlossen, Orange = Offen), „Noch keine Teile erfasst“ dezent, Balken 5px, lange Namen/Adressen brechen um (vorher lief die Aufgabengruppe bei langen Projektnamen horizontal über), untere Navigation mit einheitlicher Symbolgrösse und klarem aktivem Zustand. Keine Datenlogik, Navigation oder Rechte geändert. Prüfstand `startseite-dashboard-v3-352` auf 22; Mutationen (unklares Zeichen, hohe Kennzahlen, grosse Rundung/Schatten, Klasse auf allen Seiten, kein Umbruch) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_Nachbesserung_v3.353.txt`.
-
-### v3.352 — Startseite: Handlungen, Arbeitsstand, „Nächster Schritt“
-
-Auftrag „Professionelle Startseite“ (Datei). Bestandsaufnahme: beim Start öffnet die Ansicht (js/70) die Seite „Heute“ (`a2SeiteHeute`) mit Einrichtung, Kontrolle, Hinweisen, Aufgaben (je Projekt, zugeklappt), Werkstatt heute, Montage, Offene Projekte – alles aus echten Quellen; es fehlten Handlungen im Kopf, ein Arbeitsstand auf einen Blick und der nächste Schritt je Projekt. Umgesetzt (nur js/70 + css/05, keine Migration, keine neue Abfrage): Handlungsleiste „＋ Neues Projekt“ (nur wenn `startOpenProjects` sichtbar), „📁 Projekt öffnen“, „🔍 Suche“ (nur wenn `openGlobalSearch` sichtbar; öffnet die vorhandene Suche); Arbeitsstand „Offene Projekte“ (= `a2OffeneProjekte(false)`, öffnet die Projektliste) und „Offene Aufgaben“ (= Aufgabenliste, springt zum Abschnitt; bei unsicherem Stand „–“ statt einer Zahl); „Nächster Schritt“ in der Projektkarte = dringendste offene Aufgabe aus derselben Aufgabenliste. Werkstattzahlen bleiben nur im Abschnitt Werkstatt (keine doppelte Kennzahl); Schnellzugriffe auf Werkstatt/Lager nicht doppelt – dafür gibt es die Leiste. Prüfstand `startseite-dashboard-v3-352` (16), Mutationen (Zahl trotz unsicherem Stand, Neues Projekt/Suche ohne Freigabe, falsches Ziel, falsche Zahl, Überlaufen) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_v3.352.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

@@ -97,6 +97,23 @@ $("logoRemove").onclick=()=>{
  $("logoInput").value="";
  $("logoRemove").hidden=true;
 };
+// v3.355: Titelbild der Startseite. Gleicher Ablauf wie das Logo; verkleinert (Breite 1200, JPEG), damit die Startseite schnell lädt.
+$("kopfBildInput").addEventListener("change",async e=>{
+ const file=e.target.files[0];
+ if(!file)return;
+ try{
+  kopfBildDataUrl=await resizeImageFile(file,1200,0.85,"jpeg");
+  $("kopfBildPreview").src=kopfBildDataUrl;
+  $("kopfBildPreview").hidden=false;
+  $("kopfBildRemove").hidden=false;
+ }catch(err){appAlert("Titelbild konnte nicht geladen werden: "+err.message)}
+});
+$("kopfBildRemove").onclick=()=>{
+ kopfBildDataUrl=null;kopfBildUrl="";kopfBildSigniert="";
+ $("kopfBildPreview").hidden=true;$("kopfBildPreview").src="";
+ $("kopfBildInput").value="";
+ $("kopfBildRemove").hidden=true;
+};
 // Speichert Felder der eigenen app_settings-Zeile.
 // Zwei Fallen, die beide schon zugeschlagen haben:
 //  1. PostgREST lehnt ein UPDATE OHNE WHERE-Bedingung ab
@@ -217,11 +234,14 @@ $("saveCompanyName").onclick=async()=>{
  try{
   let newLogoUrl=logoUrl;
   if(logoDataUrl)newLogoUrl=await uploadMeasurementImage(logoDataUrl,"company-logo");
+  let newKopfBildUrl=kopfBildUrl;
+  if(kopfBildDataUrl)newKopfBildUrl=await uploadMeasurementImage(kopfBildDataUrl,"company-logo");
   const {fehler}=await speichereAppSettings({
    company_name:name,
    company_address:$("companyAddressInput").value,
    default_vat:$("defaultVatInput").value.trim()||"8.1 %",
    logo_url:newLogoUrl,
+   kopf_bild_url:newKopfBildUrl,
    // v3.200: Vorgaben fuer neue Offerten - liegen bei den Firmendaten, weil
    // Briefkopf, MwSt und diese Texte zusammen das Erscheinungsbild der Firma
    // nach aussen ergeben.
@@ -238,6 +258,8 @@ $("saveCompanyName").onclick=async()=>{
   if($("offerteGueltigTageInput"))offerteGueltigTage=Math.max(0,Number($("offerteGueltigTageInput").value)||30);
   logoUrl=newLogoUrl;
   logoDataUrl=null;
+  kopfBildUrl=newKopfBildUrl;
+  kopfBildDataUrl=null;
   applyCompanyName();
   appAlert("Gespeichert.");
  }catch(err){

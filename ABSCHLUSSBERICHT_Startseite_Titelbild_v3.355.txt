@@ -1,0 +1,22 @@
+ABSCHLUSSBERICHT v3.355 – Titelbild der Startseite
+Datum: 13.10.2026
+Ausgangscommit: 91eed38 (v3.354)
+Zielcommit: siehe Git-Log (Commit „v3.355“)
+
+WUNSCH: Das Bild im Kopfteil der Startseite wie in der Vorlage; hochladbar in den Firmeneinstellungen.
+
+UMGESETZT
+- Firmeneinstellungen: neues Feld „Titelbild der Startseite“ (Datei wählen, Vorschau, „Titelbild entfernen“). Das Bild wird auf 1200 px Breite verkleinert (JPEG) und wie das Logo im Bucket „measurements“ (Ordner company-logo) abgelegt; gespeichert wird nur der Pfad.
+- Anzeige: Kopf der Startseite zeigt das Bild rechts, nach links in das Markenblau ausgeblendet; Logo, Begrüssung, Datum/Name bleiben lesbar. Ohne Bild: blauer Kopf wie bisher.
+- DATENBANK (additiv, geprüft): neue Textspalte app_settings.kopf_bild_url (Migration „app_settings_kopf_bild_url“, Datei supabase/migrations/v3355_app_settings_kopf_bild_url.sql). Vorher geprüft: Spaltenliste und Rechte von app_settings. Keine Policy-/RLS-Änderung; bestehende Policies gelten spaltenunabhängig. Bestehende Daten unverändert (Spalte leer).
+
+TESTS
+- startseite-dashboard-v3-352 auf 34: Kopf ohne/mit Bild, Felder in den Einstellungen, Entfernen setzt zurück, Speichern schreibt kopf_bild_url.
+- Mutationen erkannt: Bild ignoriert; Feld nicht gespeichert; Entfernen ohne Zurücksetzen.
+- Schnellprüfung und volle Regression: siehe Antwort.
+
+GRENZEN
+- Hochladen gegen den echten Speicher und das Aussehen mit einem echten Foto nicht getestet (Testumgebung ohne Supabase, nur Attrappen); der Pfad nutzt dieselben Funktionen wie das Logo.
+- Das Bild wird wie das Logo mit signierter Adresse (1 Stunde) geladen; ohne Verbindung fehlt es, der Kopf bleibt blau.
+
+MANUELLE PRÜFUNG: Einstellungen → Firmendaten → Titelbild wählen → Speichern → Startseite öffnen: Bild rechts im Kopf. Entfernen → Speichern → Kopf wieder blau.
