@@ -138,18 +138,18 @@ p(u.n==="3"&&/Blechfläche Zuschnitt: 3[.,]26 m²/.test(u.t)&&/Bleilappen[^:]*\(
 p(/1 zu prüfen|<b/.test(u.t)||/zu prüfen/.test(u.t),"6 · „zu prüfen“ sichtbar");
 p(/Fläche – Menge nicht erfasst/.test(u.t)&&!/Fläche: 0/.test(u.t),"5 · fehlende Menge als „nicht erfasst“, nicht als 0",u.t);
 p(/Masszeile in mm/.test(u.t),"Masszeilen werden erklärt, nicht summiert");
-p(u.open.length>=6&&u.open.includes("1")&&u.open.includes("2"),"7 · jede Zeile hat einen Weg zurück in ihre Massaufnahme",u.open);
-p(/Status der Massaufnahme: Zu rüsten/.test(u.t)||/Zu rüsten/.test(u.t),"11 · Workflowstatus je Massaufnahme dargestellt",u.t.slice(0,300));
+p(u.open.includes("1")&&!/Massaufnahmen in dieser Übersicht/.test(u.t),"7 · „Zu prüfen“ führt in die Massaufnahme; die Liste der einzelnen Massaufnahmen ist entfernt (v3.345)",u.open);
+p(/1 × Zu rüsten/.test(u.t)&&/1 × Zu montieren/.test(u.t),"11 · Workflowstatus der Massaufnahmen als Anzahl je Status (nur aus workflow_status)",u.t.slice(0,300));
 p(/Status je Massaufnahme, nicht je Position/.test(u.t),"Grenze des Status wird gesagt");
 p(!/%/.test(u.t),"kein Prozentwert „Projekt fertig“");
 p(/keine<\/b> Offertmenge|keine Offertmenge/.test(u.t),"12 · Abgrenzung: keine Offertmenge, kein bestätigtes/verrechnetes Ausmass",u.t.slice(0,250));
 const klick=await page.evaluate(()=>{
  let ruf=null;const alt=window.openMeasurement;window.openMeasurement=m=>{ruf=m.id};
- document.querySelector("#cockpitKomplettBody [data-ka-open='2']").click();
+ document.querySelector("#cockpitKomplettBody [data-ka-open='1']").click();
  window.openMeasurement=alt;
  return {ruf,rueck:measEditReturnTo};
 });
-p(klick.ruf===2&&klick.rueck==="projectCockpit","Antippen öffnet die Massaufnahme über den bestehenden Weg (mit Rückkehr ins Cockpit)",klick);
+p(klick.ruf===1&&klick.rueck==="projectCockpit","Antippen öffnet die Massaufnahme über den bestehenden Weg (mit Rückkehr ins Cockpit)",klick);
 const fl=await page.evaluate(()=>{
  document.querySelector("#cockpitKomplettBody [data-ka-filter='zu_ruesten']").click();
  const t=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");
@@ -178,7 +178,7 @@ u=await page.evaluate(()=>{
  projectMeasurementsCache=l;kaFilter="alle";kaGeladen();
  return $("cockpitKomplettBody").textContent.replace(/\s+/g," ");
 });
-p(/Zuschnitt: 1 von 1 Stück abgehakt \(kein Montagestand\)/.test(u)&&/Status der Massaufnahme: Zu rüsten/.test(u)&&!/Montiert|Gerüstet/.test(u),"11 · abgehaktes Zuschnittstück ändert den Status nicht (bleibt „Zu rüsten“), steht getrennt als Zuschnitt",u.slice(0,400));
+p(/1 × Zu rüsten/.test(u)&&!/Montiert|Gerüstet|montiert/.test(u),"11 · abgehaktes Zuschnittstück ändert den Status nicht (bleibt „Zu rüsten“)",u.slice(0,400));
 // ---- v3.342: die sichtbare Ansicht (Ansicht2, Projektseite) ----
 const a2=await page.evaluate(async()=>{
  const out={};
@@ -205,6 +205,25 @@ p(a2.ausmass.kopf&&a2.ausmass.summe&&a2.ausmass.pruefen&&a2.ausmass.oeffnen>=1&&
 p(a2.zeilen.offerte&&a2.zeilen.kompl&&a2.zeilen.knopf&&a2.zeilen.getrennt,"Projektübersicht: Offertmengen und Komplettausmass als zwei getrennte, beschriftete Zeilen mit Weg ins Register",a2.zeilen);
 p(a2.ohneOffertZeile,"ohne Offerte keine Offertmengen-Zeile");
 p(/a2-pz-stand/.test(a2.zeile)&&/3 Massaufnahmen · 2 offen/.test(a2.zeile)&&!/a2-pz-stand/.test(a2.zeileLeer),"Projektliste der Ansicht: Stand-Zeile, vor dem Laden nichts",a2.zeile.slice(0,200));
+// ---- v3.345: Bleilappen fest oben, einzelne Massaufnahmen entfernt ----
+const bl=await page.evaluate(()=>{
+ const mk2=(id,n,t)=>({id,project_id:7,company_id:"A",type:"kehle",title:"X"+id,workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Bleilappen",menge:String(n),einheit:"Stk.",teil:true}]}});
+ projectMeasurementsCache=[mk2(1,6),mk2(2,8)];kaFilter="alle";kaGeladen();
+ const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
+ const out={zeile:(d.querySelector(".ka-bleilappen")||{}).textContent||"",details:d.querySelectorAll("details").length,liste:/Massaufnahmen in dieser Übersicht/.test(d.textContent),
+  gruppe:/Bleilappen[^:]*: 14 Stk/.test(d.textContent.replace(/\s+/g," "))};
+ projectMeasurementsCache=[{id:3,project_id:7,company_id:"A",type:"kehle",title:"Y",workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1",einheit:"m²",teil:false}]}}];
+ kaGeladen();
+ out.ohne=!document.querySelector(".ka-bleilappen")&&!/Bleilappen/.test($("cockpitKomplettBody").textContent);
+ projectMeasurementsCache=[mk2(1,6),{...mk2(2,8),project_id:9}];kaGeladen();
+ out.fremd=((document.querySelector(".ka-bleilappen")||{}).textContent||"").indexOf("6 Stk")>=0&&((document.querySelector(".ka-bleilappen")||{}).textContent||"").indexOf("14")<0;
+ return out;
+});
+p(/Bleilappen: 14 Stk/.test(bl.zeile)&&/Summe aller Massaufnahmen/.test(bl.zeile),"Bleilappen: feste Zeile oben mit der Summe aller Massaufnahmen (6 + 8 = 14 Stk)",bl.zeile);
+p(bl.gruppe,"Bleilappen bleibt zusätzlich als Mengenposition (Stück) in den Summen");
+p(bl.details===0&&!bl.liste,"einzelne Massaufnahmen entfernt: keine aufklappbare Herkunft, keine Liste der Massaufnahmen",bl);
+p(bl.ohne,"ohne Bleilappen: keine Zeile, kein 0-Wert");
+p(bl.fremd,"Bleilappen einer Massaufnahme eines anderen Projekts zählen nicht (nur 6 Stk)",bl);
 // Offerte vs Komplettausmass
 const ang=fs.readFileSync("js/63-angebote.js","utf8");
 p(!/Komplettausmass/.test(ang)&&/Offertmengen/.test(ang),"12 · Offertmengen werden nirgends als Komplettausmass bezeichnet");

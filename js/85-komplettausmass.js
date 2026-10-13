@@ -196,6 +196,10 @@ function kaBauen(host){
 <div class="small ${kaFehler?"":"muted"}"${kaFehler?' style="color:var(--red)"':""}>${kaFehler?"Nicht frisch geladen – letzter Stand "+esc(kaZeit(kaStand)||"unbekannt")+".":"Stand: "+esc(kaZeit(kaStand)||"–")+" Uhr"}</div>`;
  if(!alle.massaufnahmen.length)return {html:kopf+'<div class="empty">Noch keine Massaufnahme in diesem Projekt.</div>',n:"0"};
  const stArr=Object.keys(alle.nachStatus);
+ // v3.345: die Anzahl Bleilappen steht fest oben im Gesamtausmass (Summe aller Massaufnahmen, Einheit Stk) - sonst nur, wenn es welche gibt
+ const bl=R.gruppen.filter(g=>g.einheit==="Stk"&&kaNorm(g.bezeichnung)==="bleilappen");
+ const blSumme=bl.reduce((s2,g)=>s2+g.summe,0);
+ const blZeile=bl.length?`<div class="ka-bleilappen" style="margin:6px 0;padding:6px 10px;border:1px solid var(--line);border-radius:10px"><b>🔩 Bleilappen: ${esc(kaMengeText(blSumme))} Stk</b> <span class="small muted">· Summe aller Massaufnahmen dieses Projekts</span></div>`:"";
  const kenn=[`<b>${alle.massaufnahmen.length}</b> Massaufnahme${alle.massaufnahmen.length===1?"":"n"}`+(alle.ohneAusmass?` (${alle.ohneAusmass} ohne Ausmasszeilen)`:""),
   `<b>${alle.gruppen.length}</b> Mengenposition${alle.gruppen.length===1?"":"en"}`,
   alle.pruefen.length?`<b style="color:var(--red)">${alle.pruefen.length}</b> zu prüfen`:"nichts zu prüfen"];
@@ -211,35 +215,22 @@ function kaBauen(host){
   if(!gr.length)return;
   mengen+=`<div class="pmat-unter">${esc(KA_EINHEIT_TITEL[e])}</div>`+gr.map(g=>{
    const nm=new Set(g.quellen.map(q=>q.id)).size;
-   return `<details class="ka-gruppe" style="margin:4px 0">
-   <summary><b>${esc(g.bezeichnung)}</b>${g.teil?' <span class="small muted">(Teil)</span>':""}: <b>${esc(kaMengeText(g.summe))} ${esc(e)}</b>
-    <span class="small muted">· aus ${g.quellen.length} Zeile${g.quellen.length===1?"":"n"} / ${nm} Massaufnahme${nm===1?"":"n"} · Summe der Zeilen mit dieser Bezeichnung und Einheit</span></summary>
-   ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel in mehreren Massaufnahmen – nicht zusammengeführt oder gelöscht, bitte prüfen.</div>`:""}
-   ${g.quellen.map(quelle).join("")}</details>`;
+   // v3.345 (Wunsch): nur die Summen - die einzelnen Massaufnahmen stehen nicht mehr darunter. Eine mögliche Dublette bleibt als Hinweis sichtbar.
+   return `<div class="ka-gruppe" style="margin:4px 0"><b>${esc(g.bezeichnung)}</b>${g.teil?' <span class="small muted">(Teil)</span>':""}: <b>${esc(kaMengeText(g.summe))} ${esc(e)}</b>
+    <span class="small muted">· aus ${nm} Massaufnahme${nm===1?"":"n"}</span>
+    ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel in mehreren Massaufnahmen – nicht zusammengeführt oder gelöscht, bitte prüfen.</div>`:""}</div>`;
   }).join("");
  });
  if(!mengen)mengen='<div class="small muted">Keine summierbaren Mengen in der Auswahl.</div>';
  const pruef=R.pruefen.length?`<div class="pmat-unter" style="color:var(--red)">Zu prüfen (nicht in den Summen)</div>`+R.pruefen.map(p=>`<div class="ka-quelle"><b>${esc(p.bezeichnung)}</b> <span class="small" style="color:var(--red)">– ${esc(p.grund)}</span>
   <div class="small"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(p.id)}">${esc(p.art)}${p.titel?" · "+esc(p.titel):""}</button> · Pos. ${esc(p.pos)} · Menge „${esc(String(p.menge===null||p.menge===undefined?"":p.menge))}“ ${esc(p.einheit)}</div></div>`).join(""):"";
  const masse=R.masse?`<div class="small muted" style="margin-top:6px">${R.masse} Masszeile${R.masse===1?"":"n"} in mm (z. B. Zuschnittlängen) sind Masse, keine Mengen – nicht summiert.</div>`:"";
- const zeAn=(typeof zeStand==="function"&&typeof zeGeladen!=="undefined");
- const liste=R.massaufnahmen.map(m=>{
-  const mm=cache.find(x=>x.id===m.id);
-  let zs="";
-  if(zeAn&&zeGeladen.has(Number(m.id))&&typeof pmatStuecke==="function"){
-   const s=zeStand(mm);
-   if(s.gesamt)zs=` · Zuschnitt: ${s.erledigt} von ${s.gesamt} Stück abgehakt (kein Montagestand)`;
-  }
-  return `<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(m.id)}">${esc(m.art)}${m.titel?" · "+esc(m.titel):""}</button>
-   <span class="small muted">${wf?" · Status der Massaufnahme: "+esc(statusText(m.status)):""}${m.archiviert?" · archiviert":""} · ${m.zeilen?m.zeilen+" Ausmasszeile"+(m.zeilen===1?"":"n"):"keine Ausmasszeilen"}${esc(zs)}</span></div>`;
- }).join("");
  const art=Object.keys(R.nachArt).sort().map(k=>`${R.nachArt[k]} × ${esc(k)}`).join(" · ");
  const mat=Object.keys(R.nachMaterial).sort().map(k=>`${R.nachMaterial[k]} × ${esc(k)}`).join(" · ");
  return {n:String(alle.massaufnahmen.length),kenn:{mas:alle.massaufnahmen.length,gruppen:alle.gruppen.length,pruefen:alle.pruefen.length},
   html:kopf+`<div style="margin:6px 0">${kenn.join(" · ")}</div>`
   +(statusZeile?`<div class="small">${statusZeile} <span class="muted">(Status je Massaufnahme, nicht je Position)</span></div>`:"")
-  +filter+mengen+pruef+masse
-  +`<div class="pmat-unter" style="margin-top:10px">Massaufnahmen in dieser Übersicht</div>`+liste
+  +blZeile+filter+mengen+pruef+masse
   +(art?`<div class="small muted" style="margin-top:6px">Nach Art: ${art}</div>`:"")
   +(mat?`<div class="small muted">Nach Werkstoff: ${mat}</div>`:"")};
 }

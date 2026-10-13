@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.344`
+- Aktueller Entwicklungsstand: `v3.345`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.345 — Komplettausmass: Bleilappen oben, einzelne Massaufnahmen entfernt
+
+Wunsch: „Anzahl Bleilappen können auch ins Gesamtausmass, dafür die einzelnen Massaufnahmen entfernen“ (Rückfrage beantwortet: eigene Zeile; nur die Anzeige verkürzen, gespeicherte Massaufnahmen bleiben unverändert). js/85 `kaBauen`: feste Zeile „🔩 Bleilappen: n Stk“ (Summe der Stk-Zeilen „Bleilappen“ aller Massaufnahmen des Projekts; fehlt, wenn es keine gibt) vor den Summen; Bleilappen bleibt zusätzlich Mengenposition. Entfernt: Liste „Massaufnahmen in dieser Übersicht“ und die aufklappbare Herkunft je Summe. Bleibt: Summen mit „aus n Massaufnahmen“, Hinweis „mögliche Dublette“, „Zu prüfen“ (mit Knopf in die Massaufnahme), Status als Anzahl je Status, Filter. Folge (bewusst): die Rückverfolgung bis zur einzelnen Zeile (Auftrag v3.341, Abschnitt 3.1) ist nur noch über „Zu prüfen“ und die Massaufnahmen-Liste des Projekts möglich; der Zuschnitt-Abhakstand je Massaufnahme steht nicht mehr in der Übersicht (er steht im Rüstblatt). Keine Datenänderung.
+Prüfstand `komplettausmass-v3-341` auf 51 angepasst/erweitert; Mutationen (Bleilappen nur erste Massaufnahme, Zeile fehlt, Herkunft wieder da) erkannt.
 
 ### v3.344 — Korrektur zu v3.343 (Regression)
 
@@ -15,11 +20,6 @@ Die volle Regression zu v3.343 war rot (2 Prüfstände): `uebersichtlichkeit-v3-
 
 Wunsch: Cockpit „in dieser Art“ (Mockup: Projektübersicht + Material-/Mengenübersicht, Massaufnahme-Auswahl, Rüstblatt erstellen, Zuschnittoptimierung mit Rollenbalken). Entscheide des Anwenders: alles in einem Auftrag; „m² (Massaufn.)“ = Zeilen „Blechfläche Zuschnitt“; Rüstblatt als eigener Reiter. Umsetzung (Ansicht2, js/70): Übersicht – Raster `a2-dash` (ab 900 px zwei Spalten, darunter untereinander): links „Projektübersicht“ (Stammdaten + Status), rechts `kaMengenKarteHtml()` (js/85): je Werkstoff + Stärke Spalten Offerte und Massaufnahme (m² oder Stk., Umschalter); Offerte = genau EINE Offerte (Auswahl bei mehreren, nie addiert), Quellen getrennt, fehlende Quelle „–“ (null, nie 0), Summe nur über Zeilen mit Wert und so gekennzeichnet; reiner Kern `kaMaterialZeilen`, `angMengenUebersicht` liefert zusätzlich `nachMatStaerke` (js/63). Reiter „Rüstblatt“ (`a2RegRuestblatt`, nur mit Modul Zuschnitt/Material): das bestehende Projekt-Rüstblatt (js/80 `rbProjektOeffnen` mit `inline:true`, Container `#a2RbProjekt`; selber Zustand/Druck/Haken wie im Fenster der Werkstatt): Auswahl mit Status, m² und Stk., Rollenwahl, „Rüstblatt erstellen/aktualisieren“, „Rüstblatt als PDF“ (Vorschau = Druck). Neu im gemeinsamen Plan (auch im Fenster und im Druck): Summenleiste (offene Zuschnitte, Rollenlänge, Blechfläche, Verschnitt; „spart x m²“ nur wenn gemeinsam wirklich weniger braucht, sonst „keine Einsparung“; nur bei vollständigen Zahlen) und `zuRollenbandHtml` (js/33): Abschnitte fortlaufend auf der Rolle (Reihen à ca. 6 m), Streifen/Stücke nach Massaufnahme eingefärbt, mit Legende – reine Darstellung der bestehenden Packrechnung. Nicht übernommen (bewusst): Projektfoto im Kopf (kein verlässliches Titelbild), Gruppen-Chips als reiner Anzeigefilter (würden Vorschau und Druck auseinanderlaufen lassen), erfundene Beispielzahlen. Keine Migration, keine RLS-/Edge-Änderung, nichts wird geschrieben.
 Prüfstand `cockpit-dashboard-v3-343` (33); sechs Mutationen (Quellen vertauscht, fehlend als 0, Stärke ignoriert, Rollenband fehlt, Einsparung immer, Stückzahl falsch) erkannt. Angepasst: `komplettausmass-v3-341` (Abgrenzung), CSS-Regeln ausserhalb `.a2-` nach css/01 (Prüfstand ansicht2-v3-150 F3).
-
-### v3.342 — Projektstand und Komplettausmass in der sichtbaren Ansicht (Ansicht2)
-
-Rückmeldung: „Ich sehe keine Veränderungen im Cockpit.“ Ursache (am Code festgestellt): v3.340/v3.341 hatten die Neuerungen nur in das klassische Cockpit-Fenster (js/09, js/24, index.html) gebaut; die sichtbare Oberfläche ist seit v3.151 die Ansicht2 (js/70: Projektliste `a2ProjektZeileHtml`, Projektseite mit Registern), die ihre Daten aus denselben Zwischenspeichern liest, aber eigene Darstellung hat. Fix, nur Darstellung: js/70 – `a2ProjektZeileHtml` zeigt die Stand-Zeile (`projektStandZeile`, js/09; stösst die eine Abfrage `ladeProjectMeasTypen` an, danach zeichnet js/09 die Liste neu); Übersicht der Projektseite: `a2MengenZeilen()` = zwei getrennte Zeilen „📏 Offertmengen (nur aus der Offerte)“ und „📊 Komplettausmass (Übersicht)“ mit Knopf ins Register Ausmass; `a2RegAusmass` zeigt `kaA2Html()` (js/85) zuoberst – das Komplettausmass ist nicht die Liste der Ausmassdokumente darunter. js/85: Rechenkern und Renderer gemeinsam (`kaBauen(host)`), Öffnen in der Ansicht über den bestehenden Weg `data-a2-meas`. Die Cockpit-Karte bleibt für das klassische Fenster. Keine Logikänderung am Rechenkern, keine Migration. Lehre: Neuerungen am Projekt zuerst in js/70 prüfen.
-Prüfstand `komplettausmass-v3-341` auf 46 erweitert; drei Mutationen (Ansicht ohne Komplettausmass, Liste ohne Stand, Zeilen vermischt) erkannt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
