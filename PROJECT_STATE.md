@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.350`
+- Aktueller Entwicklungsstand: `v3.351`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.351 — Freies Profil: „Freies Profil, <Name der Massaufnahme>“
+
+Wunsch (Screenshot): statt „Freies Profil, 6 Schenkel“ soll „Freies Profil, PV Brustblech“ stehen. js/31 `fpaAusmassZeilen` schreibt „Freies Profil, <Titel>“ (ohne Titel wie bisher); js/85 `kaSammeln` zeigt für ältere gespeicherte Zeilen „Freies Profil, N Schenkel“ den Titel der Massaufnahme (nur Anzeige, nichts wird umgeschrieben; die Herkunft zeigt den Originaltext). Prüfstand `bleilappen-hand-v3-350` auf 24.
 
 ### v3.350 — Anzahl Bleilappen von Hand, Bleilappen nur einmal, Freies Profil mit Bezeichnung, Komplettausmass im Ausmass
 
@@ -16,10 +20,6 @@ Prüfstand `bleilappen-hand-v3-350` (23); Mutationen (Handwert ignoriert je Modu
 
 Wunsch: Positionen anklicken, um zu sehen, aus welchen Massaufnahmen sie stammen und dorthin zu gelangen; Frage nach dem Unterschied „Blechfläche“ / „Blechfläche Zuschnitt“. Antwort am Code: kein fachlicher Unterschied – beide sind die Netto-Fläche Länge × Abwicklung ohne Verschnitt, nur je Modul anders beschriftet (js/29/30/31: „Blechfläche“ = Gesamtlänge bzw. Länge je Segment × Abwicklung; js/66 u. a.: „Blechfläche Zuschnitt“ = Summe Länge × Abwicklung der Zuschnitte); keine Massaufnahme schreibt beide. js/85: `kaIstBlechflaeche` – beide Bezeichnungen (m²) werden zu EINER Position „Blechfläche“ (Originaltext bleibt je Quelle erhalten); Material-/Mengenübersicht und Kurztext zählen beide. „Materialfläche verlegt“ (Anschlussblech) bleibt eine andere Grösse. Kacheln sind jetzt `<details>`: Antippen zeigt je Massaufnahme Knopf (öffnet sie – Cockpit: `openMeasurement`, Ansicht: `data-a2-meas`), Status, Position, Menge, Originaltext und Herkunftstext; aufgeklappte Kacheln merkt `kaOffen` (bleiben beim Neuzeichnen offen). Die in v3.345 entfernte Rückverfolgung steht damit wieder zur Verfügung, aber nur auf Abruf.
 Prüfstand `komplettausmass-v3-341` auf 66 erweitert; Mutationen (Blechfläche nicht zusammengeführt, Herkunft fehlt, Offen-Zustand geht verloren) erkannt.
-
-### v3.348 — Komplettausmass: Ecken, Scharen, Knicke ausgeblendet
-
-Wunsch: „Raus kann noch Ecken, Scharen, Knicke.“ js/85 `KA_AUSGEBLENDET` um `^ecken?`, `^schar(en)?`, `^knick` ergänzt (Stückzahlen wie „Ecken“ bei Mauerabdeckung, „Scharen“ bei Lukarne, „Knicke im Verlauf“ bei Anschlussblech); Hinweistext und Prüfstand `komplettausmass-v3-341` (58, Mutationen je Muster erkannt) angepasst. Weiterhin NICHT ausgeblendet: Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

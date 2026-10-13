@@ -93,7 +93,9 @@ function kaSammeln(liste,ctx){
    const einheit=kaEinheit(z.einheit);
    // „Blechfläche“ (Einlaufblech, Freies Profil) und „Blechfläche Zuschnitt“ (Dachfenster, Kamin, …) sind dieselbe Grösse: Netto-Fläche
    // Länge × Abwicklung ohne Verschnitt – nur je Modul anders beschriftet. Im Komplettausmass stehen sie unter einem Namen.
-   const bez=ea||((einheit==="m²"&&kaIstBlechflaeche(bez0))?"Blechfläche":bez0);
+   // v3.350: Freies Profil – die alte Zeile „Freies Profil, N Schenkel“ trägt den Namen der Massaufnahme (auch bei älteren, gespeicherten).
+   const fpName=(info.titel&&/^Freies Profil, \d+ Schenkel$/.test(bez0))?"Freies Profil, "+info.titel:null;
+   const bez=ea||fpName||((einheit==="m²"&&kaIstBlechflaeche(bez0))?"Blechfläche":bez0);
    const q={id:m.id,art,titel:info.titel,status,pos:z.pos,menge:z.menge,herkunft:String(z.herkunft||""),original:bez0};
    const meld=grund=>{pruefen.push(Object.assign({},q,{bezeichnung:bez||"(ohne Bezeichnung)",einheit:String(z.einheit||""),grund}));info.pruefen++};
    if(einheit==="mm"){masse++;info.masse++;return}                      // Masse, keine Mengen

@@ -114,7 +114,7 @@ const FALL={seitenteilArt:"separat",getrennt:false,lattenabstand:355,
   const z2=fpaAusmassZeilen();
   return {mit:z1[0]&&z1[0].bezeichnung,ohne:z2[0]&&z2[0].bezeichnung};
  });
- p(fp.mit==="Ortgangprofil Nord","erste Ausmass-Zeile traegt die Bezeichnung der Massaufnahme",fp);
+ p(fp.mit==="Freies Profil, Ortgangprofil Nord","erste Ausmass-Zeile traegt die Bezeichnung der Massaufnahme",fp);
  p(/^Freies Profil, \d+ Schenkel$/.test(fp.ohne||""),"ohne Bezeichnung bleibt die bisherige Zeile",fp);
 
  console.log("\nG · Komplettausmass: Bleilappen nur einmal, ohne (Teil)");
@@ -143,6 +143,15 @@ const FALL={seitenteilArt:"separat",getrennt:false,lattenabstand:355,
  p(am.da,"Bereich im Ausmass-Formular vorhanden",am);
  p(/Bleilappen\s*6 Stk/.test(am.mit),"zeigt das Komplettausmass des Projekts (Kacheln)",am.mit);
  p(/aus dem Projekt geöffnet/.test(am.fremd)&&/Zuerst ein Projekt/.test(am.keins),"anderes/kein Projekt: Hinweis statt falscher Zahlen",[am.fremd,am.keins]);
+
+ const alt=await page.evaluate(()=>{
+  cockpitProjectId=7;
+  projectMeasurementsCache=[{id:5,project_id:7,company_id:"A",type:"freies_profil",title:"PV Brustblech",workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Freies Profil, 6 Schenkel",menge:"2,74",einheit:"m",teil:false}]}}];
+  kaFilter="alle";kaGeladen();
+  const dd=document.createElement("div");dd.innerHTML=kaBauen("card").html;
+  return [...dd.querySelectorAll(".ka-kachel-name")].map(x=>x.textContent.replace(/\s+/g," ").trim()).join("|");
+ });
+ p(/Freies Profil, PV Brustblech/.test(alt)&&!/Schenkel/.test(alt),"ältere gespeicherte Massaufnahme: Kachel „Freies Profil, PV Brustblech“ statt „6 Schenkel“",alt);
 
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
