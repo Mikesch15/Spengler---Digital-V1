@@ -1888,3 +1888,9 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .pzu-band-kopf{font-size:12px;font-weight:700;margin:2px 0}
 .pzu-legende{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin:2px 0 6px}
 .pzu-legende i{display:inline-block;width:12px;height:12px;border:1px solid #17202a;margin-right:4px;vertical-align:-2px}
+/* v3.347: Komplettausmass als Kacheln (wie die Bleilappen-Zeile) */
+.ka-kacheln{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px;margin:4px 0 10px}
+.ka-kachel{border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-width:0}
+.ka-kachel-name{font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.ka-kachel-wert{font-size:20px;font-weight:800}
+.ka-kachel-wert span{font-size:13px;font-weight:600;color:var(--muted)}

@@ -1749,6 +1749,7 @@ function a2RegUebersicht(p){
  return `${schritt}
   ${hinweis}
   <div class="a2-dash">${kopfKarte}${mengen}</div>
+  ${(typeof kaA2Html==="function")?kaA2Html():""}
   <div class="a2-abschnitt a2-abschnitt-leise">
    <div class="a2-abschnitt-kopf"><h2>Ablauf</h2></div>
    <div class="a2-karte a2-karte-leise">${ablauf}</div>
@@ -2058,6 +2059,7 @@ function a2ZugeteiltText(m){
 }
 
 // ---- Ausmass --------------------------------------------------------------
+// v3.347: Das Komplettausmass steht jetzt offen auf der Projektübersicht (kaA2Html), nicht mehr nur im Register Ausmass versteckt.
 // v3.343: Register Rüstblatt. Der Inhalt entsteht in js/80 (rbProjektOeffnen mit inline) - hier nur der Platzhalter. Ein neuer Zeichenlauf der
 // Seite zeichnet aus dem vorhandenen Zustand neu; frisch gelesen wird beim ersten Öffnen und danach höchstens alle 60 Sekunden.
 let a2RbProjektZeit=0;
@@ -2079,9 +2081,6 @@ function a2MengenZeilen(){
  let h="";
  const o=(typeof angMengenKurz==="function")?angMengenKurz(a2Ang(),(typeof angMatListe==="function")?angMatListe():[]):"";
  if(o)h+=`<div class="small" style="margin-top:6px"><b>📏 Offertmengen:</b> ${esc(o)} <span class="muted">(nur aus der Offerte)</span></div>`;
- const k=(typeof kaA2Kurz==="function")?kaA2Kurz():"";
- if(k)h+=`<div class="small" style="margin-top:4px"><b>📊 Komplettausmass (Übersicht):</b> ${esc(k)}
-  <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-station="ausmass" style="margin-left:6px">Ansehen</button></div>`;
  return h;
 }
 function a2RegAusmass(p){

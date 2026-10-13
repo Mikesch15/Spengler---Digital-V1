@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.346`
+- Aktueller Entwicklungsstand: `v3.347`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.347 — Komplettausmass aufgeräumt, als Kacheln, offen auf der Projektübersicht
+
+Wunsch (3 Nachrichten): ins Komplettausmass gehören nicht: Biegungen, Blechstösse, Umschläge, Einfassungen nur als Komplettstückzahl je Einfassungsart, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Stücke; nicht so versteckt platzieren; schöner auflisten wie die Bleilappen. Grundlage: alle echten Ausmass-Bezeichnungen der Firma abgefragt (nur lesend). js/85: `kaAusgeblendet` (Muster für biegung, stoss/stösse, umschlag/umschläge, endzugabe, ^gehrung, gava/haltebleche, ^segment, stück/zuschnitte – Stückzahlen; „Blechfläche Zuschnitt“ in m² bleibt) – solche Zeilen werden vor allem anderen verworfen (auch ungültige Mengen erscheinen nicht unter „Zu prüfen“), ihre Zahl steht als Hinweis dabei; `kaEinfassungArt`: „Dachfenstereinfassung, <Deckart>“ → „Dachfenstereinfassungen“, „Kamineinfassung, …“ → „Kamineinfassungen“, „Einfassungen rund“ bleibt, „Einfassung N · Titel“ entfällt; Quellen bleiben in der Gruppe. Stk-Spalte der Material- und Mengenübersicht = diese Einfassungs-Stückzahlen. Anzeige: je Mengenposition eine Kachel (Name, fette Summe, „aus n Massaufnahmen“, Dubletten-Hinweis), Bleilappen weiter als feste Zeile oben. Platzierung: `kaA2Html()` jetzt offen auf der Projektübersicht (js/70, zwischen Projekt-/Mengenübersicht und Ablauf; auch weiter im Register Ausmass); die Kurzzeile „Komplettausmass“ mit Knopf entfällt. Bewusst NICHT ausgeblendet (nicht genannt): Ecken, Scharen, Knicke, Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m. Keine Datenänderung.
+Prüfstand `komplettausmass-v3-341` 58; Mutationen (Biegungen/GAVA/Segmente nicht ausgeblendet, Einfassung nicht je Art, Einzel-Einfassungen bleiben, Komplettausmass wieder versteckt, nichts ausgeblendet) erkannt; `cockpit-dashboard-v3-343` angepasst.
 
 ### v3.346 — Geltende Offerten wählbar (angebote.gilt)
 
@@ -16,10 +21,6 @@ Prüfstand `offerte-gilt-v3-346` (14); Mutationen (gilt ignoriert, falsches Flag
 
 Wunsch: „Anzahl Bleilappen können auch ins Gesamtausmass, dafür die einzelnen Massaufnahmen entfernen“ (Rückfrage beantwortet: eigene Zeile; nur die Anzeige verkürzen, gespeicherte Massaufnahmen bleiben unverändert). js/85 `kaBauen`: feste Zeile „🔩 Bleilappen: n Stk“ (Summe der Stk-Zeilen „Bleilappen“ aller Massaufnahmen des Projekts; fehlt, wenn es keine gibt) vor den Summen; Bleilappen bleibt zusätzlich Mengenposition. Entfernt: Liste „Massaufnahmen in dieser Übersicht“ und die aufklappbare Herkunft je Summe. Bleibt: Summen mit „aus n Massaufnahmen“, Hinweis „mögliche Dublette“, „Zu prüfen“ (mit Knopf in die Massaufnahme), Status als Anzahl je Status, Filter. Folge (bewusst): die Rückverfolgung bis zur einzelnen Zeile (Auftrag v3.341, Abschnitt 3.1) ist nur noch über „Zu prüfen“ und die Massaufnahmen-Liste des Projekts möglich; der Zuschnitt-Abhakstand je Massaufnahme steht nicht mehr in der Übersicht (er steht im Rüstblatt). Keine Datenänderung.
 Prüfstand `komplettausmass-v3-341` auf 51 angepasst/erweitert; Mutationen (Bleilappen nur erste Massaufnahme, Zeile fehlt, Herkunft wieder da) erkannt.
-
-### v3.344 — Korrektur zu v3.343 (Regression)
-
-Die volle Regression zu v3.343 war rot (2 Prüfstände): `uebersichtlichkeit-v3-289` prüfte die alte Reihenfolge (Stammdaten zuunterst) – die Projektübersicht steht jetzt gewollt vor Ablauf und Stand, Erwartung angepasst; `navigation-v3-203` verlangt in JEDEM Register einen bedienbaren Knopf – das Register Rüstblatt hatte im Leer-/Ladezustand keinen. Fix: Knopfreihe über dem Rüstblatt (Zu den Massaufnahmen; Material & Zuschnitt nur mit Modul Material). Keine Logikänderung. Die Schnellprüfung zu v3.343 hatte diese zwei Prüfstände nicht enthalten (Auswahl nach Namen) – ab sofort bei Änderungen an js/70 und css/05 alle `ansicht2`-, `navigation`-, `uebersichtlichkeit`- und `startseite`-Prüfstände mitnehmen.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

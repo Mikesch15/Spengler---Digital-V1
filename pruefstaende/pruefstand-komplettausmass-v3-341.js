@@ -107,6 +107,18 @@ r=S([M(1,"A",[z(1,"B","1","Stk")]),M(2,"Fremd",[z(1,"B","99","Stk")],{project_id
 p(r.massaufnahmen.length===1&&r.gruppen[0].summe===1,"10 · fremdes Projekt und fremde Firma sind ausgeschlossen",r);
 r=S([M(1,"Neu",[z(1,"B","1","Stk")],{workflow_status:"zu_ruesten"}),M(2,"X",[z(1,"B","1","Stk")],{workflow_status:"erfunden"}),M(3,"Ohne",[])]);
 p(r.nachStatus.zu_ruesten===1&&r.nachStatus.unbekannt===1&&r.ohneAusmass===1,"11 · Status nur aus workflow_status; unbekannter Wert als „unbekannt“, Massaufnahme ohne Ausmasszeilen gezählt",r.nachStatus);
+// ---- v3.347: was NICHT ins Komplettausmass gehört; Einfassungen nur als Komplettstückzahl je Art ----
+const nicht=["Biegungen","Blechstösse","Stösse","davon Umschläge (180°)","Endzugabe erstes Stück","Endzugabe letztes Stück","Gehrungen","Haltebleche (GAVA Blech)","Segmente","Stücke (Zuschnitte)","Zuschnittstücke","Zuschnitte","Kehlblech, Stücke","Umschläge"];
+r=S([M(1,"A",nicht.map((b,i)=>z(i+1,b,"3","Stk.")).concat([z(90,"Blechfläche Zuschnitt","1,5","m²"),z(91,"Bleilappen","4","Stk.",{teil:true}),z(92,"Dachrinne halbrund 250 mm","12","m")]))]);
+p(r.gruppen.map(g=>g.bezeichnung).sort().join("|")==="Blechfläche Zuschnitt|Bleilappen|Dachrinne halbrund 250 mm"&&r.pruefen.length===0&&r.ausgeblendet===nicht.length,"ausgeblendet: Biegungen, Blechstösse, Umschläge, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Stücke – und NUR diese (Fläche, Bleilappen, Rinne bleiben)",r.gruppen.map(g=>g.bezeichnung).concat([r.ausgeblendet]));
+r=S([M(1,"A",[z(1,"Biegungen","abc","Stk."),z(2,"Gehrungen",null,"Stk.")])]);
+p(r.pruefen.length===0&&r.ausgeblendet===2,"auch ungültige Mengen ausgeblendeter Zeilen tauchen nicht unter „Zu prüfen“ auf");
+r=S([M(1,"A",[z(1,"Dachfenstereinfassung, Schiebeziegel","1","Stk.")],{type:"dachfenstereinfassung"}),M(2,"B",[z(1,"Dachfenstereinfassung, Muldenziegel","1","Stk."),z(1,"Bleilappen","6","Stk.",{teil:true})],{type:"dachfenstereinfassung"}),
+ M(3,"C",[z(1,"Dachfenstereinfassung, Biberschwanz einfach","2","Stk.")],{type:"dachfenstereinfassung"}),M(4,"D",[z(1,"Kamineinfassung, Schiebeziegel","1","Stk."),z(1,"Kamineinfassung, Biberschwanz einfach","1","Stk.")],{type:"kamineinfassung"}),
+ M(5,"E",[z(1,"Einfassungen rund","2","Stk"),z(1,"Einfassung 1 · Nord Nr.1","1","Stk"),z(1,"Einfassung 2 · Nord Nr.2","1","Stk")],{type:"einfassung_rund"})]);
+const gg=Object.fromEntries(r.gruppen.map(g=>[g.bezeichnung,g.summe]));
+p(gg["Dachfenstereinfassungen"]===4&&gg["Kamineinfassungen"]===2&&gg["Einfassungen rund"]===2&&gg["Bleilappen"]===6&&!Object.keys(gg).some(k=>/Schiebeziegel|Muldenziegel|Biberschwanz|^Einfassung \d/.test(k)),"Einfassungen: nur als Komplettstückzahl je Einfassungsart (Dachfenster 4, Kamin 2, rund 2); Deckart und Einzel-Einfassungen entfallen",gg);
+p(r.gruppen.find(g=>g.bezeichnung==="Dachfenstereinfassungen").quellen.length===3,"Einfassungen: jede Quelle bleibt in der Gruppe erhalten (3 Massaufnahmen)");
 p(sbx.Z("3'080").wert===3080&&sbx.Z("1.234,5").wert===1234.5&&sbx.Z("0,93").wert===0.93&&!sbx.Z("").ok&&sbx.E("Stk.")==="Stk"&&sbx.E("M2")==="m²"&&sbx.E("lfm")==="lfm","Zahlen/Einheiten: Schweizer Schreibweisen, lfm bleibt eigene Einheit (nicht blind m)");
 
 console.log("\nB · Ansicht im Cockpit");
@@ -134,7 +146,7 @@ const L1=[uiMas(1,"Süd",[z(1,"Blechfläche Zuschnitt","1,34","m²"),z(2,"Bleila
  uiMas(2,"Nord",[z(1,"Blechfläche Zuschnitt","0,92","m²"),z(2,"Bleilappen","6","Stk.")],{workflow_status:"zu_montieren"}),
  uiMas(3,"Alt",[z(1,"Blechfläche Zuschnitt","1","m²")],{workflow_status:"abgeschlossen",archived:true})];
 u=await ui(L1);
-p(u.n==="3"&&/Blechfläche Zuschnitt: 3[.,]26 m²/.test(u.t)&&/Bleilappen[^:]*\(Teil\)|Bleilappen/.test(u.t)&&/14 Stk/.test(u.t),"2/3 · Summen je Bezeichnung und Einheit (3.26 m², 14 Stk)",u.t.slice(0,400));
+p(u.n==="3"&&/Blechfläche Zuschnitt 3[.,]26 m²/.test(u.t)&&/Bleilappen[^:]*\(Teil\)|Bleilappen/.test(u.t)&&/14 Stk/.test(u.t),"2/3 · Summen je Bezeichnung und Einheit (3.26 m², 14 Stk)",u.t.slice(0,400));
 p(/1 zu prüfen|<b/.test(u.t)||/zu prüfen/.test(u.t),"6 · „zu prüfen“ sichtbar");
 p(/Fläche – Menge nicht erfasst/.test(u.t)&&!/Fläche: 0/.test(u.t),"5 · fehlende Menge als „nicht erfasst“, nicht als 0",u.t);
 p(/Masszeile in mm/.test(u.t),"Masszeilen werden erklärt, nicht summiert");
@@ -155,7 +167,7 @@ const fl=await page.evaluate(()=>{
  const t=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");
  return {t,n:$("cockpitKomplettCount").textContent};
 });
-p(/Blechfläche Zuschnitt: 1[.,]34 m²/.test(fl.t)&&fl.n==="3","Statusfilter: nur zu rüsten (1.34 m²), Gesamtzahl bleibt 3",fl.t.slice(0,200));
+p(/Blechfläche Zuschnitt 1[.,]34 m²/.test(fl.t)&&fl.n==="3","Statusfilter: nur zu rüsten (1.34 m²), Gesamtzahl bleibt 3",fl.t.slice(0,200));
 // Aktualisierung
 u=await page.evaluate(()=>{
  kaFilter="alle";
@@ -167,7 +179,7 @@ u=await page.evaluate(()=>{
  const b=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");
  return {a:a.slice(a.indexOf("Mengen")>=0?0:0),b};
 });
-p(/Blechfläche Zuschnitt: 3[.,]92 m²/.test(u.a)&&/Blechfläche Zuschnitt: 3 m²/.test(u.b),"9 · Änderung und Entfernung einer Massaufnahme aktualisieren die Übersicht",{a:u.a.slice(0,160),b:u.b.slice(0,160)});
+p(/Blechfläche Zuschnitt 3[.,]92 m²/.test(u.a)&&/Blechfläche Zuschnitt 3 m²/.test(u.b),"9 · Änderung und Entfernung einer Massaufnahme aktualisieren die Übersicht",{a:u.a.slice(0,160),b:u.b.slice(0,160)});
 // Aktualitaet
 u=await page.evaluate(()=>{kaFehler=false;kaStand=new Date();renderKomplettausmass();const a=$("cockpitKomplettBody").textContent;kaLadeFehler();return {a,b:$("cockpitKomplettBody").textContent}});
 p(/Stand: \d\d:\d\d Uhr/.test(u.a)&&/Nicht frisch geladen – letzter Stand \d\d:\d\d/.test(u.b),"Aktualitätsstand wird gezeigt; bei Ladefehler „Nicht frisch geladen“",u);
@@ -187,7 +199,7 @@ const a2=await page.evaluate(async()=>{
  kaGeladen();
  const h=a2RegAusmass({id:7});
  const d=document.createElement("div");d.innerHTML=h;
- out.ausmass={kopf:/Komplettausmass \(Übersicht\)/.test(h),summe:/Blechfläche Zuschnitt: 1[.,]34 m²/.test(d.textContent.replace(/\s+/g," ")),
+ out.ausmass={kopf:/Komplettausmass \(Übersicht\)/.test(h),summe:/Blechfläche Zuschnitt 1[.,]34 m²/.test(d.textContent.replace(/\s+/g," ")),
   pruefen:/Zu prüfen/.test(d.textContent),oeffnen:d.querySelectorAll("[data-a2-meas='1']").length,neu:/Neues Ausmass/.test(h)};
  projectAngeboteCache=[{id:1,title:"A",positions:[{pos:"1",description:"R",quantity:12,unit:"m",abwicklung_mm:500}]}];
  const z=a2MengenZeilen();
@@ -195,6 +207,8 @@ const a2=await page.evaluate(async()=>{
   knopf:/data-a2-station="ausmass"/.test(z),getrennt:z.indexOf("Offertmengen")<z.indexOf("Komplettausmass")};
  projectAngeboteCache=[];
  out.ohneOffertZeile=!/Offertmengen/.test(a2MengenZeilen());
+ projectAngeboteCache=[];
+ out.uebersicht=/Komplettausmass \(Übersicht\)/.test(a2RegUebersicht({id:7,name:"P7",object:"M",archived:false}));
  projectMeasStand=new Map([[7,{gesamt:3,offen:2,zuRuesten:1}]]);
  out.zeile=a2ProjektZeileHtml({id:7,name:"P7",object:"Musterstrasse 1",order_no:"1",archived:false});
  projectMeasStand=null;
@@ -202,7 +216,7 @@ const a2=await page.evaluate(async()=>{
  return out;
 });
 p(a2.ausmass.kopf&&a2.ausmass.summe&&a2.ausmass.pruefen&&a2.ausmass.oeffnen>=1&&a2.ausmass.neu,"Projektseite (Register Ausmass): Komplettausmass zuoberst, Summe, Zu prüfen, Öffnen über den Ansicht-Weg (data-a2-meas); „Neues Ausmass“ bleibt",a2.ausmass);
-p(a2.zeilen.offerte&&a2.zeilen.kompl&&a2.zeilen.knopf&&a2.zeilen.getrennt,"Projektübersicht: Offertmengen und Komplettausmass als zwei getrennte, beschriftete Zeilen mit Weg ins Register",a2.zeilen);
+p(a2.zeilen.offerte&&a2.uebersicht,"Projektübersicht: Offertmengen-Zeile UND das Komplettausmass steht offen auf der Übersicht (nicht nur im Register Ausmass)",a2);
 p(a2.ohneOffertZeile,"ohne Offerte keine Offertmengen-Zeile");
 p(/a2-pz-stand/.test(a2.zeile)&&/3 Massaufnahmen · 2 offen/.test(a2.zeile)&&!/a2-pz-stand/.test(a2.zeileLeer),"Projektliste der Ansicht: Stand-Zeile, vor dem Laden nichts",a2.zeile.slice(0,200));
 // ---- v3.345: Bleilappen fest oben, einzelne Massaufnahmen entfernt ----
@@ -211,7 +225,7 @@ const bl=await page.evaluate(()=>{
  projectMeasurementsCache=[mk2(1,6),mk2(2,8)];kaFilter="alle";kaGeladen();
  const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
  const out={zeile:(d.querySelector(".ka-bleilappen")||{}).textContent||"",details:d.querySelectorAll("details").length,liste:/Massaufnahmen in dieser Übersicht/.test(d.textContent),
-  gruppe:/Bleilappen[^:]*: 14 Stk/.test(d.textContent.replace(/\s+/g," "))};
+  gruppe:/Bleilappen.*14 Stk/.test(d.textContent.replace(/\s+/g," "))};
  projectMeasurementsCache=[{id:3,project_id:7,company_id:"A",type:"kehle",title:"Y",workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1",einheit:"m²",teil:false}]}}];
  kaGeladen();
  out.ohne=!document.querySelector(".ka-bleilappen")&&!/Bleilappen/.test($("cockpitKomplettBody").textContent);
@@ -224,6 +238,18 @@ p(bl.gruppe,"Bleilappen bleibt zusätzlich als Mengenposition (Stück) in den Su
 p(bl.details===0&&!bl.liste,"einzelne Massaufnahmen entfernt: keine aufklappbare Herkunft, keine Liste der Massaufnahmen",bl);
 p(bl.ohne,"ohne Bleilappen: keine Zeile, kein 0-Wert");
 p(bl.fremd,"Bleilappen einer Massaufnahme eines anderen Projekts zählen nicht (nur 6 Stk)",bl);
+const ui2=await page.evaluate(()=>{
+ const mk=(id,zeilen)=>({id,project_id:7,company_id:"A",type:"kehle",title:"K"+id,workflow_status:"zu_ruesten",data:{ausmass:zeilen}});
+ projectMeasurementsCache=[mk(1,[{pos:1,bezeichnung:"Biegungen",menge:"3",einheit:"Stk.",teil:false},{pos:2,bezeichnung:"Dachfenstereinfassung, Schiebeziegel",menge:"1",einheit:"Stk.",teil:false},{pos:3,bezeichnung:"Bleilappen",menge:"6",einheit:"Stk.",teil:true},{pos:4,bezeichnung:"Blechfläche Zuschnitt",menge:"1,2",einheit:"m²",teil:false}])];
+ kaFilter="alle";kaGeladen();
+ const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
+ const kach=[...d.querySelectorAll(".ka-kachel")].map(k=>k.textContent.replace(/\s+/g," ").trim());
+ const uebers=a2RegUebersicht({id:7,name:"P7",object:"M",archived:false});
+ return {kach,txt:d.textContent.replace(/\s+/g," "),pos:uebers.indexOf("Komplettausmass (Übersicht)"),ablauf:uebers.indexOf("<h2>Ablauf</h2>"),dash:uebers.indexOf("a2-dash")};
+});
+p(ui2.kach.length===3&&ui2.kach.some(k=>/Dachfenstereinfassungen\s*1\s*Stk/.test(k))&&!ui2.kach.some(k=>/Biegungen/.test(k)),"Anzeige: jede Menge als Kachel (Name + Summe), Biegungen fehlen, Einfassung als Art",ui2.kach);
+p(/1 Zeile \(Biegungen, Blechstösse/.test(ui2.txt)&&/gehören nicht ins Komplettausmass/.test(ui2.txt),"die Anzeige sagt, dass ausgeblendete Zeilen nicht ins Komplettausmass gehören (stehen in der Massaufnahme)",ui2.txt.slice(-300));
+p(ui2.pos>ui2.dash&&ui2.pos<ui2.ablauf&&ui2.ablauf>0,"Platzierung: das Komplettausmass steht offen auf der Projektübersicht, direkt unter Projekt-/Mengenübersicht und vor dem Ablauf",ui2);
 // Offerte vs Komplettausmass
 const ang=fs.readFileSync("js/63-angebote.js","utf8");
 p(!/Komplettausmass/.test(ang)&&/Offertmengen/.test(ang),"12 · Offertmengen werden nirgends als Komplettausmass bezeichnet");

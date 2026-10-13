@@ -86,10 +86,10 @@ let U=sbx.U([ps("a",{quantity:48,material_id:1,staerke_mm:0.6}),ps("b",{quantity
 p(U.nachMatStaerke["Kupfer|0.6"]&&U.nachMatStaerke["Kupfer|0.6"].flaeche_m2===48&&U.nachMatStaerke["Kupfer|0.6"].stueck===10,"Offerte: Summen je Werkstoff UND Stärke",U.nachMatStaerke);
 U=sbx.U([ps("a",{quantity:5,material_id:1}),ps("b",{quantity:7,material_id:1,staerke_mm:0.6}),ps("c",{quantity:3})],LST);
 p(Object.keys(U.nachMatStaerke).length===3&&U.nachMatStaerke["Kupfer|"].staerke===null&&U.nachMatStaerke["|"],"Offerte: Stärke nicht erfasst und ohne Werkstoff bleiben eigene Zeilen",Object.keys(U.nachMatStaerke));
-let T=sbx.M([MA(1,1,0.6,[z("Blechfläche Zuschnitt","40,5","m²"),z("Bleilappen","8","Stk."),z("Bleilappen","3","Stk.",{teil:true}),z("Fläche","99","m²")]),
- MA(2,1,0.6,[z("Blechfläche Zuschnitt","6","m²"),z("Haupt","4","Stk")])],sbx.U([ps("a",{quantity:48,material_id:1,staerke_mm:0.6})],LST),ctx);
+let T=sbx.M([MA(1,1,0.6,[z("Blechfläche Zuschnitt","40,5","m²"),z("Dachfenstereinfassung, Schiebeziegel","8","Stk."),z("Bleilappen","3","Stk.",{teil:true}),z("Fläche","99","m²")]),
+ MA(2,1,0.6,[z("Blechfläche Zuschnitt","6","m²"),z("Dachfenstereinfassung, Muldenziegel","4","Stk")])],sbx.U([ps("a",{quantity:48,material_id:1,staerke_mm:0.6})],LST),ctx);
 let r=T.zeilen[0];
-p(T.zeilen.length===1&&r.material==="Kupfer"&&r.staerke===0.6&&r.off[0].m2===48&&Math.abs(r.masseM2-46.5)<1e-9&&r.masseStk===12,"Offerte und Massaufnahme landen in EINER Zeile; m² nur aus „Blechfläche Zuschnitt“ (99 m² „Fläche“ zählt nicht), Stk nur Hauptstücke (Teile nicht)",r);
+p(T.zeilen.length===1&&r.material==="Kupfer"&&r.staerke===0.6&&r.off[0].m2===48&&Math.abs(r.masseM2-46.5)<1e-9&&r.masseStk===12,"Offerte und Massaufnahme landen in EINER Zeile; m² nur aus „Blechfläche Zuschnitt“ (99 m² „Fläche“ zählt nicht), Stk = Einfassungen (Bleilappen/Teile nicht)",r);
 T=sbx.M([MA(1,2,0.7,[z("Blechfläche Zuschnitt","10","m²")])],sbx.U([ps("a",{quantity:5,material_id:1,staerke_mm:0.6})],LST),ctx);
 p(T.zeilen.length===2&&T.zeilen.find(x=>x.material==="Kupfer").masseM2===null&&T.zeilen.find(x=>x.material==="Titanzink").off[0].m2===null,"fehlende Quelle ist null (Anzeige „–“), nicht 0",T.zeilen);
 p(T.summe.off[0].m2.wert===5&&T.summe.off[0].m2.vollstaendig===false&&T.summe.masseM2.vollstaendig===false,"Summe nur über Zeilen mit Wert und als „nicht vollständig“ gekennzeichnet",T.summe);
@@ -97,7 +97,7 @@ T=sbx.M([MA(1,1,null,[z("Blechfläche Zuschnitt","2","m²")]),MA(2,1,0.6,[z("Ble
 p(T.zeilen.length===3,"gleicher Werkstoff mit/ohne Stärke und Massaufnahme ohne Werkstoff: drei getrennte Zeilen",T.zeilen.map(x=>x.material+"|"+x.staerke));
 T=sbx.M([MA(1,1,0.6,[z("Blechfläche Zuschnitt","2","m²")]),MA(2,1,0.6,[z("Blechfläche Zuschnitt","50","m²")],{project_id:8}),MA(3,1,0.6,[z("Blechfläche Zuschnitt","70","m²")],{company_id:"B"})],null,ctx);
 p(T.zeilen.length===1&&T.zeilen[0].masseM2===2,"fremdes Projekt und fremde Firma zählen nicht",T.zeilen);
-p(sbx.F(MA(1,1,0.6,[z("Blechfläche Zuschnitt","1,5","m²"),z("X","2","Stk")]))===" · 1.50 m² · 2 Stk"&&sbx.F(MA(2,1,0.6,[]))==="","Kurztext je Massaufnahme: nur Erfasstes, sonst leer");
+p(sbx.F(MA(1,1,0.6,[z("Blechfläche Zuschnitt","1,5","m²"),z("Dachfenstereinfassung, Muldenziegel","2","Stk")]))===" · 1.50 m² · 2 Stk"&&sbx.F(MA(2,1,0.6,[]))==="","Kurztext je Massaufnahme: nur Erfasstes, sonst leer");
 
 console.log("\nB · Projektübersicht und Material-/Mengentabelle in der Ansicht");
 await page.evaluate(()=>{
@@ -112,7 +112,7 @@ const tab=async(ang,ma,pre)=>page.evaluate(([a,m,pre])=>{
  const h=kaMengenKarteHtml();const d=document.createElement("div");d.innerHTML=h;
  return {zellen:[...d.querySelectorAll("tbody tr:first-child td")].map(x=>x.textContent.trim()),t:d.textContent.replace(/\s+/g," "),kopf:[...d.querySelectorAll("thead th")].map(x=>x.textContent),zeilen:d.querySelectorAll("tbody tr").length,chips:d.querySelectorAll("[data-ka-offerte]").length,h};
 },[ang,ma,pre||""]);
-const mas=[{id:1,project_id:7,company_id:"A",type:"kehle",title:"A",staerke_mm:0.6,workflow_status:"zu_ruesten",data:{material:"1",ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"46,5",einheit:"m²",teil:false},{pos:2,bezeichnung:"Haupt",menge:"12",einheit:"Stk",teil:false}]}}];
+const mas=[{id:1,project_id:7,company_id:"A",type:"kehle",title:"A",staerke_mm:0.6,workflow_status:"zu_ruesten",data:{material:"1",ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"46,5",einheit:"m²",teil:false},{pos:2,bezeichnung:"Dachfenstereinfassung, Schiebeziegel",menge:"12",einheit:"Stk",teil:false}]}}];
 const off=(t,q)=>({id:1,title:t,positions:[{pos:"1",description:"R",quantity:q,unit:"m2",material_id:1,staerke_mm:0.6}]});
 let t1=await tab([off("Offerte A",48)],mas);
 p(/Material- und Mengenübersicht/.test(t1.t)&&t1.kopf.join("|")==="Werkstoff|Stärke|m² (Offerte)|m² (Massaufn.)"&&t1.zeilen===1,"Tabelle: Werkstoff, Stärke, m² (Offerte), m² (Massaufn.)",t1.kopf);
@@ -166,7 +166,7 @@ p(reg.k.indexOf("ruestblatt")>=0&&reg.k.indexOf("ruestblatt")<reg.k.indexOf("aus
 const inl=await page.evaluate(async()=>{
  const A=mk(301,"Süd",[{breite:400,stuecke:[500,700]}]),B=mk(302,"Nord",[{breite:250,stuecke:[500]}]),C=mk(303,"Erledigt",[{breite:250,stuecke:[500]}]);
  C.workflow_status="abgeschlossen";
- [A,B].forEach(m=>{m.data.ausmass=[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1,2",einheit:"m²",teil:false},{pos:2,bezeichnung:"Haupt",menge:"1",einheit:"Stk",teil:false}]});
+ [A,B].forEach(m=>{m.data.ausmass=[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1,2",einheit:"m²",teil:false},{pos:2,bezeichnung:"Dachfenstereinfassung, Schiebeziegel",menge:"1",einheit:"Stk",teil:false}]});
  zeCache.clear();zeGeladen.clear();
  allProjects=[{id:7,name:"P7",archived:false,zuschnitt_ausschluss:[]}];
  projectMeasurementsCache=[A,B,C];
