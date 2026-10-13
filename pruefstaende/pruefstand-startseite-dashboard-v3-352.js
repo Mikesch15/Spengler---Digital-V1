@@ -32,12 +32,12 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return {k,offen:a2OffeneProjekte(false).length,auf:a2Aufgaben().length,
    aktionen:[...document.querySelectorAll("#a2Inhalt .a2-aktionen button")].map(x=>x.textContent.replace(/\s+/g," ").trim()),
    neuSichtbar:a2KnopfSichtbar("startOpenProjects"),sucheSichtbar:a2KnopfSichtbar("openGlobalSearch"),
-   werkInKpi:[...document.querySelectorAll("#a2Inhalt .a2-kpi")].filter(x=>/Teile|Rüstlist|Montage/.test(x.textContent)).length,
+   werkDoppelt:[...document.querySelectorAll("#a2Inhalt .a2-zahlen .a2-zahl")].filter(x=>/Teile|Montage/.test(x.textContent)).length,
    ziel:!!document.getElementById("a2HeuteAufgaben")};
  });
- p(a.k.length===2&&Number(a.k[0].b)===a.offen&&a.k[0].tab==="projekte","Kennzahl Offene Projekte = a2OffeneProjekte(alle), Ziel Projekte",a);
+ p(a.k.length>=2&&Number(a.k[0].b)===a.offen&&a.k[0].tab==="projekte","Kennzahl Offene Projekte = a2OffeneProjekte(alle), Ziel Projekte",a);
  p(Number(a.k[1].b)===a.auf&&a.k[1].sc==="a2HeuteAufgaben"&&a.ziel,"Kennzahl Offene Aufgaben = Aufgabenliste, springt zum Abschnitt",a);
- p(a.werkInKpi===0,"Werkstattzahlen stehen nur im Abschnitt Werkstatt (keine doppelte Kennzahl im Arbeitsstand)",a.werkInKpi);
+ p(a.werkDoppelt===0,"Teile/Montagen stehen nur im Arbeitsstand, nicht zusätzlich im Abschnitt Werkstatt (keine doppelte Kennzahl)",a.werkDoppelt);
  p(a.aktionen.some(x=>/Projekt öffnen/.test(x))&&(a.neuSichtbar===a.aktionen.some(x=>/Neues Projekt/.test(x)))&&(a.sucheSichtbar===a.aktionen.some(x=>/Suche/.test(x))),"Handlungen nur wenn sichtbar (Neues Projekt / Suche); Projekt öffnen immer",a.aktionen);
 
  console.log("\nB · Unsicherer Stand und Gegenproben");
@@ -111,11 +111,53 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return r;
  });
  p(v.sw<=v.cw+1&&!v.ueberlauf,"lange Projektnamen und Adressen (360px): kein Überlaufen",v);
- p(v.kpi>0&&v.kpi<=62,"Kennzahlen kompakt (Höhe ≤ 62px)",v.kpi);
+ p(v.kpi>0&&v.kpi<=92,"Kennzahlen kompakt (Höhe ≤ 92px)",v.kpi);
  p(v.klasse&&parseFloat(v.radius)<=10&&(v.schatten==="none"||v.schatten===""),"Projektkarten: ruhige Fläche (Rundung ≤ 10px, kein Schatten)",[v.radius,v.schatten]);
  p(v.statusTexte.length>0&&!v.glyph&&v.statusTexte.every(x=>/^(Offen|In Arbeit|Abgeschlossen|Storniert)$/.test(x)),"Status ohne unklares Zeichen, nur Klartext (Punkt per CSS)",v.statusTexte);
  p(v.nav.length>=3&&v.nav.some(x=>/Heute/.test(x))&&v.nav.some(x=>/Projekte/.test(x))&&v.nav.some(x=>/Mehr/.test(x))&&v.navUeber,"untere Navigation vollständig und im Bild",[v.nav,v.navUeber]);
  p(!v.andere,"andere Seiten bleiben unverändert (Klasse nur auf Heute)",v.andere);
+
+ console.log("\nG · Wunschbild (v3.354): Kopf, Suche, Filter");
+ await page.setViewportSize({width:420,height:900});
+ const g=await page.evaluate(()=>{
+  const r={};
+  a2Zustand.seite="heute";a2ProjektFilter="alle";a2HeuteSuche="";a2Zeichnen();
+  r.hero=!!document.querySelector("#a2Inhalt .a2-hero .a2-hero-gruss")&&/^Guten (Morgen|Tag|Abend)$/.test(document.querySelector(".a2-hero-gruss").textContent);
+  r.suche=!!document.getElementById("a2HeuteSuche");r.filterKnopf=!!document.querySelector('#a2Inhalt .a2-hsuche-filter[data-a2-tu="projektarchiv"]');
+  const alle=a2OffeneProjekte(false);
+  r.alle=document.querySelectorAll("#a2HeuteProjListe .a2-karte-klick").length;r.alleSoll=Math.min(8,alle.length);
+  // Suche: ein Name der Liste findet genau diese Projekte
+  const name=(alle[0].name||alle[0].object||"").slice(0,6);
+  const i=document.getElementById("a2HeuteSuche");i.value=name;i.dispatchEvent(new Event("input",{bubbles:true}));
+  const soll=alle.filter(q=>projektPasstZuSuche(q,name)).length;
+  r.suchTreffer=document.querySelectorAll("#a2HeuteProjListe .a2-karte-klick").length;r.suchSoll=Math.min(8,soll);
+  i.value="zzzqqq";i.dispatchEvent(new Event("input",{bubbles:true}));
+  r.leer=/Kein Projekt passt/.test(document.getElementById("a2HeuteProjListe").textContent);
+  a2HeuteSuche="";a2Zeichnen();
+  // Filter In Arbeit
+  a2ProjektFilter="in_arbeit";a2Zeichnen();
+  r.arbeit=[...document.querySelectorAll("#a2HeuteProjListe .a2-karte-klick .a2-st")].map(x=>x.textContent.trim());
+  r.arbeitSoll=alle.filter(q=>q.status==="in_arbeit").length;
+  r.chips=[...document.querySelectorAll("#a2HeuteProjekte .a2-register-klein button")].map(x=>x.textContent.replace(/\s+/g," ").trim());
+  // Nahe Montage: nur Projekte mit Termin heute..+7 Tage
+  const iso=n=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+  const p0=String(alle[0].id),p1=alle[1]?String(alle[1].id):null;
+  const altW=werkZeilen;
+  werkZeilen=[{id:901,project_id:alle[0].id,workflow_status:"zu_montieren",montage_am:iso(3)},
+   ...(p1?[{id:902,project_id:alle[1].id,workflow_status:"zu_montieren",montage_am:iso(20)}]:[]),
+   ...(alle[2]?[{id:903,project_id:alle[2].id,workflow_status:"zu_montieren",montage_am:null}]:[])];
+  r.nah=a2NaheMontageProjekte(alle).map(q=>String(q.id));r.nahSoll=[p0];
+  werkZeilen=altW;
+  a2ProjektFilter="meine";a2Zeichnen();
+  return r;
+ });
+ p(g.hero,"Kopfbereich mit Begrüssung (Guten Morgen/Tag/Abend)",g.hero);
+ p(g.suche&&g.filterKnopf,"Suchfeld und Filterknopf (Archiv und Filter) vorhanden",g);
+ p(g.alle===g.alleSoll,"Liste „Alle“ zeigt die offenen Projekte",[g.alle,g.alleSoll]);
+ p(g.suchTreffer===g.suchSoll&&g.suchTreffer>0&&g.leer,"Suche filtert nach derselben Regel wie die Projektliste; ohne Treffer klare Meldung",g);
+ p(g.arbeit.length===Math.min(8,g.arbeitSoll)&&g.arbeit.every(x=>x==="In Arbeit"),"Filter „In Arbeit“ zeigt nur Projekte mit Status In Arbeit",g.arbeit);
+ p(g.chips.length>=3&&/^Meine \(\d+\)$/.test(g.chips[0])&&/^Alle \(\d+\)$/.test(g.chips[1])&&/^In Arbeit \(\d+\)$/.test(g.chips[2]),"Filter-Chips mit Anzahl",g.chips);
+ p(JSON.stringify(g.nah)===JSON.stringify(g.nahSoll),"Nahe Montage: nur Termin heute bis 7 Tage; später oder ohne Termin zählt nicht",g.nah);
 
  console.log("\nE · Leerer Bestand");
  const l=await page.evaluate(()=>{

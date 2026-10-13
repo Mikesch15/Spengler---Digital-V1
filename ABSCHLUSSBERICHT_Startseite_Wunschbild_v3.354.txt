@@ -1,0 +1,29 @@
+ABSCHLUSSBERICHT v3.354 – Startseite nach dem Wunschbild
+Datum: 13.10.2026
+Ausgangscommit: 478bf2f (v3.353, Pages success, Regression 186/186)
+Zielcommit: siehe Git-Log (Commit „v3.354“)
+
+WUNSCH: Bild einer Startseite mit Kopf (Logo, Begrüssung), Aktionen, Suchfeld, vier Kennzahlen mit Symbol, Hinweisen, Projektkarten mit Filter-Chips und Aufgaben.
+
+UMGESETZT (nur Seite Heute; js/70, css/05; keine Datenänderung, keine Migration)
+- Kopf: Markenblau, Logo (auf weissem Feld, damit jedes Logo lesbar ist), „Guten Morgen/Tag/Abend“, Datum · Name.
+- Suche: „Projekte suchen …“ filtert die Projektliste der Startseite mit derselben Regel wie die Projektliste (projektPasstZuSuche); Filterknopf öffnet „Archiv und Filter“.
+- Kennzahlen: Offene Projekte, Offene Aufgaben, Teile zu produzieren, Montagen vorbereitet (die letzten zwei nur mit Werkstatt; „…“ beim Laden, „–“ bei Fehler; Aufgaben „–“ bei unsicherem Stand). Teile/Montagen stehen jetzt nur noch hier, „Werkstatt heute“ zeigt die Rüstlisten.
+- Hinweise rötlich; Karten mit Standortzeichen; Chips „Meine / Alle / In Arbeit / Nahe Montage“ mit Anzahl.
+- Nahe Montage = Massaufnahme „zu montieren“ mit Montagetermin von heute bis +7 Tage (montageTermin, js/01); ohne Termin zählt nicht.
+
+NICHT ÜBERNOMMEN (bewusst)
+- Dachfoto im Kopf und Projektfotos in den Karten: Es gibt keine Bildquelle am Projekt; nichts Erfundenes.
+- Chip „Offen“: wäre inhaltlich „Alle“.
+- Aufgabenabschnitt unverändert (Gruppen je Projekt, zugeklappt; „Alle aufklappen“).
+
+TESTS
+- startseite-dashboard-v3-352: 29 Prüfungen (Kopf, Suche inkl. keine Treffer, Chips, In-Arbeit-Filter, Nahe Montage, Kennzahlen, Layout 360–1280 px, lange Namen, Navigation, leerer Bestand).
+- Mutationen erkannt: Suche ohne Filterung, In-Arbeit-Filter wirkungslos, Nahe Montage ohne Fristgrenze, falsche Begrüssung. Nicht erkannt: eine zusätzlich doppelt gezeigte Werkstattzahl im Abschnitt Werkstatt, weil die Testumgebung keine Werkstatt zeigt.
+- Angepasst: startseite-v3-158 (Zahlenquelle), ansicht2-vorgabe-v3-151 (Kopf statt Markenzeile), Kennzahlhöhe.
+- Schnellprüfung und volle Regression: siehe Antwort.
+
+GRENZEN
+Keine Tests auf echten Geräten; Layout nur im Testbrowser mit Attrappen. Werkstatt-Kennzahlen und „Nahe Montage“ im Browser nur über Prüfstand-Attrappen getestet.
+
+MANUELLE PRÜFUNG: App neu laden (3.354); Kopf, Suche tippen, Filterknopf, vier Kennzahlen, Chips umschalten, Karte antippen, untere Leiste.

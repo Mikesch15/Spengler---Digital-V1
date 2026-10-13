@@ -87,7 +87,9 @@ const koepfe=page=>page.evaluate(()=>
 
  // ---- B  Die Zahlen stimmen mit der App ueberein --------------------------
  const zahlen=await page.evaluate(()=>{
-  const gelesen=[...document.querySelectorAll("#a2Inhalt .a2-zahl b")].map(x=>Number(x.textContent));
+  // v3.354: Teile und Montagen stehen im Arbeitsstand oben (data-kpi), Rüstlisten im Abschnitt Werkstatt – je Zahl eine Stelle.
+  const kp=k=>{const e=document.querySelector('#a2Inhalt .a2-kpi[data-kpi="'+k+'"] b');return e?Number(e.textContent):null};
+  const gelesen=[kp("teile"),Number((document.querySelector("#a2Inhalt .a2-zahl b")||{}).textContent),kp("montagen")];
   // Dieselbe Rechnung, aber direkt aus der Funktion der App.
   const eigen=zeStandListe(werkZeilen);
   const montagen=werkZeilen.filter(z=>z.workflow_status==="zu_montieren").length;

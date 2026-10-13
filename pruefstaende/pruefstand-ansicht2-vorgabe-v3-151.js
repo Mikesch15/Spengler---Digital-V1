@@ -72,7 +72,7 @@ const anmelden=page=>page.evaluate(()=>{
   // v3.218: #startNav gibt es nicht mehr - die klassische Startseite ist weg.
   nav:!!document.getElementById("startNav"),
   hinweis:!!document.querySelector(".a2-karte-hinweis"),
-  marke:$("a2Inhalt").querySelector(".a2-marke")?$("a2Inhalt").querySelector(".a2-marke").textContent.trim():""
+  marke:$("a2Inhalt").querySelector(".a2-marke,.a2-hero-name")?$("a2Inhalt").querySelector(".a2-marke,.a2-hero-name").textContent.trim():""
  }));
  p(a.gespeichert===null,"A1 nichts gespeichert - es zaehlt die Vorgabe",a);
  p(a.aktiv&&a.a2&&!a.nav,"A2 die neue Ansicht ist die Vorgabe",a);
@@ -129,7 +129,7 @@ const anmelden=page=>page.evaluate(()=>{
  });
  await page.waitForTimeout(150);
  let c=await page.evaluate(()=>{
-  const m=$("a2Inhalt").querySelector(".a2-marke");
+  const m=$("a2Inhalt").querySelector(".a2-marke,.a2-hero");
   return {bild:!!(m&&m.querySelector("img")),
           quelle:a2LogoQuelle().slice(0,20),
           text:m?m.textContent.trim():""};
@@ -140,8 +140,8 @@ const anmelden=page=>page.evaluate(()=>{
  // Gegenprobe: Logo wieder weg -> kein Platzhalter
  await page.evaluate(()=>{$("startLogo").hidden=true;$("startLogo").removeAttribute("src");a2Zeichnen()});
  let c2=await page.evaluate(()=>({
-  bild:!!$("a2Inhalt").querySelector(".a2-marke img"),
-  text:$("a2Inhalt").querySelector(".a2-marke").textContent.trim()
+  bild:!!$("a2Inhalt").querySelector(".a2-marke img,.a2-hero img"),
+  text:$("a2Inhalt").querySelector(".a2-marke,.a2-hero-name").textContent.trim()
  }));
  p(!c2.bild&&c2.text==="Peter Künzi AG","C3 ohne Logo bleibt nur der Name - kein leerer Kasten",c2);
 

@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.353`
+- Aktueller Entwicklungsstand: `v3.354`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.354 — Startseite nach dem Wunschbild (Kopf, Suche, Kennzahlen mit Symbol, Filter-Chips)
+
+Wunsch (Bild): „Ich würde mir das irgendwie so vorstellen.“ Umgesetzt auf der Seite Heute (js/70, css/05; nur Heute): Kopfbereich in Markenblau mit Logo (auf weissem Feld), Begrüssung nach Tageszeit, Datum und Name; Suchfeld „Projekte suchen …“ (filtert die Liste darunter mit `projektPasstZuSuche`, dieselbe Regel wie die Projektliste) mit Filterknopf (öffnet „Archiv und Filter“); Kennzahlen als vier Felder mit Symbol (Offene Projekte, Offene Aufgaben, Teile zu produzieren, Montagen vorbereitet – letztere beiden nur mit Werkstatt, aus `a2WerkZahlen`; „…“ beim Laden, „–“ bei Fehler); der Abschnitt „Werkstatt heute“ zeigt nur noch die Rüstlisten (je Zahl eine Stelle); „Wichtige Hinweise“ rötlich hinterlegt; Projektkarten mit Standortzeichen vor der Adresse; Filter-Chips „Meine (n) · Alle (n) · In Arbeit (n) · Nahe Montage (n)“ („Nahe Montage“ = Massaufnahme „zu montieren“ mit eingetragenem Termin heute bis +7 Tage, nur mit Werkstatt). Nicht übernommen: Dachfoto im Kopf und Projektfotos in den Karten (keine Bildquelle am Projekt, nichts Erfundenes), Chip „Offen“ (wäre dasselbe wie „Alle“). Prüfstand `startseite-dashboard-v3-352` auf 29; `startseite-v3-158` und `ansicht2-vorgabe-v3-151` an das neue Layout angepasst (Zahlenquelle `data-kpi`, Kopf `.a2-hero`). Bericht: `ABSCHLUSSBERICHT_Startseite_Wunschbild_v3.354.txt`.
 
 ### v3.353 — Startseite „Heute“: verdichtet und beruhigt (Nachbesserung)
 
@@ -14,10 +18,6 @@ Nachbesserungsauftrag zur Startseite. Nur CSS (css/05, Block „STARTSEITE HEUTE
 ### v3.352 — Startseite: Handlungen, Arbeitsstand, „Nächster Schritt“
 
 Auftrag „Professionelle Startseite“ (Datei). Bestandsaufnahme: beim Start öffnet die Ansicht (js/70) die Seite „Heute“ (`a2SeiteHeute`) mit Einrichtung, Kontrolle, Hinweisen, Aufgaben (je Projekt, zugeklappt), Werkstatt heute, Montage, Offene Projekte – alles aus echten Quellen; es fehlten Handlungen im Kopf, ein Arbeitsstand auf einen Blick und der nächste Schritt je Projekt. Umgesetzt (nur js/70 + css/05, keine Migration, keine neue Abfrage): Handlungsleiste „＋ Neues Projekt“ (nur wenn `startOpenProjects` sichtbar), „📁 Projekt öffnen“, „🔍 Suche“ (nur wenn `openGlobalSearch` sichtbar; öffnet die vorhandene Suche); Arbeitsstand „Offene Projekte“ (= `a2OffeneProjekte(false)`, öffnet die Projektliste) und „Offene Aufgaben“ (= Aufgabenliste, springt zum Abschnitt; bei unsicherem Stand „–“ statt einer Zahl); „Nächster Schritt“ in der Projektkarte = dringendste offene Aufgabe aus derselben Aufgabenliste. Werkstattzahlen bleiben nur im Abschnitt Werkstatt (keine doppelte Kennzahl); Schnellzugriffe auf Werkstatt/Lager nicht doppelt – dafür gibt es die Leiste. Prüfstand `startseite-dashboard-v3-352` (16), Mutationen (Zahl trotz unsicherem Stand, Neues Projekt/Suche ohne Freigabe, falsches Ziel, falsche Zahl, Überlaufen) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_v3.352.txt`.
-
-### v3.351 — Freies Profil: „Freies Profil, <Name der Massaufnahme>“
-
-Wunsch (Screenshot): statt „Freies Profil, 6 Schenkel“ soll „Freies Profil, PV Brustblech“ stehen. js/31 `fpaAusmassZeilen` schreibt „Freies Profil, <Titel>“ (ohne Titel wie bisher); js/85 `kaSammeln` zeigt für ältere gespeicherte Zeilen „Freies Profil, N Schenkel“ den Titel der Massaufnahme (nur Anzeige, nichts wird umgeschrieben; die Herkunft zeigt den Originaltext). Prüfstand `bleilappen-hand-v3-350` auf 24.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

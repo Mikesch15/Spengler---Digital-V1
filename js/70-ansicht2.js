@@ -590,24 +590,115 @@ function a2HeuteAktionenHtml(){
  if(suche)knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="suche">🔍 Suche</button>');
  return `<div class="a2-aktionen" role="group" aria-label="Schnellaktionen">${knoepfe.join("")}</div>`;
 }
+// v3.354: Kopfbereich nach dem Wunschbild: Firmenlogo, Begrüssung, Datum und Name. Kein Bild, nichts Erfundenes.
+function a2HeuteGruss(){
+ const h=new Date().getHours();
+ return h<11?"Guten Morgen":(h<17?"Guten Tag":"Guten Abend");
+}
+function a2HeuteHeroHtml(){
+ const logo=a2LogoQuelle();
+ const name=(typeof companyName!=="undefined"&&companyName)?companyName:"SPENGLER-DIGITAL";
+ const profil=(typeof currentProfile!=="undefined")?currentProfile:null;
+ return `<div class="a2-hero">
+  ${logo?`<img class="a2-hero-logo" src="${esc(logo)}" alt="${esc(name)}">`:`<div class="a2-hero-name">${esc(name)}</div>`}
+  <div class="a2-hero-gruss">${esc(a2HeuteGruss())}</div>
+  <div class="a2-hero-unter">${esc(a2HeuteDatum())} · ${esc(a2Name(profil))}</div>
+ </div>`;
+}
+// Suchfeld der Startseite: filtert NUR die Liste der Projekte darunter (dieselbe Suchregel wie die Projektliste); der Filterknopf öffnet Archiv und Filter.
+function a2HeuteSucheHtml(){
+ return `<div class="a2-hsuche"><div class="a2-hsuche-feld">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
+  <input id="a2HeuteSuche" type="search" placeholder="Projekte suchen …" value="${esc(a2HeuteSuche)}" autocomplete="off" enterkeyhint="search" aria-label="Projekte suchen"></div>
+  <button type="button" class="a2-hsuche-filter" data-a2-tu="projektarchiv" aria-label="Archiv und Filter">
+   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>`;
+}
+let a2HeuteSuche="";
+const A2_KPI_ICON={
+ projekte:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ aufgaben:'<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/>',
+ teile:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+ montagen:'<path d="M14.5 4.5a4.5 4.5 0 0 0-6 5.9L4 15v4h4l4.6-4.6a4.5 4.5 0 0 0 5.9-6L16 11l-3-3z"/>'
+};
 function a2HeuteStandHtml(auf){
- const kachel=(zahl,text,ziel,farbe,hinweis)=>`<button type="button" class="a2-kpi ${farbe||""}" ${ziel}>
-  <b>${esc(zahl)}</b><span>${esc(text)}</span>${hinweis?`<em>${esc(hinweis)}</em>`:""}</button>`;
+ const sym=k=>'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+A2_KPI_ICON[k]+'</svg>';
+ const kachel=(kind,zahl,text,ziel,farbe,hinweis)=>`<button type="button" class="a2-kpi ${farbe||""}" data-kpi="${kind}" ${ziel}>
+  <i>${sym(kind)}</i><b>${esc(zahl)}</b><span>${esc(text)}</span>${hinweis?`<em>${esc(hinweis)}</em>`:""}</button>`;
  const offenP=a2OffeneProjekte(false).length;
- let k=kachel(offenP,offenP===1?"Offenes Projekt":"Offene Projekte",'data-a2-tab="projekte"',"a2-z-blau");
+ let k=kachel("projekte",offenP,offenP===1?"Offenes Projekt":"Offene Projekte",'data-a2-tab="projekte"',"a2-z-blau");
  if(a2AufgabenAktiv()){
   // Ist der Stand der Aufgaben nicht frisch (Abruf gescheitert / offline), steht keine Zahl: lieber „–“ als eine Null, die niemand geprüft hat.
   const sh=(typeof aufgabenStandHinweis==="function")?aufgabenStandHinweis():"";
-  k+=sh?kachel("–","Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',"","Stand unsicher")
-       :kachel(auf.length,auf.length===1?"Offene Aufgabe":"Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',auf.length?"a2-z-orange":"a2-z-gruen");
+  k+=sh?kachel("aufgaben","–","Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',"","Stand unsicher")
+       :kachel("aufgaben",auf.length,auf.length===1?"Offene Aufgabe":"Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',auf.length?"a2-z-orange":"a2-z-gruen");
+ }
+ // Die Werkstattzahlen kommen aus derselben Quelle wie der Abschnitt „Werkstatt heute“ (a2WerkZahlen) und stehen nur hier.
+ if(a2WerkstattSichtbar()){
+  const w=a2WerkZahlen();
+  const zt=a2WerkFehler?"–":(a2WerkGeladen?w.teile:"…");
+  const zm=a2WerkFehler?"–":(a2WerkGeladen?w.montagen:"…");
+  k+=kachel("teile",zt,"Teile zu produzieren",'data-a2-tab="werkstatt"',"a2-z-blau");
+  k+=kachel("montagen",zm,"Montagen vorbereitet",'data-a2-tab="werkstatt"',"a2-z-gruen");
  }
  return `<div class="a2-kpis" aria-label="Arbeitsstand">${k}</div>`;
 }
 
+// v3.354: „Nahe Montage“ = offenes Projekt mit einer Massaufnahme „zu montieren“, deren eingetragener Montagetermin heute bis in 7 Tagen liegt (montageTermin, js/01). Ohne Termin zählt es nicht.
+function a2NaheMontageProjekte(projekte){
+ const ids=new Set();
+ a2Werk().filter(z=>z.workflow_status==="zu_montieren"&&z.montage_am).forEach(z=>{
+  const t=(typeof montageTermin==="function")?montageTermin(z.montage_am):null;
+  if(t&&t.tage>=0&&t.tage<=7)ids.add(String(z.project_id));
+ });
+ return (projekte||[]).filter(p=>ids.has(String(p.id)));
+}
+const A2_PIN='<svg class="a2-pin" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
+// Die Liste unter den Filtern. Gleiche Quelle wie bisher (a2OffeneProjekte); Filter und Suche ordnen nur, es wird nichts nachgeladen.
+function a2HeuteProjListeHtml(auf){
+ const alle=a2OffeneProjekte(false);
+ let liste;
+ if(a2ProjektFilter==="alle")liste=alle;
+ else if(a2ProjektFilter==="in_arbeit")liste=alle.filter(p=>p.status==="in_arbeit");
+ else if(a2ProjektFilter==="montage")liste=a2NaheMontageProjekte(alle);
+ else liste=a2OffeneProjekte(true);
+ const q=a2HeuteSuche.trim();
+ if(q&&typeof projektPasstZuSuche==="function")liste=liste.filter(p=>projektPasstZuSuche(p,q));
+ liste=liste.slice(0,8);
+ if(!liste.length){
+  if(q)return '<div class="a2-leer">Kein Projekt passt zu dieser Suche.</div>';
+  if(a2ProjektFilter==="meine")return `<div class="a2-leer">Dir ist gerade kein offenes Projekt zugeteilt.
+    Mit „Alle“ siehst du, was im Betrieb sonst noch läuft.</div>`;
+  return '<div class="a2-leer">Kein Projekt in dieser Auswahl.</div>';
+ }
+ const gruppen=a2AufgabenNachProjekt(auf);
+ return `<div class="a2-liste-zwei">`+liste.map(p=>{
+    const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
+    const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
+    const stand=a2WerkGeladen?a2ProjektStand(p):null;
+    // v3.352: der nächste Schritt ist die dringendste offene Aufgabe dieses Projekts - aus derselben Liste wie „Meine Aufgaben“, nichts Neues berechnet.
+    const gAuf=gruppen.find(g=>String(g.id)===String(p.id));
+    const naechster=(gAuf&&gAuf.aufgaben[0]&&typeof aufgabenArt==="function")?aufgabenArt(gAuf.aufgaben[0].art).titel:"";
+    return `<button type="button" class="a2-karte a2-karte-klick" data-a2-projekt="${esc(p.id)}">
+     <div class="a2-karte-kopf">
+      <div class="a2-karte-kopf-text">
+       <div class="a2-karte-titel">${esc(p.name||titel)}</div>
+       ${p.object?`<p class="a2-karte-unter">${A2_PIN}${esc(p.object)}</p>`:""}
+      </div>
+      ${st?`<span class="a2-st a2-st-${esc(st.wert)}">${esc(st.label)}</span>`:""}
+     </div>
+     ${naechster?`<p class="a2-naechster"><b>Nächster Schritt:</b> ${esc(naechster)}${gAuf.aufgaben.length>1?" (+"+(gAuf.aufgaben.length-1)+")":""}</p>`:""}
+     ${stand&&stand.gesamt?a2FortschrittHtml(stand.erledigt,stand.gesamt,"Produziert")
+       :`<p class="a2-karte-unter a2-kein-teil">${
+         a2WerkstattSichtbar()&&!a2WerkGeladen?"Zuschnittstand wird geladen …"
+                                              :"Noch keine Teile erfasst."}</p>`}
+    </button>`;
+   }).join("")+"</div>";
+}
+
 function a2SeiteHeute(){
  const auf=a2Aufgaben();
- let html=a2MarkeHtml("a2-marke");
- html+=a2HeuteAktionenHtml()+a2HeuteStandHtml(auf);
+ let html=a2HeuteHeroHtml();
+ html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen
@@ -675,7 +766,7 @@ function a2SeiteHeute(){
  // eingetragen hat - gibt es keine Notiz, gibt es auch keinen Abschnitt.
  const hinweise=a2HinweisProjekte().slice(0,5);
  if(hinweise.length){
-  html+=`<div class="a2-abschnitt">
+  html+=`<div class="a2-abschnitt a2-hinweise">
    <div class="a2-abschnitt-kopf"><h2>Wichtige Hinweise</h2></div>`
    +hinweise.map(p=>{
     const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
@@ -730,10 +821,9 @@ function a2SeiteHeute(){
   }else if(!a2WerkGeladen){
    html+='<div class="a2-leer">Werkstatt wird geladen …</div>';
   }else{
-   html+=`<div class="a2-zahlen">
-    <div class="a2-zahl a2-z-orange"><b>${z.teile}</b><span>Teile zu produzieren</span></div>
+   // v3.354: Teile und Montagen stehen im Arbeitsstand oben (eine Stelle je Zahl); hier bleibt, was dort nicht steht.
+   html+=`<div class="a2-zahlen a2-zahlen-eins">
     <div class="a2-zahl a2-z-blau"><b>${z.ruestlisten}</b><span>Rüstlisten</span></div>
-    <div class="a2-zahl a2-z-gruen"><b>${z.montagen}</b><span>Montagen vorbereitet</span></div>
    </div>`;
   }
   html+="</div>";
@@ -769,45 +859,19 @@ function a2SeiteHeute(){
  // jetzt AUCH, wenn nichts uebrig bleibt - sonst verschwaende er wortlos,
  // und niemand wuesste, dass es am Filter liegt und nicht an fehlenden
  // Projekten. Die Zahl hinter "Alle" sagt, was der Umschalter braechte.
- const offen=a2OffeneProjekte().slice(0,8);
  const offenAlle=a2OffeneProjekte(false);
- if(offen.length||offenAlle.length){
+ if(offenAlle.length||a2OffeneProjekte(true).length){
+  const meineN=a2OffeneProjekte(true).length;
+  const arbeitN=offenAlle.filter(p=>p.status==="in_arbeit").length;
+  const nahN=a2WerkstattSichtbar()&&a2WerkGeladen?a2NaheMontageProjekte(offenAlle).length:null;
+  const chip=(k,text)=>`<button type="button" data-a2-pfilter="${k}"${a2ProjektFilter===k?' class="ist-auf"':""}>${text}</button>`;
   html+=`<div class="a2-abschnitt" id="a2HeuteProjekte">
    <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
-    <button type="button" data-a2-tab="projekte">Alle Projekte ›</button></div>
+    <button type="button" data-a2-tab="projekte">Alle Projekte (${offenAlle.length}) ›</button></div>
    <div class="a2-register a2-register-klein">
-    <button type="button" data-a2-pfilter="meine"${a2ProjektFilter==="meine"?' class="ist-auf"':""}>Meine</button>
-    <button type="button" data-a2-pfilter="alle"${a2ProjektFilter==="alle"?' class="ist-auf"':""}>Alle (${offenAlle.length})</button>
-   </div>`;
-  if(!offen.length){
-   html+=`<div class="a2-leer">Dir ist gerade kein offenes Projekt zugeteilt.
-    Mit „Alle“ siehst du, was im Betrieb sonst noch läuft.</div></div>`;
-  }else{
-  html+=`<div class="a2-liste-zwei">`
-   +offen.map(p=>{
-    const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
-    const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
-    const stand=a2WerkGeladen?a2ProjektStand(p):null;
-    // v3.352: der nächste Schritt ist die dringendste offene Aufgabe dieses Projekts - aus derselben Liste wie „Meine Aufgaben“, nichts Neues berechnet.
-    const gAuf=a2AufgabenNachProjekt(auf).find(g=>String(g.id)===String(p.id));
-    const naechster=(gAuf&&gAuf.aufgaben[0]&&typeof aufgabenArt==="function")?aufgabenArt(gAuf.aufgaben[0].art).titel:"";
-    return `<button type="button" class="a2-karte a2-karte-klick" data-a2-projekt="${esc(p.id)}">
-     <div class="a2-karte-kopf">
-      <div class="a2-karte-kopf-text">
-       <div class="a2-karte-titel">${esc(p.name||titel)}</div>
-       <p class="a2-karte-unter">${esc(p.object||"")}</p>
-      </div>
-      ${st?`<span class="a2-st a2-st-${esc(st.wert)}">${esc(st.label)}</span>`:""}
-     </div>
-     ${naechster?`<p class="a2-naechster"><b>Nächster Schritt:</b> ${esc(naechster)}${gAuf.aufgaben.length>1?" (+"+(gAuf.aufgaben.length-1)+")":""}</p>`:""}
-     ${stand&&stand.gesamt?a2FortschrittHtml(stand.erledigt,stand.gesamt,"Produziert")
-       :`<p class="a2-karte-unter a2-kein-teil">${
-         a2WerkstattSichtbar()&&!a2WerkGeladen?"Zuschnittstand wird geladen …"
-                                              :"Noch keine Teile erfasst."}</p>`}
-    </button>`;
-   }).join("")
-   +"</div></div>";
-  }
+    ${chip("meine","Meine ("+meineN+")")}${chip("alle","Alle ("+offenAlle.length+")")}${chip("in_arbeit","In Arbeit ("+arbeitN+")")}${nahN===null?"":chip("montage","Nahe Montage ("+nahN+")")}
+   </div>
+   <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div></div>`;
  }
  return html;
 }
@@ -1264,7 +1328,7 @@ document.addEventListener("click",async e=>{
  // hergibt. Deshalb keine Abfrage, nur neu zeichnen.
  const pf=e.target.closest("[data-a2-pfilter]");
  if(pf&&$("a2Screen")&&$("a2Screen").contains(pf)){
-  a2ProjektFilter=(pf.getAttribute("data-a2-pfilter")==="alle")?"alle":"meine";
+  {const f=pf.getAttribute("data-a2-pfilter");a2ProjektFilter=(f==="alle"||f==="in_arbeit"||f==="montage")?f:"meine"}
   a2Zeichnen();
   return;
  }
@@ -1464,6 +1528,12 @@ document.addEventListener("click",async e=>{
 // nicht das Feld - sonst verloere es bei jedem Anschlag den Fokus.
 document.addEventListener("input",e=>{
  if(!a2Aktiv())return;
+ if(e.target&&e.target.id==="a2HeuteSuche"){
+  a2HeuteSuche=e.target.value;
+  const l=$("a2HeuteProjListe");
+  if(l)l.innerHTML=a2HeuteProjListeHtml(a2Aufgaben());
+  return;
+ }
  if(!e.target||e.target.id!=="a2Suche")return;
  a2Zustand.suche=e.target.value;
  const liste=$("a2ProjListe");

@@ -1207,27 +1207,52 @@ html.a2-an.a2-heute-an body{background:var(--a2-heute-bg)}
 /* Kopf: Handlungen und Arbeitsstand */
 #a2Inhalt.a2-heute .a2-aktionen{gap:6px;margin:0 0 8px}
 #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{flex:1 1 0;min-width:0;min-height:42px;border-radius:8px;font-size:13.5px;padding:0 6px;white-space:nowrap}
-#a2Inhalt.a2-heute .a2-kpis{gap:6px;margin:0 0 10px}
-#a2Inhalt.a2-heute .a2-kpi,#a2Inhalt.a2-heute .a2-zahl{border-radius:8px;box-shadow:none;border:1px solid var(--a2-trenn);
- padding:7px 10px;text-align:left;min-height:0}
-#a2Inhalt.a2-heute .a2-kpi{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-#a2Inhalt.a2-heute .a2-kpi b,#a2Inhalt.a2-heute .a2-zahl b{display:inline;font-size:21px;font-weight:800;line-height:1.15}
-#a2Inhalt.a2-heute .a2-kpi span,#a2Inhalt.a2-heute .a2-zahl span{display:inline;font-size:12.5px;margin:0;color:var(--muted)}
-#a2Inhalt.a2-heute .a2-kpi em{flex-basis:100%;margin:0}
+#a2Inhalt.a2-heute .a2-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));grid-auto-flow:column;gap:6px;margin:0 0 12px}
+#a2Inhalt.a2-heute .a2-kpi,#a2Inhalt.a2-heute .a2-zahl{border-radius:10px;box-shadow:none;border:1px solid var(--a2-trenn);
+ padding:8px 9px;text-align:left;min-height:0}
+#a2Inhalt.a2-heute .a2-kpi{display:flex;flex-direction:column;align-items:flex-start;gap:1px}
+#a2Inhalt.a2-heute .a2-kpi i{display:flex;line-height:0;margin:0 0 3px;color:var(--blue)}
+#a2Inhalt.a2-heute .a2-kpi.a2-z-orange i{color:var(--a2-orange)}
+#a2Inhalt.a2-heute .a2-kpi.a2-z-gruen i{color:var(--green)}
+#a2Inhalt.a2-heute .a2-kpi.a2-z-orange{background:var(--a2-orange-hell);border-color:transparent}
+#a2Inhalt.a2-heute .a2-kpi b,#a2Inhalt.a2-heute .a2-zahl b{display:block;font-size:22px;font-weight:800;line-height:1.1}
+#a2Inhalt.a2-heute .a2-kpi span,#a2Inhalt.a2-heute .a2-zahl span{display:block;font-size:12px;line-height:1.25;margin:0;color:var(--muted);overflow-wrap:anywhere}
+#a2Inhalt.a2-heute .a2-kpi em{margin:2px 0 0}
 #a2Inhalt.a2-heute .a2-zahlen{gap:6px;margin:0 0 8px}
-#a2Inhalt.a2-heute .a2-zahl b{display:block}
-#a2Inhalt.a2-heute .a2-zahl span{display:block;line-height:1.25}
+#a2Inhalt.a2-heute .a2-zahlen-eins{grid-template-columns:minmax(0,1fr) minmax(0,2fr)}
+@media(max-width:380px){#a2Inhalt.a2-heute .a2-kpis{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* Kopfbereich nach dem Wunschbild: Logo, Begrüssung, Datum und Name auf Markenblau */
+#a2Inhalt.a2-heute .a2-hero{background:linear-gradient(135deg,var(--blue) 0%,#124a86 100%);color:#fff;border-radius:12px;
+ padding:12px 14px 12px;margin:0 0 10px}
+#a2Inhalt.a2-heute .a2-hero-logo{display:block;max-height:34px;max-width:190px;background:#fff;border-radius:8px;padding:4px 8px;margin:0 0 8px}
+#a2Inhalt.a2-heute .a2-hero-name{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;opacity:.9;margin:0 0 6px}
+#a2Inhalt.a2-heute .a2-hero-gruss{font-size:20px;font-weight:800;line-height:1.2}
+#a2Inhalt.a2-heute .a2-hero-unter{font-size:12.5px;opacity:.88;margin-top:1px}
+/* Suchfeld + Filterknopf */
+#a2Inhalt.a2-heute .a2-hsuche{display:flex;gap:6px;margin:0 0 10px}
+#a2Inhalt.a2-heute .a2-hsuche-feld{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--card-bg);
+ border:1px solid var(--a2-trenn);border-radius:10px;padding:0 10px;color:var(--muted)}
+#a2Inhalt.a2-heute .a2-hsuche-feld input{flex:1;min-width:0;border:0;background:transparent;color:var(--ink);font:inherit;font-size:14px;
+ min-height:42px;outline:0;padding:0}
+#a2Inhalt.a2-heute .a2-hsuche-feld:focus-within{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-light)}
+#a2Inhalt.a2-heute .a2-hsuche-filter{flex:none;width:44px;min-height:44px;border-radius:10px;background:var(--card-bg);
+ border:1px solid var(--a2-trenn);color:var(--ink);display:flex;align-items:center;justify-content:center}
+#a2Inhalt.a2-heute .a2-hsuche-filter:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+/* Wichtige Hinweise */
+#a2Inhalt.a2-heute .a2-hinweise .a2-abschnitt-kopf h2{color:var(--red)}
+#a2Inhalt.a2-heute .a2-hinweise .a2-zeile{background:var(--red-light);border-color:transparent}
+#a2Inhalt.a2-heute .a2-hinweise .a2-zeile-nr{background:var(--card-bg);color:var(--red)}
+/* Adresse mit Standortzeichen */
+.a2-pin{vertical-align:-2px;margin-right:4px;opacity:.75}
+/* Filter-Chips: umbrechen statt scrollen, einheitlich hoch */
+#a2Inhalt.a2-heute .a2-register-klein{display:flex;flex-wrap:wrap;gap:6px;border:0;border-radius:0;overflow:visible;background:transparent;margin:0 0 8px}
+#a2Inhalt.a2-heute .a2-register-klein button{min-height:34px;padding:0 13px;border:1px solid var(--a2-trenn);border-radius:999px;background:var(--card-bg);color:var(--muted);font-size:13px;font-weight:700}
+#a2Inhalt.a2-heute .a2-register-klein button.ist-auf{background:var(--blue);border-color:var(--blue);color:#fff}
 /* Abschnitte: einheitliche Abstände, ruhige Titel */
 #a2Inhalt.a2-heute .a2-abschnitt{margin:0 0 14px}
 #a2Inhalt.a2-heute .a2-abschnitt-kopf{margin:0 0 6px;align-items:center;min-height:32px}
 #a2Inhalt.a2-heute .a2-abschnitt-kopf h2{font-size:12px;letter-spacing:.07em}
 #a2Inhalt.a2-heute .a2-abschnitt-kopf button{font-size:13px;min-height:32px;padding:0 2px}
-/* Filter Meine / Alle als kompakte Auswahl */
-#a2Inhalt.a2-heute .a2-register-klein{display:inline-flex;gap:0;margin:0 0 8px;border:1px solid var(--a2-trenn);
- border-radius:8px;overflow:hidden;background:var(--card-bg)}
-#a2Inhalt.a2-heute .a2-register-klein button{min-height:34px;padding:0 16px;border:0;border-radius:0;background:transparent;
- color:var(--muted);font-size:13px;font-weight:700}
-#a2Inhalt.a2-heute .a2-register-klein button.ist-auf{background:var(--blue);color:#fff}
 /* Projektkarten */
 #a2Inhalt.a2-heute .a2-karte{border-radius:8px;box-shadow:none;border:1px solid var(--a2-trenn);padding:9px 12px;margin:0 0 6px}
 #a2Inhalt.a2-heute .a2-zeile-text b,#a2Inhalt.a2-heute .a2-zeile-text span{overflow-wrap:anywhere}
