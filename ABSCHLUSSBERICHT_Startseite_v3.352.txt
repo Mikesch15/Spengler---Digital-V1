@@ -1,7 +1,7 @@
 ABSCHLUSSBERICHT v3.352 – Startseite
 Datum: 13.10.2026
 Ausgangscommit: 800697c (v3.351, Pages success, GitHub-Prüfstände success)
-Zielcommit: siehe unten (Commit-SHA der Version v3.352)
+Zielcommit: a82a45c (v3.352)
 
 1. BESTANDSAUFNAHME (am Code)
 - Beim App-Start zeigt die Ansicht (js/70) die Seite „Heute“ (a2SeiteHeute): Marke, Einrichtungs-Checkliste, Kontrolle, Hinweise, Aufgaben je Projekt (zugeklappt), Werkstatt heute (3 Zahlen), Anstehende Montage, Offene Projekte (Meine/Alle).
