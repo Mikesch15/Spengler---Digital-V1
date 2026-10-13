@@ -1170,3 +1170,8 @@ html.a2-an .a2-zeile.a2-zeile-still:active{
  .a2-zahlen.a2-zahlen-leise{grid-template-columns:repeat(3,1fr);max-width:520px}
 }
 .a2-knopf-reihe.a2-rechts .a2-knopf,.a2-schnellzugriff .a2-knopf{flex:0 0 auto}
+
+/* v3.343: Dashboard der Projektübersicht (Projektübersicht + Material- und Mengenübersicht), Rüstblatt-Register */
+.a2-dash{display:grid;gap:0;grid-template-columns:minmax(0,1fr)}
+.a2-dash>*{min-width:0}
+@media(min-width:900px){.a2-dash{grid-template-columns:minmax(260px,1fr) minmax(360px,1.4fr);gap:14px;align-items:start}}

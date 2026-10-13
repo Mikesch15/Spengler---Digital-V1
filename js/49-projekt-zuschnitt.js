@@ -342,17 +342,31 @@ function pzuProjektRuestblattHtml(liste,opt){
  const q=(liste||[]).filter(m=>m&&pzuRuestbar(m));
  const so={rollen:(opt&&Array.isArray(opt.rollen)&&opt.rollen.length)?opt.rollen:null,ohneErledigte:true};
  const {materialien,ohne}=pzuSammeln(q,so);
+ // v3.343: Farbe je Massaufnahme (stabil nach Id) für das Rollenband, dazu Summenleiste über alle Gruppen
+ const PAL=["#bfd7ff","#c9ecc9","#ffd9b3","#e3c9f5","#ffc9c9","#fff3b0","#c4ece8","#e6d2b8"];
+ const ids=[...new Set(q.map(m=>String(m.id)))].sort((a,b)=>Number(a)-Number(b));
+ const farbeVon=x=>PAL[Math.max(0,ids.indexOf(String(x.quelleId)))%PAL.length];
+ const sum={stuecke:0,flaeche:0,laenge:0,verschnitt:0,getrennt:0,ok:true,gruppen:0,erledigt:0};
  const qm=x=>(Number(x)).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
  const gruppen=materialien.map(M=>{
   const plan=pzuPlan(M);
   const best=M.gruppen.length?(plan.moeglich||[])[0]:null;
   const zahlen=[];
   const nOff=M.gruppen.reduce((z,g)=>z+(g.stuecke||[]).length,0), nOk=(M.erledigt||[]).length;
+  sum.stuecke+=nOff;sum.erledigt+=nOk;
   if(nOk)zahlen.push(`Bereits abgehakt: <b>${nOk} von ${nOk+nOff}</b> Stück – nicht mehr im Plan`);
   if(best&&Number.isFinite(Number(best.flaeche))){
    zahlen.push(`Rolle: <b>${esc(typeof zuFormatText==="function"?zuFormatText(best,plan):"")}</b>`,
      `Blech: <b>${qm(best.flaeche)} m²</b>`);
    if(Number.isFinite(Number(best.verschnitt)))zahlen.push(`Verschnitt: <b>${qm(best.verschnitt)} m²</b> (${Math.round(Number(best.anteil)||0)} %)`);
+  }
+  if(M.gruppen.length){
+   sum.gruppen++;
+   if(best&&Number.isFinite(Number(best.flaeche))){
+    sum.flaeche+=Number(best.flaeche);sum.laenge+=Number(best.rollenLaenge)||0;sum.verschnitt+=Number(best.verschnitt)||0;
+    const g1=pzuGetrenntFlaeche(M,so);
+    if(g1===null)sum.getrennt=NaN; else sum.getrennt+=g1;
+   }else sum.ok=false;
   }
   let vergleich="";
   if(M.quellen.length>1&&best&&Number.isFinite(Number(best.flaeche))){
@@ -372,11 +386,24 @@ function pzuProjektRuestblattHtml(liste,opt){
   return `<div class="pzu-rb-gruppe">
    <div class="rb-kopf"><b>Gemeinsamer Zuschnitt · ${esc(M.material)}</b><span class="small">Vorschau · ${M.quellen.length} Massaufnahme${M.quellen.length===1?"":"n"}, gemeinsam optimiert</span></div>
    ${zahlen.length?`<div class="small">${zahlen.join(" · ")}</div>`:""}
-   ${vergleich}${fehlt}${keinePlan}${liste}${erl}
+   ${vergleich}${fehlt}${keinePlan}${M.gruppen.length&&typeof zuRollenbandHtml==="function"?zuRollenbandHtml(plan,farbeVon):""}${liste}${erl}
   </div>`;
  }).join("<!--rb-seite-->");
  const nicht=ohne.length?`<div class="small muted" style="margin-top:6px"><b>Nicht im gemeinsamen Plan:</b> ${esc(ohne.map(o=>o.text+" ("+o.grund+")").join(" · "))}</div>`:"";
- return {html:gruppen+nicht,gruppen:materialien.length,ohne:ohne.length};
+ // Summenleiste: nur mit vollständigen Zahlen aller Gruppen; Einsparung nur, wenn „einzeln“ und „gemeinsam“ gleich definiert berechnet sind
+ const m2=x=>Number(x).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
+ let leiste="";
+ if(sum.gruppen&&sum.ok){
+  const diff=sum.getrennt-sum.flaeche;
+  const spart=Number.isFinite(sum.getrennt)?(diff>1e-9?`<div class="pzu-spart"><small>Optimierung</small><b>spart ${m2(diff)} m²</b><span class="small"> Blech gegenüber Einzelplanung</span></div>`
+    :`<div><small>Optimierung</small><b>keine Einsparung</b><span class="small"> gegenüber Einzelplanung</span></div>`):"";
+  leiste=`<div class="pzu-summe"><div><small>Zuschnitte (offen)</small><b>${sum.stuecke}</b></div>
+   <div><small>Rollenlänge</small><b>${(sum.laenge/1000).toLocaleString("de-CH",{maximumFractionDigits:2})} m</b></div>
+   <div><small>Blechfläche</small><b>${m2(sum.flaeche)} m²</b></div>
+   <div><small>Verschnitt</small><b>${m2(sum.verschnitt)} m²</b>${sum.flaeche>0?`<span class="small"> (${Math.round(sum.verschnitt/sum.flaeche*100)} %)</span>`:""}</div>${spart}</div>`;
+ }
+ const legende=q.length>1&&materialien.length?`<div class="pzu-legende">${ids.map(id=>{const m=q.find(x=>String(x.id)===id);return `<span><i style="background:${farbeVon({quelleId:id})}"></i>${esc(m?pzuQuelle(m):id)}</span>`}).join("")}</div>`:"";
+ return {html:leiste+legende+gruppen+nicht,gruppen:materialien.length,ohne:ohne.length,summe:sum};
 }
 
 function renderProjektZuschnitt(){

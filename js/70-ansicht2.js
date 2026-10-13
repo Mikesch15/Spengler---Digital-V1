@@ -1477,6 +1477,10 @@ const A2_PROJ_REGISTER=[
  // nicht hier - pmAktiv() ist die eine Quelle dafür.
  {k:"herstellung",name:"Herstellung",
   wenn:()=>a2Modul("material")||a2Modul("werkstatt")},
+ // v3.343: Rüstblatt (Projekt-Rüstblatt mit Auswahl, Rollenwahl, Optimierung und Rollenband) als eigenes Register - dasselbe wie der Knopf
+ // „Rüstliste“ in der Werkstatt, nur inline statt im Fenster.
+ {k:"ruestblatt",name:"Rüstblatt",
+  wenn:()=>a2Modul("zuschnitt")||a2Modul("material")},
  {k:"ausmass",   name:"Ausmass"},
  {k:"rapport",   name:"Rapport"},
  // v3.203: Dateien, Fotos und Verlauf haben ein eigenes Register statt im
@@ -1660,6 +1664,7 @@ function a2SeiteProjekt(){
  if(a2Zustand.reg==="aufmass")   return html+a2RegAufmass(p);
  if(a2Zustand.reg==="herstellung")return html+a2RegHerstellung(p);
  if(a2Zustand.reg==="ausmass")   return html+a2RegAusmass(p);
+ if(a2Zustand.reg==="ruestblatt")return html+a2RegRuestblatt(p);
  if(a2Zustand.reg==="rapport")   return html+a2RegRapport(p);
  if(a2Zustand.reg==="offerte")   return html+a2RegOfferte(p);
  if(a2Zustand.reg==="dateien")   return html+a2RegDateien(p);
@@ -1728,8 +1733,22 @@ function a2RegUebersicht(p){
  // Darunter zuerst, was jetzt zu tun ist (Naechster Schritt) und was man vor dem
  // Losfahren wissen muss (Hinweise, nur wenn es welche gibt). Der Ablauf ist
  // Orientierung und deshalb leiser; Kennzahlen und Stammdaten sind Nachschlagewerk.
+ // v3.343 (Wunsch: Cockpit im Stil des Dashboards): oben nebeneinander die Projektübersicht (Stammdaten) und die Material- und
+ // Mengenübersicht; darunter Ablauf und Stand wie bisher. Auf dem Handy untereinander.
+ const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
+ const kopfKarte=`<div class="a2-abschnitt">
+   <div class="a2-abschnitt-kopf"><h2>Projektübersicht</h2>${st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:""}</div>
+   <div class="a2-karte a2-karte-kompakt"><dl class="a2-daten a2-daten-kompakt">${zeilen.map(([k,v])=>
+     `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+    <div class="a2-knopf-reihe a2-rechts">
+     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
+      ✏️ Stammdaten bearbeiten</button></div>
+   </div>
+  </div>`;
+ const mengen=(typeof kaMengenKarteHtml==="function")?kaMengenKarteHtml():"";
  return `${schritt}
   ${hinweis}
+  <div class="a2-dash">${kopfKarte}${mengen}</div>
   <div class="a2-abschnitt a2-abschnitt-leise">
    <div class="a2-abschnitt-kopf"><h2>Ablauf</h2></div>
    <div class="a2-karte a2-karte-leise">${ablauf}</div>
@@ -1743,15 +1762,6 @@ function a2RegUebersicht(p){
     <div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>
    </div>
    ${a2MengenZeilen()}
-  </div>
-  <div class="a2-abschnitt">
-   <div class="a2-abschnitt-kopf"><h2>Stammdaten</h2></div>
-   <div class="a2-karte a2-karte-kompakt"><dl class="a2-daten a2-daten-kompakt">${zeilen.map(([k,v])=>
-     `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
-    <div class="a2-knopf-reihe a2-rechts">
-     <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
-      ✏️ Stammdaten bearbeiten</button></div>
-   </div>
   </div>`;
 }
 // v3.161: Die Zuteilung als Satz. Steht niemand drin, wird gesagt, was
@@ -2048,6 +2058,20 @@ function a2ZugeteiltText(m){
 }
 
 // ---- Ausmass --------------------------------------------------------------
+// v3.343: Register Rüstblatt. Der Inhalt entsteht in js/80 (rbProjektOeffnen mit inline) - hier nur der Platzhalter. Ein neuer Zeichenlauf der
+// Seite zeichnet aus dem vorhandenen Zustand neu; frisch gelesen wird beim ersten Öffnen und danach höchstens alle 60 Sekunden.
+let a2RbProjektZeit=0;
+function a2RegRuestblatt(p){
+ setTimeout(()=>{
+  if(!$("a2RbProjekt")||typeof rbProjektOeffnen!=="function")return;
+  const pid=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+  const da=(typeof rbProjektAuswahl!=="undefined")&&rbProjektAuswahl&&String(rbProjektAuswahl.projId)===String(pid)&&rbProjektInline;
+  if(da&&Date.now()-a2RbProjektZeit<60000){rbProjektZeichnen();return}
+  a2RbProjektZeit=Date.now();
+  rbProjektOeffnen(a2Mess(),{inline:true,projectId:pid});
+ },0);
+ return '<div id="a2RbProjekt" class="a2-rb-projekt"><div class="a2-leer">Lädt …</div></div>';
+}
 // v3.342: Mengen auf einen Blick in der Projektübersicht - Offertmengen und Komplettausmass bleiben zwei getrennte, beschriftete Zeilen.
 function a2MengenZeilen(){
  let h="";

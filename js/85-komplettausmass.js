@@ -99,6 +99,64 @@ function kaSammeln(liste,ctx){
   nachArt:mas.reduce((o,m)=>{o[m.art]=(o[m.art]||0)+1;return o},{}),
   nachMaterial:mas.reduce((o,m)=>{if(m.material)o[m.material]=(o[m.material]||0)+1;return o},{})};
 }
+// v3.343: Material- und Mengenübersicht - je Werkstoff + Stärke nebeneinander: Offerte (nur aus der Offerte) und Massaufnahme
+// (Zeilen „Blechfläche Zuschnitt“ in m², Hauptstücke in Stk). Quellen bleiben getrennte Spalten; was eine Quelle nicht liefert, ist null
+// (Anzeige „–“), nie 0. U = angMengenUebersicht(...) EINER Offerte oder null.
+function kaMaterialZeilen(liste,U,ctx){
+ const c=ctx||{};
+ const zeilen=new Map();
+ const hole=(name,st)=>{
+  const k=name+"|"+(st===null||st===undefined?"":st);
+  if(!zeilen.has(k))zeilen.set(k,{material:name,staerke:(st===null||st===undefined)?null:st,offerteM2:null,offerteStk:null,masseM2:null,masseStk:null});
+  return zeilen.get(k);
+ };
+ const add=(z,f,v)=>{z[f]=(z[f]===null?0:z[f])+v};
+ (liste||[]).forEach(m=>{
+  if(!m)return;
+  if(c.projectId!==undefined&&c.projectId!==null&&String(m.project_id)!==String(c.projectId))return;
+  if(c.companyId&&m.company_id&&String(m.company_id)!==String(c.companyId))return;
+  const d=m.data||{};
+  const name=(typeof c.material==="function"&&d.material!==undefined&&d.material!==null&&d.material!=="")?c.material(d.material):"";
+  const st=Number(m.staerke_mm);
+  const z=hole(name,Number.isFinite(st)&&st>0?st:null);
+  (Array.isArray(d.ausmass)?d.ausmass:[]).forEach(l=>{
+   if(!l||typeof l!=="object")return;
+   const e=kaEinheit(l.einheit), zahl=kaZahl(l.menge);
+   if(!zahl.ok)return;
+   if(e==="m²"&&kaNorm(l.bezeichnung)==="blechfläche zuschnitt")add(z,"masseM2",zahl.wert);
+   if(e==="Stk"&&!l.teil)add(z,"masseStk",zahl.wert);
+  });
+ });
+ if(U&&U.nachMatStaerke){
+  Object.keys(U.nachMatStaerke).forEach(k=>{
+   const o=U.nachMatStaerke[k];
+   const z=hole(o.material||"",o.staerke);
+   if(o.flaeche_m2>0)add(z,"offerteM2",o.flaeche_m2);
+   if(o.stueck>0)add(z,"offerteStk",o.stueck);
+  });
+ }
+ const out=[...zeilen.values()].filter(z=>z.offerteM2!==null||z.offerteStk!==null||z.masseM2!==null||z.masseStk!==null);
+ out.sort((a,b)=>((a.material===""?1:0)-(b.material===""?1:0))||a.material.localeCompare(b.material,"de")||((a.staerke===null?1:0)-(b.staerke===null?1:0))||((a.staerke||0)-(b.staerke||0)));
+ const summe={};
+ ["offerteM2","offerteStk","masseM2","masseStk"].forEach(f=>{
+  const mit=out.filter(z=>z[f]!==null);
+  summe[f]={wert:mit.length?mit.reduce((s,z)=>s+z[f],0):null,vollstaendig:mit.length===out.length};
+ });
+ return {zeilen:out,summe};
+}
+// Kurztext je Massaufnahme für die Auswahl: m² (Blechfläche Zuschnitt) und Hauptstücke, nur was erfasst ist (sonst nichts).
+function kaMaFlaeche(m){
+ const d=(m&&m.data)||{};
+ let m2=null, stk=null;
+ (Array.isArray(d.ausmass)?d.ausmass:[]).forEach(l=>{
+  if(!l||typeof l!=="object")return;
+  const e=kaEinheit(l.einheit), z=kaZahl(l.menge);
+  if(!z.ok)return;
+  if(e==="m²"&&kaNorm(l.bezeichnung)==="blechfläche zuschnitt")m2=(m2===null?0:m2)+z.wert;
+  if(e==="Stk"&&!l.teil)stk=(stk===null?0:stk)+z.wert;
+ });
+ return (m2!==null?" · "+m2.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})+" m²":"")+(stk!==null?" · "+stk.toLocaleString("de-CH",{maximumFractionDigits:2})+" Stk":"");
+}
 // ---- Ende rein ----------------------------------------------------------------
 
 let kaStand=null;          // Zeitpunkt der letzten erfolgreichen Ladung der Massaufnahmen dieses Projekts
@@ -204,8 +262,48 @@ function kaA2Kurz(){
  if(!r.kenn)return "";
  return r.kenn.mas+" Massaufnahme"+(r.kenn.mas===1?"":"n")+" · "+r.kenn.gruppen+" Mengenposition"+(r.kenn.gruppen===1?"":"en")+(r.kenn.pruefen?" · "+r.kenn.pruefen+" zu prüfen":"");
 }
+// ---- Material- und Mengenübersicht (Projektübersicht der Ansicht, v3.343) -------------------------------------------------------
+let kaOfferte=0, kaAnsicht="m2";
+function kaMengenKarteHtml(){
+ const pid=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+ const cache=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache:null;
+ const kopf=`<div class="a2-abschnitt-kopf"><h2>Material- und Mengenübersicht</h2>
+  <span class="ka-umschalter"><button type="button" class="${kaAnsicht==="m2"?"ist-auf":""}" data-ka-ansicht="m2">m²</button><button type="button" class="${kaAnsicht==="stk"?"ist-auf":""}" data-ka-ansicht="stk">Stk.</button></span></div>`;
+ if(!pid||!cache||(!kaStand&&!kaFehler))return `<div class="a2-abschnitt">${kopf}<div class="a2-karte"><div class="small">Lädt…</div></div></div>`;
+ const liste=(typeof angMatListe==="function")?angMatListe():[];
+ const offerten=((typeof projectAngeboteCache!=="undefined"&&Array.isArray(projectAngeboteCache))?projectAngeboteCache:[])
+  .filter(a=>a&&Array.isArray(a.positions)&&a.positions.length);
+ if(kaOfferte>=offerten.length)kaOfferte=0;
+ const U=offerten.length&&typeof angMengenUebersicht==="function"?angMengenUebersicht(offerten[kaOfferte].positions,liste):null;
+ const ctx={projectId:pid,companyId:(typeof currentProfile!=="undefined"&&currentProfile)?currentProfile.company_id:null,
+  material:v=>(typeof pmatMaterialName==="function")?pmatMaterialName(v):String(v)};
+ const T=kaMaterialZeilen(cache,U,ctx);
+ const stk=kaAnsicht==="stk";
+ const fO=stk?"offerteStk":"offerteM2", fM=stk?"masseStk":"masseM2";
+ const zahl=v=>v===null?'<span class="muted" title="nicht erfasst">–</span>':Number(v).toLocaleString("de-CH",{minimumFractionDigits:stk?0:2,maximumFractionDigits:stk?2:2});
+ const wahl=offerten.length>1?`<div class="bar" style="margin:4px 0">${offerten.map((a,i)=>`<button type="button" class="gray mz-klein${i===kaOfferte?" aktiv":""}" data-ka-offerte="${i}">${esc(a.title||"Offerte "+(i+1))}</button>`).join("")}</div>
+  <div class="small muted">Mehrere Offerten: es steht immer genau eine – nie die Summe aller, weil nicht erkennbar ist, welche gilt.</div>`:"";
+ const quelle=offerten.length?`<div class="small muted">Offerte: „${esc(offerten[kaOfferte].title||"Ohne Bezeichnung")}“ – nur Positionen mit Werkstoff, Stärke und berechenbarer Menge.</div>`:'<div class="small muted">Keine Offerte importiert – nur die Spalte Massaufnahme.</div>';
+ let tabelle;
+ if(!T.zeilen.length)tabelle='<div class="small muted">Noch keine Mengen zum Vergleichen.</div>';
+ else{
+  const sm=f=>{const s=T.summe[f];return s.wert===null?"–":zahl(s.wert)+(s.vollstaendig?"":'<span class="small muted"> (nur Zeilen mit Wert)</span>')};
+  tabelle=`<div class="ka-tabelle-wrap"><table class="ka-tabelle"><thead><tr><th>Werkstoff</th><th>Stärke</th><th>${stk?"Stück":"m²"} (Offerte)</th><th>${stk?"Stück":"m²"} (Massaufn.)</th></tr></thead><tbody>
+  ${T.zeilen.map(z=>`<tr><td>${z.material?esc(z.material):'<span class="muted">ohne Werkstoff</span>'}</td><td>${z.staerke===null?'<span class="muted">nicht erfasst</span>':esc(String(z.staerke).replace(".",","))+" mm"}</td><td class="ka-z">${zahl(z[fO])}</td><td class="ka-z">${zahl(z[fM])}</td></tr>`).join("")}
+  </tbody><tfoot><tr><th colspan="2">Summe</th><th class="ka-z">${sm(fO)}</th><th class="ka-z">${sm(fM)}</th></tr></tfoot></table></div>`;
+ }
+ const def=stk?"Massaufnahme: Hauptstücke (Ausmasszeilen in Stk, ohne Teile/Zubehör)":"Massaufnahme: Zeilen „Blechfläche Zuschnitt“ (m²) der Massaufnahmen";
+ return `<div class="a2-abschnitt">${kopf}<div class="a2-karte">${wahl}${quelle}${tabelle}
+  <div class="small muted" style="margin-top:6px">${def}. Zwei getrennte Quellen – Offertmengen sind keine Massaufnahme-, Ausmass- oder verrechneten Mengen. „–“ = nicht erfasst.</div></div></div>`;
+}
 // Filter und Öffnen gelten für beide Orte (Karte und Projektseite)
 document.addEventListener("click",e=>{
+ const om=e.target.closest?e.target.closest("[data-ka-offerte],[data-ka-ansicht]"):null;
+ if(om){
+  if(om.hasAttribute("data-ka-offerte"))kaOfferte=Number(om.dataset.kaOfferte)||0; else kaAnsicht=om.dataset.kaAnsicht==="stk"?"stk":"m2";
+  if(typeof a2Zeichnen==="function")a2Zeichnen();
+  return;
+ }
  const f=e.target.closest?e.target.closest("[data-ka-filter]"):null;
  if(f){
   kaFilter=f.dataset.kaFilter;

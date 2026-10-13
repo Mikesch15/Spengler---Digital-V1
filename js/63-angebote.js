@@ -369,7 +369,7 @@ function angMengenUebersicht(positionen,liste){
  const pos=Array.isArray(positionen)?positionen:[];
  const gr=angMatGruppen(pos,liste);
  const r={positionen:pos.length,flaeche_m2:0,stueck:0,flaecheAus:0,stueckAus:0,zusatzOhneFlaeche:0,wartetAufAbwicklung:0,
-          ohneAbwicklung:0,ungueltigeMenge:0,andere:{},nachMaterial:{}};
+          ohneAbwicklung:0,ungueltigeMenge:0,andere:{},nachMaterial:{},nachMatStaerke:{}};
  const mat=(p)=>{
   const id=p&&p.material_id;
   const m=(Array.isArray(liste)?liste:[]).find(x=>id!==undefined&&id!==null&&id!==""&&String(x.id)===String(id));
@@ -377,17 +377,27 @@ function angMengenUebersicht(positionen,liste){
   if(!r.nachMaterial[k])r.nachMaterial[k]={flaeche_m2:0,stueck:0};
   return r.nachMaterial[k];
  };
+ // v3.343: dieselbe Summe zusätzlich je Werkstoff UND Stärke (Stärke nur, wenn an der Position bestätigt erfasst; sonst "nicht erfasst")
+ const matSt=(p)=>{
+  const id=p&&p.material_id;
+  const m=(Array.isArray(liste)?liste:[]).find(x=>id!==undefined&&id!==null&&id!==""&&String(x.id)===String(id));
+  const st=angMatZahl(p&&p.staerke_mm,ANG_MAT_STAERKE_MIN,ANG_MAT_STAERKE_MAX);
+  const name=m?String(m.name):"";
+  const k=name+"|"+(st===null?"":st);
+  if(!r.nachMatStaerke[k])r.nachMatStaerke[k]={material:name,staerke:st,flaeche_m2:0,stueck:0};
+  return r.nachMatStaerke[k];
+ };
  pos.forEach((p,i)=>{
   const art=angMengenEinheit(p&&p.unit);
   const menge=Number(p&&p.quantity);
   const gueltig=Number.isFinite(menge)&&menge>0&&!(typeof (p&&p.quantity)==="boolean");
   if(art==="andere"){const k=String((p&&p.unit)||"").trim()||"(leer)";r.andere[k]=(r.andere[k]||0)+1;return}
   if(!gueltig){r.ungueltigeMenge++;return}
-  if(art==="stueck"){r.stueck+=menge;r.stueckAus++;mat(p).stueck+=menge;return}
-  if(art==="flaeche"){r.flaeche_m2+=menge;r.flaecheAus++;mat(p).flaeche_m2+=menge;return}
+  if(art==="stueck"){r.stueck+=menge;r.stueckAus++;mat(p).stueck+=menge;matSt(p).stueck+=menge;return}
+  if(art==="flaeche"){r.flaeche_m2+=menge;r.flaecheAus++;mat(p).flaeche_m2+=menge;matSt(p).flaeche_m2+=menge;return}
   // Meter
   const abw=angMatZahl(p.abwicklung_mm,ANG_MAT_ABW_MIN,ANG_MAT_ABW_MAX);
-  if(abw!==null){const f=menge*(abw/1000);r.flaeche_m2+=f;r.flaecheAus++;mat(p).flaeche_m2+=f;return}
+  if(abw!==null){const f=menge*(abw/1000);r.flaeche_m2+=f;r.flaecheAus++;mat(p).flaeche_m2+=f;matSt(p).flaeche_m2+=f;return}
   const g=gr[i]||{rolle:"davor"};
   if(g.rolle==="zusatz")r.zusatzOhneFlaeche++;
   else if(g.rolle==="haupt")r.wartetAufAbwicklung++;

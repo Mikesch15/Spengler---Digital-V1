@@ -496,9 +496,14 @@ let rbProjektAuswahl=null;   // {projId, alle:[Massaufnahmen], gewaehlt:Set<id>,
 // v3.336: Das Projekt-Rüstblatt sitzt in der Werkstatt (Knopf „Rüstliste“ am Projekt): dort werden die Massaufnahmen ausgewählt.
 // Abgeschlossene (und archivierte) Massaufnahmen kommen nie vor. Liest frisch, meldet Ids, die es nicht (mehr) gibt oder die nicht zum
 // Projekt gehören (werden ignoriert), und lädt die Abhak-Stände frisch, damit bereits abgehakte Stücke im Blatt abgehakt sind.
+// v3.343: das Projekt-Rüstblatt kann auch direkt im Register „Rüstblatt“ der Projektseite stehen (opt.inline, Container #a2RbProjekt) -
+// derselbe Zustand, dieselbe Zeichnung, derselbe Druck; nur der Ort ist ein anderer.
+let rbProjektInline=false;
+function rbProjektZiel(){return rbProjektInline?$("a2RbProjekt"):$("ruestblattBody")}
 async function rbProjektOeffnen(liste,opt){
- const schirm=$("ruestblattModal"), koerper=$("ruestblattBody");
- if(!schirm||!koerper||typeof pzuProjektRuestblattHtml!=="function")return false;
+ const inline=!!(opt&&opt.inline);
+ const schirm=$("ruestblattModal"), koerper=inline?$("a2RbProjekt"):$("ruestblattBody");
+ if((!inline&&!schirm)||!koerper||typeof pzuProjektRuestblattHtml!=="function")return false;
  const projId=(opt&&opt.projectId!==undefined&&opt.projectId!==null)?opt.projectId:((typeof cockpitProjectId!=="undefined")?cockpitProjectId:null);
  let ms=(liste||[]).filter(Boolean);
  const ids=ms.map(m=>String(m.id));
@@ -515,7 +520,11 @@ async function rbProjektOeffnen(liste,opt){
  if(zu.length){hinweise.push(zu.length+" abgeschlossene Massaufnahme"+(zu.length===1?"":"n")+" nicht aufgeführt.");ms=ms.filter(m=>pzuRuestbar(m))}
  const ohnePlan=ms.filter(m=>!pzuHatPlan(m));
  ms=ms.filter(m=>pzuHatPlan(m));
- if(!ms.length){appAlert("Keine Massaufnahme dieses Projekts kann gerüstet werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):""));return false}
+ if(!ms.length){
+  const t="Keine Massaufnahme dieses Projekts kann gerüstet werden."+(hinweise.length?"\n\n"+hinweise.join("\n"):"");
+  if(inline){koerper.innerHTML='<div class="a2-leer">'+esc(t).replace(/\n/g,"<br>")+"</div>";rbProjektAuswahl=null;return false}
+  appAlert(t);return false;
+ }
  if(typeof zeLaden==="function"){try{await zeLaden(ms.map(m=>m.id),true)}catch(e){}}
  // Vorbelegung: die gespeicherte Auswahl des Projekts (projects.zuschnitt_ausschluss, Projekt-Zuschnitt) - nur gelesen, nie geschrieben.
  // So gibt es keine zweite, widersprüchliche Quelle: wer dort Massaufnahmen abgewählt hat, startet hier ohne sie.
@@ -526,11 +535,13 @@ async function rbProjektOeffnen(liste,opt){
  if(!gewaehlt.size){gewaehlt=new Set(ms.map(m=>String(m.id)));}
  rbProjektAuswahl={projId,alle:ms,gewaehlt,hinweise,geaendert:false,rollen:null,ohnePlan,vorAbgewaehlt:gewaehlt.size<ms.length?vorAbgewaehlt:0};
  rbOffenId=null;
- if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
- if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
+ rbProjektInline=inline;
+ if(!inline){
+  if($("ruestblattAktion"))$("ruestblattAktion").innerHTML="";
+  if($("ruestblattFormular"))$("ruestblattFormular").style.display="none";
+ }
  rbProjektZeichnen();
- schirm.hidden=false;
- window.scrollTo(0,0);
+ if(!inline){schirm.hidden=false;window.scrollTo(0,0)}
  return true;
 }
 function rbProjektGewaehlt(){
@@ -538,7 +549,7 @@ function rbProjektGewaehlt(){
  return a?a.alle.filter(m=>a.gewaehlt.has(String(m.id))):[];
 }
 function rbProjektZeichnen(opt){
- const koerper=$("ruestblattBody"), a=rbProjektAuswahl;
+ const koerper=rbProjektZiel(), a=rbProjektAuswahl;
  if(!koerper||!a)return;
  const ms=rbProjektGewaehlt();
  rbProjektModus={liste:ms,rollen:a.rollen};
@@ -562,12 +573,13 @@ function rbProjektZeichnen(opt){
    <button type="button" class="gray mz-klein" data-rbp-alle="1">Alle auswählen</button>
    <button type="button" class="gray mz-klein" data-rbp-keine="1">Auswahl aufheben</button>
    <button type="button" class="blue mz-klein" data-rbp-erstellen="1">📐 Rüstblatt erstellen/aktualisieren</button>
+   <button type="button" class="gray mz-klein" data-rbp-pdf="1">📄 Rüstblatt als PDF</button>
   </div>
   ${a.vorAbgewaehlt?`<div class="small muted">Vorbelegt nach der Auswahl im Projekt-Zuschnitt (${a.vorAbgewaehlt} dort abgewählt) – hier frei änderbar, die gespeicherte Auswahl bleibt unverändert.</div>`:""}
   ${a.alle.map(m=>`<label class="pzu-auswahl-zeile" style="padding:4px 0">
     <input type="checkbox" data-rbp-auswahl="${esc(m.id)}" ${a.gewaehlt.has(String(m.id))?"checked":""}>
     <b>${esc(typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m))}</b>
-    <span class="small muted">· ${esc(pzuMatText(m))} · ${esc(pzuStandText(m))}</span>
+    <span class="small muted">· ${esc(pzuMatText(m))}${(typeof mwAktiv==="function"&&mwAktiv()&&typeof mwStatusText==="function"&&m.workflow_status)?" · "+esc(mwStatusText(m.workflow_status)):""}${typeof kaMaFlaeche==="function"?esc(kaMaFlaeche(m)):""} · ${esc(pzuStandText(m))}</span>
    </label>`).join("")}
   ${(a.ohnePlan||[]).length?`<div class="small" style="color:var(--red)">Ohne gespeicherten Zuschnitt, nicht im Blatt: ${esc(a.ohnePlan.map(m=>typeof pzuQuelle==="function"?pzuQuelle(m):rbTitel(m)).join(" · "))}</div>`:""}
   ${a.geaendert?'<div class="small" style="color:var(--red)">Auswahl geändert – das Blatt unten zeigt noch den alten Stand. „Rüstblatt erstellen/aktualisieren“ tippen.</div>':""}
@@ -601,24 +613,24 @@ ${rb.html||'<div class="small muted">Kein gemeinsamer Rollenzuschnitt: keine der
  }
 }
 document.addEventListener("change",e=>{
- const rc=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-rolle]"):null;
+ const rc=e.target.closest?e.target.closest("[data-rbp-rolle]"):null;
  if(rc&&rbProjektAuswahl){
   const a=rbProjektAuswahl;
-  const alle=[...document.querySelectorAll("#ruestblattBody [data-rbp-rolle]")];
+  const alle=[...document.querySelectorAll("[data-rbp-rolle]")];
   const gew=alle.filter(c=>c.checked).map(c=>Number(c.dataset.rbpRolle));
   a.rollen=gew.length?gew:null;   // nie leer rechnen: keine Rolle gewählt = Wahl der Massaufnahmen
   a.geaendert=false;
   rbProjektZeichnen();
   return;
  }
- const cb=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-auswahl]"):null;
+ const cb=e.target.closest?e.target.closest("[data-rbp-auswahl]"):null;
  if(!cb||!rbProjektAuswahl)return;
  const id=String(cb.dataset.rbpAuswahl);
  rbProjektAuswahl.gewaehlt=new Set([...rbProjektAuswahl.gewaehlt].filter(x=>x!==id));
  if(cb.checked)rbProjektAuswahl.gewaehlt.add(id);
  rbProjektAuswahl.geaendert=true;
  // nur der Hinweis wird nachgezogen - das Blatt selbst bleibt bis „erstellen/aktualisieren“ stehen
- const koerper=$("ruestblattBody"), z=koerper&&koerper.querySelector(".pmat-unter .small");
+ const koerper=rbProjektZiel(), z=koerper&&koerper.querySelector(".pmat-unter .small");
  if(z)z.textContent="· "+rbProjektAuswahl.gewaehlt.size+" von "+rbProjektAuswahl.alle.length+" ausgewählt – „Rüstblatt erstellen/aktualisieren“ tippen";
 });
 function rbZu(){
@@ -644,14 +656,19 @@ function rbStandAuffrischen(){
 document.addEventListener("click",e=>{
  // v3.339: Im Projekt-Rüstblatt lässt sich abhaken (Nummer oder Schnittbild); der Plan rechnet erst bei „erstellen/aktualisieren“ neu,
  // damit das Blatt nicht unter dem Finger wegspringt - das steht dann dort.
- const hk=e.target.closest?e.target.closest("#ruestblattBody [data-ze-nr]"):null;
+ const hk=e.target.closest?e.target.closest("#ruestblattBody [data-ze-nr],#a2RbProjekt [data-ze-nr]"):null;
  if(hk&&rbProjektAuswahl&&!hk.closest("details.rb-einzel")&&!document.getElementById("rbpHakenHinweis")){
-  const z=document.querySelector("#ruestblattBody .pzu-auswahl");
+  const z=(rbProjektZiel()||document).querySelector(".pzu-auswahl");
   if(z)z.insertAdjacentHTML("beforeend",'<div class="small" id="rbpHakenHinweis" style="color:var(--red)">Haken gesetzt – „Rüstblatt erstellen/aktualisieren“ tippen: abgehakte Stücke verlassen dann den gemeinsamen Plan.</div>');
  }
- const rbp=e.target.closest?e.target.closest("#ruestblattBody [data-rbp-alle],#ruestblattBody [data-rbp-keine],#ruestblattBody [data-rbp-erstellen],#ruestblattBody [data-rbp-rollen-eigene]"):null;
+ const rbp=e.target.closest?e.target.closest("[data-rbp-alle],[data-rbp-keine],[data-rbp-erstellen],[data-rbp-rollen-eigene],[data-rbp-pdf]"):null;
  if(rbp&&rbProjektAuswahl){
   const a=rbProjektAuswahl;
+  if(rbp.hasAttribute("data-rbp-pdf")){
+   rbProjektZeichnen();   // Vorschau = Druck
+   if(rbProjektModus)rbDruckenAufnahmen(rbProjektModus.liste,{gemeinsamFn:ms=>pzuProjektRuestblattHtml(ms,{rollen:rbProjektModus.rollen}).html});
+   return;
+  }
   if(rbp.hasAttribute("data-rbp-alle")){a.alle.forEach(m=>a.gewaehlt.add(String(m.id)));a.geaendert=true}
   else if(rbp.hasAttribute("data-rbp-keine")){a.gewaehlt.clear();a.geaendert=true}
   else if(rbp.hasAttribute("data-rbp-rollen-eigene")){a.rollen=null;a.geaendert=true}

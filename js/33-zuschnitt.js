@@ -531,6 +531,62 @@ function zuSchnittbildHtml(p){
  }).join("");
  return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild – wo welches Stück liegt <span class="zu-bilder-legende">(grün = abgehakt${hakenOk&&(mid!==null&&mid!==undefined||p.sammel)?" · Stück antippen = abhaken":""})</span></div>${svg}</div>`:"";
 }
+// v3.343: Rollenband - die Abschnitte des Plans fortlaufend auf der Rolle (Länge von links nach rechts, Rollenbreite als Höhe), darin je
+// Abschnitt die Streifen und Stücke, eingefärbt nach Herkunft (Massaufnahme). Reihen brechen bei ca. 6 m um. Reine Darstellung der
+// bestehenden Packrechnung (zuAlleStuecke), keine zweite Berechnung. farbeVon(stueck) liefert die Füllfarbe.
+function zuRollenbandHtml(p,farbeVon){
+ if(!p||(!p.gruppen&&p.art!=="stange"))return "";
+ const alle=zuAlleStuecke(p).filter(x=>x.abschnitt!==undefined&&x.abschnitt!==null&&zuZahl(x.abLaenge)>0);
+ if(!alle.length)return "";
+ const best=(p.moeglich||[])[0];
+ const bloecke=new Map();
+ alle.forEach(x=>{
+  if(!bloecke.has(x.abschnitt))bloecke.set(x.abschnitt,{L:zuZahl(x.abLaenge),rolle:zuZahl(x.rolle),streifen:new Map()});
+  const b=bloecke.get(x.abschnitt);
+  if(!b.streifen.has(x.strKey))b.streifen.set(x.strKey,{idx:x.strIdx||0,A:zuZahl(x.breite),st:[]});
+  b.streifen.get(x.strKey).st.push(x);
+ });
+ const abs=Array.from(bloecke.keys()).sort((a,b)=>a-b).map(k=>{
+  const b=bloecke.get(k);
+  const zeilen=Array.from(b.streifen.values()).sort((x,y)=>x.idx-y.idx);
+  const summe=zeilen.reduce((s,z)=>s+z.A,0);
+  const lang=zeilen.reduce((m,z)=>Math.max(m,z.st.reduce((s,x)=>s+zuZahl(x.laenge),0)),0);
+  return {nr:k,L:Math.max(b.L,lang,1),rolle:b.rolle,zeilen,summe};
+ });
+ const B=Math.max(zuZahl(best&&best.breite),...abs.map(a=>Math.max(a.rolle,a.summe)),1);
+ const maxZeile=Math.max(6000,...abs.map(a=>a.L));
+ const reihen=[];let akt=[],sum=0;
+ abs.forEach(a=>{if(akt.length&&sum+a.L>maxZeile){reihen.push(akt);akt=[];sum=0}akt.push(a);sum+=a.L});
+ if(akt.length)reihen.push(akt);
+ const W=1000, sx=W/maxZeile, H=Math.max(60,Math.min(150,Math.round(W*B/maxZeile)));
+ const sy=H/B;
+ const farbe=x=>(typeof farbeVon==="function"?farbeVon(x):null)||"#dbe7f3";
+ const gesamt=abs.reduce((s,a)=>s+a.L,0);
+ const svgs=reihen.map((r,ri)=>{
+  let x0=0, el="";
+  r.forEach(a=>{
+   const w=a.L*sx;
+   el+=`<rect x="${x0.toFixed(1)}" y="0" width="${w.toFixed(1)}" height="${H}" fill="#f1f1f1" stroke="#17202a" stroke-width="2"/>`;
+   let y=0;
+   a.zeilen.forEach(z=>{
+    const h=z.A*sy;let xs=x0;
+    z.st.forEach(x=>{
+     const sw=zuZahl(x.laenge)*sx, t=String((p.sammel&&x.origNr!==undefined&&x.origNr!==null)?x.origNr:x.nr);
+     el+=`<rect x="${xs.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(sw,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${farbe(x)}" stroke="#17202a" stroke-width="1"/>`;
+     const fs=Math.max(10,Math.min(22,h*0.6,sw/(t.length+0.6)));
+     if(sw>=fs*0.9&&h>=10)el+=`<text x="${(xs+sw/2).toFixed(1)}" y="${(y+h/2+fs*0.35).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+     xs+=sw;
+    });
+    y+=h;
+   });
+   if(w>=70)el+=`<text x="${(x0+4).toFixed(1)}" y="${H-4}" font-size="11" fill="#3d4850">Abschn. ${esc(a.nr)} · ${esc(zuMm(Math.round(a.L)))}</text>`;
+   x0+=w;
+  });
+  const rl=r.reduce((s,a)=>s+a.L,0);
+  return `<div class="pzu-band-kopf">Reihe ${ri+1} · ${esc((rl/1000).toLocaleString("de-CH",{maximumFractionDigits:2}))} m</div><svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Rollenbelegung Reihe ${ri+1}">${el}</svg>`;
+ }).join("");
+ return `<div class="pzu-band"><div class="pzu-band-kopf">Optimierte Anordnung auf der Rolle · Breite ${esc(zuMm(Math.round(B)))} mm · gesamt ${esc((gesamt/1000).toLocaleString("de-CH",{maximumFractionDigits:2}))} m</div>${svgs}</div>`;
+}
 function zuHerkunftNoetig(p){
  if(!p)return false;
  if(p.art==="stange")return (p.stangen||[]).length>=2;

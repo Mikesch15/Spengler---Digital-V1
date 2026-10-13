@@ -1867,3 +1867,24 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .zu-st{display:inline-flex;align-items:center;gap:6px}
 .zu-st-mass{font-size:15px;font-weight:800;white-space:nowrap}
 .zu-st-zusatz{font-size:12px;font-weight:600;color:var(--muted)}
+
+/* v3.343: Material- und Mengenübersicht, Rollenband, Summenleiste des Projekt-Rüstblatts */
+.ka-umschalter{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.ka-umschalter button{border:0;border-radius:0;margin:0;min-height:32px;padding:4px 12px;background:var(--card-bg);color:var(--ink);font-weight:700}
+.ka-umschalter button.ist-auf{background:var(--blue);color:#fff}
+.ka-tabelle-wrap{overflow-x:auto;max-width:100%}
+.ka-tabelle{width:100%;border-collapse:collapse;font-size:13px}
+.ka-tabelle th,.ka-tabelle td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--line)}
+.ka-tabelle th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.ka-tabelle .ka-z{text-align:right;white-space:nowrap}
+.ka-tabelle tfoot th{font-size:13px;color:var(--ink);border-top:2px solid var(--line);border-bottom:0}
+.pzu-summe{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin:8px 0}
+.pzu-summe>div{border:1px solid var(--line);border-radius:10px;padding:6px 10px}
+.pzu-summe small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.pzu-summe b{font-size:18px}
+.pzu-summe .pzu-spart{background:rgba(34,139,34,.10)}
+.pzu-band{margin:6px 0 10px}
+.pzu-band svg{display:block;width:100%;height:auto;background:#fff}
+.pzu-band-kopf{font-size:12px;font-weight:700;margin:2px 0}
+.pzu-legende{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;margin:2px 0 6px}
+.pzu-legende i{display:inline-block;width:12px;height:12px;border:1px solid #17202a;margin-right:4px;vertical-align:-2px}
