@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.351`
+- Aktueller Entwicklungsstand: `v3.352`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.352 — Startseite: Handlungen, Arbeitsstand, „Nächster Schritt“
+
+Auftrag „Professionelle Startseite“ (Datei). Bestandsaufnahme: beim Start öffnet die Ansicht (js/70) die Seite „Heute“ (`a2SeiteHeute`) mit Einrichtung, Kontrolle, Hinweisen, Aufgaben (je Projekt, zugeklappt), Werkstatt heute, Montage, Offene Projekte – alles aus echten Quellen; es fehlten Handlungen im Kopf, ein Arbeitsstand auf einen Blick und der nächste Schritt je Projekt. Umgesetzt (nur js/70 + css/05, keine Migration, keine neue Abfrage): Handlungsleiste „＋ Neues Projekt“ (nur wenn `startOpenProjects` sichtbar), „📁 Projekt öffnen“, „🔍 Suche“ (nur wenn `openGlobalSearch` sichtbar; öffnet die vorhandene Suche); Arbeitsstand „Offene Projekte“ (= `a2OffeneProjekte(false)`, öffnet die Projektliste) und „Offene Aufgaben“ (= Aufgabenliste, springt zum Abschnitt; bei unsicherem Stand „–“ statt einer Zahl); „Nächster Schritt“ in der Projektkarte = dringendste offene Aufgabe aus derselben Aufgabenliste. Werkstattzahlen bleiben nur im Abschnitt Werkstatt (keine doppelte Kennzahl); Schnellzugriffe auf Werkstatt/Lager nicht doppelt – dafür gibt es die Leiste. Prüfstand `startseite-dashboard-v3-352` (16), Mutationen (Zahl trotz unsicherem Stand, Neues Projekt/Suche ohne Freigabe, falsches Ziel, falsche Zahl, Überlaufen) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_v3.352.txt`.
 
 ### v3.351 — Freies Profil: „Freies Profil, <Name der Massaufnahme>“
 
@@ -15,11 +19,6 @@ Wunsch (Screenshot): statt „Freies Profil, 6 Schenkel“ soll „Freies Profil
 
 Wünsche: (1) Bleilappen standen doppelt im Komplettausmass → feste Zeile oben entfernt, die Kachel heisst jetzt „Bleilappen“ ohne „(Teil)“. (2) Anzahl Bleilappen in allen Massaufnahmen mit Bleilappen anpassbar: neues Feld „Anzahl Bleilappen von Hand (leer = berechnet)“ bei Dachfenster (js/66), Kamin (js/37), Einfassung rund (js/38, Gesamtzahl) und Anschlussblech Art Bleilappen (js/20, index.html `anb_bleilappenManuell`); `bleilappenManuell` wird gespeichert/wiederhergestellt, ersetzt die berechnete Gesamtzahl (auch im Ausmass und damit im Komplettausmass; Herkunft „von Hand gesetzt (berechnet: n)“); leer = wie bisher. 0 ist ein gültiger Handwert. (3) Freies Profil: erste Ausmass-Zeile trägt die Bezeichnung der Massaufnahme (Titelfeld), ohne Bezeichnung die bisherige Zeile. (4) Im Ausmass-Formular (`ausmassEditModal`) gibt es „📊 Komplettausmass dieses Projekts ansehen“ (nur Anzeige; nur wenn das Ausmass aus dem Projekt geöffnet wurde, sonst Hinweis).
 Prüfstand `bleilappen-hand-v3-350` (23); Mutationen (Handwert ignoriert je Modul, Freies Profil ohne Bezeichnung) erkannt; `komplettausmass-v3-341` angepasst.
-
-### v3.349 — Komplettausmass: Positionen antippen (Herkunft), Blechfläche zusammengeführt
-
-Wunsch: Positionen anklicken, um zu sehen, aus welchen Massaufnahmen sie stammen und dorthin zu gelangen; Frage nach dem Unterschied „Blechfläche“ / „Blechfläche Zuschnitt“. Antwort am Code: kein fachlicher Unterschied – beide sind die Netto-Fläche Länge × Abwicklung ohne Verschnitt, nur je Modul anders beschriftet (js/29/30/31: „Blechfläche“ = Gesamtlänge bzw. Länge je Segment × Abwicklung; js/66 u. a.: „Blechfläche Zuschnitt“ = Summe Länge × Abwicklung der Zuschnitte); keine Massaufnahme schreibt beide. js/85: `kaIstBlechflaeche` – beide Bezeichnungen (m²) werden zu EINER Position „Blechfläche“ (Originaltext bleibt je Quelle erhalten); Material-/Mengenübersicht und Kurztext zählen beide. „Materialfläche verlegt“ (Anschlussblech) bleibt eine andere Grösse. Kacheln sind jetzt `<details>`: Antippen zeigt je Massaufnahme Knopf (öffnet sie – Cockpit: `openMeasurement`, Ansicht: `data-a2-meas`), Status, Position, Menge, Originaltext und Herkunftstext; aufgeklappte Kacheln merkt `kaOffen` (bleiben beim Neuzeichnen offen). Die in v3.345 entfernte Rückverfolgung steht damit wieder zur Verfügung, aber nur auf Abruf.
-Prüfstand `komplettausmass-v3-341` auf 66 erweitert; Mutationen (Blechfläche nicht zusammengeführt, Herkunft fehlt, Offen-Zustand geht verloren) erkannt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

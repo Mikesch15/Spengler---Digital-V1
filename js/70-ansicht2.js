@@ -579,9 +579,35 @@ function a2HeuteDatum(){
  return tage[d.getDay()]+", "+d.getDate()+". "+monate[d.getMonth()];
 }
 
+// v3.352: Kopf der Startseite - die Handlungen (nur, was in dieser Installation sichtbar ist) und der Arbeitsstand.
+// Die Handlungen sind die vorhandenen Wege (data-a2-tu), kein neuer Pfad; eine Zahl steht nur, wenn ihre Quelle da ist.
+function a2HeuteAktionenHtml(){
+ const neu=a2KnopfSichtbar("startOpenProjects");
+ const suche=a2KnopfSichtbar("openGlobalSearch");
+ const knoepfe=[];
+ if(neu)knoepfe.push('<button type="button" class="a2-knopf a2-k-blau" data-a2-tu="neuesprojekt">＋ Neues Projekt</button>');
+ knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tab="projekte">📁 Projekt öffnen</button>');
+ if(suche)knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="suche">🔍 Suche</button>');
+ return `<div class="a2-aktionen" role="group" aria-label="Schnellaktionen">${knoepfe.join("")}</div>`;
+}
+function a2HeuteStandHtml(auf){
+ const kachel=(zahl,text,ziel,farbe,hinweis)=>`<button type="button" class="a2-kpi ${farbe||""}" ${ziel}>
+  <b>${esc(zahl)}</b><span>${esc(text)}</span>${hinweis?`<em>${esc(hinweis)}</em>`:""}</button>`;
+ const offenP=a2OffeneProjekte(false).length;
+ let k=kachel(offenP,offenP===1?"Offenes Projekt":"Offene Projekte",'data-a2-tab="projekte"',"a2-z-blau");
+ if(a2AufgabenAktiv()){
+  // Ist der Stand der Aufgaben nicht frisch (Abruf gescheitert / offline), steht keine Zahl: lieber „–“ als eine Null, die niemand geprüft hat.
+  const sh=(typeof aufgabenStandHinweis==="function")?aufgabenStandHinweis():"";
+  k+=sh?kachel("–","Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',"","Stand unsicher")
+       :kachel(auf.length,auf.length===1?"Offene Aufgabe":"Offene Aufgaben",'data-a2-scroll="a2HeuteAufgaben"',auf.length?"a2-z-orange":"a2-z-gruen");
+ }
+ return `<div class="a2-kpis" aria-label="Arbeitsstand">${k}</div>`;
+}
+
 function a2SeiteHeute(){
  const auf=a2Aufgaben();
  let html=a2MarkeHtml("a2-marke");
+ html+=a2HeuteAktionenHtml()+a2HeuteStandHtml(auf);
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen
@@ -672,7 +698,7 @@ function a2SeiteHeute(){
   // heute", und die aendert sich durch das Gruppieren nicht.
   const gruppen=a2AufgabenNachProjekt(auf);
   const alleAuf=gruppen.length>0&&gruppen.every(g=>a2AufgabenAuf.has(String(g.id)));
-  html+=`<div class="a2-abschnitt">
+  html+=`<div class="a2-abschnitt" id="a2HeuteAufgaben">
    <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
     ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}
     ${gruppen.length>1?`<button type="button" data-a2-tu="aufgabenalle">${
@@ -746,7 +772,7 @@ function a2SeiteHeute(){
  const offen=a2OffeneProjekte().slice(0,8);
  const offenAlle=a2OffeneProjekte(false);
  if(offen.length||offenAlle.length){
-  html+=`<div class="a2-abschnitt">
+  html+=`<div class="a2-abschnitt" id="a2HeuteProjekte">
    <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
     <button type="button" data-a2-tab="projekte">Alle Projekte ›</button></div>
    <div class="a2-register a2-register-klein">
@@ -762,6 +788,9 @@ function a2SeiteHeute(){
     const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
     const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
     const stand=a2WerkGeladen?a2ProjektStand(p):null;
+    // v3.352: der nächste Schritt ist die dringendste offene Aufgabe dieses Projekts - aus derselben Liste wie „Meine Aufgaben“, nichts Neues berechnet.
+    const gAuf=a2AufgabenNachProjekt(auf).find(g=>String(g.id)===String(p.id));
+    const naechster=(gAuf&&gAuf.aufgaben[0]&&typeof aufgabenArt==="function")?aufgabenArt(gAuf.aufgaben[0].art).titel:"";
     return `<button type="button" class="a2-karte a2-karte-klick" data-a2-projekt="${esc(p.id)}">
      <div class="a2-karte-kopf">
       <div class="a2-karte-kopf-text">
@@ -770,6 +799,7 @@ function a2SeiteHeute(){
       </div>
       ${st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:""}
      </div>
+     ${naechster?`<p class="a2-naechster"><b>Nächster Schritt:</b> ${esc(naechster)}${gAuf.aufgaben.length>1?" (+"+(gAuf.aufgaben.length-1)+")":""}</p>`:""}
      ${stand&&stand.gesamt?a2FortschrittHtml(stand.erledigt,stand.gesamt,"Produziert")
        :`<p class="a2-karte-unter" style="margin-top:8px">${
          a2WerkstattSichtbar()&&!a2WerkGeladen?"Zuschnittstand wird geladen …"
@@ -1172,6 +1202,14 @@ function a2Zeichnen(){
 // nach dem ersten Neuzeichnen tot.
 document.addEventListener("click",async e=>{
  if(!a2Aktiv())return;
+
+ // v3.352: Kennzahl der Startseite springt zum Abschnitt (nur Scrollen, keine Navigation).
+ const sc=e.target.closest?e.target.closest("[data-a2-scroll]"):null;
+ if(sc&&$("a2Screen")&&$("a2Screen").contains(sc)){
+  const ziel=$(sc.getAttribute("data-a2-scroll"));
+  if(ziel&&ziel.scrollIntoView)ziel.scrollIntoView({behavior:"smooth",block:"start"});
+  return;
+ }
 
  const tab=e.target.closest("[data-a2-tab]");
  if(tab&&$("a2Screen")&&$("a2Screen").contains(tab)){

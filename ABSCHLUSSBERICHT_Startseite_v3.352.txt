@@ -1,0 +1,33 @@
+ABSCHLUSSBERICHT v3.352 – Startseite
+Datum: 13.10.2026
+Ausgangscommit: 800697c (v3.351, Pages success, GitHub-Prüfstände success)
+Zielcommit: siehe unten (Commit-SHA der Version v3.352)
+
+1. BESTANDSAUFNAHME (am Code)
+- Beim App-Start zeigt die Ansicht (js/70) die Seite „Heute“ (a2SeiteHeute): Marke, Einrichtungs-Checkliste, Kontrolle, Hinweise, Aufgaben je Projekt (zugeklappt), Werkstatt heute (3 Zahlen), Anstehende Montage, Offene Projekte (Meine/Alle).
+- Datenquellen: allProjects (RLS-gefiltert, js/05), Aufgabenliste (js/45, mit Stand-Hinweis bei Ladefehler/offline), Werkstattzeilen (werkLaden/zeLaden, js/51/56). Keine eigene Abfrage auf der Startseite.
+- Lücken: keine Handlungen im Kopf, kein Arbeitsstand auf einen Blick (Projekt-/Aufgabenzahl nur über Listen), „nächster Schritt“ je Projekt nur indirekt über die Aufgabenliste. Doppelt/unklar: Werkstatt- und Lager-Zugriff stehen schon in der Navigationsleiste – nicht erneut als Kacheln.
+
+2. ÄNDERUNGEN (nur js/70 und css/05, plus Version/Doku)
+- Handlungsleiste: „＋ Neues Projekt“ (nur wenn der Knopf startOpenProjects sichtbar ist, also nach Rechten/Freigabe), „📁 Projekt öffnen“ (Projektliste), „🔍 Suche“ (nur wenn die vorhandene globale Suche sichtbar ist; öffnet diese).
+- Arbeitsstand: „Offene Projekte“ (a2OffeneProjekte(false), öffnet die Projektliste) und „Offene Aufgaben“ (a2Aufgaben(), springt zum Abschnitt). Bei unsicherem Aufgabenstand (aufgabenStandHinweis) steht „–“ und „Stand unsicher“, nie eine Null. Ist der Arbeitsablauf der Firma aus, entfällt die Aufgaben-Kachel.
+- „Nächster Schritt“ in der Projektkarte = dringendste offene Aufgabe des Projekts aus derselben Aufgabenliste (a2AufgabenNachProjekt), mit „(+n)“ bei weiteren.
+- Werkstattzahlen bleiben im Abschnitt „Werkstatt heute“ (keine doppelte Kennzahl). Aufgaben-/Workflowstatus nicht angefasst; nichts aus Zuschnitt-Häkchen abgeleitet.
+- CSS: .a2-aktionen, .a2-kpis/.a2-kpi (Touch-Ziel ≥ 44px, Fokus sichtbar, einspaltig→zwei Spalten, auf Tablet/PC begrenzte Breite), .a2-naechster. Bestehende Farbtokens, Dunkelmodus über vorhandene Variablen.
+- Keine Migration, keine RLS-/Edge-Function-Änderung, keine neue Abfrage, keine Schreibzugriffe; drei Materiallisten, lager_varianten und Regiematerial nicht berührt.
+
+3. TESTS
+- Neuer Prüfstand startseite-dashboard-v3-352 (16): Kennzahlen = Quellfunktionen, Ziele (Projektliste, Aufgabenabschnitt), keine doppelte Werkstattzahl, Handlungen nur mit Freigabe, „–“ bei unsicherem Stand, Nächster Schritt nur bei Projekten mit Aufgabe, Projektkarten zeigen auf vorhandene Projekte, Klick öffnet Projektliste, Breiten 360/390/768/1280 ohne horizontales Überlaufen und Touch-Ziele ≥ 40px, Fokussierbarkeit, leerer Bestand, keine JS-Fehler.
+- Mutationen (alle erkannt): Zahl trotz unsicherem Stand; Neues Projekt ohne Freigabe; Suche ohne Freigabe; falsches Kennzahlenziel; falsche Projektzahl; Überlaufen durch feste Breite.
+- Schnellprüfung (Startseite, Ansicht, Aufgaben, Navigation, Übersicht, Hilfe, Versionen, SW-Cache u. a.): grün. Die Rubrikennamen der Startseite blieben unverändert (ansicht2-v3-150/startseite-v3-158 fordern sie).
+
+4. GRENZEN
+- Keine Live-, Handy- oder Tablet-Tests mit der echten App; Layout nur im Testbrowser mit Attrappen geprüft.
+- Kein Aufgaben-/Projektsuchfeld auf der Startseite: Die „Suche“-Handlung öffnet die vorhandene globale Suche, eine eigene Suchleiste gibt es bewusst nicht.
+- Keine Kennzahl für „offene Massaufnahmen“: Es gibt keine zuverlässig vorgeladene Quelle auf der Startseite; eine eigene Abfrage wäre eine zweite Statuslogik und wurde nicht gebaut.
+
+5. MANUELLE TESTSCHRITTE
+1) App neu laden (3.352). Startseite „Heute“: oben Handlungen und zwei Kennzahlen.
+2) „Offene Projekte“ antippen → Projektliste. „Offene Aufgaben“ antippen → springt zu „Meine Aufgaben“.
+3) In „Offene Projekte“: Karten mit „Nächster Schritt“; antippen → Projekt öffnen.
+4) Als Nutzer ohne Projekt-Anlegen-Recht: kein „Neues Projekt“.
