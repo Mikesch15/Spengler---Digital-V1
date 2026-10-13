@@ -3,9 +3,18 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.355`
+- Aktueller Entwicklungsstand: `v3.356`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.356 — Projektliste und Projektseite nach dem Wunschbild; Titelbild lesbar; grösseres, transparentes Logo
+
+Wünsche: (1) Projektliste und Projektseite nach den Wunschbildern umbauen; (2) „Titelbild wird nicht gespeichert und dadurch nicht angezeigt“; (3) Firmenlogo grösser und transparent wie in der Vorlage.
+**Titelbild – Ursache:** gespeichert war es (Spalte `kopf_bild_url` gefüllt), aber die Lese-Policy für Storage (`tenant read own storage files` → `storage_object_is_own_company`) erkennt flache Pfade nur über bekannte Referenzen (bisher `app_settings.logo_url`); das Titelbild bekam deshalb keine signierte Adresse. **Behoben** mit einer additiven Migration `storage_zugriff_kopf_bild`: in dieser einen Funktion zählt zusätzlich `kopf_bild_url` derselben Firma (`company_id = my_company_id()`); der übrige Funktionstext und alle Policies sind unverändert (Datei `supabase/migrations/v3356_storage_zugriff_kopf_bild.sql` dokumentiert die Stelle). Nicht live gegen die echte App getestet.
+**Logo:** im Kopf der Startseite ohne weissen Kasten (transparent), bis 60 px hoch / 260 px breit.
+**Projektliste (js/70, js/09, css/05):** Karten mit Symbolkreis, Titel + Status-Marke (Punkt statt unklarem Zeichen), Adresszeile und Stand-Zeile mit farbigen Punkten (`projektStandTeile`; der Satz „n Massaufnahmen · k offen · z zu rüsten“ bleibt derselbe), Suchfeld mit Filterknopf (öffnet „Archiv und Filter“).
+**Projektseite:** Register als Symbolleiste mit Unterstreichung (seitlich wischbar), „Als Nächstes“ mit Symbolfeld, Projektübersicht mit Symbol je Bezeichnung und Status-Marke, Material-/Mengentabelle mit Werkstoff-Farbfeld (nur Orientierung), Komplettausmass mit drei Kennzahlen-Feldern und Positionen als Zeilen mit Symbol und Pfeil (js/85, css/01). Nicht übernommen: Status-Auswahlliste in der Marke (wäre ein Schreibweg; Status wird weiter über „Stammdaten bearbeiten“ geändert).
+Prüfstand `projektseiten-wunschbild-v3-356` (18); `uebersichtlichkeit-v3-289` (Filterknopf im Suchfeld erlaubt). Bericht: `ABSCHLUSSBERICHT_Projektseiten_v3.356.txt`.
 
 ### v3.355 — Titelbild der Startseite in den Firmeneinstellungen
 
@@ -14,10 +23,6 @@ Wunsch: „Mache das Bild im Kopfteil so wie in der Vorlage, man soll es in den 
 ### v3.354 — Startseite nach dem Wunschbild (Kopf, Suche, Kennzahlen mit Symbol, Filter-Chips)
 
 Wunsch (Bild): „Ich würde mir das irgendwie so vorstellen.“ Umgesetzt auf der Seite Heute (js/70, css/05; nur Heute): Kopfbereich in Markenblau mit Logo (auf weissem Feld), Begrüssung nach Tageszeit, Datum und Name; Suchfeld „Projekte suchen …“ (filtert die Liste darunter mit `projektPasstZuSuche`, dieselbe Regel wie die Projektliste) mit Filterknopf (öffnet „Archiv und Filter“); Kennzahlen als vier Felder mit Symbol (Offene Projekte, Offene Aufgaben, Teile zu produzieren, Montagen vorbereitet – letztere beiden nur mit Werkstatt, aus `a2WerkZahlen`; „…“ beim Laden, „–“ bei Fehler); der Abschnitt „Werkstatt heute“ zeigt nur noch die Rüstlisten (je Zahl eine Stelle); „Wichtige Hinweise“ rötlich hinterlegt; Projektkarten mit Standortzeichen vor der Adresse; Filter-Chips „Meine (n) · Alle (n) · In Arbeit (n) · Nahe Montage (n)“ („Nahe Montage“ = Massaufnahme „zu montieren“ mit eingetragenem Termin heute bis +7 Tage, nur mit Werkstatt). Nicht übernommen: Dachfoto im Kopf und Projektfotos in den Karten (keine Bildquelle am Projekt, nichts Erfundenes), Chip „Offen“ (wäre dasselbe wie „Alle“). Prüfstand `startseite-dashboard-v3-352` auf 29; `startseite-v3-158` und `ansicht2-vorgabe-v3-151` an das neue Layout angepasst (Zahlenquelle `data-kpi`, Kopf `.a2-hero`). Bericht: `ABSCHLUSSBERICHT_Startseite_Wunschbild_v3.354.txt`.
-
-### v3.353 — Startseite „Heute“: verdichtet und beruhigt (Nachbesserung)
-
-Nachbesserungsauftrag zur Startseite. Nur CSS (css/05, Block „STARTSEITE HEUTE“) und zwei kleine Stellen in js/70: `a2Zeichnen` setzt die Klasse `a2-heute` (auf `#a2Inhalt`) und `a2-heute-an` (auf `html`) nur auf der Seite Heute – alle anderen Seiten bleiben unverändert. Kennzahlen als schlanke Zeilen (Zahl + Beschriftung, ~40px statt ~90px), Projektkarten kompakt (Rundung 8px, kein Schatten, ruhiger Hintergrund `--a2-heute-bg`), Typografie gestaffelt, „Meine/Alle“ als kompakte Auswahl, Status als Klartext mit Punkt statt unklarem Zeichen (`a2-st`, Blau = In Arbeit, Grün = Abgeschlossen, Orange = Offen), „Noch keine Teile erfasst“ dezent, Balken 5px, lange Namen/Adressen brechen um (vorher lief die Aufgabengruppe bei langen Projektnamen horizontal über), untere Navigation mit einheitlicher Symbolgrösse und klarem aktivem Zustand. Keine Datenlogik, Navigation oder Rechte geändert. Prüfstand `startseite-dashboard-v3-352` auf 22; Mutationen (unklares Zeichen, hohe Kennzahlen, grosse Rundung/Schatten, Klasse auf allen Seiten, kein Umbruch) erkannt. Bericht: `ABSCHLUSSBERICHT_Startseite_Nachbesserung_v3.353.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

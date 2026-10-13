@@ -1,0 +1,9 @@
+-- v3.356: Titelbild der Startseite (app_settings.kopf_bild_url) darf – wie das Firmenlogo – von der eigenen Firma gelesen werden.
+-- Bereits per Migration "storage_zugriff_kopf_bild" auf das Projekt angewendet (diese Datei dokumentiert sie im Repo).
+-- Ursache: Die Lese-Policy "tenant read own storage files" prüft flache Pfade über storage_object_is_own_company(); dort war nur
+-- app_settings.logo_url als Referenz bekannt, das Titelbild bekam deshalb keine signierte Adresse.
+-- Geändert ist EINE Bedingung: zusätzlich zu logo_url zählt kopf_bild_url DERSELBEN Firma (company_id = my_company_id()). Alles andere
+-- in der Funktion ist unverändert; die Policies selbst wurden nicht angefasst.
+-- Vollständiger Funktionstext: siehe Datenbank (pg_get_functiondef); die geänderte Stelle lautet:
+--   and (public.storage_path_from_value(s.logo_url) = pfad
+--     or public.storage_path_from_value(s.kopf_bild_url) = pfad))

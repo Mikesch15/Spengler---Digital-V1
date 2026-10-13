@@ -202,14 +202,18 @@ let projectMeasTypenLaedt=false;
 // v3.340: dieselbe EINE Abfrage liefert auch den Stand je Projekt (Anzahl, davon offen = nicht abgeschlossen/archiviert, zu rüsten).
 // null = nicht geladen oder fehlgeschlagen: dann steht in der Karte nichts (kein erfundener Stand).
 let projectMeasStand=null;
-function projektStandZeile(id){
- if(!projectMeasStand)return "";
+// v3.356: Die Teile des Stands einzeln (Text + Art für die Farbe des Punktes); projektStandZeile fügt sie unverändert zu einem Satz zusammen.
+function projektStandTeile(id){
+ if(!projectMeasStand)return [];
  const s=projectMeasStand.get(id);
- if(!s)return "Noch keine Massaufnahme";
- const teile=[s.gesamt+" Massaufnahme"+(s.gesamt===1?"":"n")];
- if(s.offen<s.gesamt)teile.push(s.offen?s.offen+" offen":"alle abgeschlossen");
- if(s.zuRuesten&&typeof mwAktiv==="function"&&mwAktiv())teile.push(s.zuRuesten+" zu rüsten");
- return teile.join(" · ");
+ if(!s)return [{text:"Noch keine Massaufnahme",art:"leer"}];
+ const teile=[{text:s.gesamt+" Massaufnahme"+(s.gesamt===1?"":"n"),art:"anzahl"}];
+ if(s.offen<s.gesamt)teile.push(s.offen?{text:s.offen+" offen",art:"offen"}:{text:"alle abgeschlossen",art:"fertig"});
+ if(s.zuRuesten&&typeof mwAktiv==="function"&&mwAktiv())teile.push({text:s.zuRuesten+" zu rüsten",art:"ruesten"});
+ return teile;
+}
+function projektStandZeile(id){
+ return projektStandTeile(id).map(t=>t.text).join(" · ");
 }
 async function ladeProjectMeasTypen(){
  if(projectMeasTypen||projectMeasTypenLaedt)return;

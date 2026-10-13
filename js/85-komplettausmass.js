@@ -179,6 +179,16 @@ function kaMaterialZeilen(liste,Us,ctx){
   off:offs.map((_,i)=>({m2:sum(out.map(z=>z.off[i].m2)),stk:sum(out.map(z=>z.off[i].stk))}))};
  return {zeilen:out,summe,offerten:offs.map(o=>o.titel||"")};
 }
+// v3.356: Farbfeld je Werkstoff nur als Orientierung in der Tabelle (bekannte Metalle in ihrer Farbe, sonst neutral); keine Bedeutung für Berechnungen.
+function kaWerkstoffFarbe(name){
+ const n=String(name||"").toLowerCase();
+ if(/kupfer/.test(n))return "#d98a5f";
+ if(/titan|zink/.test(n))return "#9aa5ad";
+ if(/alu/.test(n))return "#c3cbd2";
+ if(/stahl|chrom|nirosta|edelstahl/.test(n))return "#8d949a";
+ if(/blei/.test(n))return "#707a85";
+ return "#c9d1d8";
+}
 // Kurztext je Massaufnahme für die Auswahl: m² (Blechfläche Zuschnitt) und Hauptstücke, nur was erfasst ist (sonst nichts).
 function kaMaFlaeche(m){
  const d=(m&&m.data)||{};
@@ -233,9 +243,15 @@ function kaBauen(host){
  if(!alle.massaufnahmen.length)return {html:kopf+'<div class="empty">Noch keine Massaufnahme in diesem Projekt.</div>',n:"0"};
  const stArr=Object.keys(alle.nachStatus);
  // v3.345: die Anzahl Bleilappen steht fest oben im Gesamtausmass (Summe aller Massaufnahmen, Einheit Stk) - sonst nur, wenn es welche gibt
- const kenn=[`<b>${alle.massaufnahmen.length}</b> Massaufnahme${alle.massaufnahmen.length===1?"":"n"}`+(alle.ohneAusmass?` (${alle.ohneAusmass} ohne Ausmasszeilen)`:""),
-  `<b>${alle.gruppen.length}</b> Mengenposition${alle.gruppen.length===1?"":"en"}`,
-  alle.pruefen.length?`<b style="color:var(--red)">${alle.pruefen.length}</b> zu prüfen`:"nichts zu prüfen"];
+ // v3.356 (Wunschbild): drei Kennzahlen-Felder mit Symbol statt einer Textzeile; dieselben Sätze.
+ const SYM={doc:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>',
+  liste:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg>',
+  ok:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
+  warn:'<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>'};
+ const stat=(sym,art,html)=>`<span class="ka-stat ka-stat-${art}"><i>${SYM[sym]}</i><span>${html}</span></span>`;
+ const kenn=[stat("doc","blau",`<b>${alle.massaufnahmen.length}</b> Massaufnahme${alle.massaufnahmen.length===1?"":"n"}`+(alle.ohneAusmass?` (${alle.ohneAusmass} ohne Ausmasszeilen)`:"")),
+  stat("liste","blau",`<b>${alle.gruppen.length}</b> Mengenposition${alle.gruppen.length===1?"":"en"}`),
+  alle.pruefen.length?stat("warn","rot",`<b style="color:var(--red)">${alle.pruefen.length}</b> zu prüfen`):stat("ok","gruen","nichts zu prüfen")];
  const statusZeile=wf?stArr.sort((a,b)=>KA_STATUS.indexOf(a)-KA_STATUS.indexOf(b)).map(s=>`${alle.nachStatus[s]} × ${esc(statusText(s))}`).join(" · "):"";
  const filter=(wf&&stArr.length>1)?`<div class="bar" style="margin:6px 0">${["alle"].concat(stArr).map(s=>`<button type="button" class="gray mz-klein${kaFilter===s?" aktiv":""}" data-ka-filter="${esc(s)}">${s==="alle"?"Alle":esc(statusText(s))}</button>`).join("")}</div>`:"";
  const quelle=q=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>
@@ -256,9 +272,9 @@ function kaBauen(host){
    const nachMa=new Map();g.quellen.forEach(q=>{if(!nachMa.has(q.id))nachMa.set(q.id,{q,zeilen:[]});nachMa.get(q.id).zeilen.push(q)});
    const herkunft=[...nachMa.values()].map(({q,zeilen})=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>${wf?`<span class="small muted"> · ${esc(statusText(q.status))}</span>`:""}
      ${zeilen.map(r=>`<div class="small">Pos. ${esc(r.pos)} · ${esc(String(r.menge))} ${esc(e)}${r.original&&kaNorm(r.original)!==kaNorm(g.bezeichnung)?` · „${esc(r.original)}“`:""}${r.herkunft?` <span class="muted">· ${esc(r.herkunft)}</span>`:""}</div>`).join("")}</div>`).join("");
-   return `<details class="ka-kachel" data-ka-key="${esc(key)}"${kaOffen[key]?" open":""}><summary><div class="ka-kachel-name">${ICON[e]||""} ${esc(g.bezeichnung)}</div>
+   return `<details class="ka-kachel" data-ka-key="${esc(key)}"${kaOffen[key]?" open":""}><summary><span class="ka-kachel-icon" aria-hidden="true">${ICON[e]||""}</span><div class="ka-kachel-name">${esc(g.bezeichnung)}</div>
     <div class="ka-kachel-wert">${esc(kaMengeText(g.summe))} <span>${esc(e)}</span></div>
-    <div class="small muted">aus ${nm} Massaufnahme${nm===1?"":"n"} · antippen = woher</div></summary>
+    <div class="small muted ka-kachel-quelle">aus ${nm} Massaufnahme${nm===1?"":"n"} · antippen = woher</div><span class="ka-kachel-pfeil" aria-hidden="true">›</span></summary>
     ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel – nicht zusammengeführt, bitte prüfen.</div>`:""}
     ${herkunft}</details>`;
   }).join("")+"</div>";
@@ -271,7 +287,7 @@ function kaBauen(host){
  const art=Object.keys(R.nachArt).sort().map(k=>`${R.nachArt[k]} × ${esc(k)}`).join(" · ");
  const mat=Object.keys(R.nachMaterial).sort().map(k=>`${R.nachMaterial[k]} × ${esc(k)}`).join(" · ");
  return {n:String(alle.massaufnahmen.length),kenn:{mas:alle.massaufnahmen.length,gruppen:alle.gruppen.length,pruefen:alle.pruefen.length},
-  html:kopf+`<div style="margin:6px 0">${kenn.join(" · ")}</div>`
+  html:kopf+`<div class="ka-stats">${kenn.join(" ")}</div>`
   +(statusZeile?`<div class="small">${statusZeile} <span class="muted">(Status je Massaufnahme, nicht je Position)</span></div>`:"")
   +filter+mengen+pruef+masse+aus
   +(art?`<div class="small muted" style="margin-top:6px">Nach Art: ${art}</div>`:"")
@@ -327,7 +343,7 @@ function kaMengenKarteHtml(){
   const sm=s=>s.wert===null?"–":zahl(s.wert)+(s.vollstaendig?"":'<span class="small muted"> (nur Zeilen mit Wert)</span>');
   const offKopf=Us.map(o=>`<th>${einh} (Offerte${Us.length>1?" „"+esc(o.titel)+"“":""})</th>`).join("");
   tabelle=`<div class="ka-tabelle-wrap"><table class="ka-tabelle"><thead><tr><th>Werkstoff</th><th>Stärke</th>${offKopf}<th>${einh} (Massaufn.)</th></tr></thead><tbody>
-  ${T.zeilen.map(z=>`<tr><td>${z.material?esc(z.material):'<span class="muted">ohne Werkstoff</span>'}</td><td>${z.staerke===null?'<span class="muted">nicht erfasst</span>':esc(String(z.staerke).replace(".",","))+" mm"}</td>${z.off.map(o=>`<td class="ka-z">${zahl(o[fO])}</td>`).join("")}<td class="ka-z">${zahl(z[fM])}</td></tr>`).join("")}
+  ${T.zeilen.map(z=>`<tr><td>${z.material?`<span class="ka-farbe" style="background:${kaWerkstoffFarbe(z.material)}"></span>${esc(z.material)}`:'<span class="ka-farbe ka-farbe-leer"></span><span class="muted">ohne Werkstoff</span>'}</td><td>${z.staerke===null?'<span class="muted">nicht erfasst</span>':esc(String(z.staerke).replace(".",","))+" mm"}</td>${z.off.map(o=>`<td class="ka-z">${zahl(o[fO])}</td>`).join("")}<td class="ka-z">${zahl(z[fM])}</td></tr>`).join("")}
   </tbody><tfoot><tr><th colspan="2">Summe</th>${T.summe.off.map(o=>`<th class="ka-z">${sm(o[fO])}</th>`).join("")}<th class="ka-z">${sm(T.summe[fM])}</th></tr></tfoot></table></div>`;
  }
  const def=stk?"Massaufnahme: Einfassungen als Komplettstückzahl je Einfassungsart":"Massaufnahme: Blechfläche (netto, Länge × Abwicklung; je Modul „Blechfläche“ oder „Blechfläche Zuschnitt“)";

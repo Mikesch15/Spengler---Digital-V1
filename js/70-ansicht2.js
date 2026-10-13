@@ -654,6 +654,26 @@ function a2NaheMontageProjekte(projekte){
  });
  return (projekte||[]).filter(p=>ids.has(String(p.id)));
 }
+// v3.356: kleine Linien-Symbole für Register, Projektübersicht, Karten (einheitliche Strichstärke, wie die Navigationsleiste).
+const A2_ICON={
+ haus:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>',
+ uebersicht:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7M9 8h3"/></svg>',
+ offerte:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3h9l3 3v15H8z"/><path d="M5 7v14h11"/><path d="M11 10h6M11 14h6"/></svg>',
+ aufmass:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6L9 21l-6-6z"/><path d="M7 11l2 2M10 8l2 2M13 5l2 2"/></svg>',
+ herstellung:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4.5a4.5 4.5 0 0 0-6 5.9L4 15v4h4l4.6-4.6a4.5 4.5 0 0 0 5.9-6L16 11l-3-3z"/></svg>',
+ ruestblatt:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>',
+ ausmass:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h3M13 12h3M8 16h3M13 16h3"/></svg>',
+ rapport:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11h7M9 15h7"/></svg>',
+ dateien:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+ nummer:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg>',
+ firma:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="12" rx="1.5"/><path d="M9 8V5h6v3M4 13h16"/></svg>',
+ adresse:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>',
+ name:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h4"/></svg>',
+ person:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6"/></svg>',
+ hinweis:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
+ stift:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>'
+};
+const A2_ZEILE_ICON={"Auftrags-Nr.":"nummer","Auftraggeber":"firma","Adresse":"adresse","Projektname":"name","Zugeteilt an":"person","Hinweise":"hinweis"};
 const A2_PIN='<svg class="a2-pin" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg>';
 // Die Liste unter den Filtern. Gleiche Quelle wie bisher (a2OffeneProjekte); Filter und Suche ordnen nur, es wird nichts nachgeladen.
 function a2HeuteProjListeHtml(auf){
@@ -1028,9 +1048,13 @@ function a2SeiteProjekte(){
  // deshalb nicht neu gebaut. Wuerde es mitgezeichnet, verloere es bei jedem
  // Anschlag den Fokus - auf dem Handy klappt damit die Tastatur zu, und
  // ein Suchfeld, das sich nach einem Buchstaben schliesst, ist keines.
- return `<div class="a2-suche">
+ // v3.356 (Wunschbild): Suchfeld mit Filterknopf (öffnet „Archiv und Filter“, derselbe Weg wie der Knopf unten).
+ return `<div class="a2-suche a2-suche-mit-filter"><div class="a2-suche-feld">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
   <input id="a2Suche" type="search" placeholder="Adresse, Projekt, Auftrags-Nr."
    value="${esc(a2Zustand.suche)}" autocomplete="off" enterkeyhint="search"></div>
+  <button type="button" class="a2-suche-filter" data-a2-tu="projektarchiv" aria-label="Archiv und Filter">
+   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
  <div id="a2ProjListe">${a2ProjListeHtml()}</div>
  <div class="a2-knopf-reihe">
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesprojekt">
@@ -1056,14 +1080,19 @@ function a2ProjektZeileHtml(p){
  // v3.342: Stand je Projekt (Anzahl, offen, zu rüsten) aus der einen Abfrage in js/09; vor dem Laden/bei Fehler steht nichts.
  if(typeof ladeProjectMeasTypen==="function")ladeProjectMeasTypen();
  const stand=(typeof projektStandZeile==="function")?projektStandZeile(p.id):"";
+ const teile=(typeof projektStandTeile==="function")?projektStandTeile(p.id):[];
  const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
  const s=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
  const unten=[p.name&&p.name!==titel?p.name:"",p.order_no?"Auftrag "+p.order_no:""]
   .filter(Boolean).join(" · ");
+ // v3.356 (Wunschbild): Karte mit Symbol, Titel, Status als Punkt-Marke und einer Stand-Zeile mit farbigen Punkten. Der Text der Zeile bleibt derselbe Satz (Trenner „ · “).
+ const stZeile=teile.length?`<span class="a2-pz-stand a2-pz-teile" aria-label="${esc(stand)}">`+teile.map((t,i)=>
+  (i?'<span class="a2-sep"> · </span>':"")+`<span class="a2-pz-t a2-pz-${esc(t.art)}">${esc(t.text)}</span>`).join("")+"</span>":"";
  return `<button type="button" class="a2-zeile a2-zeile-projekt" data-a2-projekt="${esc(p.id)}">
-  <span class="a2-zeile-text"><b>${esc(titel)}</b>
-   <span>${esc(unten||"—")}</span>${stand?`<span class="a2-pz-stand">${esc(stand)}</span>`:""}</span>
-  ${s?`<span class="a2-marke a2-m-grau">${esc(s.icon+" "+s.label)}</span>`:""}
+  <span class="a2-pz-icon" aria-hidden="true">${A2_ICON.haus}</span>
+  <span class="a2-zeile-text"><span class="a2-pz-kopf"><b>${esc(titel)}</b>
+   ${s?`<span class="a2-st a2-st-${esc(s.wert)}">${esc(s.label)}</span>`:""}</span>
+   <span class="a2-pz-unter">${esc(unten||"—")}</span>${stZeile}</span>
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
 
@@ -1765,9 +1794,10 @@ function a2SeiteProjekt(){
  const reg=a2ProjRegister();
  if(!reg.some(r=>r.k===a2Zustand.reg))a2Zustand.reg="uebersicht";
 
- let html=`<div class="a2-register">${reg.map(r=>
-  `<button type="button" class="${r.k===a2Zustand.reg?"ist-auf":""}"
-    data-a2-reg="${esc(r.k)}">${esc(r.name)}</button>`).join("")}</div>`;
+ // v3.356 (Wunschbild): Register als Leiste mit Symbol über der Beschriftung; bei wenig Platz wird sie seitlich gewischt, der aktive Reiter ist unterstrichen.
+ let html=`<div class="a2-register a2-register-tabs" role="tablist">${reg.map(r=>
+  `<button type="button" role="tab" aria-selected="${r.k===a2Zustand.reg?"true":"false"}" class="${r.k===a2Zustand.reg?"ist-auf":""}"
+    data-a2-reg="${esc(r.k)}"><i aria-hidden="true">${A2_ICON[r.k]||""}</i><span>${esc(r.name)}</span></button>`).join("")}</div>`;
 
  if(a2ProjFehler){
   html+=`<div class="a2-hinweis a2-h-warnung"><b>Es konnte nicht alles geladen werden</b>
@@ -1851,12 +1881,12 @@ function a2RegUebersicht(p){
  // Mengenübersicht; darunter Ablauf und Stand wie bisher. Auf dem Handy untereinander.
  const st=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
  const kopfKarte=`<div class="a2-abschnitt">
-   <div class="a2-abschnitt-kopf"><h2>Projektübersicht</h2>${st?`<span class="a2-marke a2-m-grau">${esc(st.icon+" "+st.label)}</span>`:""}</div>
+   <div class="a2-abschnitt-kopf"><h2>Projektübersicht</h2>${st?`<span class="a2-st a2-st-${esc(st.wert)} a2-st-gross">${esc(st.label)}</span>`:""}</div>
    <div class="a2-karte a2-karte-kompakt"><dl class="a2-daten a2-daten-kompakt">${zeilen.map(([k,v])=>
-     `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+     `<dt><i aria-hidden="true">${A2_ICON[A2_ZEILE_ICON[k]]||""}</i>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
     <div class="a2-knopf-reihe a2-rechts">
      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
-      ✏️ Stammdaten bearbeiten</button></div>
+      <i aria-hidden="true">${A2_ICON.stift}</i> Stammdaten bearbeiten</button></div>
    </div>
   </div>`;
  const mengen=(typeof kaMengenKarteHtml==="function")?kaMengenKarteHtml():"";
@@ -1907,7 +1937,9 @@ function a2NaechsterSchrittHtml(){
  const m=offen[0], k=mwSchrittSchluessel(m);
  const s=MW_SCHRITTE[k];
  if(!s)return "";
- return `<div class="a2-auf a2-auf-${esc(s.farbe)}">
+ return `<div class="a2-auf a2-auf-${esc(s.farbe)} a2-auf-karte">
+  <span class="a2-auf-icon" aria-hidden="true">${A2_ICON.herstellung}</span>
+  <div class="a2-auf-inhalt">
   <div class="a2-auf-schritt">Als Nächstes</div>
   <div class="a2-auf-titel">${esc(s.kurz)}</div>
   <div class="a2-auf-zusatz">${esc(a2MessTitel(m))}${offen.length>1
@@ -1915,6 +1947,7 @@ function a2NaechsterSchrittHtml(){
   <div class="a2-knopf-reihe">
    <button type="button" class="a2-knopf a2-knopf-klein a2-k-blau"
      data-a2-meas="${esc(m.id)}">Massaufnahme öffnen</button></div>
+  </div>
  </div>`;
 }
 function a2MessTitel(m){

@@ -1,0 +1,110 @@
+// v3.356: Projektliste und Projektseite nach dem Wunschbild (nur Darstellung) + Titelbild/Logo im Kopf der Startseite.
+const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const path=require("path"),fs=require("fs");
+const APP="file://"+path.join(process.cwd(),"index.html");
+const STUB=fs.readFileSync(path.join(process.cwd(),"anleitung/stub.js"),"utf8");
+let ok=0,fail=0;
+const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,400):""))}};
+(async()=>{
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
+ const page=await b.newPage({viewport:{width:390,height:844},locale:"de-CH"});
+ const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
+ await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
+ await page.goto(APP,{waitUntil:"load"});await page.waitForTimeout(600);
+ await page.evaluate(()=>{
+  currentProfile={id:"u1",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"c1"};
+  allProfiles=[currentProfile];meineRechte={admin:true};companyName="Muster AG";
+  allProjects=window.__demo.projects.slice();
+  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;
+  if(typeof pmUebernehmen==="function")pmUebernehmen({haupt:true,material:true,zuschnitt:true,reservierung:true,werkstatt:true,vorlagen:true,serien:true,versionierung:true});
+  a2Zeichnen();
+ });
+ await page.waitForTimeout(500);
+
+ console.log("\nA · Projektliste");
+ const a=await page.evaluate(()=>{
+  const alt=projectMeasStand;
+  const id0=allProjects[0].id,id1=allProjects[1].id,id2=allProjects[2]?allProjects[2].id:-1;
+  projectMeasStand=new Map([[id0,{gesamt:14,offen:10,zuRuesten:9}],[id1,{gesamt:11,offen:0,zuRuesten:0}]]);
+  a2Zustand.seite="projekte";a2Zeichnen();
+  const z=[...document.querySelectorAll("#a2Inhalt .a2-zeile-projekt")];
+  const r={n:z.length,
+   icon:z.every(x=>!!x.querySelector(".a2-pz-icon svg")),
+   status:z.map(x=>(x.querySelector(".a2-st")||{}).textContent),
+   glyph:z.some(x=>/[◐○✓×]/.test((x.querySelector(".a2-st")||{}).textContent||"")),
+   text0:z[0]&&z[0].querySelector(".a2-pz-stand").textContent.replace(/\s+/g," ").trim(),
+   soll0:projektStandZeile(id0),
+   text1:z[1]&&z[1].querySelector(".a2-pz-stand").textContent.replace(/\s+/g," ").trim(),
+   punkte:[...document.querySelectorAll(".a2-pz-offen,.a2-pz-ruesten,.a2-pz-fertig")].map(x=>x.className),
+   filter:!!document.querySelector('#a2Inhalt .a2-suche-filter[data-a2-tu="projektarchiv"]'),
+   suche:!!document.getElementById("a2Suche"),
+   sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth};
+  projectMeasStand=alt;
+  return r;
+ });
+ p(a.n>0&&a.icon,"Projektkarten mit Symbol",a);
+ p(!a.glyph&&a.status.every(x=>/^(Offen|In Arbeit|Abgeschlossen|Storniert)$/.test(x||"")),"Status als Klartext-Marke ohne unklares Zeichen",a.status);
+ p(a.text0===a.soll0&&a.text0==="14 Massaufnahmen · 10 offen · 9 zu rüsten","Stand-Zeile = derselbe Satz wie bisher (Anzahl · offen · zu rüsten)",[a.text0,a.soll0]);
+ p(a.punkte.some(c=>/pz-offen/.test(c))&&a.punkte.some(c=>/pz-ruesten/.test(c)),"farbige Punkte bei „offen“ und „zu rüsten“",a.punkte);
+ p(a.filter&&a.suche,"Suchfeld mit Filterknopf (Archiv und Filter)",a);
+ p(a.sw<=a.cw+1,"Projektliste ohne horizontales Überlaufen (390px)",[a.sw,a.cw]);
+
+ console.log("\nB · Projektseite");
+ const c=await page.evaluate(()=>{
+  const pr=allProjects[0];
+  a2Zustand.seite="projekt";a2Zustand.projektId=pr.id;a2Zustand.reg="uebersicht";cockpitProjectId=pr.id;a2Zeichnen();
+  const reg=[...document.querySelectorAll("#a2Inhalt .a2-register-tabs button")];
+  const r={tabs:reg.map(x=>x.getAttribute("data-a2-reg")),icons:reg.every(x=>!!x.querySelector("i svg")),
+   aktiv:reg.filter(x=>x.getAttribute("aria-selected")==="true").map(x=>x.getAttribute("data-a2-reg")),
+   soll:a2ProjRegister().map(x=>x.k),
+   daten:[...document.querySelectorAll("#a2Inhalt .a2-daten dt")].map(x=>!!x.querySelector("svg")),
+   status:(document.querySelector("#a2Inhalt .a2-abschnitt-kopf .a2-st")||{}).textContent,
+   naechster:!!document.querySelector("#a2Inhalt .a2-auf-karte .a2-auf-icon svg"),
+   sw:document.documentElement.scrollWidth,cw:document.documentElement.clientWidth};
+  // Register bedienbar: jeder Reiter wechselt das Register
+  r.klick=[];
+  for(const k of r.soll){const bt=document.querySelector('#a2Inhalt [data-a2-reg="'+k+'"]');if(bt){bt.click();r.klick.push(a2Zustand.reg===k)}}
+  return r;
+ });
+ p(JSON.stringify(c.tabs)===JSON.stringify(c.soll)&&c.icons,"alle Register (wie bisher) als Symbolleiste",c);
+ p(c.aktiv.length===1&&c.aktiv[0]==="uebersicht","aktiver Reiter markiert (aria-selected)",c.aktiv);
+ p(c.klick.length>0&&c.klick.every(x=>x),"jeder Reiter öffnet sein Register",c.klick);
+ p(c.daten.length>0&&c.daten.every(x=>x),"Projektübersicht: Symbol vor jeder Bezeichnung",c.daten);
+ p(/^(Offen|In Arbeit|Abgeschlossen|Storniert)$/.test(c.status||""),"Projektstatus als Marke ohne Zeichen",c.status);
+ p(c.sw<=c.cw+1,"Projektseite ohne horizontales Überlaufen (390px)",[c.sw,c.cw]);
+
+ await page.waitForTimeout(1200);
+ console.log("\nC · Komplettausmass-Darstellung");
+ const k=await page.evaluate(()=>{
+  const pid=allProjects[0].id;a2Zustand.seite="projekt";a2Zustand.reg="uebersicht";a2Zustand.projektId=pid;cockpitProjectId=pid;
+  projectMeasurementsCache=[{id:1,project_id:pid,company_id:"c1",type:"kehle",title:"X",workflow_status:"zu_ruesten",data:{material:"Kupfer",ausmass:[{pos:1,bezeichnung:"Bleilappen",menge:"6",einheit:"Stk.",teil:true}]}}];
+  kaFilter="alle";kaGeladen();
+  const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
+  const t=d.textContent.replace(/\s+/g," ");
+  return {stats:d.querySelectorAll(".ka-stat").length,iconz:d.querySelectorAll(".ka-stat i svg").length,
+   text:/1 Massaufnahme/.test(t)&&/1 Mengenposition/.test(t)&&/nichts zu prüfen/.test(t),
+   zeile:!!d.querySelector("details.ka-kachel .ka-kachel-icon")&&!!d.querySelector("details.ka-kachel .ka-kachel-pfeil"),
+   farbe:[kaWerkstoffFarbe("Kupfer"),kaWerkstoffFarbe("Stahl"),kaWerkstoffFarbe("")]};
+ });
+ p(k.stats===3&&k.iconz===3&&k.text,"drei Kennzahlen-Felder mit Symbol, gleiche Sätze",k);
+ p(k.zeile,"Positionen als Zeilen mit Symbolfeld und Pfeil",k);
+ p(k.farbe[0]!==k.farbe[1]&&k.farbe[2]==="#c9d1d8","Werkstoff-Farbfeld: bekannte Metalle eigene Farbe, sonst neutral",k.farbe);
+
+ console.log("\nD · Kopf der Startseite: Logo transparent und gross");
+ const l=await page.evaluate(()=>{
+  const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+  $("startLogo").src=gif;$("startLogo").hidden=false;
+  a2Zustand.seite="heute";a2Zeichnen();
+  const i=document.querySelector("#a2Inhalt .a2-hero-logo");
+  if(!i)return null;
+  const cs=getComputedStyle(i);
+  return {bg:cs.backgroundColor,maxH:parseFloat(cs.maxHeight),pad:cs.paddingLeft};
+ });
+ p(l&&(l.bg==="rgba(0, 0, 0, 0)"||l.bg==="transparent")&&l.pad==="0px","Logo ohne weissen Kasten (transparent)",l);
+ p(l&&l.maxH>=56,"Logo grösser (max. Höhe ≥ 56px)",l);
+ p(fehler.length===0,"keine JS-Fehler",fehler);
+ await b.close();
+ console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");
+ process.exit(fail?1:0);
+})();

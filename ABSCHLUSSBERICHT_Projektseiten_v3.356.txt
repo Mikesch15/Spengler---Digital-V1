@@ -1,0 +1,27 @@
+ABSCHLUSSBERICHT v3.356 – Projektliste, Projektseite, Titelbild, Logo
+Datum: 13.10.2026
+Ausgangscommit: 620115d (v3.355)
+Zielcommit: siehe Git-Log (Commit „v3.356“)
+
+1. TITELBILD (Fehler)
+Gemeldet: „Titelbild wird nicht gespeichert und dadurch auch nicht angezeigt.“
+Befund (an der Datenbank nachgeprüft): app_settings.kopf_bild_url war gesetzt (gespeichert). Es fehlte die Lese-Berechtigung: Die Storage-Policy „tenant read own storage files“ ruft storage_object_is_own_company() auf, die flache Dateipfade nur über bekannte Referenzen der eigenen Firma freigibt (bisher app_settings.logo_url, Messfotos, Ausmass-/Offertenfotos). Das Titelbild stand dort nicht – die signierte Adresse wurde verweigert, das Bild nie angezeigt.
+Behebung: additive Migration „storage_zugriff_kopf_bild“ – in derselben Funktion zählt zusätzlich kopf_bild_url DERSELBEN Firma (company_id = my_company_id()). Sonst nichts geändert; Policies unangetastet; vorher Funktionstext und Policies gelesen. Datei supabase/migrations/v3356_storage_zugriff_kopf_bild.sql.
+Nicht geprüft: Abruf mit einem echten Benutzer (Testumgebung ohne Supabase). Bitte einmal die Startseite neu laden.
+
+2. LOGO
+Ohne weissen Kasten (transparent), grösser (bis 60 px hoch, 260 px breit). Hinweis: Ein dunkles Logo wäre auf dem Blau schlecht lesbar; die Vorlage zeigt ein weisses/transparentes Logo.
+
+3. PROJEKTLISTE UND PROJEKTSEITE (nur Darstellung)
+Projektliste: Symbolkreis, Titel + Status-Marke, Adresszeile, Stand-Zeile mit farbigen Punkten (derselbe Satz wie bisher), Suchfeld mit Filterknopf.
+Projektseite: Register als Symbolleiste (seitlich wischbar, aktiver Reiter unterstrichen, aria-selected), „Als Nächstes“ mit Symbolfeld, Projektübersicht mit Symbolen, Status-Marke, Werkstoff-Farbfeld in der Mengentabelle, Komplettausmass mit drei Kennzahlen-Feldern und Positionen als Zeilen mit Symbol.
+Nicht übernommen: Status-Auswahlliste („In Arbeit ▾“) – wäre ein Schreibweg; Status bleibt unter „Stammdaten bearbeiten“.
+
+4. TESTS
+projektseiten-wunschbild-v3-356 (18 Prüfungen); Mutationen erkannt (Symbol fehlt, Stand-Satz geändert, aria-selected fehlt, Symbole in Projektübersicht fehlen, Logo mit Kasten). uebersichtlichkeit-v3-289 angepasst (Filterknopf im Suchfeld). Schnellprüfung und volle Regression: siehe Antwort.
+
+5. GRENZEN
+Keine Geräte-/Live-Tests; Darstellung im Testbrowser mit Attrappen (390 px). Material-/Mengentabelle und Komplettausmass mit echten Daten nur über Attrappen.
+
+6. MANUELLE PRÜFUNG
+App neu laden (3.356). Startseite: Titelbild rechts im Kopf, Logo gross/transparent. Projekte: Karten, Suche, Filterknopf. Projekt öffnen: Register-Leiste, „Als Nächstes“, Projektübersicht, Mengen, Komplettausmass.

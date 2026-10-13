@@ -1898,3 +1898,23 @@ details.ka-kachel>summary{list-style:none;cursor:pointer}
 details.ka-kachel>summary::-webkit-details-marker{display:none}
 details.ka-kachel[open]{grid-column:1/-1}
 .ka-kachel .ka-quelle{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line)}
+
+/* v3.356 (Wunschbild): Komplettausmass – Kennzahlen-Felder, Positionen als Zeilen mit Symbol, Werkstoff-Farbfeld */
+.ka-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:8px 0 10px}
+.ka-stat{display:flex;align-items:center;gap:10px;min-width:0;background:var(--card-bg);border:1px solid var(--line);border-radius:12px;padding:8px 10px;font-size:13px;color:var(--muted)}
+.ka-stat i{flex:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--blue-light);color:var(--blue)}
+.ka-stat-gruen i{background:#e8f5ef;color:var(--green)}
+.ka-stat-rot i{background:var(--red-light);color:var(--red)}
+.ka-stat b{display:block;font-size:20px;line-height:1.1;color:var(--ink)}
+.ka-kacheln{grid-template-columns:minmax(0,1fr)}
+.ka-kachel{border-radius:12px;padding:8px 12px}
+details.ka-kachel>summary{display:grid;grid-template-columns:44px minmax(0,1fr) auto auto;grid-template-areas:"icon name wert pfeil" "icon quelle wert pfeil";column-gap:10px;align-items:center}
+.ka-kachel-icon{grid-area:icon;width:44px;height:44px;border-radius:10px;background:var(--a2-grau-hell,#eef2f5);display:flex;align-items:center;justify-content:center;font-size:20px}
+.ka-kachel-name{grid-area:name;font-size:14.5px;font-weight:700}
+.ka-kachel-quelle{grid-area:quelle}
+.ka-kachel-wert{grid-area:wert;text-align:right;white-space:nowrap}
+.ka-kachel-pfeil{grid-area:pfeil;color:var(--muted);font-size:20px;font-weight:800;transition:transform .15s}
+details.ka-kachel[open] .ka-kachel-pfeil{transform:rotate(90deg)}
+.ka-farbe{display:inline-block;width:16px;height:16px;border-radius:4px;margin-right:8px;vertical-align:-3px}
+.ka-farbe-leer{background:#c9d1d8}
+.ka-tabelle tfoot tr{background:var(--blue-light)}

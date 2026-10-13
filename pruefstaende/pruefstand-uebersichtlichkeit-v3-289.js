@@ -34,7 +34,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
    knoepfe:[...document.querySelectorAll("#a2Inhalt [data-a2-tu]")].map(x=>x.getAttribute("data-a2-tu"))}));
   p(liste.zeilen.length===2&&liste.zeilen.every(z=>z.h>=50&&z.r<=w),`D ${w}px: Projektzeilen sind >= 50px hoch und laufen nicht ueber den Rand`,liste);
   p(!liste.scroll,`D ${w}px: Projektliste scrollt nicht seitwaerts`);
-  p(JSON.stringify(liste.knoepfe)==='["neuesprojekt","projektarchiv"]',`${w}px: Projektliste bleibt auf Suche, Auswahl, Neuanlage und Archiv/Filter beschraenkt`,liste.knoepfe);
+  // v3.356: Der Filterknopf im Suchfeld (Wunschbild) ist derselbe Weg wie "Archiv und Filter" unten - er steht vor dem Suchfeld-Ende, daher zweimal "projektarchiv".
+  p(JSON.stringify(liste.knoepfe)==='["projektarchiv","neuesprojekt","projektarchiv"]',`${w}px: Projektliste bleibt auf Suche, Auswahl, Neuanlage und Archiv/Filter beschraenkt`,liste.knoepfe);
 
   await page.evaluate(()=>{
    projectMeasurementsCache=[{id:11,project_id:1,type:"einlaufblech",title:"Traufe",workflow_status:"zu_ruesten",ruester_id:"u1",created_by:"u1",date:"2026-10-01",data:{}}];
