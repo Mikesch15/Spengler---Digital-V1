@@ -52,7 +52,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
     zeilen:[...document.querySelectorAll("#a2Inhalt .a2-daten dt")].map(x=>x.textContent)};
   });
   if(w===412){
-   p(u.schritt<u.hinweis&&u.hinweis<u.ablauf&&u.ablauf<u.stand&&u.stand<u.stamm,"A Reihenfolge: Naechster Schritt, Hinweise, Ablauf, Stand, Stammdaten",u);
+   p(u.schritt<u.hinweis&&u.hinweis<u.stamm&&u.stamm<u.ablauf&&u.ablauf<u.stand,"A Reihenfolge (v3.343): Naechster Schritt, Hinweise, Projektuebersicht (Stammdaten), Ablauf, Stand",u);
    p(u.stationen>=4&&JSON.stringify(u.zahlen)==='["1","0","0"]',"C nichts verloren: Ablauf-Stationen und die drei Kennzahlen",u);
    p(u.zeilen.join("|").includes("Auftrags-Nr.")&&u.zeilen.includes("Hinweise")&&u.zeilen.includes("Zugeteilt an"),"C Stammdaten vollstaendig (inkl. Hinweise und Zuteilung)",u.zeilen);
    p(["uebersicht","aufmass","herstellung","ausmass","rapport","offerte","dateien"].every(r=>u.register.indexOf(r)>=0)||u.register.length>=5,"C die Register sind unveraendert da",u.register);

@@ -2070,7 +2070,9 @@ function a2RegRuestblatt(p){
   a2RbProjektZeit=Date.now();
   rbProjektOeffnen(a2Mess(),{inline:true,projectId:pid});
  },0);
- return '<div id="a2RbProjekt" class="a2-rb-projekt"><div class="a2-leer">Lädt …</div></div>';
+ return `<div class="a2-knopf-reihe" style="margin:0 0 10px"><button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-station="aufmass">📐 Zu den Massaufnahmen</button>
+  ${a2Modul("material")?'<button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="matzu">🧱 Material &amp; Zuschnitt</button>':""}</div>
+  <div id="a2RbProjekt" class="a2-rb-projekt"><div class="a2-leer">Lädt …</div></div>`;
 }
 // v3.342: Mengen auf einen Blick in der Projektübersicht - Offertmengen und Komplettausmass bleiben zwei getrennte, beschriftete Zeilen.
 function a2MengenZeilen(){
