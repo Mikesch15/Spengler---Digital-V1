@@ -64,6 +64,7 @@ function kaEinfassungArt(l){
  if(/^einfassungen rund\b/.test(b))return "Einfassungen rund";
  return "";
 }
+function kaIstBlechflaeche(b){return /^blechfläche( zuschnitt)?$/.test(kaNorm(b))}
 function kaNorm(t){return String(t===null||t===undefined?"":t).trim().replace(/\s+/g," ").toLowerCase()}
 const KA_GRUND={leer:"Menge nicht erfasst",masspaar:"zwei Masse statt einer Menge",unlesbar:"Menge nicht berechenbar",negativ:"negative Menge"};
 // liste: Massaufnahmen (Zeilen mit data); ctx: {projectId, companyId, art(typ)->Text, material(wert)->Name}
@@ -88,9 +89,12 @@ function kaSammeln(liste,ctx){
    if(kaAusgeblendet(z)){ausgeblendet++;return}
    const ea=kaEinfassungArt(z);
    if(ea==="-"){ausgeblendet++;return}
-   const bez=ea||String(z.bezeichnung===undefined||z.bezeichnung===null?"":z.bezeichnung).trim();
+   const bez0=String(z.bezeichnung===undefined||z.bezeichnung===null?"":z.bezeichnung).trim();
    const einheit=kaEinheit(z.einheit);
-   const q={id:m.id,art,titel:info.titel,status,pos:z.pos,menge:z.menge,herkunft:String(z.herkunft||"")};
+   // „Blechfläche“ (Einlaufblech, Freies Profil) und „Blechfläche Zuschnitt“ (Dachfenster, Kamin, …) sind dieselbe Grösse: Netto-Fläche
+   // Länge × Abwicklung ohne Verschnitt – nur je Modul anders beschriftet. Im Komplettausmass stehen sie unter einem Namen.
+   const bez=ea||((einheit==="m²"&&kaIstBlechflaeche(bez0))?"Blechfläche":bez0);
+   const q={id:m.id,art,titel:info.titel,status,pos:z.pos,menge:z.menge,herkunft:String(z.herkunft||""),original:bez0};
    const meld=grund=>{pruefen.push(Object.assign({},q,{bezeichnung:bez||"(ohne Bezeichnung)",einheit:String(z.einheit||""),grund}));info.pruefen++};
    if(einheit==="mm"){masse++;info.masse++;return}                      // Masse, keine Mengen
    if(!bez){meld("Bezeichnung fehlt");return}
@@ -150,7 +154,7 @@ function kaMaterialZeilen(liste,Us,ctx){
    if(!l||typeof l!=="object")return;
    const e=kaEinheit(l.einheit), zahl=kaZahl(l.menge);
    if(!zahl.ok)return;
-   if(e==="m²"&&kaNorm(l.bezeichnung)==="blechfläche zuschnitt")add(z,"masseM2",zahl.wert);
+   if(e==="m²"&&kaIstBlechflaeche(l.bezeichnung))add(z,"masseM2",zahl.wert);
    if(kaEinfassungArt(l)&&kaEinfassungArt(l)!=="-")add(z,"masseStk",zahl.wert);   // Stück = Einfassungen (Komplettstückzahl)
   });
  });
@@ -181,13 +185,14 @@ function kaMaFlaeche(m){
   if(!l||typeof l!=="object")return;
   const e=kaEinheit(l.einheit), z=kaZahl(l.menge);
   if(!z.ok)return;
-  if(e==="m²"&&kaNorm(l.bezeichnung)==="blechfläche zuschnitt")m2=(m2===null?0:m2)+z.wert;
+  if(e==="m²"&&kaIstBlechflaeche(l.bezeichnung))m2=(m2===null?0:m2)+z.wert;
   if(kaEinfassungArt(l)&&kaEinfassungArt(l)!=="-")stk=(stk===null?0:stk)+z.wert;
  });
  return (m2!==null?" · "+m2.toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2})+" m²":"")+(stk!==null?" · "+stk.toLocaleString("de-CH",{maximumFractionDigits:2})+" Stk":"");
 }
 // ---- Ende rein ----------------------------------------------------------------
 
+let kaOffen=Object.create(null);     // aufgeklappte Kacheln (bleiben beim Neuzeichnen offen)
 let kaStand=null;          // Zeitpunkt der letzten erfolgreichen Ladung der Massaufnahmen dieses Projekts
 let kaFehler=false;        // letzter Ladeversuch fehlgeschlagen
 let kaFilter="alle";       // Statusfilter (nur Anzeige)
@@ -247,10 +252,16 @@ function kaBauen(host){
   mengen+=`<div class="pmat-unter">${esc(KA_EINHEIT_TITEL[e])}</div><div class="ka-kacheln">`+gr.map(g=>{
    const nm=new Set(g.quellen.map(q=>q.id)).size;
    // nur die Summen - die einzelnen Massaufnahmen stehen nicht darunter (v3.345). Eine mögliche Dublette bleibt als Hinweis sichtbar.
-   return `<div class="ka-kachel"><div class="ka-kachel-name">${ICON[e]||""} ${esc(g.bezeichnung)}${g.teil?' <span class="muted">(Teil)</span>':""}</div>
+   const key=e+"|"+(g.teil?1:0)+"|"+kaNorm(g.bezeichnung);
+   // Antippen klappt die Herkunft auf: je Zeile die Massaufnahme (Knopf öffnet sie), Position, Menge und der Text der Zeile.
+   const nachMa=new Map();g.quellen.forEach(q=>{if(!nachMa.has(q.id))nachMa.set(q.id,{q,zeilen:[]});nachMa.get(q.id).zeilen.push(q)});
+   const herkunft=[...nachMa.values()].map(({q,zeilen})=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>${wf?`<span class="small muted"> · ${esc(statusText(q.status))}</span>`:""}
+     ${zeilen.map(r=>`<div class="small">Pos. ${esc(r.pos)} · ${esc(String(r.menge))} ${esc(e)}${r.original&&kaNorm(r.original)!==kaNorm(g.bezeichnung)?` · „${esc(r.original)}“`:""}${r.herkunft?` <span class="muted">· ${esc(r.herkunft)}</span>`:""}</div>`).join("")}</div>`).join("");
+   return `<details class="ka-kachel" data-ka-key="${esc(key)}"${kaOffen[key]?" open":""}><summary><div class="ka-kachel-name">${ICON[e]||""} ${esc(g.bezeichnung)}${g.teil?' <span class="muted">(Teil)</span>':""}</div>
     <div class="ka-kachel-wert">${esc(kaMengeText(g.summe))} <span>${esc(e)}</span></div>
-    <div class="small muted">aus ${nm} Massaufnahme${nm===1?"":"n"}</div>
-    ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel – nicht zusammengeführt, bitte prüfen.</div>`:""}</div>`;
+    <div class="small muted">aus ${nm} Massaufnahme${nm===1?"":"n"} · antippen = woher</div></summary>
+    ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel – nicht zusammengeführt, bitte prüfen.</div>`:""}
+    ${herkunft}</details>`;
   }).join("")+"</div>";
  });
  if(!mengen)mengen='<div class="small muted">Keine summierbaren Mengen in der Auswahl.</div>';
@@ -320,7 +331,7 @@ function kaMengenKarteHtml(){
   ${T.zeilen.map(z=>`<tr><td>${z.material?esc(z.material):'<span class="muted">ohne Werkstoff</span>'}</td><td>${z.staerke===null?'<span class="muted">nicht erfasst</span>':esc(String(z.staerke).replace(".",","))+" mm"}</td>${z.off.map(o=>`<td class="ka-z">${zahl(o[fO])}</td>`).join("")}<td class="ka-z">${zahl(z[fM])}</td></tr>`).join("")}
   </tbody><tfoot><tr><th colspan="2">Summe</th>${T.summe.off.map(o=>`<th class="ka-z">${sm(o[fO])}</th>`).join("")}<th class="ka-z">${sm(T.summe[fM])}</th></tr></tfoot></table></div>`;
  }
- const def=stk?"Massaufnahme: Einfassungen als Komplettstückzahl je Einfassungsart":"Massaufnahme: Zeilen „Blechfläche Zuschnitt“ (m²) der Massaufnahmen";
+ const def=stk?"Massaufnahme: Einfassungen als Komplettstückzahl je Einfassungsart":"Massaufnahme: Blechfläche (netto, Länge × Abwicklung; je Modul „Blechfläche“ oder „Blechfläche Zuschnitt“)";
  return `<div class="a2-abschnitt">${kopf}<div class="a2-karte">${quelle}${tabelle}
   <div class="small muted" style="margin-top:6px">${def}. Getrennte Quellen – Offertmengen sind keine Massaufnahme-, Ausmass- oder verrechneten Mengen. „–“ = nicht erfasst.</div></div></div>`;
 }
@@ -348,3 +359,10 @@ document.addEventListener("click",e=>{
   if(typeof openMeasurement==="function")openMeasurement(m);
  }
 });
+// aufgeklappte Kacheln merken
+document.addEventListener("toggle",e=>{
+ const d=e.target;
+ if(!d||!d.matches||!d.matches("details.ka-kachel"))return;
+ const k=d.getAttribute("data-ka-key");
+ if(d.open)kaOffen[k]=true; else delete kaOffen[k];
+},true);

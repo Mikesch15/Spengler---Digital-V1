@@ -1894,3 +1894,7 @@ html.dark .rmat-unsicher{color:#e0a35c}
 .ka-kachel-name{font-size:13px;font-weight:600;overflow-wrap:anywhere}
 .ka-kachel-wert{font-size:20px;font-weight:800}
 .ka-kachel-wert span{font-size:13px;font-weight:600;color:var(--muted)}
+details.ka-kachel>summary{list-style:none;cursor:pointer}
+details.ka-kachel>summary::-webkit-details-marker{display:none}
+details.ka-kachel[open]{grid-column:1/-1}
+.ka-kachel .ka-quelle{margin:6px 0 0;padding-top:6px;border-top:1px solid var(--line)}

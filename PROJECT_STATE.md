@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.348`
+- Aktueller Entwicklungsstand: `v3.349`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.349 — Komplettausmass: Positionen antippen (Herkunft), Blechfläche zusammengeführt
+
+Wunsch: Positionen anklicken, um zu sehen, aus welchen Massaufnahmen sie stammen und dorthin zu gelangen; Frage nach dem Unterschied „Blechfläche“ / „Blechfläche Zuschnitt“. Antwort am Code: kein fachlicher Unterschied – beide sind die Netto-Fläche Länge × Abwicklung ohne Verschnitt, nur je Modul anders beschriftet (js/29/30/31: „Blechfläche“ = Gesamtlänge bzw. Länge je Segment × Abwicklung; js/66 u. a.: „Blechfläche Zuschnitt“ = Summe Länge × Abwicklung der Zuschnitte); keine Massaufnahme schreibt beide. js/85: `kaIstBlechflaeche` – beide Bezeichnungen (m²) werden zu EINER Position „Blechfläche“ (Originaltext bleibt je Quelle erhalten); Material-/Mengenübersicht und Kurztext zählen beide. „Materialfläche verlegt“ (Anschlussblech) bleibt eine andere Grösse. Kacheln sind jetzt `<details>`: Antippen zeigt je Massaufnahme Knopf (öffnet sie – Cockpit: `openMeasurement`, Ansicht: `data-a2-meas`), Status, Position, Menge, Originaltext und Herkunftstext; aufgeklappte Kacheln merkt `kaOffen` (bleiben beim Neuzeichnen offen). Die in v3.345 entfernte Rückverfolgung steht damit wieder zur Verfügung, aber nur auf Abruf.
+Prüfstand `komplettausmass-v3-341` auf 66 erweitert; Mutationen (Blechfläche nicht zusammengeführt, Herkunft fehlt, Offen-Zustand geht verloren) erkannt.
 
 ### v3.348 — Komplettausmass: Ecken, Scharen, Knicke ausgeblendet
 
@@ -15,11 +20,6 @@ Wunsch: „Raus kann noch Ecken, Scharen, Knicke.“ js/85 `KA_AUSGEBLENDET` um 
 
 Wunsch (3 Nachrichten): ins Komplettausmass gehören nicht: Biegungen, Blechstösse, Umschläge, Einfassungen nur als Komplettstückzahl je Einfassungsart, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Stücke; nicht so versteckt platzieren; schöner auflisten wie die Bleilappen. Grundlage: alle echten Ausmass-Bezeichnungen der Firma abgefragt (nur lesend). js/85: `kaAusgeblendet` (Muster für biegung, stoss/stösse, umschlag/umschläge, endzugabe, ^gehrung, gava/haltebleche, ^segment, stück/zuschnitte – Stückzahlen; „Blechfläche Zuschnitt“ in m² bleibt) – solche Zeilen werden vor allem anderen verworfen (auch ungültige Mengen erscheinen nicht unter „Zu prüfen“), ihre Zahl steht als Hinweis dabei; `kaEinfassungArt`: „Dachfenstereinfassung, <Deckart>“ → „Dachfenstereinfassungen“, „Kamineinfassung, …“ → „Kamineinfassungen“, „Einfassungen rund“ bleibt, „Einfassung N · Titel“ entfällt; Quellen bleiben in der Gruppe. Stk-Spalte der Material- und Mengenübersicht = diese Einfassungs-Stückzahlen. Anzeige: je Mengenposition eine Kachel (Name, fette Summe, „aus n Massaufnahmen“, Dubletten-Hinweis), Bleilappen weiter als feste Zeile oben. Platzierung: `kaA2Html()` jetzt offen auf der Projektübersicht (js/70, zwischen Projekt-/Mengenübersicht und Ablauf; auch weiter im Register Ausmass); die Kurzzeile „Komplettausmass“ mit Knopf entfällt. Bewusst NICHT ausgeblendet (nicht genannt): Ecken, Scharen, Knicke, Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m. Keine Datenänderung.
 Prüfstand `komplettausmass-v3-341` 58; Mutationen (Biegungen/GAVA/Segmente nicht ausgeblendet, Einfassung nicht je Art, Einzel-Einfassungen bleiben, Komplettausmass wieder versteckt, nichts ausgeblendet) erkannt; `cockpit-dashboard-v3-343` angepasst.
-
-### v3.346 — Geltende Offerten wählbar (angebote.gilt)
-
-Wunsch: „Die geltenden Offerten sollen ausgewählt werden können, wenn mehrere dann getrennt anzeigen.“ Das ist die seit v3.335 offene Frage „welche Offerte gilt“. Einzige Datenbankänderung (additiv, vorab geprüft: Spalten und Policies von `angebote` angesehen – `has_permission('angebote','edit')` plus RESTRICTIVE `tenant_boundary_angebote`/`feature_boundary_angebote`, spaltenunabhängig): Migration `angebote_gilt_kennzeichen` = `alter table public.angebote add column gilt boolean not null default true` (Standard true: bestehende Offerten gelten, nichts ändert sich). Rollback-Test mit Nutzer-Impersonation (alles per Exception zurückgerollt): PETER-Admin ändert 1 Zeile, Mitarbeiter ohne Offerten-Freigabe 0, Testfirma-Admin 0 und sieht 0. Code: js/63 – `angGeltende` (nur ein ausdrückliches false schliesst aus), `angMengenKurz`/`angMengenHtml` zeigen nur geltende (mehrere = je Offerte getrennt, nie addiert; Hinweis „n von m nicht als geltend markiert“; keine geltend = ausdrücklicher Text), `angGiltHtml` (Kontrollkästchen je Offerte, ab zwei Offerten; im Register Offerte der Ansicht und in der Cockpit-Karte), Handler schreibt genau `{gilt}` auf die eine Offerte (`update … eq id … select id`; 0 Zeilen = RLS blockiert → Kästchen springt zurück, Meldung). js/85 – Material- und Mengenübersicht: jede geltende Offerte bekommt eine eigene Spalte (kein Umschalter mehr zwischen Offerten, `kaMaterialZeilen` nimmt eine Liste). js/70 enthält nur das Markup, keinen Schreibweg. Nicht geändert: Offertpositionen, Massaufnahmen, Rechenkerne.
-Prüfstand `offerte-gilt-v3-346` (14); Mutationen (gilt ignoriert, falsches Flag, RLS-0-Zeilen nicht geprüft, Summe statt getrennt, Karte ignoriert gilt) erkannt; `cockpit-dashboard-v3-343` (36), `komplettausmass-v3-341`, `projektuebersicht-v3-340` angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
