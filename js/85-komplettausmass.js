@@ -43,14 +43,14 @@ function kaZahl(v){
  return n<0?{ok:false,art:"negativ"}:{ok:true,wert:n};
 }
 // v3.347 (Wunsch): Diese Zeilen gehören NICHT ins Komplettausmass: Biegungen, Blechstösse, Umschläge, Endzugaben, Gehrungen, GAVA-Haltebleche,
-// Segmente und Stückzahlen von Zuschnitten („Stücke“, „Zuschnitte“). Sie stehen weiter in der Massaufnahme selbst.
-const KA_AUSGEBLENDET=[/biegung/,/(^|[^a-zäöü])(blech)?st(ö|oe|o)sse?\b/,/umschl(ä|ae)g/,/endzugabe/,/^gehrung/,/gava|haltebleche?/,/^segment/,/stück|stueck|^zuschnitte?$/];
+// Segmente, Ecken, Scharen, Knicke und Stückzahlen von Zuschnitten („Stücke“, „Zuschnitte“). Sie stehen weiter in der Massaufnahme selbst.
+const KA_AUSGEBLENDET=[/biegung/,/(^|[^a-zäöü])(blech)?st(ö|oe|o)sse?\b/,/umschl(ä|ae)g/,/endzugabe/,/^gehrung/,/gava|haltebleche?/,/^segment/,/^ecken?\b/,/^schar(en)?\b/,/^knick/,/stück|stueck|^zuschnitte?$/];
 function kaAusgeblendet(l){
  const b=kaNorm(l&&l.bezeichnung), e=kaEinheit(l&&l.einheit);
  if(e==="mm")return false;
  if(!b)return false;
  // „Blechfläche Zuschnitt“ (m²) bleibt - die Stück-Muster gelten nur für Stückzahlen
- if(e!=="Stk"&&/stück|stueck|zuschnitt/.test(b)&&!KA_AUSGEBLENDET.slice(0,7).some(r=>r.test(b)))return false;
+ if(e!=="Stk"&&/stück|stueck|zuschnitt/.test(b)&&!KA_AUSGEBLENDET.slice(0,10).some(r=>r.test(b)))return false;
  return KA_AUSGEBLENDET.some(r=>r.test(b));
 }
 // Einfassungen: nur als Komplettstückzahl je Einfassungsart (Dachfenstereinfassung, Kamineinfassung, Einfassungen rund) - die Zeilen
@@ -256,7 +256,7 @@ function kaBauen(host){
  if(!mengen)mengen='<div class="small muted">Keine summierbaren Mengen in der Auswahl.</div>';
  const pruef=R.pruefen.length?`<div class="pmat-unter" style="color:var(--red)">Zu prüfen (nicht in den Summen)</div>`+R.pruefen.map(p=>`<div class="ka-quelle"><b>${esc(p.bezeichnung)}</b> <span class="small" style="color:var(--red)">– ${esc(p.grund)}</span>
   <div class="small"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(p.id)}">${esc(p.art)}${p.titel?" · "+esc(p.titel):""}</button> · Pos. ${esc(p.pos)} · Menge „${esc(String(p.menge===null||p.menge===undefined?"":p.menge))}“ ${esc(p.einheit)}</div></div>`).join(""):"";
- const aus=R.ausgeblendet?`<div class="small muted" style="margin-top:6px">${R.ausgeblendet} Zeile${R.ausgeblendet===1?"":"n"} (Biegungen, Blechstösse, Umschläge, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Stücke, einzelne Einfassungen) gehören nicht ins Komplettausmass – sie stehen in der Massaufnahme.</div>`:"";
+ const aus=R.ausgeblendet?`<div class="small muted" style="margin-top:6px">${R.ausgeblendet} Zeile${R.ausgeblendet===1?"":"n"} (Biegungen, Blechstösse, Umschläge, Endzugaben, Gehrungen, GAVA-Haltebleche, Segmente, Ecken, Scharen, Knicke, Stücke, einzelne Einfassungen) gehören nicht ins Komplettausmass – sie stehen in der Massaufnahme.</div>`:"";
  const masse=R.masse?`<div class="small muted" style="margin-top:6px">${R.masse} Masszeile${R.masse===1?"":"n"} in mm (z. B. Zuschnittlängen) sind Masse, keine Mengen – nicht summiert.</div>`:"";
  const art=Object.keys(R.nachArt).sort().map(k=>`${R.nachArt[k]} × ${esc(k)}`).join(" · ");
  const mat=Object.keys(R.nachMaterial).sort().map(k=>`${R.nachMaterial[k]} × ${esc(k)}`).join(" · ");

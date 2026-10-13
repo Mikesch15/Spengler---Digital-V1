@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.347`
+- Aktueller Entwicklungsstand: `v3.348`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.348 — Komplettausmass: Ecken, Scharen, Knicke ausgeblendet
+
+Wunsch: „Raus kann noch Ecken, Scharen, Knicke.“ js/85 `KA_AUSGEBLENDET` um `^ecken?`, `^schar(en)?`, `^knick` ergänzt (Stückzahlen wie „Ecken“ bei Mauerabdeckung, „Scharen“ bei Lukarne, „Knicke im Verlauf“ bei Anschlussblech); Hinweistext und Prüfstand `komplettausmass-v3-341` (58, Mutationen je Muster erkannt) angepasst. Weiterhin NICHT ausgeblendet: Schieber, Boden, Rinnenboden, Aussenwinkel, Dehnungsstücke, Schiebestutzen, Rinnenhalter, Längen in m.
 
 ### v3.347 — Komplettausmass aufgeräumt, als Kacheln, offen auf der Projektübersicht
 
@@ -16,11 +20,6 @@ Prüfstand `komplettausmass-v3-341` 58; Mutationen (Biegungen/GAVA/Segmente nich
 
 Wunsch: „Die geltenden Offerten sollen ausgewählt werden können, wenn mehrere dann getrennt anzeigen.“ Das ist die seit v3.335 offene Frage „welche Offerte gilt“. Einzige Datenbankänderung (additiv, vorab geprüft: Spalten und Policies von `angebote` angesehen – `has_permission('angebote','edit')` plus RESTRICTIVE `tenant_boundary_angebote`/`feature_boundary_angebote`, spaltenunabhängig): Migration `angebote_gilt_kennzeichen` = `alter table public.angebote add column gilt boolean not null default true` (Standard true: bestehende Offerten gelten, nichts ändert sich). Rollback-Test mit Nutzer-Impersonation (alles per Exception zurückgerollt): PETER-Admin ändert 1 Zeile, Mitarbeiter ohne Offerten-Freigabe 0, Testfirma-Admin 0 und sieht 0. Code: js/63 – `angGeltende` (nur ein ausdrückliches false schliesst aus), `angMengenKurz`/`angMengenHtml` zeigen nur geltende (mehrere = je Offerte getrennt, nie addiert; Hinweis „n von m nicht als geltend markiert“; keine geltend = ausdrücklicher Text), `angGiltHtml` (Kontrollkästchen je Offerte, ab zwei Offerten; im Register Offerte der Ansicht und in der Cockpit-Karte), Handler schreibt genau `{gilt}` auf die eine Offerte (`update … eq id … select id`; 0 Zeilen = RLS blockiert → Kästchen springt zurück, Meldung). js/85 – Material- und Mengenübersicht: jede geltende Offerte bekommt eine eigene Spalte (kein Umschalter mehr zwischen Offerten, `kaMaterialZeilen` nimmt eine Liste). js/70 enthält nur das Markup, keinen Schreibweg. Nicht geändert: Offertpositionen, Massaufnahmen, Rechenkerne.
 Prüfstand `offerte-gilt-v3-346` (14); Mutationen (gilt ignoriert, falsches Flag, RLS-0-Zeilen nicht geprüft, Summe statt getrennt, Karte ignoriert gilt) erkannt; `cockpit-dashboard-v3-343` (36), `komplettausmass-v3-341`, `projektuebersicht-v3-340` angepasst.
-
-### v3.345 — Komplettausmass: Bleilappen oben, einzelne Massaufnahmen entfernt
-
-Wunsch: „Anzahl Bleilappen können auch ins Gesamtausmass, dafür die einzelnen Massaufnahmen entfernen“ (Rückfrage beantwortet: eigene Zeile; nur die Anzeige verkürzen, gespeicherte Massaufnahmen bleiben unverändert). js/85 `kaBauen`: feste Zeile „🔩 Bleilappen: n Stk“ (Summe der Stk-Zeilen „Bleilappen“ aller Massaufnahmen des Projekts; fehlt, wenn es keine gibt) vor den Summen; Bleilappen bleibt zusätzlich Mengenposition. Entfernt: Liste „Massaufnahmen in dieser Übersicht“ und die aufklappbare Herkunft je Summe. Bleibt: Summen mit „aus n Massaufnahmen“, Hinweis „mögliche Dublette“, „Zu prüfen“ (mit Knopf in die Massaufnahme), Status als Anzahl je Status, Filter. Folge (bewusst): die Rückverfolgung bis zur einzelnen Zeile (Auftrag v3.341, Abschnitt 3.1) ist nur noch über „Zu prüfen“ und die Massaufnahmen-Liste des Projekts möglich; der Zuschnitt-Abhakstand je Massaufnahme steht nicht mehr in der Übersicht (er steht im Rüstblatt). Keine Datenänderung.
-Prüfstand `komplettausmass-v3-341` auf 51 angepasst/erweitert; Mutationen (Bleilappen nur erste Massaufnahme, Zeile fehlt, Herkunft wieder da) erkannt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
