@@ -957,13 +957,16 @@ function a2ProjListeHtml(){
   +'<div class="a2-liste-zwei">'+treffer.map(a2ProjektZeileHtml).join("")+"</div>";
 }
 function a2ProjektZeileHtml(p){
+ // v3.342: Stand je Projekt (Anzahl, offen, zu rüsten) aus der einen Abfrage in js/09; vor dem Laden/bei Fehler steht nichts.
+ if(typeof ladeProjectMeasTypen==="function")ladeProjectMeasTypen();
+ const stand=(typeof projektStandZeile==="function")?projektStandZeile(p.id):"";
  const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
  const s=(typeof projektStatusInfo==="function")?projektStatusInfo(p):null;
  const unten=[p.name&&p.name!==titel?p.name:"",p.order_no?"Auftrag "+p.order_no:""]
   .filter(Boolean).join(" · ");
  return `<button type="button" class="a2-zeile a2-zeile-projekt" data-a2-projekt="${esc(p.id)}">
   <span class="a2-zeile-text"><b>${esc(titel)}</b>
-   <span>${esc(unten||"—")}</span></span>
+   <span>${esc(unten||"—")}</span>${stand?`<span class="a2-pz-stand">${esc(stand)}</span>`:""}</span>
   ${s?`<span class="a2-marke a2-m-grau">${esc(s.icon+" "+s.label)}</span>`:""}
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
@@ -1739,6 +1742,7 @@ function a2RegUebersicht(p){
     <div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>
     <div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>
    </div>
+   ${a2MengenZeilen()}
   </div>
   <div class="a2-abschnitt">
    <div class="a2-abschnitt-kopf"><h2>Stammdaten</h2></div>
@@ -2044,11 +2048,23 @@ function a2ZugeteiltText(m){
 }
 
 // ---- Ausmass --------------------------------------------------------------
+// v3.342: Mengen auf einen Blick in der Projektübersicht - Offertmengen und Komplettausmass bleiben zwei getrennte, beschriftete Zeilen.
+function a2MengenZeilen(){
+ let h="";
+ const o=(typeof angMengenKurz==="function")?angMengenKurz(a2Ang(),(typeof angMatListe==="function")?angMatListe():[]):"";
+ if(o)h+=`<div class="small" style="margin-top:6px"><b>📏 Offertmengen:</b> ${esc(o)} <span class="muted">(nur aus der Offerte)</span></div>`;
+ const k=(typeof kaA2Kurz==="function")?kaA2Kurz():"";
+ if(k)h+=`<div class="small" style="margin-top:4px"><b>📊 Komplettausmass (Übersicht):</b> ${esc(k)}
+  <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-station="ausmass" style="margin-left:6px">Ansehen</button></div>`;
+ return h;
+}
 function a2RegAusmass(p){
  const liste=a2Am();
  let html=`<div class="a2-knopf-reihe" style="margin:0 0 12px">
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesam">
    ＋ Neues Ausmass</button></div>`;
+ // v3.342: das Komplettausmass (Übersicht aus den Massaufnahmen, js/85) steht zuoberst - es ist NICHT die Liste der Ausmasse darunter.
+ if(typeof kaA2Html==="function")html+=kaA2Html();
  if(!liste.length)return html+'<div class="a2-leer">Noch kein Ausmass in diesem Projekt.</div>';
  html+=`<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(liste.length,"Ausmass","Ausmasse"))}</h2></div>`;
  return html+'<div class="a2-liste-zwei">'+liste.map(a=>{

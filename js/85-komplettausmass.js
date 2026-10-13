@@ -114,19 +114,17 @@ function kaLadeFehler(){kaFehler=true;renderKomplettausmass()}
 function kaZeit(d){return d?d.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"}):""}
 function kaMengeText(n){return Number(n).toLocaleString("de-CH",{maximumFractionDigits:2})}
 
-function renderKomplettausmass(){
- const box=$("cockpitKomplettBody");
- if(!box)return;
+// Baut die Übersicht als HTML. host "card" = Karte im Projekt-Cockpit, "a2" = Register Ausmass der Projektseite (js/70).
+// Rückgabe {html, n} (n = Anzahl Massaufnahmen oder "–").
+function kaBauen(host){
  const pid=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
  if(kaProjekt!==pid){kaProjekt=pid;kaFilter="alle";kaStand=null;kaFehler=false}
- const zahlEl=$("cockpitKomplettCount");
- if(!pid){box.innerHTML="";return}
+ if(!pid)return {html:"",n:"–"};
  const cache=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache:null;
  if(!cache||(!kaStand&&!kaFehler)){
-  box.innerHTML=kaFehler?'<div class="small" style="color:var(--red)">Die Massaufnahmen konnten nicht geladen werden – keine Übersicht möglich.</div>':'<div class="small">Lädt…</div>';
-  if(zahlEl)zahlEl.textContent="–";
-  return;
+  return {html:kaFehler?'<div class="small" style="color:var(--red)">Die Massaufnahmen konnten nicht geladen werden – keine Übersicht möglich.</div>':'<div class="small">Lädt…</div>',n:"–"};
  }
+ const oeffnen=host==="a2"?"data-a2-meas":"data-ka-open";
  const ctx={projectId:pid,companyId:(typeof currentProfile!=="undefined"&&currentProfile)?currentProfile.company_id:null,
   art:t=>(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t,
   material:v=>(typeof pmatMaterialName==="function")?pmatMaterialName(v):String(v)};
@@ -135,18 +133,17 @@ function renderKomplettausmass(){
  let sicht=cache;
  if(wf&&kaFilter!=="alle")sicht=cache.filter(m=>(KA_STATUS.indexOf(m.workflow_status)>=0?m.workflow_status:"unbekannt")===kaFilter);
  const R=kaSammeln(sicht,ctx);
- if(zahlEl)zahlEl.textContent=String(alle.massaufnahmen.length);
  const statusText=s=>s==="unbekannt"?"Status unbekannt":((typeof mwStatusText==="function")?mwStatusText(s):s);
  const kopf=`<div class="small muted">Übersicht aus den Massaufnahmen dieses Projekts – <b>keine</b> Offertmenge, kein Zuschnitt, keine Reservierung und kein bestätigtes oder verrechnetes Ausmass. Es wird nichts gespeichert.</div>
 <div class="small ${kaFehler?"":"muted"}"${kaFehler?' style="color:var(--red)"':""}>${kaFehler?"Nicht frisch geladen – letzter Stand "+esc(kaZeit(kaStand)||"unbekannt")+".":"Stand: "+esc(kaZeit(kaStand)||"–")+" Uhr"}</div>`;
- if(!alle.massaufnahmen.length){box.innerHTML=kopf+'<div class="empty">Noch keine Massaufnahme in diesem Projekt.</div>';return}
+ if(!alle.massaufnahmen.length)return {html:kopf+'<div class="empty">Noch keine Massaufnahme in diesem Projekt.</div>',n:"0"};
  const stArr=Object.keys(alle.nachStatus);
  const kenn=[`<b>${alle.massaufnahmen.length}</b> Massaufnahme${alle.massaufnahmen.length===1?"":"n"}`+(alle.ohneAusmass?` (${alle.ohneAusmass} ohne Ausmasszeilen)`:""),
   `<b>${alle.gruppen.length}</b> Mengenposition${alle.gruppen.length===1?"":"en"}`,
   alle.pruefen.length?`<b style="color:var(--red)">${alle.pruefen.length}</b> zu prüfen`:"nichts zu prüfen"];
  const statusZeile=wf?stArr.sort((a,b)=>KA_STATUS.indexOf(a)-KA_STATUS.indexOf(b)).map(s=>`${alle.nachStatus[s]} × ${esc(statusText(s))}`).join(" · "):"";
  const filter=(wf&&stArr.length>1)?`<div class="bar" style="margin:6px 0">${["alle"].concat(stArr).map(s=>`<button type="button" class="gray mz-klein${kaFilter===s?" aktiv":""}" data-ka-filter="${esc(s)}">${s==="alle"?"Alle":esc(statusText(s))}</button>`).join("")}</div>`:"";
- const quelle=q=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" data-ka-open="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>
+ const quelle=q=>`<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(q.id)}">${esc(q.art)}${q.titel?" · "+esc(q.titel):""}</button>
   <span class="small"> Pos. ${esc(q.pos)} · ${esc(String(q.menge))} ${esc(q.einheit||"")}</span>
   ${wf?`<span class="small muted"> · ${esc(statusText(q.status))}</span>`:""}
   ${q.herkunft?`<div class="small muted">${esc(q.herkunft)}</div>`:""}</div>`;
@@ -154,15 +151,18 @@ function renderKomplettausmass(){
  KA_EINHEITEN.forEach(e=>{
   const gr=R.gruppen.filter(g=>g.einheit===e);
   if(!gr.length)return;
-  mengen+=`<div class="pmat-unter">${esc(KA_EINHEIT_TITEL[e])}</div>`+gr.map(g=>`<details class="ka-gruppe" style="margin:4px 0">
+  mengen+=`<div class="pmat-unter">${esc(KA_EINHEIT_TITEL[e])}</div>`+gr.map(g=>{
+   const nm=new Set(g.quellen.map(q=>q.id)).size;
+   return `<details class="ka-gruppe" style="margin:4px 0">
    <summary><b>${esc(g.bezeichnung)}</b>${g.teil?' <span class="small muted">(Teil)</span>':""}: <b>${esc(kaMengeText(g.summe))} ${esc(e)}</b>
-    <span class="small muted">· aus ${g.quellen.length} Zeile${g.quellen.length===1?"":"n"} / ${new Set(g.quellen.map(q=>q.id)).size} Massaufnahme${new Set(g.quellen.map(q=>q.id)).size===1?"":"n"} · Summe der Zeilen mit dieser Bezeichnung und Einheit</span></summary>
+    <span class="small muted">· aus ${g.quellen.length} Zeile${g.quellen.length===1?"":"n"} / ${nm} Massaufnahme${nm===1?"":"n"} · Summe der Zeilen mit dieser Bezeichnung und Einheit</span></summary>
    ${g.dubletten.length?`<div class="small" style="color:var(--red)">⚠️ Mögliche Dublette: gleiche Art und gleicher Titel in mehreren Massaufnahmen – nicht zusammengeführt oder gelöscht, bitte prüfen.</div>`:""}
-   ${g.quellen.map(quelle).join("")}</details>`).join("");
+   ${g.quellen.map(quelle).join("")}</details>`;
+  }).join("");
  });
  if(!mengen)mengen='<div class="small muted">Keine summierbaren Mengen in der Auswahl.</div>';
  const pruef=R.pruefen.length?`<div class="pmat-unter" style="color:var(--red)">Zu prüfen (nicht in den Summen)</div>`+R.pruefen.map(p=>`<div class="ka-quelle"><b>${esc(p.bezeichnung)}</b> <span class="small" style="color:var(--red)">– ${esc(p.grund)}</span>
-  <div class="small"><button type="button" class="pmat-quelle" data-ka-open="${esc(p.id)}">${esc(p.art)}${p.titel?" · "+esc(p.titel):""}</button> · Pos. ${esc(p.pos)} · Menge „${esc(String(p.menge===null||p.menge===undefined?"":p.menge))}“ ${esc(p.einheit)}</div></div>`).join(""):"";
+  <div class="small"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(p.id)}">${esc(p.art)}${p.titel?" · "+esc(p.titel):""}</button> · Pos. ${esc(p.pos)} · Menge „${esc(String(p.menge===null||p.menge===undefined?"":p.menge))}“ ${esc(p.einheit)}</div></div>`).join(""):"";
  const masse=R.masse?`<div class="small muted" style="margin-top:6px">${R.masse} Masszeile${R.masse===1?"":"n"} in mm (z. B. Zuschnittlängen) sind Masse, keine Mengen – nicht summiert.</div>`:"";
  const zeAn=(typeof zeStand==="function"&&typeof zeGeladen!=="undefined");
  const liste=R.massaufnahmen.map(m=>{
@@ -172,29 +172,53 @@ function renderKomplettausmass(){
    const s=zeStand(mm);
    if(s.gesamt)zs=` · Zuschnitt: ${s.erledigt} von ${s.gesamt} Stück abgehakt (kein Montagestand)`;
   }
-  return `<div class="ka-quelle"><button type="button" class="pmat-quelle" data-ka-open="${esc(m.id)}">${esc(m.art)}${m.titel?" · "+esc(m.titel):""}</button>
+  return `<div class="ka-quelle"><button type="button" class="pmat-quelle" ${oeffnen}="${esc(m.id)}">${esc(m.art)}${m.titel?" · "+esc(m.titel):""}</button>
    <span class="small muted">${wf?" · Status der Massaufnahme: "+esc(statusText(m.status)):""}${m.archiviert?" · archiviert":""} · ${m.zeilen?m.zeilen+" Ausmasszeile"+(m.zeilen===1?"":"n"):"keine Ausmasszeilen"}${esc(zs)}</span></div>`;
  }).join("");
  const art=Object.keys(R.nachArt).sort().map(k=>`${R.nachArt[k]} × ${esc(k)}`).join(" · ");
  const mat=Object.keys(R.nachMaterial).sort().map(k=>`${R.nachMaterial[k]} × ${esc(k)}`).join(" · ");
- box.innerHTML=kopf+`<div style="margin:6px 0">${kenn.join(" · ")}</div>`
+ return {n:String(alle.massaufnahmen.length),kenn:{mas:alle.massaufnahmen.length,gruppen:alle.gruppen.length,pruefen:alle.pruefen.length},
+  html:kopf+`<div style="margin:6px 0">${kenn.join(" · ")}</div>`
   +(statusZeile?`<div class="small">${statusZeile} <span class="muted">(Status je Massaufnahme, nicht je Position)</span></div>`:"")
   +filter+mengen+pruef+masse
   +`<div class="pmat-unter" style="margin-top:10px">Massaufnahmen in dieser Übersicht</div>`+liste
   +(art?`<div class="small muted" style="margin-top:6px">Nach Art: ${art}</div>`:"")
-  +(mat?`<div class="small muted">Nach Werkstoff: ${mat}</div>`:"");
+  +(mat?`<div class="small muted">Nach Werkstoff: ${mat}</div>`:"")};
 }
-if($("cockpitKomplettBody")){
- $("cockpitKomplettBody").addEventListener("click",e=>{
-  const f=e.target.closest?e.target.closest("[data-ka-filter]"):null;
-  if(f){kaFilter=f.dataset.kaFilter;renderKomplettausmass();return}
-  const o=e.target.closest?e.target.closest("[data-ka-open]"):null;
-  if(o){
-   const id=Number(o.dataset.kaOpen);
-   const m=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache.find(x=>Number(x.id)===id):null;
-   if(!m)return;
-   if(typeof measEditReturnTo!=="undefined")measEditReturnTo="projectCockpit";
-   if(typeof openMeasurement==="function")openMeasurement(m);
-  }
- });
+// Karte im Cockpit (klassisches Fenster)
+function renderKomplettausmass(){
+ const box=$("cockpitKomplettBody");
+ if(!box)return;
+ const r=kaBauen("card");
+ box.innerHTML=r.html;
+ if($("cockpitKomplettCount"))$("cockpitKomplettCount").textContent=r.n;
 }
+// Ein Block für die Projektseite der Ansicht (js/70, Register Ausmass); ruft nur kaBauen.
+function kaA2Html(){
+ const r=kaBauen("a2");
+ return `<div class="a2-abschnitt"><div class="a2-abschnitt-kopf"><h2>📊 Komplettausmass (Übersicht)</h2></div><div class="a2-karte a2-karte-kompakt ka-a2">${r.html}</div></div>`;
+}
+// Kurzzeile für die Übersicht der Projektseite (nur wenn es etwas zu zeigen gibt)
+function kaA2Kurz(){
+ const r=kaBauen("a2");
+ if(!r.kenn)return "";
+ return r.kenn.mas+" Massaufnahme"+(r.kenn.mas===1?"":"n")+" · "+r.kenn.gruppen+" Mengenposition"+(r.kenn.gruppen===1?"":"en")+(r.kenn.pruefen?" · "+r.kenn.pruefen+" zu prüfen":"");
+}
+// Filter und Öffnen gelten für beide Orte (Karte und Projektseite)
+document.addEventListener("click",e=>{
+ const f=e.target.closest?e.target.closest("[data-ka-filter]"):null;
+ if(f){
+  kaFilter=f.dataset.kaFilter;
+  renderKomplettausmass();
+  if(typeof a2Zeichnen==="function"&&typeof a2Zustand!=="undefined"&&a2Zustand.reg==="ausmass"&&f.closest(".ka-a2"))a2Zeichnen();
+  return;
+ }
+ const o=e.target.closest?e.target.closest("#cockpitKomplettBody [data-ka-open]"):null;
+ if(o){
+  const id=Number(o.dataset.kaOpen);
+  const m=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache.find(x=>Number(x.id)===id):null;
+  if(!m)return;
+  if(typeof measEditReturnTo!=="undefined")measEditReturnTo="projectCockpit";
+  if(typeof openMeasurement==="function")openMeasurement(m);
+ }
+});

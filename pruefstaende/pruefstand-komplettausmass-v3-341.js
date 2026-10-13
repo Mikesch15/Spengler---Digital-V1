@@ -179,6 +179,32 @@ u=await page.evaluate(()=>{
  return $("cockpitKomplettBody").textContent.replace(/\s+/g," ");
 });
 p(/Zuschnitt: 1 von 1 Stück abgehakt \(kein Montagestand\)/.test(u)&&/Status der Massaufnahme: Zu rüsten/.test(u)&&!/Montiert|Gerüstet/.test(u),"11 · abgehaktes Zuschnittstück ändert den Status nicht (bleibt „Zu rüsten“), steht getrennt als Zuschnitt",u.slice(0,400));
+// ---- v3.342: die sichtbare Ansicht (Ansicht2, Projektseite) ----
+const a2=await page.evaluate(async()=>{
+ const out={};
+ cockpitProjectId=7;
+ projectMeasurementsCache=[{id:1,project_id:7,company_id:"A",type:"kehle",title:"Süd",workflow_status:"zu_ruesten",data:{ausmass:[{pos:1,bezeichnung:"Blechfläche Zuschnitt",menge:"1,34",einheit:"m²",teil:false},{pos:2,bezeichnung:"Fläche",menge:null,einheit:"m²",teil:false}]}}];
+ kaGeladen();
+ const h=a2RegAusmass({id:7});
+ const d=document.createElement("div");d.innerHTML=h;
+ out.ausmass={kopf:/Komplettausmass \(Übersicht\)/.test(h),summe:/Blechfläche Zuschnitt: 1[.,]34 m²/.test(d.textContent.replace(/\s+/g," ")),
+  pruefen:/Zu prüfen/.test(d.textContent),oeffnen:d.querySelectorAll("[data-a2-meas='1']").length,neu:/Neues Ausmass/.test(h)};
+ projectAngeboteCache=[{id:1,title:"A",positions:[{pos:"1",description:"R",quantity:12,unit:"m",abwicklung_mm:500}]}];
+ const z=a2MengenZeilen();
+ out.zeilen={offerte:/Offertmengen:<\/b> [^<]*6[.,]00 m²/.test(z)&&/nur aus der Offerte/.test(z),kompl:/Komplettausmass \(Übersicht\):<\/b> [^<]*1 Massaufnahme[^<]*1 Mengenposition[^<]*1 zu prüfen/.test(z),
+  knopf:/data-a2-station="ausmass"/.test(z),getrennt:z.indexOf("Offertmengen")<z.indexOf("Komplettausmass")};
+ projectAngeboteCache=[];
+ out.ohneOffertZeile=!/Offertmengen/.test(a2MengenZeilen());
+ projectMeasStand=new Map([[7,{gesamt:3,offen:2,zuRuesten:1}]]);
+ out.zeile=a2ProjektZeileHtml({id:7,name:"P7",object:"Musterstrasse 1",order_no:"1",archived:false});
+ projectMeasStand=null;
+ out.zeileLeer=a2ProjektZeileHtml({id:7,name:"P7",object:"Musterstrasse 1",order_no:"1",archived:false});
+ return out;
+});
+p(a2.ausmass.kopf&&a2.ausmass.summe&&a2.ausmass.pruefen&&a2.ausmass.oeffnen>=1&&a2.ausmass.neu,"Projektseite (Register Ausmass): Komplettausmass zuoberst, Summe, Zu prüfen, Öffnen über den Ansicht-Weg (data-a2-meas); „Neues Ausmass“ bleibt",a2.ausmass);
+p(a2.zeilen.offerte&&a2.zeilen.kompl&&a2.zeilen.knopf&&a2.zeilen.getrennt,"Projektübersicht: Offertmengen und Komplettausmass als zwei getrennte, beschriftete Zeilen mit Weg ins Register",a2.zeilen);
+p(a2.ohneOffertZeile,"ohne Offerte keine Offertmengen-Zeile");
+p(/a2-pz-stand/.test(a2.zeile)&&/3 Massaufnahmen · 2 offen/.test(a2.zeile)&&!/a2-pz-stand/.test(a2.zeileLeer),"Projektliste der Ansicht: Stand-Zeile, vor dem Laden nichts",a2.zeile.slice(0,200));
 // Offerte vs Komplettausmass
 const ang=fs.readFileSync("js/63-angebote.js","utf8");
 p(!/Komplettausmass/.test(ang)&&/Offertmengen/.test(ang),"12 · Offertmengen werden nirgends als Komplettausmass bezeichnet");

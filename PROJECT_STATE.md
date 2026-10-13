@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.341`
+- Aktueller Entwicklungsstand: `v3.342`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.342 — Projektstand und Komplettausmass in der sichtbaren Ansicht (Ansicht2)
+
+Rückmeldung: „Ich sehe keine Veränderungen im Cockpit.“ Ursache (am Code festgestellt): v3.340/v3.341 hatten die Neuerungen nur in das klassische Cockpit-Fenster (js/09, js/24, index.html) gebaut; die sichtbare Oberfläche ist seit v3.151 die Ansicht2 (js/70: Projektliste `a2ProjektZeileHtml`, Projektseite mit Registern), die ihre Daten aus denselben Zwischenspeichern liest, aber eigene Darstellung hat. Fix, nur Darstellung: js/70 – `a2ProjektZeileHtml` zeigt die Stand-Zeile (`projektStandZeile`, js/09; stösst die eine Abfrage `ladeProjectMeasTypen` an, danach zeichnet js/09 die Liste neu); Übersicht der Projektseite: `a2MengenZeilen()` = zwei getrennte Zeilen „📏 Offertmengen (nur aus der Offerte)“ und „📊 Komplettausmass (Übersicht)“ mit Knopf ins Register Ausmass; `a2RegAusmass` zeigt `kaA2Html()` (js/85) zuoberst – das Komplettausmass ist nicht die Liste der Ausmassdokumente darunter. js/85: Rechenkern und Renderer gemeinsam (`kaBauen(host)`), Öffnen in der Ansicht über den bestehenden Weg `data-a2-meas`. Die Cockpit-Karte bleibt für das klassische Fenster. Keine Logikänderung am Rechenkern, keine Migration. Lehre: Neuerungen am Projekt zuerst in js/70 prüfen.
+Prüfstand `komplettausmass-v3-341` auf 46 erweitert; drei Mutationen (Ansicht ohne Komplettausmass, Liste ohne Stand, Zeilen vermischt) erkannt.
 
 ### v3.341 — Komplettausmass (rein lesende Übersicht im Projekt-Cockpit)
 

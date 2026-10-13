@@ -230,6 +230,7 @@ async function ladeProjectMeasTypen(){
   projectMeasStand=stand;
   projectMeasTypen=map;
   renderProjectList();
+  if(typeof a2Zeichnen==="function"&&typeof a2Zustand!=="undefined"&&a2Zustand.seite==="projekte"&&!a2Zustand.bereich)a2Zeichnen();
  }catch(err){
   console.error("Massaufnahme-Arten fuer Filter:",err);
  }finally{
