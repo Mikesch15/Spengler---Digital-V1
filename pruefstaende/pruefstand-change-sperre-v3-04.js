@@ -31,6 +31,7 @@ const ARTEN=[
  {typ:"einlaufblech_gerade", wurzel:"measTypeEinlaufblech",        setz:"ebaSetzeSchritt",  reg:"EBA_REGISTER",  reset:"ebaZuruecksetzen",           flag:"ebaZeichnet"},
  {typ:"einlaufblech_konisch",wurzel:"measTypeEinlaufblechKonisch", setz:"ebkaSetzeSchritt", reg:"EBKA_REGISTER", reset:"ebkaZuruecksetzen",          flag:"ebkaZeichnet"},
  {typ:"freies_profil",       wurzel:"measTypeFreiesProfil",        setz:"fpaSetzeSchritt",  reg:"FPA_REGISTER",  reset:"fpaZuruecksetzen",           flag:"fpaZeichnet"},
+ {typ:"dachrandblech",       wurzel:"measTypeFreiesProfil",        setz:"fpaSetzeSchritt",  reg:"DRB_REGISTER",  reset:"fpaZuruecksetzen",           flag:"fpaZeichnet"},
  {typ:"mauerabdeckung",      wurzel:"measTypeMauerabdeckung",      setz:"madaSetzeSchritt", reg:"MADA_REGISTER", reset:"madaZuruecksetzen",          flag:"madaZeichnet"},
  {typ:"kehle",               wurzel:"measTypeKehle",               setz:"keaSetzeSchritt",  reg:"KEA_REGISTER",  reset:"keaZuruecksetzen",           flag:"keaZeichnet"},
  {typ:"lukarne",             wurzel:"measTypeLukarne",             setz:"lukaSetzeSchritt", reg:"LUKA_REGISTER", reset:"lukaZuruecksetzen",          flag:"lukaZeichnet"},

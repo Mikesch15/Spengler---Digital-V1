@@ -185,10 +185,10 @@ const vorbereiten=async(page,aufnahmen,resv)=>{
  // Zahl steht hier bewusst als feste Erwartung und nicht als
  // "was die App gerade sagt" - genau so ist aufgefallen, dass die Tabelle
  // PMAT_TEIL_RUECKFALL beim Einbau der neuen Art nicht nachgezogen wurde.
- console.log("\nE · Der Rueckfall deckt alle dreizehn Typen ab");
+ console.log("\nE · Der Rueckfall deckt alle vierzehn Typen ab");
  const tab=await page.evaluate(()=>Object.keys(PMAT_TEIL_RUECKFALL));
  const ARTEN=await page.evaluate(()=>Object.keys(MEAS_TYPE_LABELS));
- p(ARTEN.length===13,"die App kennt dreizehn Arten",ARTEN.length);
+ p(ARTEN.length===14,"die App kennt vierzehn Arten (v3.369: Dachrandblech)",ARTEN.length);
  const fehlend=ARTEN.filter(a=>tab.indexOf(a)<0);
  p(fehlend.length===0,"jede Art hat eine Regel",fehlend);
  const zuviel=tab.filter(a=>ARTEN.indexOf(a)<0);

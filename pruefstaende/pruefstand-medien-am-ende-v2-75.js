@@ -34,7 +34,7 @@ const sichtbar=page=>page.evaluate(()=>{
 // Pruefstand, nicht in der App.
 const alleArten=["skizze_foto","einlaufblech_gerade","rinne_halbrund","einlaufblech_konisch",
  "freies_profil","mauerabdeckung","lukarne","anschlussblech","einfassung_rund","kehle","rinne",
- "kamineinfassung","dachfenstereinfassung"];
+ "kamineinfassung","dachfenstereinfassung","dachrandblech"];
 // Bis v3.01 stand hier fuer acht der damals elf Arten faelschlich ebaSetzeSchritt -
 // das Blaettern lief dadurch ins Leere und Abschnitt B ging fuer sie trivial
 // durch. Jetzt eine vollstaendige Tabelle je Art.
@@ -50,7 +50,8 @@ const REGISTER_ARTEN=[
  {typ:"einfassung_rund",     setz:"einfaSetzeSchritt",knopf:"#einfa_weiter"},
  {typ:"rinne",               setz:"rpaSetzeSchritt",  knopf:"#rpa_weiter"},
  {typ:"anschlussblech",      setz:"anbaSetzeSchritt", knopf:"#anba_weiter"},
- {typ:"dachfenstereinfassung",setz:"dfaSetzeSchritt",  knopf:"#dfa_weiter"}];
+ {typ:"dachfenstereinfassung",setz:"dfaSetzeSchritt",  knopf:"#dfa_weiter"},
+ {typ:"dachrandblech",       setz:"fpaSetzeSchritt",  knopf:"#fpa_weiter"}];
 const MIT_REGISTERN=REGISTER_ARTEN.map(a=>a.typ);
 
 (async()=>{
