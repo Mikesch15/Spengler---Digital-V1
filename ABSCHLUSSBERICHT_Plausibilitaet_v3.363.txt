@@ -1,0 +1,25 @@
+ABSCHLUSSBERICHT v3.363 – Rotes Ausrufezeichen bei ungewöhnlichem Mass
+Datum: 14.10.2026
+Ausgangscommit: 138bd8e (v3.362)
+Zielcommit: siehe Git-Log (Commit „v3.363“)
+
+ANLASS: Dachfenster Ost – „seitlich unter Deckmaterial“ mit 60 statt 50 erfasst; erst an der zu grossen Abwicklung bemerkt.
+WUNSCH: Nur ein rotes Ausrufezeichen am Feld, antippbar, zeigt das Problem.
+
+UMSETZUNG
+- Neues Modul js/86-plausibilitaet.js (in index.html und sw.js eingetragen). Quelle des Üblichen: Zählwerk (messwert_nutzung) – das, was der Betrieb bisher gemessen hat.
+- Regel: ≥ 5 bisherige Messungen des Feldes; ein Wert macht ≥ 70 % aus; der eingetragene Wert ist ein anderer und kam selbst in < 20 % der Fälle vor. Wechselnde Masse (a, d) lösen nie etwas aus. Zählwerk aus = kein Hinweis.
+- Anzeige: kleines rotes „!“ im Feld; Antippen zeigt z. B. „Ungewöhnlicher Wert: 60. Üblich ist 50 (bei 9 von 11 bisherigen Aufnahmen); 60 kam bisher 1× vor. Bitte kurz prüfen – kein Fehler, wenn der Wert stimmt.“ Nochmal Antippen klappt zu. Die Eingabe bleibt unverändert, nichts wird blockiert, nichts geschrieben.
+- Geprüfte Felder: Dachfenster (seitlich f/g links und rechts, Richtwert-Felder), Kamineinfassung (Richtwert-Felder).
+- DATENBANK (additiv, geprüft): Die Sicht messwert_nutzung zählt für das Dachfenster jetzt auch f und g (eine Zeile der Sicht geändert; Spalten, Rechte und security_invoker=true nachgeprüft und unverändert). Mit den bisherigen Daten: g = 50 (9×), 60 (1×), 100 (1×); f = 50 (10×), 20 (1×) – der Fall „60 statt 50“ würde also markiert.
+
+TESTS
+plausibilitaet-v3-363: 21 Prüfungen (Regel rein, Feldzuordnung, echtes Dachfenster-Formular inkl. Antippen/Eintippen/Neuzeichnen, Registrierung, keine Schreibzugriffe); jede Schwelle einzeln durch Mutationen abgesichert.
+
+GRENZEN
+- Das „Übliche“ entsteht erst, wenn der Betrieb genug Aufnahmen hat; die Sicht wird beim Anmelden geladen (neue Aufnahmen zählen ab dem nächsten Anmelden).
+- Nicht live getestet; Darstellung im Testbrowser gesehen.
+- Nur Dachfenster und Kamineinfassung; weitere Arten lassen sich über die Feldzuordnung (plausiFeldZuordnung) ergänzen.
+
+MANUELLE PRÜFUNG
+Neu anmelden (3.363). Dachfenster-Massaufnahme öffnen, bei „K · seitlich unter Deckmaterial“ 60 eintragen: rotes „!“ im Feld, antippen zeigt den Grund. 50 eintragen: Zeichen verschwindet.

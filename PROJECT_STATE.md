@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.362`
+- Aktueller Entwicklungsstand: `v3.363`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.363 — Rotes Ausrufezeichen bei ungewöhnlichem Mass
+
+Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt der üblichen 50 erfasst (Tippfehler, erst an der zu grossen Abwicklung gemerkt). Wunsch: nur ein **rotes Ausrufezeichen** am Feld, das man antippen kann, um das Problem zu sehen.
+**Umsetzung (js/86-plausibilitaet.js, neu; index.html, sw.js, css/01):** Quelle des „Üblichen“ ist das Zählwerk (Sicht `messwert_nutzung`, js/71) – keine feste Annahme im Code. Das Zeichen erscheint, wenn es ≥ 5 bisherige Messungen des Feldes gibt, EIN Wert ≥ 70 % davon ausmacht, der eingetragene Wert ein anderer ist und selbst < 20 % der Fälle ausmacht; wechselnde Masse (a, d) lösen nie etwas aus. Antippen zeigt „Ungewöhnlicher Wert: 60. Üblich ist 50 (bei 9 von 11 bisherigen Aufnahmen); 60 kam bisher 1× vor …“, nochmal Antippen klappt zu. Kein Fehler, nichts blockiert, die Eingabe bleibt unverändert. Geprüft werden Dachfenster (f, g links/rechts, Richtwert-Felder) und Kamineinfassung (Richtwert-Felder). **Datenbank (additiv, geprüft):** die Sicht `messwert_nutzung` zählt jetzt für das Dachfenster auch f und g (Migration „messwert_nutzung_dachfenster_seitenmasse“, Datei `supabase/migrations/v3363_…sql`; geändert eine Zeile ARRAY['a','d'] → ['a','d','f','g']; Spalten, Rechte und `security_invoker=true` unverändert – nachgeprüft). Prüfstand `plausibilitaet-v3-363` (21; alle Schwellen einzeln durch Mutationen abgesichert). Bericht: `ABSCHLUSSBERICHT_Plausibilitaet_v3.363.txt`.
 
 ### v3.362 — Tablett: Zeichnung wählbar (ganz / nur Lochausschnitt), Gesamtmasse bemasst
 
@@ -16,11 +21,6 @@ Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett 
 
 Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 90°-Aufbug, Umschläge seitlich, Anreiff vorne; **Mass a (vorne bis Mitte Rohr) ist inklusive Anreiff**; die Zuordnung Standrohr→Mantelrohr gilt firmenweit.
 **Umsetzung:** Einstellungen Einfassung rund (js/21, index.html): `umschlag` = vorne (180°), neu `umschlag_hinten`, `umschlag_seitlich`, `anreiss` (Standard 20/20/18; ältere Geräte-Stände übernehmen beim Laden ihren bisherigen `umschlag` für hinten und seitlich). `einfProfil`: p0→p1 = Anreiff, p1→Mitte Rohr = a − Anreiff (Gesamt a); Umschlag hinten am p4→p5; `einfBerechnen`: Breite mit `umschlag_seitlich`. Tablett (js/77): Länge = vorne + a + b + c + hinten (Anreiff nicht mehr zusätzlich), Breite mit seitlichem Umschlag, Anreiff-Knick liegt in a, Warnung „Loch reicht in den Anreiff“ prüft a − Anreiff; Abwicklungsrechner (js/78/index.html) neue Felder, Vorgaben aus den Einstellungen (js/38). **Folge:** gleiche Eingaben ergeben nun 18 mm kürzere Zuschnitte/Abwicklungen als bis v3.360 (a enthält den Anreiff); gespeicherte Massaufnahmen rechnen beim Öffnen neu, bereits gedruckte Werte bleiben unverändert. **Zuordnung firmenweit:** neue Spalte `app_settings.einfassung_mantel_zuordnung jsonb` (Migration „app_settings_einfassung_mantel_zuordnung“, additiv, Datei `supabase/migrations/v3361_…sql`; Policies unverändert), Knopf „Zuordnung speichern (ganze Firma)“ über `speichereAppSettings`; die lokale Liste aus v3.360 gilt nur ersatzweise. Prüfstand `mantelrohr-v3-360` auf 26; angepasst wegen der neuen Geometrie: `abwicklung-tablett-v3-192`, `abwicklung-papier-v3-193` (Tablett 350×525 passt jetzt auf A2), `einfassung-app-v2-96`. Bericht: `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt` (Nachtrag).
-
-### v3.360 — Einfassung rund: Mantelrohr-Durchmesser, bemasster Lochausschnitt
-
-Wunsch: (1) Einfassung rund braucht ein Eingabefeld für das Mantelrohr; in den Einstellungen wird festgelegt, welcher Standrohr-Durchmesser welchen Mantelrohr-Durchmesser ergibt; der Mantelrohr-Durchmesser gilt für die Abwicklung, der Standrohr-Durchmesser ist rein informativ. (2) In der Zeichnung des Lochausschnitts sollen die Masse von Mitte Loch bis vorne und bis hinten vermasst sein.
-**Umsetzung:** Pro Einfassung neues Feld `standrohr` (Information, js/38); das bisherige Feld `durchmesser` bleibt das rechnerische Mass und heisst jetzt „Ø Mantelrohr“ – alte Datensätze öffnen unverändert (ihr Durchmesser gilt als Mantelrohr, Standrohr leer). Gibt es in den Einstellungen (Einfassung rund, nur dieses Gerät wie die übrigen Werte, `mantel_zuordnung` in js/21) eine Zuordnung, wird beim Eintippen des Standrohr-Ø der Mantelrohr-Ø übernommen (danach von Hand änderbar), mit Hinweis; ohne Zuordnung bleibt es von Hand (nichts erfunden). Die Abwicklungsrechner-Bücke (`einfaAbwVorgabe`) und der Zuschnitt nutzen den Mantelrohr-Ø; das Ausmass nennt beide (Standrohr als Info). **Zeichnung (js/77/78):** `abwTablett` liefert `massVorne`/`massHinten` (Mitte Loch bis Vorder-/Hinterkante des Zuschnitts); Vorschau und SVG-Datei zeigen links die Masslinien mit Zahlen und ein Kreuz in der Lochmitte, die DXF-Datei dieselben Linien/Texte auf dem Layer BEMASSUNG. Keine Datenbankänderung (Einstellungen sind lokal wie bisher). Prüfstand `mantelrohr-v3-360` (16); Mutationen (Zuordnung ignoriert, falsches Hintermass, keine Bemassung, Standrohr rechnet, keine Übernahme) erkannt; `abwicklung-einfassung-v3-191` und `einfassung-app-v2-96` auf die neuen Bezeichnungen angepasst.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

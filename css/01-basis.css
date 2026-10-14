@@ -1921,3 +1921,12 @@ details.ka-kachel[open] .ka-kachel-pfeil{transform:rotate(90deg)}
 
 /* v3.356/357: Überschrift im Stammdaten-Formular (beide Ansichten) */
 .stamm-kopf{font-size:12px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:10px 0 6px}
+
+/* v3.363: Rotes Ausrufezeichen bei ungewöhnlichem Mass (js/86); antippen zeigt den Grund */
+.plausi-feld{position:relative;display:block}
+.plausi-feld>input{padding-right:40px}
+.plausi-marke{position:absolute;right:7px;top:50%;transform:translateY(-50%);width:26px;height:26px;min-height:26px;padding:0;border-radius:50%;
+ background:var(--red);color:#fff;font-weight:900;font-size:15px;line-height:26px;text-align:center;box-shadow:none}
+.plausi-marke[hidden]{display:none}
+.plausi-marke:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+.plausi-text{margin-top:5px;padding:7px 10px;border-radius:8px;background:var(--red-light);color:var(--red);font-size:12.5px;line-height:1.4}
