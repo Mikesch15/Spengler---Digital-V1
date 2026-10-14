@@ -1630,6 +1630,9 @@ const A2_PROJ_REGISTER=[
   wenn:()=>a2Modul("zuschnitt")||a2Modul("material")},
  {k:"ausmass",   name:"Ausmass"},
  {k:"rapport",   name:"Rapport"},
+ // v3.366: Nachkalkulation (Abacus-Stunden). Nur mit Freischaltung "nachkalkulation" (js/88).
+ {k:"stunden",   name:"Stunden",
+  wenn:()=>typeof nkAktiv==="function"&&nkAktiv()},
  // v3.203: Dateien, Fotos und Verlauf haben ein eigenes Register statt im
  // Sammelkuebel zu stecken.
  {k:"dateien",   name:"Dateien"}
@@ -1816,6 +1819,7 @@ function a2SeiteProjekt(){
  if(a2Zustand.reg==="rapport")   return html+a2RegRapport(p);
  if(a2Zustand.reg==="offerte")   return html+a2RegOfferte(p);
  if(a2Zustand.reg==="dateien")   return html+a2RegDateien(p);
+ if(a2Zustand.reg==="stunden"&&typeof nkRegHtml==="function")return html+nkRegHtml(p);
  return html+a2RegUebersicht(p);
 }
 

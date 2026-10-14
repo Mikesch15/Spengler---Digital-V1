@@ -57,6 +57,10 @@ function offerteZugriffVon(profilId){
 }
 // v3.98: dieselbe Freischaltung fuer die Lagerverwaltung - siehe
 // js/82-lieferanten-lager.js.
+function nachkalkulationZugriffVon(profilId){
+ const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="nachkalkulation");
+ return !!(zeile&&zeile.granted);
+}
 function lagerZugriffVon(profilId){
  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="lager");
  return !!(zeile&&zeile.granted);
@@ -229,6 +233,11 @@ function renderMitarbeiterSettings(){
     <input type="checkbox" data-emp-lager="${i}"${lagerZugriffVon(employeeIds[i])?" checked":""}>
     Lager-Zugriff – darf die Lagerverwaltung sehen und Bewegungen buchen
    </label>`:"";
+  // v3.366: Nachkalkulation (Abacus-Stunden importieren und abgleichen), dasselbe Muster.
+  const nachkalkSchalter=darfVergeben?`<label class="rechte-schalter">
+    <input type="checkbox" data-emp-nachkalk="${i}"${nachkalkulationZugriffVon(employeeIds[i])?" checked":""}>
+    Nachkalkulation – darf Abacus-Stunden importieren und mit den Regiestunden abgleichen
+   </label>`:"";
   return `<div class="rechte-zeile">
    <div class="rechte-kopf">
     <input data-set-emp="${i}" value="${esc(e)}">
@@ -239,6 +248,7 @@ function renderMitarbeiterSettings(){
    ${mailFeld}
    ${offerteSchalter}
    ${lagerSchalter}
+   ${nachkalkSchalter}
    <details class="rechte-details">
     <summary>Rechte${istAdmin?" – Administrator":""}</summary>
     ${block}
@@ -505,5 +515,31 @@ if($("employeeSettings")){
   if(zeile)zeile.granted=data[0].granted; else alleFeatureAccess.push(data[0]);
   if(currentProfile&&currentProfile.id===profilId&&typeof checkLagerZugriff==="function")
    await checkLagerZugriff();
+ });
+}
+
+// v3.366  Nachkalkulation-Zugriff je Mitarbeiter speichern - identisch zum Lager-Zugriff, feature:"nachkalkulation".
+if($("employeeSettings")){
+ $("employeeSettings").addEventListener("change",async e=>{
+  const feld=e.target.closest?e.target.closest("[data-emp-nachkalk]"):null;
+  if(!feld)return;
+  const profilId=employeeIds[Number(feld.dataset.empNachkalk)];
+  if(!profilId)return;
+  const neu=feld.checked;
+  const {data,error}=await sb.from("feature_access")
+    .upsert({profile_id:profilId,feature:"nachkalkulation",granted:neu,
+             granted_by:currentProfile?currentProfile.id:null},
+            {onConflict:"profile_id,feature"})
+    .select("id,profile_id,feature,granted");
+  if(error||!data||!data.length){
+   feld.checked=!neu;
+   appAlert(error?("Der Nachkalkulation-Zugriff konnte nicht gespeichert werden: "+error.message)
+              :"Es wurde nichts gespeichert. Fehlt die nötige Berechtigung?");
+   return;
+  }
+  const zeile=alleFeatureAccess.find(x=>x.profile_id===profilId&&x.feature==="nachkalkulation");
+  if(zeile)zeile.granted=data[0].granted; else alleFeatureAccess.push(data[0]);
+  if(currentProfile&&currentProfile.id===profilId&&typeof checkNachkalkulationZugriff==="function")
+   await checkNachkalkulationZugriff();
  });
 }

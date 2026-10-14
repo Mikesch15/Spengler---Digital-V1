@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.365";
+const CACHE = "spengler-digital-3.366";
 
 const SHELL = [
   "./",
@@ -117,6 +117,8 @@ const SHELL = [
   "./js/84-app-dialoge.js",
   "./js/85-komplettausmass.js",
   "./js/86-plausibilitaet.js",
+  "./js/87-abacus-parser.js",
+  "./js/88-nachkalkulation.js",
   "./img/startbanner.jpg",
   // v3.200: fest im Projekt statt vom CDN - sonst laesst sich eine Offerte
   // ohne Verbindung nicht erzeugen (siehe vendor/README.md).

@@ -126,6 +126,12 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.363 — Rotes Ausrufezeichen bei ungewöhnlichem Mass
+
+Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt der üblichen 50 erfasst (Tippfehler, erst an der zu grossen Abwicklung gemerkt). Wunsch: nur ein **rotes Ausrufezeichen** am Feld, das man antippen kann, um das Problem zu sehen.
+**Umsetzung (js/86-plausibilitaet.js, neu; index.html, sw.js, css/01):** Quelle des „Üblichen“ ist das Zählwerk (Sicht `messwert_nutzung`, js/71) – keine feste Annahme im Code. Das Zeichen erscheint, wenn es ≥ 5 bisherige Messungen des Feldes gibt, EIN Wert ≥ 70 % davon ausmacht, der eingetragene Wert ein anderer ist und selbst < 20 % der Fälle ausmacht; wechselnde Masse (a, d) lösen nie etwas aus. Antippen zeigt „Ungewöhnlicher Wert: 60. Üblich ist 50 (bei 9 von 11 bisherigen Aufnahmen); 60 kam bisher 1× vor …“, nochmal Antippen klappt zu. Kein Fehler, nichts blockiert, die Eingabe bleibt unverändert. Geprüft werden Dachfenster (f, g links/rechts, Richtwert-Felder) und Kamineinfassung (Richtwert-Felder). **Datenbank (additiv, geprüft):** die Sicht `messwert_nutzung` zählt jetzt für das Dachfenster auch f und g (Migration „messwert_nutzung_dachfenster_seitenmasse“, Datei `supabase/migrations/v3363_…sql`; geändert eine Zeile ARRAY['a','d'] → ['a','d','f','g']; Spalten, Rechte und `security_invoker=true` unverändert – nachgeprüft). Prüfstand `plausibilitaet-v3-363` (21; alle Schwellen einzeln durch Mutationen abgesichert). Bericht: `ABSCHLUSSBERICHT_Plausibilitaet_v3.363.txt`.
+
 ### v3.362 — Tablett: Zeichnung wählbar (ganz / nur Lochausschnitt), Gesamtmasse bemasst
 
 Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett oder nur der Lochausschnitt mit den Massen angezeigt/gedruckt wird; Gesamtlänge und Gesamtbreite sollen in beiden Fällen bemasst und zu sehen sein.

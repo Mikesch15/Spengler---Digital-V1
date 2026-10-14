@@ -3,9 +3,16 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.365`
+- Aktueller Entwicklungsstand: `v3.366`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.366 — Nachkalkulation: Abacus-Stunden importieren und abgleichen
+
+Auftrag „Nachkalkulation aus Abacus-Stundenrapporten: PDF- und Excel-Import“ inkl. Pflichtumfang K (Abgleich der Regiestunden).
+**Datenbank (additiv, `supabase/migrations/v3366_abacus_nachkalkulation.sql`, angewendet):** neue Tabellen `abacus_importe` (Protokoll), `abacus_stunden` (bestätigte Zeilen, unveränderlich, UNIQUE firma+projekt+fingerprint), `abacus_abgleich` (Prüfvermerke). RLS: `tenant_boundary_*` und `feature_boundary_*` RESTRICTIVE, Feature `nachkalkulation` in `feature_access`; Trigger `enforce_abacus_projekt_firma` setzt die Firma serverseitig und prüft Projekt-/Import-Zugehörigkeit. Keine bestehende Tabelle/Policy/Funktion geändert.
+**Code:** `js/87-abacus-parser.js` (rein: Zeit/Datum, Kopfzeile über Synonyme, Summenzeilen, Fingerabdruck, Dubletten, Vergleich, Sollstunden), `js/88-nachkalkulation.js` (Register „Stunden“ in der Projektseite, Import-Dialog mit Vorschau, Speichern, Prüfvermerk), Schalter „Nachkalkulation“ je Mitarbeiter (js/05a), Zugriffsprüfung beim Login (js/03), `vendor/pdf.min.js` + `pdf.worker.min.js` (pdf.js 3.11.174, lazy, nicht in der App-Shell). Quelle der App-Regiestunden: `reports.work_entries` (hours/date/employee), nur gelesen. Sollstunden: nur geltende Offerten, Positionen mit Einheit h/Std; mehrere Offerten werden nicht addiert.
+**Grenzen:** kein OCR (Scan-PDF wird abgelehnt), Quelldatei wird nicht gespeichert, keine Kosten aus Stunden, PDF-Layout nur über Kopfzeile/Spaltenlage oder Muster „Datum … Stunden“ – ungetestet gegen einen echten Abacus-Rapport. Prüfstand: `nachkalkulation-v3-366`.
 
 ### v3.365 — Startbanner bleibt anpassbar
 
@@ -15,11 +22,6 @@ Wunsch: Logo/Banner soll anpassbar bleiben. Standard bleibt `img/startbanner.jpg
 
 Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Logo + Werkzeug), Name/Datum/Gruss bleiben, Hintergrund fest.
 **Umsetzung:** `img/startbanner.jpg` (1400×525, aus dem gelieferten PNG), in `sw.js` im App-Cache. `a2HeuteHeroHtml` (js/70) zeigt das Banner voll breit, darunter Gruss und Datum · Name; `css/05` (`.a2-hero-fix`). Das Banner ist unabhängig von Logo/Titelbild; der Titelbild-Upload in den Firmeneinstellungen ist ausgeblendet (`#kopfBildBlock`, Code und DB-Spalte bleiben). Prüfstände angepasst: ansicht2-vorgabe-151, projektseiten-wunschbild-356 (D), startseite-dashboard-352 (H).
-
-### v3.363 — Rotes Ausrufezeichen bei ungewöhnlichem Mass
-
-Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt der üblichen 50 erfasst (Tippfehler, erst an der zu grossen Abwicklung gemerkt). Wunsch: nur ein **rotes Ausrufezeichen** am Feld, das man antippen kann, um das Problem zu sehen.
-**Umsetzung (js/86-plausibilitaet.js, neu; index.html, sw.js, css/01):** Quelle des „Üblichen“ ist das Zählwerk (Sicht `messwert_nutzung`, js/71) – keine feste Annahme im Code. Das Zeichen erscheint, wenn es ≥ 5 bisherige Messungen des Feldes gibt, EIN Wert ≥ 70 % davon ausmacht, der eingetragene Wert ein anderer ist und selbst < 20 % der Fälle ausmacht; wechselnde Masse (a, d) lösen nie etwas aus. Antippen zeigt „Ungewöhnlicher Wert: 60. Üblich ist 50 (bei 9 von 11 bisherigen Aufnahmen); 60 kam bisher 1× vor …“, nochmal Antippen klappt zu. Kein Fehler, nichts blockiert, die Eingabe bleibt unverändert. Geprüft werden Dachfenster (f, g links/rechts, Richtwert-Felder) und Kamineinfassung (Richtwert-Felder). **Datenbank (additiv, geprüft):** die Sicht `messwert_nutzung` zählt jetzt für das Dachfenster auch f und g (Migration „messwert_nutzung_dachfenster_seitenmasse“, Datei `supabase/migrations/v3363_…sql`; geändert eine Zeile ARRAY['a','d'] → ['a','d','f','g']; Spalten, Rechte und `security_invoker=true` unverändert – nachgeprüft). Prüfstand `plausibilitaet-v3-363` (21; alle Schwellen einzeln durch Mutationen abgesichert). Bericht: `ABSCHLUSSBERICHT_Plausibilitaet_v3.363.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

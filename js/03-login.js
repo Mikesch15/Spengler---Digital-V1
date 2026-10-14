@@ -131,6 +131,8 @@ async function afterLogin(){
  // v3.98: Lagerverwaltung-Zugriff (feature_access) - dasselbe Muster wie
  // Offerten-Zugriff direkt darueber. Siehe js/82-lieferanten-lager.js.
  if(typeof checkLagerZugriff==="function")await checkLagerZugriff();
+ // v3.366: Nachkalkulation (Abacus-Import) - dasselbe Muster, Feature "nachkalkulation". Siehe js/88-nachkalkulation.js.
+ if(typeof checkNachkalkulationZugriff==="function")await checkNachkalkulationZugriff();
  // Wer sein Passwort noch nie selbst gesetzt hat, muss das zuerst tun.
  if(profile&&profile.passwort_gesetzt===false){
   $("authScreen").hidden=true;

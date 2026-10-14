@@ -1,0 +1,23 @@
+ABSCHLUSSBERICHT v3.366 – Nachkalkulation: Abacus-PDF/Excel-Import und Abgleich der Regiestunden
+
+1. ÄNDERUNGEN
+- Migration v3366_abacus_nachkalkulation.sql (angewendet): abacus_importe, abacus_stunden, abacus_abgleich, Trigger enforce_abacus_projekt_firma, RLS (tenant_boundary_*/feature_boundary_* RESTRICTIVE; Feature "nachkalkulation" in feature_access). Keine bestehende Tabelle geändert.
+- js/87-abacus-parser.js, js/88-nachkalkulation.js (neu); js/70 (Register "Stunden", nur mit Freischaltung), js/05a (Schalter je Mitarbeiter), js/03 (Zugriffsprüfung), index.html, sw.js, css/05, vendor/pdf.min.js + pdf.worker.min.js (+ Lizenz, README).
+- Analyse: App-Regiestunden stehen in reports.work_entries (jsonb: date, employee, desc, rateName, hours), Projektbezug über reports.project_id (RLS tenant_boundary_reports). Dieser Bestand wird nur gelesen. Sollstunden: angebote.positions (unit/quantity), nur Einheit h/Std.
+
+2. UNTERSTÜTZT / GRENZEN
+- PDF mit Text (Kopfzeile oder Muster "Datum … Stunden"), Excel .xlsx (mehrere Blätter, Spaltenzuordnung von Hand, Excel-Zeitformat, Formeln ohne Wert werden gemeldet), CSV. Kein OCR: Scan-PDF wird mit Erklärung abgelehnt. Dezimal-, H:MM-, CH/DE/EN-Zahlenformate; mehrdeutige ("1.234") bleiben ohne Wert.
+- Dubletten: Fingerabdruck aus Rapport-Nr, Auftrag, Datum, Mitarbeiter, Tätigkeit, Stunden, Kostenstelle (+ #n bei identischen Zeilen derselben Datei); exakte Dubletten werden ausgeschlossen, ähnliche als "mögliche Dublette" abgewählt angezeigt.
+- Abgleich: Gesamtstunden, Differenz Abacus − App, Status; Einzelzuordnung nur bei gleichem Datum + vollständig gleichem Mitarbeiternamen + Stunden ("sicher"), sonst "mögliche Zuordnung"; nur-Abacus / nur-App / je Datum; Prüfvermerk (Benutzer, Zeit, Kommentar, Stand) – wird als veraltet gekennzeichnet, wenn sich Import oder Rapporte ändern.
+- Bekannte Grenzen: Abacus-Mitarbeiterkürzel werden nicht auf App-Namen abgebildet; Regiepositionen (rateName) werden nicht mit Abacus-Tätigkeiten verglichen (Bezeichnungen unterscheiden sich), nur nach Datum gruppiert; Quelldatei wird nicht gespeichert; kein echtes Abacus-Layout getestet.
+
+3. TESTS
+- pruefstand-nachkalkulation-v3-366: 78 ok / 0 fehlgeschlagen (Zeit/Datum, xlsx Standard/abweichend/ohne Kopfzeile/mehrere Blätter/Zeitformat/Formel, CSV, Text-PDF, Scan-PDF, Dubletten, Summen/leere Zeilen, Projektzuordnung fehlend/unbekannt/mehrdeutig, Teilfehler, Abbruch, Freigabe/Firma (nachgespielt), Sollstunden null/mehrere, Abgleich-Fälle, Prüfvermerk, XSS). Mutationsproben: 6 Defekte (Summenzeile, Dublette, Division durch null, Scan-Erkennung, Teilfehler-Rückbau, unsichere Zuordnung) werden je von mindestens einer Prüfung erkannt.
+- Schnellprüfung und volle Regression: siehe Nachtrag unten.
+- RLS gegen die ECHTE Datenbank: Policies und Trigger wurden angelegt und per pg_policies geprüft (4 Policies + 2 RESTRICTIVE je Tabelle). Ein Live-Test mit Rollenwechsel (authenticated/anon) wurde NICHT ausgeführt (Ausführung wurde abgebrochen) – Mandanten-/Freigabeverhalten ist im Prüfstand nur nachgespielt.
+- NICHT getestet: echtes Abacus-PDF/-Excel, echtes Gerät, Zugriff über die echte Datenbank.
+
+6. OFFEN
+- Praxistest mit anonymisiertem Abacus-PDF und Excel-Export; danach Parser gezielt anpassen.
+- Freischaltung "Nachkalkulation" je Mitarbeiter in den Einstellungen setzen.
+- Live-RLS-Test mit Rollenwechsel.

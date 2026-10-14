@@ -61,3 +61,14 @@ er ohne Verbindung überhaupt nie.
 Zur Laufzeit wird **kein fremder Server** mehr angefragt – ausser Supabase
 selbst (die eigene Datenbank). `pruefstand-fremdserver-v3-205.js` hält das
 fest.
+
+## pdf.min.js + pdf.worker.min.js (v3.366)
+
+Mozilla `pdfjs-dist` 3.11.174, Apache-2.0 (siehe `pdfjs-LICENSE.txt`).
+Liest den **Text** eines PDF-Stundenrapports im Browser (Nachkalkulation,
+js/88). Es geht nichts an einen fremden Dienst; es gibt bewusst keine
+Texterkennung (OCR) für Scans.
+
+Wie `xlsx.full.min.js` **nicht in der App-Shell**: erst beim ersten Import
+nachgeladen (`nkPdfLesen`), danach hebt der Service Worker beide Dateien auf.
+Zusammen rund 1,4 MB, deshalb nicht bei jedem Start.
