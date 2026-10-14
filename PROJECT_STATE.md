@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.367`
+- Aktueller Entwicklungsstand: `v3.368`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.368 — Reiter „Stunden“ mit Symbol
+
+Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Projektseite ein kleines Linien-Symbol (Uhr, `A2_ICON.stunden` in js/70). Nur Darstellung, keine Datenänderung. Prüfstand nachkalkulation-v3-366 um die Symbol-Prüfung erweitert (107).
 
 ### v3.367 — Abacus-Import: sichere Projektzuordnung (Nachbesserung)
 
@@ -19,10 +23,6 @@ Auftrag „Nachkalkulation aus Abacus-Stundenrapporten: PDF- und Excel-Import“
 **Datenbank (additiv, `supabase/migrations/v3366_abacus_nachkalkulation.sql`, angewendet):** neue Tabellen `abacus_importe` (Protokoll), `abacus_stunden` (bestätigte Zeilen, unveränderlich, UNIQUE firma+projekt+fingerprint), `abacus_abgleich` (Prüfvermerke). RLS: `tenant_boundary_*` und `feature_boundary_*` RESTRICTIVE, Feature `nachkalkulation` in `feature_access`; Trigger `enforce_abacus_projekt_firma` setzt die Firma serverseitig und prüft Projekt-/Import-Zugehörigkeit. Keine bestehende Tabelle/Policy/Funktion geändert.
 **Code:** `js/87-abacus-parser.js` (rein: Zeit/Datum, Kopfzeile über Synonyme, Summenzeilen, Fingerabdruck, Dubletten, Vergleich, Sollstunden), `js/88-nachkalkulation.js` (Register „Stunden“ in der Projektseite, Import-Dialog mit Vorschau, Speichern, Prüfvermerk), Schalter „Nachkalkulation“ je Mitarbeiter (js/05a), Zugriffsprüfung beim Login (js/03), `vendor/pdf.min.js` + `pdf.worker.min.js` (pdf.js 3.11.174, lazy, nicht in der App-Shell). Quelle der App-Regiestunden: `reports.work_entries` (hours/date/employee), nur gelesen. Sollstunden: nur geltende Offerten, Positionen mit Einheit h/Std; mehrere Offerten werden nicht addiert.
 **Grenzen:** kein OCR (Scan-PDF wird abgelehnt), Quelldatei wird nicht gespeichert, keine Kosten aus Stunden, PDF-Layout nur über Kopfzeile/Spaltenlage oder Muster „Datum … Stunden“ – ungetestet gegen einen echten Abacus-Rapport. Prüfstand: `nachkalkulation-v3-366`.
-
-### v3.365 — Startbanner bleibt anpassbar
-
-Wunsch: Logo/Banner soll anpassbar bleiben. Standard bleibt `img/startbanner.jpg`; ein in den Firmeneinstellungen hochgeladenes Banner (`kopf_bild_url`, bestehender Weg) ersetzt es in `a2HeuteHeroHtml` (js/70). Feld „Banner der Startseite“ wieder sichtbar, „Standard-Banner wiederherstellen“ setzt zurück. Keine DB-Änderung. Prüfstand projektseiten-wunschbild-356 (D) um den Ersatz-Fall erweitert.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

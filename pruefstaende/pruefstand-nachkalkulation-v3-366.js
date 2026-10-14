@@ -335,6 +335,13 @@ FIX.maxDub=wbBuf([["B",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"]
   nkZugriff=true;const an=a2ProjRegister().some(r=>r.k==="stunden");
   return {aus,an};
  });
+ const sym=await page.evaluate(()=>{
+  nkZugriff=true;a2Zustand.seite="projekt";a2Zustand.projektId=1;a2Zustand.reg="uebersicht";
+  const b=document.createElement("div");b.innerHTML=a2SeiteProjekt();
+  const t=b.querySelector('[data-a2-reg="stunden"]'),o=b.querySelector('[data-a2-reg="rapport"]');
+  return {da:!!t,svg:!!(t&&t.querySelector("i svg")),wie:!!(o&&o.querySelector("i svg")),name:t&&t.textContent.trim()};
+ });
+ p(sym.da&&sym.svg&&sym.wie&&sym.name==="Stunden","Reiter „Stunden“ trägt wie die übrigen Reiter ein Symbol über der Beschriftung",sym);
  p(!reg.aus&&reg.an,"Register „Stunden“ erscheint nur mit Freischaltung",reg);
 
  console.log("\nJ · Sollstunden, Prozent, Kosten");

@@ -128,6 +128,11 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.365 — Startbanner bleibt anpassbar
+
+Wunsch: Logo/Banner soll anpassbar bleiben. Standard bleibt `img/startbanner.jpg`; ein in den Firmeneinstellungen hochgeladenes Banner (`kopf_bild_url`, bestehender Weg) ersetzt es in `a2HeuteHeroHtml` (js/70). Feld „Banner der Startseite“ wieder sichtbar, „Standard-Banner wiederherstellen“ setzt zurück. Keine DB-Änderung. Prüfstand projektseiten-wunschbild-356 (D) um den Ersatz-Fall erweitert.
+
 ### v3.364 — Startseite: festes Banner im Kopf
 
 Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Logo + Werkzeug), Name/Datum/Gruss bleiben, Hintergrund fest.
