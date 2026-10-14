@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.361</div>
+<div id="appVersion">Version 3.362</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -831,6 +831,11 @@
 <div><label>Anreiff vorne (mm, in a enthalten)</label><input id="abw_tab_anreiss" type="number" step="1" min="0"></div>
 <div><label>Mass seitlich neben Rohr (mm)</label><input id="abw_tab_massSeitlich" type="number" step="1" min="0"></div>
 <div><label>Luft am Lochausschnitt (mm)</label><input id="abw_tab_lochZugabe" type="number" step="0.5" min="0"></div>
+<div class="wide"><label>Zeichnung (Vorschau, Druck, Dateien)</label>
+<select id="abw_tab_ansicht" aria-label="Zeichnung des Tabletts">
+<option value="ganz">Ganzes Tablett</option>
+<option value="loch">Nur Lochausschnitt mit Massen</option></select>
+<div class="small">Gesamtlänge und Gesamtbreite sind in beiden Zeichnungen bemasst.</div></div>
 </div>
 <div class="bar"><button type="button" id="abwZuruecksetzen" class="gray">↩️ Standardmasse</button></div>
 <div id="abwMeldung" class="small" style="margin-top:6px"></div>
@@ -2445,7 +2450,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.361.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.362.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3141,7 +3146,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.361.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.362.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

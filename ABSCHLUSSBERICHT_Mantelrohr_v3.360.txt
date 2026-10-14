@@ -27,3 +27,10 @@ NACHTRAG v3.361 (Ausgangscommit 7e6812a)
 - Zuordnung Standrohr → Mantelrohr firmenweit: neue Spalte app_settings.einfassung_mantel_zuordnung (jsonb, additiv, Policies unverändert); Knopf „Zuordnung speichern (ganze Firma)“. Die lokale Liste aus v3.360 gilt nur ersatzweise.
 - Tests: mantelrohr-v3-360 jetzt 26 Prüfungen; angepasst: abwicklung-tablett-v3-192, abwicklung-papier-v3-193, einfassung-app-v2-96 (neue Geometrie).
 - Grenze: nicht live getestet; wer die Zuordnung speichern will, braucht das Recht für die Firmeneinstellungen (sonst Fehlermeldung).
+
+NACHTRAG v3.362 (Ausgangscommit ccfa689)
+- Tablett: Zeichnung wählbar – „Ganzes Tablett“ oder „Nur Lochausschnitt mit Massen“ (Auswahlfeld im Abwicklungsdialog; gilt für Vorschau, Druck, SVG- und DXF-Datei; nicht Teil der gespeicherten Abwicklung).
+- Bemassung in beiden Fällen: Mitte Loch bis vorne und hinten, Gesamtlänge, Gesamtbreite (wahre Masse). Im Ausschnitt ist der Weg zwischen Loch und Kante gekürzt, mit Unterbrechungszeichen in den Masslinien; das Loch ist in wahrer Grösse gezeichnet.
+- Druck 1:1: Bemassung auf dem Blatt; Blattzahl rechnet den Platz dafür mit. Folge: ganzes Tablett auf A4 hoch 9 statt 6 Blatt (350 + 20 mm passen nicht mehr in zwei Spalten); der Ausschnitt braucht 1 Blatt (A3).
+- Tests: mantelrohr-v3-360 jetzt 37 Prüfungen (Auswahl, Gesamtmasse in beiden Zeichnungen, Unterbrechungszeichen, DXF, Druck, Blattzahl); angepasst: abwicklung-papier-v3-193.
+- Grenze: Zeichnung nur im Testbrowser gesehen; kein Drucktest auf Papier.

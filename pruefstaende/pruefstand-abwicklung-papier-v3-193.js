@@ -86,7 +86,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  p(B.breite===350&&B.hoehe===525,"gerechnet wird mit dem Tablett 350 x 525 mm (a inkl. Anreiff, v3.361)",B);
  p(B.a4h.nutzB===180&&B.a4h.nutzH===243,
    "A4 hoch laesst 180 x 243 mm Zeichnung je Blatt",B.a4h);
- p(B.a4h.spalten===2&&B.a4h.zeilen===3&&B.a4h.seiten===6,"A4 hoch: 2 x 3 = 6 Blatt",B.a4h);
+ p(B.a4h.spalten===3&&B.a4h.zeilen===3&&B.a4h.seiten===9,"A4 hoch: 3 x 3 = 9 Blatt (seit v3.362 mit Platz für die Bemassung: 350 + 20 mm passen nicht mehr in 2 Spalten)",B.a4h);
  p(B.a3q.spalten===1&&B.a3q.zeilen===3&&B.a3q.seiten===3,"A3 quer: 1 x 3 = 3 Blatt",B.a3q);
  p(B.a2h.seiten===1,"A2 hoch: 1 Blatt - 525 passt auf 540 (seit v3.361; vorher 543)",B.a2h);
  p(B.a1h.seiten===1,"A1 hoch: ein einziges Blatt",B.a1h);
@@ -195,7 +195,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
   return {html, nachTippen:$("abw_papier").value, hinweisAuto, hinweisA3,
           seitenNachTippen:abwSeiten(abwLetztes).length};
  });
- p(F.html.indexOf("A4 hoch · 6 Blatt")>=0&&F.html.indexOf("A3 quer · 3 Blatt")>=0,
+ p(F.html.indexOf("A4 hoch · 9 Blatt")>=0&&F.html.indexOf("A3 quer · 3 Blatt")>=0,
    "bei jedem Format steht, wie viele Blätter es wären",F.html);
  p(F.html.indexOf("automatisch – A2 hoch · 1 Blatt")>=0,
    "und ganz oben der Vorschlag mit Namen",F.html);

@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.361`
+- Aktueller Entwicklungsstand: `v3.362`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.362 — Tablett: Zeichnung wählbar (ganz / nur Lochausschnitt), Gesamtmasse bemasst
+
+Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett oder nur der Lochausschnitt mit den Massen angezeigt/gedruckt wird; Gesamtlänge und Gesamtbreite sollen in beiden Fällen bemasst und zu sehen sein.
+**Umsetzung (js/77, js/78, index.html):** Auswahlfeld „Zeichnung“ im Abwicklungsdialog beim Tablett (`abw_tab_ansicht`: Ganzes Tablett / Nur Lochausschnitt mit Massen; gilt für Vorschau, Druck, SVG und DXF, wird nicht mit der Abwicklung gespeichert; Rechenwerte unverändert). `abwTablett` liefert `ansicht`, `gesamtLaenge`/`gesamtBreite` und die Geometrie `zeichnungLoch` (Loch in wahrer Grösse mit 35 mm Blechstreifen rundum, Weg zur Kante GEKÜRZT dargestellt). Eine Zeichen-Geometrie für alles, was zeichnet/druckt/exportiert: `abwZ(r)`. Bemassung (`abwMassSvg`, beide Zeichnungen): Mitte Loch bis vorne/hinten, Gesamtlänge (links aussen), Gesamtbreite (unten), Kreuz in der Lochmitte; die Zahlen sind immer die wahren Masse, im Ausschnitt mit Unterbrechungszeichen. Druck 1:1: Bemassung auf dem Blatt (Schrift 4 mm), Papierberechnung mit Platz dafür (ganzes Tablett auf A4: 9 statt 6 Blatt, weil 350 + 20 mm nicht mehr in zwei Spalten passen; Ausschnitt: 1 Blatt A3). DXF: Layer BEMASSUNG mit vier Texten. Prüfstand `mantelrohr-v3-360` auf 37; angepasst: `abwicklung-papier-v3-193` (A4 hoch 9 Blatt). Bericht: Nachtrag in `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt`.
 
 ### v3.361 — Einfassung rund: Umschläge einzeln, Anreiff in Mass a, Zuordnung firmenweit
 
@@ -16,10 +21,6 @@ Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 
 
 Wunsch: (1) Einfassung rund braucht ein Eingabefeld für das Mantelrohr; in den Einstellungen wird festgelegt, welcher Standrohr-Durchmesser welchen Mantelrohr-Durchmesser ergibt; der Mantelrohr-Durchmesser gilt für die Abwicklung, der Standrohr-Durchmesser ist rein informativ. (2) In der Zeichnung des Lochausschnitts sollen die Masse von Mitte Loch bis vorne und bis hinten vermasst sein.
 **Umsetzung:** Pro Einfassung neues Feld `standrohr` (Information, js/38); das bisherige Feld `durchmesser` bleibt das rechnerische Mass und heisst jetzt „Ø Mantelrohr“ – alte Datensätze öffnen unverändert (ihr Durchmesser gilt als Mantelrohr, Standrohr leer). Gibt es in den Einstellungen (Einfassung rund, nur dieses Gerät wie die übrigen Werte, `mantel_zuordnung` in js/21) eine Zuordnung, wird beim Eintippen des Standrohr-Ø der Mantelrohr-Ø übernommen (danach von Hand änderbar), mit Hinweis; ohne Zuordnung bleibt es von Hand (nichts erfunden). Die Abwicklungsrechner-Bücke (`einfaAbwVorgabe`) und der Zuschnitt nutzen den Mantelrohr-Ø; das Ausmass nennt beide (Standrohr als Info). **Zeichnung (js/77/78):** `abwTablett` liefert `massVorne`/`massHinten` (Mitte Loch bis Vorder-/Hinterkante des Zuschnitts); Vorschau und SVG-Datei zeigen links die Masslinien mit Zahlen und ein Kreuz in der Lochmitte, die DXF-Datei dieselben Linien/Texte auf dem Layer BEMASSUNG. Keine Datenbankänderung (Einstellungen sind lokal wie bisher). Prüfstand `mantelrohr-v3-360` (16); Mutationen (Zuordnung ignoriert, falsches Hintermass, keine Bemassung, Standrohr rechnet, keine Übernahme) erkannt; `abwicklung-einfassung-v3-191` und `einfassung-app-v2-96` auf die neuen Bezeichnungen angepasst.
-
-### v3.359 — Einheitliches Erscheinungsbild für alle Seiten
-
-Auftrag: „Überarbeite alle Seiten der App nach den bisherigen Entwürfen – die App soll modern und übersichtlich wirken.“ Umgesetzt als EINE gemeinsame Gestaltungsschicht am Ende von css/05 (nur Darstellung, keine Struktur/Logik): ruhiger flacher Grund statt Blaugrau-Verlauf (Seite und Fenster), flache Karten (Rundung 12px, feine Linie, kein Schatten), ruhige Knöpfe (grau mit Rand, blau/grün ohne Schatten, Rundung 10px), Tabellenkopf/Zeilen/Einstellungsabschnitte in den neuen Tönen, Dunkelmodus über dieselben Variablen; Register der Projektseite etwas dichter und der aktive Reiter bleibt sichtbar. **Bewusst nicht geändert:** Feldgrössen und Beschriftungen der Formulare (früherer Entscheid, geprüft in `einstellungen-optik-v3-151`, `formulare-optik-v3-154`, `massaufnahme-optik-v3-152`; ein erster Versuch mit grösseren Feldern wurde deshalb zurückgenommen). Bereits einzeln nach Wunschbild gestaltet: Startseite, Projektliste, Projektseite, Stammdaten. Nicht einzeln umgebaut (nur die gemeinsame Schicht): Massaufnahme-Formulare, Regierapport, Ausmass, Offerte, Werkstatt, Lager, Einstellungen, Mehr – für eine Seite nach eigenem Bild bitte den Entwurf nennen. Prüfstand `design-einheitlich-v3-359` (11; Grund, Karten, Knöpfe, Felder unberührt, kein Überlaufen auf 12 Seiten bei 390/768/1280 px, Dunkelmodus); Mutationen erkannt. Bericht: `ABSCHLUSSBERICHT_Design_v3.359.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

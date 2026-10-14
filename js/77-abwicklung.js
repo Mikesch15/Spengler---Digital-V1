@@ -330,6 +330,21 @@ function abwTablettFehler(e){
  return f;
 }
 
+// v3.362: Die Zeichnung "nur Lochausschnitt": das Loch in wahrer Grösse mit einem Streifen Blech rundum (Kante vorne, hinten, links, rechts).
+// Der Weg von der Lochmitte bis zu den Kanten ist GEKÜRZT dargestellt; die Bemassung nennt die wahren Masse (Mitte Loch bis vorne/hinten,
+// Gesamtlänge, Gesamtbreite). Eine Quelle für Vorschau, Druck, SVG und DXF (js/78, abwZ).
+const ABW_LOCH_RAND=35;
+function abwTablettLochAnsicht(mitteX,mitteY,halbQuer,halbLang,punkte){
+ const w=2*(halbQuer+ABW_LOCH_RAND), h=2*(halbLang+ABW_LOCH_RAND);
+ const cx=w/2, cy=h/2;
+ const loch=[];
+ for(let i=0;i<punkte;i++){
+  const t=2*Math.PI*i/punkte;
+  loch.push([cx+halbQuer*Math.cos(t), cy+halbLang*Math.sin(t)]);
+ }
+ return {kontur:[[0,0],[w,0],[w,h],[0,h]], biegeLinien:[], loch,
+  zbreite:w, zhoehe:h, mitteX:cx, mitteY:cy, gekuerzt:true};
+}
 function abwTablett(roh){
  const e=abwTablettEingaben(roh);
  const fehler=abwTablettFehler(e);
@@ -396,6 +411,11 @@ function abwTablett(roh){
 
  return {
   ok:true, bauteil:"tablett", fehler:[], warnungen, eingaben:e, punkte,
+  // v3.362: Welche Zeichnung gilt (Vorschau, Druck, Dateien): das ganze Tablett oder nur der Lochausschnitt mit den Massen.
+  // Die Rechenwerte (breite, laenge, ...) sind in beiden Fällen die wahren Masse des Tabletts.
+  ansicht:(roh&&roh.ansicht==="loch")?"loch":"ganz",
+  gesamtLaenge:laenge, gesamtBreite:breite,
+  zeichnungLoch:abwTablettLochAnsicht(mitteX,mitteY,halbQuer,halbLang,punkte),
   breite, laenge, mitteX, mitteY,
   // v3.360: Masse von Mitte Loch bis zur Vorderkante und bis zur Hinterkante des Tabletts (Zuschnittmasse, wie gezeichnet).
   massVorne:mitteY, massHinten:laenge-mitteY,

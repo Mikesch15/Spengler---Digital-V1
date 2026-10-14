@@ -148,6 +148,21 @@ const ABW_LINIENART={
 // Welche Linien hat DIESES Bauteil? Die einzige Stelle, die das weiss.
 // Leere Gruppen fallen raus: ein leerer DXF-Layer waere eine Zeile, die
 // etwas behauptet, was nicht da ist.
+// v3.362: Die Zeichengeometrie, die GERADE gilt. Beim Tablett kann es das ganze Tablett oder nur der Lochausschnitt sein (r.ansicht);
+// alles, was zeichnet, druckt oder exportiert, liest sie hier - nie direkt aus r. Das Rohr und die Rechenwerte bleiben unberührt.
+function abwZ(r){
+ if(!r)return r;
+ if(r.bauteil==="tablett"&&r.ansicht==="loch"&&r.zeichnungLoch)
+  return Object.assign({},r,r.zeichnungLoch);
+ return Object.assign({},r,{zbreite:r.breite,zhoehe:(r.bauteil==="tablett"?r.laenge:undefined),gekuerzt:false});
+}
+// Platz neben der Zeichnung für die Bemassung (links die Längenmasse, unten die Breite) - beim Tablett; Rohr: keiner.
+// Der Druck 1:1 braucht weniger Platz (Schrift 4 mm statt 9 mm in der Vorschau) - damit eine Schablone nicht wegen der Bemassung auf mehr Blätter fällt.
+const ABW_LINKS=46, ABW_UNTEN=26, ABW_LINKS_DRUCK=20, ABW_UNTEN_DRUCK=11, ABW_SCHRIFT_DRUCK=4;
+function abwRandMasse(z,druck){
+ if(!z||z.bauteil!=="tablett")return {links:0,unten:0};
+ return druck?{links:ABW_LINKS_DRUCK,unten:ABW_UNTEN_DRUCK}:{links:ABW_LINKS,unten:ABW_UNTEN};
+}
 function abwZeichenTeile(r){
  const g=(r&&r.bauteil==="tablett")
   ? [{art:"biege",linien:r.biegeLinien},{art:"loch",linien:[r.loch]}]
@@ -168,44 +183,61 @@ function abwLinienSvg(r,flip,skala){
    +` stroke-width="${abwRund(a.dick*f)}"${a.strich?` stroke-dasharray="${a.strich}"`:""}/>`).join("");
  }).join("");
 }
-// v3.360: Bemassung des Lochausschnitts (nur Tablett): von Mitte Loch bis Vorderkante und bis Hinterkante. Die Masslinien stehen links neben dem
-// Zuschnitt (Hilfslinien durch die Lochmitte und an den Kanten), der Text läuft längs der Masslinie. Eine Quelle für Vorschau und SVG-Datei.
+// v3.360/362: Bemassung (nur Tablett): von Mitte Loch bis Vorder- und Hinterkante, dazu Gesamtlänge (links aussen) und Gesamtbreite (unten).
+// Das gilt für beide Zeichnungen (ganzes Tablett / nur Lochausschnitt); die Zahlen sind immer die wahren Masse, auch wenn der Ausschnitt
+// gekürzt ist (Unterbrechungszeichen in der Masslinie). z kommt aus abwZ(); opt.schwarz/opt.schrift für den Druck.
 const ABW_MASS_ABSTAND_LAYER="BEMASSUNG";
-const ABW_MASS_ABSTAND=18;   // Abstand der Masslinie links vom Zuschnitt (mm)
-function abwMassSvg(r,flip){
- if(!r||r.bauteil!=="tablett"||!(r.massVorne>=0)||!(r.massHinten>=0))return "";
- const x=-ABW_MASS_ABSTAND, f=flip, farbe="#2e7d32";
+function abwMassSvg(z,flip,opt){
+ if(!z||z.bauteil!=="tablett"||!(z.massVorne>=0)||!(z.massHinten>=0)||!(z.zhoehe>0))return "";
+ opt=opt||{};
+ const f=flip, farbe=opt.schwarz?"#000":"#2e7d32", schrift=opt.schrift||9, dick=opt.dick||0.4;
+ const ab=Math.round(schrift*1.6);   // Abstand der ersten Masslinie; Schrift und Abstände wachsen zusammen
+ const x1=-ab, x2=-2*ab-2, yb=-ab+2;
  const pt=(px,py)=>f([px,py]);
- const ym=r.mitteY, yv=0, yh=r.laenge;
- const L=(x1,y1,x2,y2,extra)=>{const a=pt(x1,y1),b=pt(x2,y2);return `<line x1="${abwRund(a[0])}" y1="${abwRund(a[1])}" x2="${abwRund(b[0])}" y2="${abwRund(b[1])}" stroke="${farbe}" stroke-width="0.4"${extra||""}/>`};
- const spitze=(px,py,richtung)=>{const a=pt(px,py),d=3*(richtung>0?1:-1);return `<path d="M${abwRund(a[0])},${abwRund(a[1])} l-1.2,${abwRund(-d)} l2.4,0 z" fill="${farbe}"/>`};
- const text=(px,py,wert,klasse)=>{const a=pt(px,py);return `<text class="${klasse}" x="${abwRund(a[0]-2)}" y="${abwRund(a[1])}" font-size="9" font-weight="700" fill="${farbe}" text-anchor="middle" transform="rotate(-90 ${abwRund(a[0]-2)} ${abwRund(a[1])})">${abwMm(wert)}</text>`};
- let s='<g class="abw-mass" data-abw-mass="loch">';
- // Hilfslinien: Vorderkante, Lochmitte (durch das Loch), Hinterkante
- s+=L(0,yv,x-3,yv)+L(r.mitteX,ym,x-3,ym,' stroke-dasharray="3,1.5"')+L(0,yh,x-3,yh);
- // Masslinien mit Pfeilspitzen
- s+=L(x,yv,x,ym)+spitze(x,yv,1)+spitze(x,ym,-1)+L(x,ym,x,yh)+spitze(x,ym,1)+spitze(x,yh,-1);
- s+=text(x,(yv+ym)/2,r.massVorne,"abw-mass-vorne")+text(x,(ym+yh)/2,r.massHinten,"abw-mass-hinten");
+ const ym=z.mitteY, yv=0, yh=z.zhoehe, xr=z.zbreite;
+ const L=(a1,b1,a2,b2,extra)=>{const a=pt(a1,b1),b=pt(a2,b2);return `<line x1="${abwRund(a[0])}" y1="${abwRund(a[1])}" x2="${abwRund(b[0])}" y2="${abwRund(b[1])}" stroke="${farbe}" stroke-width="${dick}"${extra||""}/>`};
+ const sp=Math.max(1.6,schrift*0.35);
+ const spitzeV=(px,py,rich)=>{const a=pt(px,py),d=sp*(rich>0?1:-1);return `<path d="M${abwRund(a[0])},${abwRund(a[1])} l${abwRund(-sp*0.4)},${abwRund(-d)} l${abwRund(sp*0.8)},0 z" fill="${farbe}"/>`};
+ const spitzeH=(px,py,rich)=>{const a=pt(px,py),d=sp*(rich>0?1:-1);return `<path d="M${abwRund(a[0])},${abwRund(a[1])} l${abwRund(-d)},${abwRund(-sp*0.4)} l0,${abwRund(sp*0.8)} z" fill="${farbe}"/>`};
+ const textV=(px,py,wert,klasse)=>{const a=pt(px,py);return `<text class="${klasse}" x="${abwRund(a[0]-1.5)}" y="${abwRund(a[1])}" font-size="${schrift}" font-weight="700" fill="${farbe}" text-anchor="middle" transform="rotate(-90 ${abwRund(a[0]-1.5)} ${abwRund(a[1])})">${abwMm(wert)}</text>`};
+ const textH=(px,py,wert,klasse)=>{const a=pt(px,py);return `<text class="${klasse}" x="${abwRund(a[0])}" y="${abwRund(a[1]+schrift*1.1)}" font-size="${schrift}" font-weight="700" fill="${farbe}" text-anchor="middle">${abwMm(wert)}</text>`};
+ // Unterbrechungszeichen (nur im gekürzten Ausschnitt): kleines Zickzack quer zur Masslinie
+ const bruchV=(px,py)=>{const a=pt(px,py),g=sp*1.3;return `<path d="M${abwRund(a[0])},${abwRund(a[1]-g)} l${abwRund(g)},${abwRund(g*0.6)} l${abwRund(-2*g)},${abwRund(g*0.8)} l${abwRund(g)},${abwRund(g*0.6)}" fill="none" stroke="${farbe}" stroke-width="${dick}" class="abw-bruch"/>`};
+ const bruchH=(px,py)=>{const a=pt(px,py),g=sp*1.3;return `<path d="M${abwRund(a[0]-g)},${abwRund(a[1])} l${abwRund(g*0.6)},${abwRund(-g)} l${abwRund(g*0.8)},${abwRund(2*g)} l${abwRund(g*0.6)},${abwRund(-g)}" fill="none" stroke="${farbe}" stroke-width="${dick}" class="abw-bruch"/>`};
+ let s='<g class="abw-mass" data-abw-mass="tablett">';
+ // Hilfslinien: Vorderkante, Lochmitte, Hinterkante (links), Seitenkanten (unten)
+ s+=L(0,yv,x2-3,yv)+L(z.mitteX,ym,x1-3,ym,' stroke-dasharray="3,1.5"')+L(0,yh,x2-3,yh);
+ s+=L(0,yv,0,yb-3)+L(xr,yv,xr,yb-3);
+ // Mitte Loch bis vorne / hinten
+ s+=L(x1,yv,x1,ym)+spitzeV(x1,yv,1)+spitzeV(x1,ym,-1)+L(x1,ym,x1,yh)+spitzeV(x1,ym,1)+spitzeV(x1,yh,-1);
+ s+=textV(x1,(yv+ym)/2,z.massVorne,"abw-mass-vorne")+textV(x1,(ym+yh)/2,z.massHinten,"abw-mass-hinten");
+ // Gesamtlänge (links aussen) und Gesamtbreite (unten)
+ s+=L(x2,yv,x2,yh)+spitzeV(x2,yv,1)+spitzeV(x2,yh,-1)+textV(x2,(yv+yh)/2,z.gesamtLaenge,"abw-mass-gesamtlaenge");
+ s+=L(0,yb,xr,yb)+spitzeH(0,yb,1)+spitzeH(xr,yb,-1)+textH((0+xr)/2,yb,z.gesamtBreite,"abw-mass-gesamtbreite");
+ if(z.gekuerzt){
+  s+=bruchV(x1,(yv+ym)/2+schrift*4)+bruchV(x1,(ym+yh)/2-schrift*4)+bruchV(x2,(yv+yh)/2+schrift*4)+bruchH(xr/2-schrift*4,yb);
+ }
  // Kreuz in der Lochmitte
- s+=L(r.mitteX-5,ym,r.mitteX+5,ym)+L(r.mitteX,ym-5,r.mitteX,ym+5);
+ s+=L(z.mitteX-5,ym,z.mitteX+5,ym)+L(z.mitteX,ym-5,z.mitteX,ym+5);
  return s+"</g>";
 }
 function abwSvg(r,opt){
  opt=opt||{};
+ const z=abwZ(r);
  const rand=opt.rand===undefined?8:opt.rand;
- // Beim Tablett braucht die Bemassung links Platz.
- const links=(r.bauteil==="tablett")?ABW_MASS_ABSTAND+14:0;
- const alleY=r.kontur.map(p=>p[1]);
+ // Beim Tablett braucht die Bemassung links und unten Platz.
+ const m=abwRandMasse(z), links=m.links, unten=m.unten;
+ const alleY=z.kontur.map(p=>p[1]);
  const yMin=Math.min.apply(null,alleY), yMax=Math.max.apply(null,alleY);
- const w=r.breite, h=yMax-yMin;
+ const w=z.zbreite!==undefined?z.zbreite:z.breite, h=yMax-yMin;
  const flip=p=>[p[0],yMax-p[1]];
- const mm=opt.mm?' width="'+abwRund(w+2*rand+links)+'mm" height="'+abwRund(h+2*rand)+'mm"':' width="100%"';
+ const mm=opt.mm?' width="'+abwRund(w+2*rand+links)+'mm" height="'+abwRund(h+2*rand+unten)+'mm"':' width="100%"';
  return `<svg xmlns="http://www.w3.org/2000/svg"${mm}
- viewBox="${-rand-links} ${-rand} ${abwRund(w+2*rand+links)} ${abwRund(h+2*rand)}"
- preserveAspectRatio="xMidYMid meet" class="abw-svg">
- <path d="${abwPfad(r.kontur.map(flip),true)}" fill="none" stroke="${ABW_LINIENART.schnitt.farbe}" stroke-width="${ABW_LINIENART.schnitt.dick}"/>
- ${abwLinienSvg(r,flip)}
- ${abwMassSvg(r,flip)}
+ viewBox="${-rand-links} ${-rand} ${abwRund(w+2*rand+links)} ${abwRund(h+2*rand+unten)}"
+ preserveAspectRatio="xMidYMid meet" class="abw-svg" data-abw-ansicht="${esc(z.ansicht||"")}">
+ <path d="${abwPfad(z.kontur.map(flip),true)}" fill="none" stroke="${ABW_LINIENART.schnitt.farbe}" stroke-width="${ABW_LINIENART.schnitt.dick}"/>
+ ${abwLinienSvg(z,flip)}
+ ${abwMassSvg(z,flip)}
 </svg>`;
 }
 // Die Legende kommt aus derselben Tabelle wie die Zeichnung. Eine von Hand
@@ -214,7 +246,7 @@ function abwSvg(r,opt){
 function abwLegendeHtml(r){
  const eintrag=a=>`<span class="abw-l" style="border-top-color:${a.farbe};border-top-style:${a.strich?"dashed":"solid"};border-top-width:${a.dick>=0.5?2:1}px"></span> ${esc(a.text)}`;
  return `<div class="small abw-legende">${
-  [ABW_LINIENART.schnitt].concat(abwZeichenTeile(r).map(g=>ABW_LINIENART[g.art]))
+  [ABW_LINIENART.schnitt].concat(abwZeichenTeile(abwZ(r)).map(g=>ABW_LINIENART[g.art]))
    .map(eintrag).join("")}</div>`;
 }
 
@@ -224,6 +256,7 @@ function abwVorschauZeichnen(r){
  if(!r||!r.ok){ box.innerHTML=`<p class="small">Keine Vorschau – die Masse sind noch nicht vollständig.</p>`; return }
  const fuss=(r.bauteil==="tablett")
   ? `Zuschnitt ${abwMm(r.breite)} × ${abwMm(r.laenge)} · Loch ${abwMm(r.lochQuer)} quer × ${abwMm(r.lochLang)} in Gefällerichtung`
+    +(r.ansicht==="loch"?` · <b>Ausschnitt</b>: zwischen Loch und Kante gekürzt – die Zahlen sind die wahren Masse`:"")
   : `Zuschnittbreite ${abwMm(r.breite)} · Umfang ${abwMm(r.L)} · Höhe an der Naht ${abwMm(r.hoeheMax)}`;
  // Beim Tablett treffen die seitlichen Umschlaege auf den vorderen und den
  // oberen. Das gilt fuer jedes Tablett und ist deshalb ein fester Hinweis
@@ -302,9 +335,14 @@ function abwMeldungZeigen(r){
 }
 
 // EINE Stelle, die rechnet und zeichnet. Jede Feldaenderung ruft sie.
+function abwAnsichtLesen(){
+ const el=(typeof $==="function")?$("abw_tab_ansicht"):document.getElementById("abw_tab_ansicht");
+ return (el&&el.value==="loch")?"loch":"ganz";
+}
 function abwAktualisieren(){
  const tablett=abwBauteil()==="tablett";
- const r=tablett?abwTablett(abwTablettFelderLesen()):abwRechne(abwFelderLesen());
+ // v3.362: Die Auswahl der Zeichnung ist keine Rechengrösse und wird nicht mit der Abwicklung gespeichert; sie gilt nur für Vorschau, Druck und Dateien.
+ const r=tablett?abwTablett(Object.assign(abwTablettFelderLesen(),{ansicht:abwAnsichtLesen()})):abwRechne(abwFelderLesen());
  // abwRechne() kennt kein Feld "bauteil" - es gab bis v3.191 nur eines.
  if(!r.bauteil)r.bauteil="rohr";
  abwLetztes=r.ok?r:null;
@@ -333,18 +371,21 @@ function abwDxfText(r){
       +abwDxfLinie(9,"$INSUNITS")+abwDxfLinie(70,4)      // 4 = Millimeter
       +abwDxfLinie(0,"ENDSEC")
       +abwDxfLinie(0,"SECTION")+abwDxfLinie(2,"ENTITIES");
- s+=abwDxfPolylinie(r.kontur,ABW_LINIENART.schnitt.layer,true);
- abwZeichenTeile(r).forEach(g=>{
+ const z=abwZ(r);
+ s+=abwDxfPolylinie(z.kontur,ABW_LINIENART.schnitt.layer,true);
+ abwZeichenTeile(z).forEach(g=>{
   const a=ABW_LINIENART[g.art];
   g.linien.forEach(l=>{ s+=abwDxfPolylinie(l,a.layer,!!a.zu) });
  });
- // v3.360: Bemassung des Lochausschnitts (Tablett): Masslinien links vom Zuschnitt auf einem eigenen Layer.
- if(r.bauteil==="tablett"&&r.massVorne>=0&&r.massHinten>=0){
-  const x=-ABW_MASS_ABSTAND, L=ABW_MASS_ABSTAND_LAYER;
-  const linie=(x1,y1,x2,y2)=>abwDxfLinie(0,"LINE")+abwDxfLinie(8,L)+abwDxfLinie(10,abwRund(x1))+abwDxfLinie(20,abwRund(y1))+abwDxfLinie(30,0)+abwDxfLinie(11,abwRund(x2))+abwDxfLinie(21,abwRund(y2))+abwDxfLinie(31,0);
-  const beschr=(tx,ty,wert)=>abwDxfLinie(0,"TEXT")+abwDxfLinie(8,L)+abwDxfLinie(10,abwRund(tx))+abwDxfLinie(20,abwRund(ty))+abwDxfLinie(30,0)+abwDxfLinie(40,6)+abwDxfLinie(50,90)+abwDxfLinie(1,abwMm(wert));
-  s+=linie(x,0,x,r.mitteY)+linie(x,r.mitteY,x,r.laenge)+linie(0,0,x-3,0)+linie(r.mitteX,r.mitteY,x-3,r.mitteY)+linie(0,r.laenge,x-3,r.laenge);
-  s+=beschr(x-2,r.mitteY/2,r.massVorne)+beschr(x-2,(r.mitteY+r.laenge)/2,r.massHinten);
+ // v3.360/362: Bemassung (Tablett) auf eigenem Layer: Mitte Loch bis vorne/hinten, Gesamtlänge, Gesamtbreite.
+ if(z.bauteil==="tablett"&&z.massVorne>=0&&z.massHinten>=0&&z.zhoehe>0){
+  const ab=14, x1=-ab, x2=-2*ab-2, yb=-ab+2, LY=ABW_MASS_ABSTAND_LAYER;
+  const linie=(a1,b1,a2,b2)=>abwDxfLinie(0,"LINE")+abwDxfLinie(8,LY)+abwDxfLinie(10,abwRund(a1))+abwDxfLinie(20,abwRund(b1))+abwDxfLinie(30,0)+abwDxfLinie(11,abwRund(a2))+abwDxfLinie(21,abwRund(b2))+abwDxfLinie(31,0);
+  const beschr=(tx,ty,wert,winkel)=>abwDxfLinie(0,"TEXT")+abwDxfLinie(8,LY)+abwDxfLinie(10,abwRund(tx))+abwDxfLinie(20,abwRund(ty))+abwDxfLinie(30,0)+abwDxfLinie(40,6)+abwDxfLinie(50,winkel)+abwDxfLinie(1,abwMm(wert));
+  s+=linie(x1,0,x1,z.mitteY)+linie(x1,z.mitteY,x1,z.zhoehe)+linie(0,0,x2-3,0)+linie(z.mitteX,z.mitteY,x1-3,z.mitteY)+linie(0,z.zhoehe,x2-3,z.zhoehe);
+  s+=linie(x2,0,x2,z.zhoehe)+linie(0,yb,z.zbreite,yb)+linie(0,0,0,yb-3)+linie(z.zbreite,0,z.zbreite,yb-3);
+  s+=beschr(x1-2,z.mitteY/2,z.massVorne,90)+beschr(x1-2,(z.mitteY+z.zhoehe)/2,z.massHinten,90);
+  s+=beschr(x2-2,z.zhoehe/2,z.gesamtLaenge,90)+beschr(z.zbreite/2,yb-8,z.gesamtBreite,0);
  }
  return s+abwDxfLinie(0,"ENDSEC")+abwDxfLinie(0,"EOF");
 }
@@ -415,9 +456,11 @@ function abwPapierBedarf(r,f){
  const nutzB=f.breite-2*ABW_BLATT.rand-ABW_BLATT.ueberlappung;
  const nutzH=f.hoehe-2*ABW_BLATT.rand-ABW_BLATT.ueberlappung-ABW_BLATT.kopfFuss;
  if(!(nutzB>0&&nutzH>0))return null;
- const alleY=r.kontur.map(p=>p[1]);
- const hoehe=Math.max.apply(null,alleY)-Math.min.apply(null,alleY);
- const spalten=Math.max(1,Math.ceil(r.breite/nutzB));
+ const z=abwZ(r), m=abwRandMasse(z,true);
+ const alleY=z.kontur.map(p=>p[1]);
+ const hoehe=Math.max.apply(null,alleY)-Math.min.apply(null,alleY)+m.unten;
+ const breiteZ=(z.zbreite!==undefined?z.zbreite:z.breite)+m.links;
+ const spalten=Math.max(1,Math.ceil(breiteZ/nutzB));
  const zeilen=Math.max(1,Math.ceil(hoehe/nutzH));
  return {nutzB,nutzH,spalten,zeilen,seiten:spalten*zeilen};
 }
@@ -450,13 +493,14 @@ function abwPapierGewaehlt(r){
 function abwSeiten(r,papier){
  const f=papier||abwPapierGewaehlt(r);
  if(!f)return [];
- const alleY=r.kontur.map(p=>p[1]);
- const yMin=Math.min.apply(null,alleY);
+ const z=abwZ(r), m=abwRandMasse(z,true);
+ const alleY=z.kontur.map(p=>p[1]);
+ const yMin=Math.min.apply(null,alleY)-m.unten;
  const seiten=[];
- for(let z=0;z<f.zeilen;z++)for(let sp=0;sp<f.spalten;sp++){
-  seiten.push({nr:seiten.length+1, spalte:sp+1, zeile:z+1,
+ for(let zl=0;zl<f.zeilen;zl++)for(let sp=0;sp<f.spalten;sp++){
+  seiten.push({nr:seiten.length+1, spalte:sp+1, zeile:zl+1,
    spalten:f.spalten, zeilen:f.zeilen, papier:f,
-   x0:sp*f.nutzB, y0:yMin+z*f.nutzH,
+   x0:sp*f.nutzB-m.links, y0:yMin+zl*f.nutzH,
    breite:f.nutzB+ABW_BLATT.ueberlappung, hoehe:f.nutzH+ABW_BLATT.ueberlappung});
  }
  return seiten;
@@ -494,17 +538,19 @@ function abwPapierWahlZeichnen(r){
 // Graustufendrucker macht aus Rot und Blau dasselbe Grau. Unterschieden wird
 // nur ueber das Strichbild.
 function abwSeiteSvg(r,seite){
+ const z=abwZ(r);
  const yMaxSeite=seite.y0+seite.hoehe;
  const flip=p=>[p[0]-seite.x0, yMaxSeite-p[1]];
- const linien=abwZeichenTeile(r).map(g=>{
+ const linien=abwZeichenTeile(z).map(g=>{
   const a=ABW_LINIENART[g.art];
   return g.linien.map(l=>`<path d="${abwPfad(l.map(flip),!!a.zu)}" fill="none" stroke="#000"`
    +` stroke-width="${a.dick>=0.5?0.3:0.2}"${a.strich?` stroke-dasharray="${a.strich}"`:""}/>`).join("");
  }).join("");
  return `<svg xmlns="http://www.w3.org/2000/svg" width="${seite.breite}mm" height="${seite.hoehe}mm"
  viewBox="0 0 ${seite.breite} ${seite.hoehe}">
- <path d="${abwPfad(r.kontur.map(flip),true)}" fill="none" stroke="#000" stroke-width="0.35"/>
+ <path d="${abwPfad(z.kontur.map(flip),true)}" fill="none" stroke="#000" stroke-width="0.35"/>
  ${linien}
+ ${abwMassSvg(z,flip,{schwarz:true,schrift:ABW_SCHRIFT_DRUCK,dick:0.25})}
  <path d="M0,0 L8,0 M0,0 L0,8" stroke="#000" stroke-width="0.3"/>
  <path d="M${seite.breite},${seite.hoehe} L${seite.breite-8},${seite.hoehe} M${seite.breite},${seite.hoehe} L${seite.breite},${seite.hoehe-8}" stroke="#000" stroke-width="0.3"/>
 </svg>`;

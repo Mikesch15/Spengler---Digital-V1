@@ -151,6 +151,43 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(g.firma===125&&g.ersatz===999,"Zuordnung: firmenweite Liste gilt zuerst, Altbestand vom Gerät nur ersatzweise",[g.firma,g.ersatz]);
  p(g.gesendet==='{"einfassung_mantel_zuordnung":[{"standrohr":110,"mantel":130}]}'&&g.nachher===130,"Zuordnung speichern schreibt in die Firmeneinstellungen (einfassung_mantel_zuordnung)",[g.gesendet,g.nachher]);
 
+ console.log("\nG · Zeichnung wählbar: ganzes Tablett / nur Lochausschnitt (v3.362)");
+ const z=await page.evaluate(()=>{
+  const roh={D:125,alpha:25,a:250,b:200,c:35,umschlag:20,umschlagHinten:20,umschlagSeitlich:20,anreiss:18,massSeitlich:100,lochZugabe:2};
+  const r={};
+  for(const a of ["ganz","loch"]){
+   const e=abwTablett(Object.assign({ansicht:a},roh));
+   const svg=abwSvg(e);const w=document.createElement("div");w.innerHTML=svg;
+   const t=c=>(w.querySelector("."+c)||{}).textContent;
+   r[a]={ansicht:e.ansicht,vorne:t("abw-mass-vorne"),hinten:t("abw-mass-hinten"),laenge:t("abw-mass-gesamtlaenge"),breite:t("abw-mass-gesamtbreite"),
+    attr:w.querySelector("svg").getAttribute("data-abw-ansicht"),
+    biege:abwZeichenTeile(abwZ(e)).some(g=>g.art==="biege"),bruch:w.querySelectorAll(".abw-bruch").length,
+    zw:abwZ(e).zbreite,zh:abwZ(e).zhoehe,
+    rechenLaenge:e.laenge,rechenBreite:e.breite,
+    dxf:(()=>{const d=abwDxfText(e);return {text:(d.match(/TEXT/g)||[]).length,layer:/BEMASSUNG/.test(d)}})(),
+    papierA4:abwPapierVorschlag(e),papierA4hoch:abwPapierBedarf(e,abwPapierListe().find(x=>x.id==="a4-hoch")).seiten,
+    seitenSvg:abwSeiten(e).length&&abwSeiteSvg(e,abwSeiten(e)[0]).indexOf('data-abw-mass="tablett"')>=0};
+  }
+  r.wahr=abwMm(abwTablett(Object.assign({ansicht:"ganz"},roh)).laenge);
+  r.rohr=!!abwSvg(abwRechne({}))||true;
+  // Auswahl im Dialog
+  const sel=document.getElementById("abw_tab_ansicht");
+  r.sel=!!sel&&[...sel.options].map(o=>o.value).join(",")==="ganz,loch";
+  r.lesen=(()=>{if(!sel)return null;sel.value="loch";const a=abwAnsichtLesen();sel.value="ganz";return a+"/"+abwAnsichtLesen()})();
+  return r;
+ });
+ p(z.ganz.ansicht==="ganz"&&z.loch.ansicht==="loch"&&z.ganz.attr==="ganz"&&z.loch.attr==="loch","beide Zeichnungen wählbar (ganz / loch)",[z.ganz.attr,z.loch.attr]);
+ p(z.sel&&z.lesen==="loch/ganz","Auswahlfeld im Abwicklungsdialog (Ganzes Tablett / Nur Lochausschnitt mit Massen)",[z.sel,z.lesen]);
+ p(z.ganz.laenge===z.wahr&&z.loch.laenge===z.wahr,"Gesamtlänge ist in beiden Zeichnungen bemasst (wahres Mass)",[z.ganz.laenge,z.loch.laenge,z.wahr]);
+ p(z.ganz.breite==="365,00 mm"&&z.loch.breite==="365,00 mm","Gesamtbreite ist in beiden Zeichnungen bemasst (wahres Mass)",[z.ganz.breite,z.loch.breite]);
+ p(z.ganz.vorne===z.loch.vorne&&z.ganz.hinten===z.loch.hinten&&z.loch.vorne==="270,00 mm"&&z.loch.hinten==="255,00 mm","Mitte Loch bis vorne/hinten in beiden gleich und wahr (270 / 255)",[z.ganz.vorne,z.loch.vorne,z.ganz.hinten,z.loch.hinten]);
+ p(z.ganz.biege&&!z.loch.biege&&z.ganz.bruch===0&&z.loch.bruch>=3,"ganz: mit Biegelinien, ohne Unterbrechung; Ausschnitt: ohne Biegelinien, mit Unterbrechungszeichen",[z.ganz.bruch,z.loch.bruch]);
+ p(z.loch.zw<z.ganz.zw&&z.loch.zh<z.ganz.zh,"der Ausschnitt ist kleiner als das Tablett (gekürzt)",[z.loch.zw,z.loch.zh,z.ganz.zw,z.ganz.zh]);
+ p(z.ganz.rechenLaenge===z.loch.rechenLaenge&&z.ganz.rechenBreite===z.loch.rechenBreite,"Rechenwerte (Länge/Breite) hängen nicht von der Zeichnung ab",[z.ganz.rechenLaenge,z.loch.rechenLaenge]);
+ p(z.ganz.dxf.layer&&z.loch.dxf.layer&&z.ganz.dxf.text===4&&z.loch.dxf.text===4,"DXF: Bemassung (vier Texte) in beiden Fällen",[z.ganz.dxf,z.loch.dxf]);
+ p(z.ganz.seitenSvg&&z.loch.seitenSvg,"Druck (Schablone): Bemassung auf dem Blatt in beiden Fällen",[z.ganz.seitenSvg,z.loch.seitenSvg]);
+ p(z.loch.papierA4.seiten===1&&z.loch.papierA4hoch<z.ganz.papierA4hoch,"Druck: der Ausschnitt braucht ein einziges Blatt (A3), das ganze Tablett auf A4 deutlich mehr",[z.loch.papierA4.name,z.loch.papierA4hoch,z.ganz.papierA4hoch]);
+
  console.log("\nD · Lochausschnitt bemasst");
  const d=await page.evaluate(()=>{
   const r0=abwTablett({D:125,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});
@@ -159,7 +196,7 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
   const dxf=abwDxfText(r0);
   const rohr=abwRechne?null:null;
   return {ok:r0.ok,vorne:r0.massVorne,hinten:r0.massHinten,mitteY:r0.mitteY,laenge:r0.laenge,
-   gruppe:!!w.querySelector('[data-abw-mass="loch"]'),
+   gruppe:!!w.querySelector('[data-abw-mass="tablett"]'),
    tv:(w.querySelector(".abw-mass-vorne")||{}).textContent,th:(w.querySelector(".abw-mass-hinten")||{}).textContent,
    erwV:abwMm(r0.mitteY),erwH:abwMm(r0.laenge-r0.mitteY),
    dxf:/BEMASSUNG/.test(dxf)&&/TEXT/.test(dxf),
