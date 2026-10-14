@@ -1,0 +1,24 @@
+ABSCHLUSSBERICHT v3.359 – Einheitliches Erscheinungsbild
+Datum: 14.10.2026
+Ausgangscommit: 7543a35 (v3.358, Pages success, Regression 187/187)
+Zielcommit: siehe Git-Log (Commit „v3.359“)
+
+AUFTRAG: Alle Seiten nach den bisherigen Entwürfen überarbeiten; die App soll modern und übersichtlich wirken.
+
+UMSETZUNG (nur Darstellung, css/05 + ein Zeiger in js/70)
+- Gemeinsame Gestaltungsschicht: ruhiger flacher Grund statt Blaugrau-Verlauf (Seite und Fenster), flache Karten (12px, feine Linie, kein Schatten), ruhige Knöpfe (grau mit Rand, blau/grün ohne Schatten, 10px), Tabellen/Einstellungsabschnitte in den neuen Tönen, Dunkelmodus über dieselben Variablen.
+- Projektseite: Register-Leiste etwas dichter, aktiver Reiter bleibt im sichtbaren Bereich.
+- Bereits einzeln nach Wunschbild: Startseite (v3.352–358), Projektliste, Projektseite, Stammdaten (v3.356/357).
+
+BEWUSST NICHT GEÄNDERT
+- Feldgrössen und Beschriftungen der Formulare: früherer Entscheid, der in den Prüfständen einstellungen-optik-v3-151, formulare-optik-v3-154 und massaufnahme-optik-v3-152 festgehalten ist. Ein erster Versuch mit grösseren Feldern fiel dort durch und wurde zurückgenommen.
+- Struktur der übrigen Seiten (Massaufnahme-Formulare, Regierapport, Ausmass, Offerte, Werkstatt, Lager, Einstellungen, Mehr): nur die gemeinsame Schicht. Für eine Seite im Stil eines eigenen Bildes bitte den Entwurf nennen.
+
+TESTS
+design-einheitlich-v3-359 (11 Prüfungen: Grund, Karten, Knöpfe, Felder unberührt, Tabellenfelder, 12 Seiten ohne Überlaufen bei 390/768/1280 px, Dunkelmodus); Mutationen erkannt (Grund, Karten, graue Knöpfe, blaue Schatten). Schnellprüfung (180 Prüfstände) und volle Regression: siehe Antwort.
+
+GRENZEN
+Keine Geräte-/Live-Tests; Darstellung im Testbrowser mit Attrappen. Werkstatt und Lager wurden in der Testumgebung nicht geöffnet (Attrappe ohne Werkstattdaten).
+
+MANUELLE PRÜFUNG
+App neu laden (3.359): Startseite, Projekte, Projektseite, Mehr, Einstellungen, ein Regierapport, eine Massaufnahme, Werkstatt und Lager ansehen – gleicher ruhiger Grund, flache Karten, ruhige Knöpfe; nichts verschoben oder abgeschnitten.

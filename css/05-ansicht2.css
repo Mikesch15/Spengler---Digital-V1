@@ -1398,3 +1398,34 @@ html.a2-an #projectCockpitModal.a2-nur-stammdaten .zuteilung-person:has(input:ch
 /* Knöpfe: Speichern blau mit Haken, Zurück als ruhiger Rahmen-Knopf */
 html.a2-an #projectCockpitModal.a2-nur-stammdaten #cockpitSaveStammdaten{min-height:48px;border-radius:10px;font-size:16px;font-weight:700;width:100%}
 html.a2-an #projectCockpitModal.a2-nur-stammdaten #cockpitBack{min-height:48px;border-radius:10px;background:var(--card-bg);color:var(--ink);border:1px solid var(--line);font-weight:600}
+
+/* ==========================================================================
+   EINHEITLICHES ERSCHEINUNGSBILD FÜR ALLE SEITEN  (v3.359)
+   --------------------------------------------------------------------------
+   Eine gemeinsame Schicht nach den Wunschbildern (Startseite, Projektliste,
+   Projektseite, Stammdaten), damit auch die Seiten ohne eigenes Bild gleich
+   aussehen: ruhiger heller Grund statt Blaugrau-Verlauf, flache Karten mit
+   feiner Linie, ruhige Knöpfe. Feldgrössen und Beschriftungen bleiben. NUR Darstellung - keine Struktur, keine Logik. Gilt in beiden
+   Ansichten dieser einen App (Schalter html.a2-an). Tabellenfelder bleiben
+   kompakt; Dunkelmodus über dieselben Variablen.
+   ========================================================================== */
+html.a2-an{--a2-bg:#f6f7f9;--a2-trenn:#e3e8ed}
+html.dark.a2-an{--a2-bg:var(--bg);--a2-trenn:#2c3944}
+html.a2-an body,html.a2-an .modal{background:var(--a2-bg);background-attachment:scroll}
+html.a2-an .card{border-radius:12px;border-color:var(--a2-trenn);box-shadow:none}
+html.a2-an h2{border-bottom-color:var(--a2-trenn)}
+/* Beschriftungen und Eingabefelder der Formulare bleiben in ihrer Grösse unberührt (früherer Entscheid, geprüft in den *-optik-Prüfständen); nur Stammdaten hat oben eine eigene Fassung. */
+html.a2-an .blue,html.a2-an .green,html.a2-an .gray,html.a2-an .red{border-radius:10px}
+html.a2-an .blue,html.a2-an .green{box-shadow:none}
+html.a2-an .gray{background:var(--card-bg);border:1px solid var(--line);color:var(--ink)}
+html.a2-an .gray:hover{background:var(--a2-grau-hell)}
+html.a2-an .red{background:var(--red-light);border:1px solid transparent}
+html.a2-an .scroll{border-color:var(--a2-trenn);border-radius:10px}
+html.a2-an th{background:var(--a2-grau-hell)}
+html.a2-an tbody tr:hover td{background:var(--a2-grau-hell)}
+html.a2-an .settings-section{border-color:var(--a2-trenn);border-radius:12px}
+html.a2-an .settings-section-head{background:var(--a2-grau-hell)}
+html.a2-an .settingrow,html.a2-an .suggest{border-color:var(--a2-trenn)}
+html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
+/* Register der Projektseite: etwas dichter, damit mehr Reiter ohne Wischen sichtbar sind */
+.a2-register-tabs button{min-width:56px;padding:6px 6px;font-size:11px}

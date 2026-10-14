@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.358`
+- Aktueller Entwicklungsstand: `v3.359`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.359 — Einheitliches Erscheinungsbild für alle Seiten
+
+Auftrag: „Überarbeite alle Seiten der App nach den bisherigen Entwürfen – die App soll modern und übersichtlich wirken.“ Umgesetzt als EINE gemeinsame Gestaltungsschicht am Ende von css/05 (nur Darstellung, keine Struktur/Logik): ruhiger flacher Grund statt Blaugrau-Verlauf (Seite und Fenster), flache Karten (Rundung 12px, feine Linie, kein Schatten), ruhige Knöpfe (grau mit Rand, blau/grün ohne Schatten, Rundung 10px), Tabellenkopf/Zeilen/Einstellungsabschnitte in den neuen Tönen, Dunkelmodus über dieselben Variablen; Register der Projektseite etwas dichter und der aktive Reiter bleibt sichtbar. **Bewusst nicht geändert:** Feldgrössen und Beschriftungen der Formulare (früherer Entscheid, geprüft in `einstellungen-optik-v3-151`, `formulare-optik-v3-154`, `massaufnahme-optik-v3-152`; ein erster Versuch mit grösseren Feldern wurde deshalb zurückgenommen). Bereits einzeln nach Wunschbild gestaltet: Startseite, Projektliste, Projektseite, Stammdaten. Nicht einzeln umgebaut (nur die gemeinsame Schicht): Massaufnahme-Formulare, Regierapport, Ausmass, Offerte, Werkstatt, Lager, Einstellungen, Mehr – für eine Seite nach eigenem Bild bitte den Entwurf nennen. Prüfstand `design-einheitlich-v3-359` (11; Grund, Karten, Knöpfe, Felder unberührt, kein Überlaufen auf 12 Seiten bei 390/768/1280 px, Dunkelmodus); Mutationen erkannt. Bericht: `ABSCHLUSSBERICHT_Design_v3.359.txt`.
 
 ### v3.358 — Logo weiss im Kopf; Titelbild wird beim Speichern nicht mehr überschrieben
 
@@ -14,15 +18,6 @@ Meldung (Bild): „Jetzt sieht das Logo komisch aus.“ Das (dunkelblaue, transp
 ### v3.357 — Stammdaten nach dem Wunschbild
 
 Wunsch („Danach das umbauen“, Bild der Seite Stammdaten). Nur Darstellung im Rahmen der Ansicht (`a2-nur-stammdaten`, css/05; dieselben Felder, derselbe Speichern-Weg `cockpitSaveStammdaten`): Titel gross in Blau, Status-Zeile mit Beschriftung und Auswahl mit farbigem Punkt (die doppelte Marke daneben entfällt; die Optionen heissen ohne unklares Zeichen, js/24), Überschrift „Projektinformationen“ (index.html, `.stamm-kopf`), Beschriftungen in normaler Schrift, grosse Eingabefelder, „Zugeteilt an“ als Abschnitt mit zweispaltigen Personenfeldern, Speichern-Knopf voll breit, „Zurück zur Projektübersicht“ als ruhiger Rahmen-Knopf statt grün. Prüfstand `projektseiten-wunschbild-v3-356` auf 25 (Abschnitt E); Mutationen (Zeichen in Optionen, doppelte Marke, einspaltige Zuteilung, fehlende Überschrift) erkannt.
-
-### v3.356 — Projektliste und Projektseite nach dem Wunschbild; Titelbild lesbar; grösseres, transparentes Logo
-
-Wünsche: (1) Projektliste und Projektseite nach den Wunschbildern umbauen; (2) „Titelbild wird nicht gespeichert und dadurch nicht angezeigt“; (3) Firmenlogo grösser und transparent wie in der Vorlage.
-**Titelbild – Ursache:** gespeichert war es (Spalte `kopf_bild_url` gefüllt), aber die Lese-Policy für Storage (`tenant read own storage files` → `storage_object_is_own_company`) erkennt flache Pfade nur über bekannte Referenzen (bisher `app_settings.logo_url`); das Titelbild bekam deshalb keine signierte Adresse. **Behoben** mit einer additiven Migration `storage_zugriff_kopf_bild`: in dieser einen Funktion zählt zusätzlich `kopf_bild_url` derselben Firma (`company_id = my_company_id()`); der übrige Funktionstext und alle Policies sind unverändert (Datei `supabase/migrations/v3356_storage_zugriff_kopf_bild.sql` dokumentiert die Stelle). Nicht live gegen die echte App getestet.
-**Logo:** im Kopf der Startseite ohne weissen Kasten (transparent), bis 60 px hoch / 260 px breit.
-**Projektliste (js/70, js/09, css/05):** Karten mit Symbolkreis, Titel + Status-Marke (Punkt statt unklarem Zeichen), Adresszeile und Stand-Zeile mit farbigen Punkten (`projektStandTeile`; der Satz „n Massaufnahmen · k offen · z zu rüsten“ bleibt derselbe), Suchfeld mit Filterknopf (öffnet „Archiv und Filter“).
-**Projektseite:** Register als Symbolleiste mit Unterstreichung (seitlich wischbar), „Als Nächstes“ mit Symbolfeld, Projektübersicht mit Symbol je Bezeichnung und Status-Marke, Material-/Mengentabelle mit Werkstoff-Farbfeld (nur Orientierung), Komplettausmass mit drei Kennzahlen-Feldern und Positionen als Zeilen mit Symbol und Pfeil (js/85, css/01). Nicht übernommen: Status-Auswahlliste in der Marke (wäre ein Schreibweg; Status wird weiter über „Stammdaten bearbeiten“ geändert).
-Prüfstand `projektseiten-wunschbild-v3-356` (18); `uebersichtlichkeit-v3-289` (Filterknopf im Suchfeld erlaubt). Bericht: `ABSCHLUSSBERICHT_Projektseiten_v3.356.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

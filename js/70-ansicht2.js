@@ -1271,6 +1271,9 @@ function a2Zeichnen(){
  else if(a2Zustand.seite==="mehr")inhalt=a2SeiteMehr();
  else inhalt=a2SeiteHeute();
  $("a2Inhalt").innerHTML=inhalt;
+ // v3.359: Der aktive Reiter der Projektseite bleibt in der (seitlich wischbaren) Leiste sichtbar.
+ {const rl=$("a2Inhalt").querySelector(".a2-register-tabs"),rt=rl&&rl.querySelector(".ist-auf");
+  if(rl&&rt&&rl.scrollWidth>rl.clientWidth)rl.scrollLeft=Math.max(0,rt.offsetLeft-(rl.clientWidth-rt.offsetWidth)/2);}
  // v3.353: Die verdichtete Gestaltung gilt nur für die Startseite (Klasse a2-heute); alle anderen Seiten bleiben unverändert.
  {const istHeute=a2Zustand.seite==="heute"&&!ber;
   $("a2Inhalt").classList.toggle("a2-heute",istHeute);
