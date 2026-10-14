@@ -1,0 +1,4 @@
+v3.364 – Festes Startbanner
+Änderung: img/startbanner.jpg (neu), js/70 a2HeuteHeroHtml, css/05 .a2-hero-fix, sw.js, index.html (Titelbild-Block ausgeblendet). Keine DB-Änderung.
+Tests: Schnellprüfung 181 Prüfstände (alle grün nach Anpassung von ansicht2-vorgabe-151, projektseiten-wunschbild-356, startseite-dashboard-352); volle Regression folgt nach dem Push.
+Nicht getestet: echtes Gerät.

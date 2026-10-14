@@ -122,21 +122,25 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(sd.felder&&sd.speichern,"alle Felder und der Speichern-Knopf vorhanden (derselbe Weg)",sd);
  p(sd.zurueck!=="rgb(15, 118, 74)"&&sd.zurueck!=="rgb(0, 128, 0)"&&sd.sw<=sd.cw+1,"Zurück-Knopf ruhig (nicht grün), kein Überlaufen",[sd.zurueck,sd.sw,sd.cw]);
 
- console.log("\nD · Kopf der Startseite: Logo transparent und gross");
- const l=await page.evaluate(()=>{
+ console.log("\nD · Kopf der Startseite: festes Banner (v3.364)");
+ const l=await page.evaluate(async()=>{
   const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
   if(a2Zustand.bereich)a2BereichSchliessen();
-  $("startLogo").src=gif;$("startLogo").hidden=false;
+  $("startLogo").src=gif;$("startLogo").hidden=false;kopfBildSigniert=gif;
   a2Zustand.seite="heute";a2Zeichnen();
-  const i=document.querySelector("#a2Inhalt .a2-hero-logo");
+  await new Promise(x=>setTimeout(x,400));
+  const i=document.querySelector("#a2Inhalt .a2-hero-fix .a2-hero-bild");
   if(!i)return null;
-  const cs=getComputedStyle(i);
-  return {bg:cs.backgroundColor,maxH:parseFloat(cs.maxHeight),pad:cs.paddingLeft};
+  const h=document.querySelector("#a2Inhalt .a2-hero-fix");
+  return {src:i.getAttribute("src"),alt:i.alt,geladen:i.complete&&i.naturalWidth>0,breite:Math.round(i.getBoundingClientRect().width),
+   hw:Math.round(h.getBoundingClientRect().width),gruss:/^Guten (Morgen|Tag|Abend)$/.test((h.querySelector(".a2-hero-gruss")||{}).textContent||""),
+   unter:(h.querySelector(".a2-hero-unter")||{}).textContent||"",altLogo:!!h.querySelector(".a2-hero-logo"),mitBild:!!document.querySelector("#a2Inhalt .a2-hero-mit-bild")};
  });
- p(l&&(l.bg==="rgba(0, 0, 0, 0)"||l.bg==="transparent")&&l.pad==="0px","Logo ohne weissen Kasten (transparent)",l);
- p(l&&l.maxH>=56,"Logo grösser (max. Höhe ≥ 56px)",l);
- const lf=await page.evaluate(()=>{const i=document.querySelector("#a2Inhalt .a2-hero-logo");return i?getComputedStyle(i).filter:""});
- p(/brightness\(0\)/.test(lf)&&/invert\(1\)/.test(lf),"Logo erscheint weiss auf dem Blau (auch dunkle Logos bleiben lesbar)",lf);
+ p(l&&l.src==="img/startbanner.jpg"&&l.geladen&&l.breite>=l.hw-2,"Kopf zeigt das feste Banner über die ganze Breite (Datei geladen)",l);
+ p(l&&l.gruss&&/ · /.test(l.unter)&&l.unter.length>8,"Begrüssung, Datum und Name stehen unter dem Banner",l);
+ p(l&&!l.altLogo&&!l.mitBild,"unabhängig von Firmenlogo und Titelbild-Einstellung: immer dasselbe Banner",l);
+ const swq=require("fs").readFileSync("sw.js","utf8");
+ p(/\.\/img\/startbanner\.jpg/.test(swq)&&require("fs").existsSync("img/startbanner.jpg")&&require("fs").statSync("img/startbanner.jpg").size>20000,"Banner liegt im Repo und in der App-Shell von sw.js (offline verfügbar)");
  const q7=require("fs").readFileSync(path.join(process.cwd(),"js/07-einstellungen.js"),"utf8");
  p(/kopfBildGeaendert\?\{kopf_bild_url:newKopfBildUrl\}:\{\}/.test(q7)&&/kopfBildGeaendert=true/.test(q7),"Titelbild wird nur geschrieben, wenn geändert – Speichern der Firmendaten überschreibt es nie");
  p(fehler.length===0,"keine JS-Fehler",fehler);

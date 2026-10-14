@@ -596,15 +596,16 @@ function a2HeuteGruss(){
  return h<11?"Guten Morgen":(h<17?"Guten Tag":"Guten Abend");
 }
 function a2HeuteHeroHtml(){
- // v3.355: Titelbild aus den Firmeneinstellungen (signierte Adresse, kommt aus js/05); ohne Bild bleibt der blaue Kopf wie bisher.
- const bild=(typeof kopfBildSigniert==="string")?kopfBildSigniert:"";
- const logo=a2LogoQuelle();
+ // v3.364 (Ansage des Anwenders): Das Kopfbild der Startseite ist FEST das Banner „Künzi Spenglerei“ (img/startbanner.jpg, im App-Cache);
+ // Begrüssung, Datum und Name stehen darunter. Das Banner enthält das Logo – ein eigenes Logo/Titelbild wird hier nicht mehr eingeblendet.
  const name=(typeof companyName!=="undefined"&&companyName)?companyName:"SPENGLER-DIGITAL";
  const profil=(typeof currentProfile!=="undefined")?currentProfile:null;
- return `<div class="a2-hero${bild?" a2-hero-mit-bild":""}"${bild?` style="--a2-hero-bild:url('${esc(bild)}')"`:""}>
-  ${logo?`<img class="a2-hero-logo" src="${esc(logo)}" alt="${esc(name)}">`:`<div class="a2-hero-name">${esc(name)}</div>`}
-  <div class="a2-hero-gruss">${esc(a2HeuteGruss())}</div>
-  <div class="a2-hero-unter">${esc(a2HeuteDatum())} · ${esc(a2Name(profil))}</div>
+ return `<div class="a2-hero a2-hero-fix">
+  <img class="a2-hero-bild" src="img/startbanner.jpg" alt="${esc(name)}" width="1400" height="525" decoding="async">
+  <div class="a2-hero-text">
+   <div class="a2-hero-gruss">${esc(a2HeuteGruss())}</div>
+   <div class="a2-hero-unter">${esc(a2HeuteDatum())} · ${esc(a2Name(profil))}</div>
+  </div>
  </div>`;
 }
 // Suchfeld der Startseite: filtert NUR die Liste der Projekte darunter (dieselbe Suchregel wie die Projektliste); der Filterknopf öffnet Archiv und Filter.

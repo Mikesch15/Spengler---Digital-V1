@@ -124,6 +124,12 @@ dieser Abschnitt hinkte bis Version 3.31 nach und ist dort nachgezogen worden.
 Elf der zwölf Arten werden über Register erfasst – ohne ist nur Skizze/Foto,
 und zwar bewusst (Abschnitt 89.1).
 
+
+### v3.361 — Einfassung rund: Umschläge einzeln, Anreiff in Mass a, Zuordnung firmenweit
+
+Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 90°-Aufbug, Umschläge seitlich, Anreiff vorne; **Mass a (vorne bis Mitte Rohr) ist inklusive Anreiff**; die Zuordnung Standrohr→Mantelrohr gilt firmenweit.
+**Umsetzung:** Einstellungen Einfassung rund (js/21, index.html): `umschlag` = vorne (180°), neu `umschlag_hinten`, `umschlag_seitlich`, `anreiss` (Standard 20/20/18; ältere Geräte-Stände übernehmen beim Laden ihren bisherigen `umschlag` für hinten und seitlich). `einfProfil`: p0→p1 = Anreiff, p1→Mitte Rohr = a − Anreiff (Gesamt a); Umschlag hinten am p4→p5; `einfBerechnen`: Breite mit `umschlag_seitlich`. Tablett (js/77): Länge = vorne + a + b + c + hinten (Anreiff nicht mehr zusätzlich), Breite mit seitlichem Umschlag, Anreiff-Knick liegt in a, Warnung „Loch reicht in den Anreiff“ prüft a − Anreiff; Abwicklungsrechner (js/78/index.html) neue Felder, Vorgaben aus den Einstellungen (js/38). **Folge:** gleiche Eingaben ergeben nun 18 mm kürzere Zuschnitte/Abwicklungen als bis v3.360 (a enthält den Anreiff); gespeicherte Massaufnahmen rechnen beim Öffnen neu, bereits gedruckte Werte bleiben unverändert. **Zuordnung firmenweit:** neue Spalte `app_settings.einfassung_mantel_zuordnung jsonb` (Migration „app_settings_einfassung_mantel_zuordnung“, additiv, Datei `supabase/migrations/v3361_…sql`; Policies unverändert), Knopf „Zuordnung speichern (ganze Firma)“ über `speichereAppSettings`; die lokale Liste aus v3.360 gilt nur ersatzweise. Prüfstand `mantelrohr-v3-360` auf 26; angepasst wegen der neuen Geometrie: `abwicklung-tablett-v3-192`, `abwicklung-papier-v3-193` (Tablett 350×525 passt jetzt auf A2), `einfassung-app-v2-96`. Bericht: `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt` (Nachtrag).
+
 ### 3.1 Skizze / Foto
 
 Bestehende Kernfunktion:

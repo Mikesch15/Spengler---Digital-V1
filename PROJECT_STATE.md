@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.363`
+- Aktueller Entwicklungsstand: `v3.364`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.364 — Startseite: festes Banner im Kopf
+
+Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Logo + Werkzeug), Name/Datum/Gruss bleiben, Hintergrund fest.
+**Umsetzung:** `img/startbanner.jpg` (1400×525, aus dem gelieferten PNG), in `sw.js` im App-Cache. `a2HeuteHeroHtml` (js/70) zeigt das Banner voll breit, darunter Gruss und Datum · Name; `css/05` (`.a2-hero-fix`). Das Banner ist unabhängig von Logo/Titelbild; der Titelbild-Upload in den Firmeneinstellungen ist ausgeblendet (`#kopfBildBlock`, Code und DB-Spalte bleiben). Prüfstände angepasst: ansicht2-vorgabe-151, projektseiten-wunschbild-356 (D), startseite-dashboard-352 (H).
 
 ### v3.363 — Rotes Ausrufezeichen bei ungewöhnlichem Mass
 
@@ -16,11 +21,6 @@ Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt 
 
 Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett oder nur der Lochausschnitt mit den Massen angezeigt/gedruckt wird; Gesamtlänge und Gesamtbreite sollen in beiden Fällen bemasst und zu sehen sein.
 **Umsetzung (js/77, js/78, index.html):** Auswahlfeld „Zeichnung“ im Abwicklungsdialog beim Tablett (`abw_tab_ansicht`: Ganzes Tablett / Nur Lochausschnitt mit Massen; gilt für Vorschau, Druck, SVG und DXF, wird nicht mit der Abwicklung gespeichert; Rechenwerte unverändert). `abwTablett` liefert `ansicht`, `gesamtLaenge`/`gesamtBreite` und die Geometrie `zeichnungLoch` (Loch in wahrer Grösse mit 35 mm Blechstreifen rundum, Weg zur Kante GEKÜRZT dargestellt). Eine Zeichen-Geometrie für alles, was zeichnet/druckt/exportiert: `abwZ(r)`. Bemassung (`abwMassSvg`, beide Zeichnungen): Mitte Loch bis vorne/hinten, Gesamtlänge (links aussen), Gesamtbreite (unten), Kreuz in der Lochmitte; die Zahlen sind immer die wahren Masse, im Ausschnitt mit Unterbrechungszeichen. Druck 1:1: Bemassung auf dem Blatt (Schrift 4 mm), Papierberechnung mit Platz dafür (ganzes Tablett auf A4: 9 statt 6 Blatt, weil 350 + 20 mm nicht mehr in zwei Spalten passen; Ausschnitt: 1 Blatt A3). DXF: Layer BEMASSUNG mit vier Texten. Prüfstand `mantelrohr-v3-360` auf 37; angepasst: `abwicklung-papier-v3-193` (A4 hoch 9 Blatt). Bericht: Nachtrag in `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt`.
-
-### v3.361 — Einfassung rund: Umschläge einzeln, Anreiff in Mass a, Zuordnung firmenweit
-
-Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 90°-Aufbug, Umschläge seitlich, Anreiff vorne; **Mass a (vorne bis Mitte Rohr) ist inklusive Anreiff**; die Zuordnung Standrohr→Mantelrohr gilt firmenweit.
-**Umsetzung:** Einstellungen Einfassung rund (js/21, index.html): `umschlag` = vorne (180°), neu `umschlag_hinten`, `umschlag_seitlich`, `anreiss` (Standard 20/20/18; ältere Geräte-Stände übernehmen beim Laden ihren bisherigen `umschlag` für hinten und seitlich). `einfProfil`: p0→p1 = Anreiff, p1→Mitte Rohr = a − Anreiff (Gesamt a); Umschlag hinten am p4→p5; `einfBerechnen`: Breite mit `umschlag_seitlich`. Tablett (js/77): Länge = vorne + a + b + c + hinten (Anreiff nicht mehr zusätzlich), Breite mit seitlichem Umschlag, Anreiff-Knick liegt in a, Warnung „Loch reicht in den Anreiff“ prüft a − Anreiff; Abwicklungsrechner (js/78/index.html) neue Felder, Vorgaben aus den Einstellungen (js/38). **Folge:** gleiche Eingaben ergeben nun 18 mm kürzere Zuschnitte/Abwicklungen als bis v3.360 (a enthält den Anreiff); gespeicherte Massaufnahmen rechnen beim Öffnen neu, bereits gedruckte Werte bleiben unverändert. **Zuordnung firmenweit:** neue Spalte `app_settings.einfassung_mantel_zuordnung jsonb` (Migration „app_settings_einfassung_mantel_zuordnung“, additiv, Datei `supabase/migrations/v3361_…sql`; Policies unverändert), Knopf „Zuordnung speichern (ganze Firma)“ über `speichereAppSettings`; die lokale Liste aus v3.360 gilt nur ersatzweise. Prüfstand `mantelrohr-v3-360` auf 26; angepasst wegen der neuen Geometrie: `abwicklung-tablett-v3-192`, `abwicklung-papier-v3-193` (Tablett 350×525 passt jetzt auf A2), `einfassung-app-v2-96`. Bericht: `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt` (Nachtrag).
 
 ## DAUERHAFT GÜLTIGE REGELN
 
