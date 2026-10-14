@@ -82,7 +82,11 @@ const EINFASSUNG_STANDARD = Object.freeze({
   // (js/77, abwTablett) - damit laesst sich das Rohr einsetzen, ohne zu
   // feilen. Anders als Rohrhoehe und Schweifbord ist hier 0 ein sinnvoller
   // Wert (Loch exakt auf Rohrmass), deshalb steht die Vorgabe auf 2.
-  loch_zugabe: 2
+  loch_zugabe: 2,
+  // v3.360: Zuordnung Standrohr-Durchmesser -> Mantelrohr-Durchmesser (mm). Der Mantelrohr-Durchmesser ist der RECHNERISCHE
+  // Durchmesser (Abwicklung, Zuschnitt, Tablett); der Standrohr-Durchmesser ist nur Information. Leer = keine Zuordnung
+  // (nichts wird erfunden); je Eintrag {standrohr, mantel}.
+  mantel_zuordnung: []
 });
 const EINF_EINSTELLUNGEN = "sd_einfassungRundSettings";
 
@@ -94,6 +98,36 @@ function einfEinstellungenLaden() {
   w = Object.assign({}, EINFASSUNG_STANDARD, w || {});
   if (!EINF_DECKUNGEN[w.deckung]) w.deckung = EINFASSUNG_STANDARD.deckung;
   return w;
+}
+// v3.360: Mantelrohr-Durchmesser zu einem Standrohr-Durchmesser aus den Einstellungen; null = keine Zuordnung.
+function einfMantelFuer(standrohr) {
+  const n = Number(standrohr);
+  if (!(n > 0)) return null;
+  const z = ((typeof einfassungSettings === "object" && einfassungSettings && einfassungSettings.mantel_zuordnung) || []);
+  const t = z.find(x => x && Number(x.standrohr) === n && Number(x.mantel) > 0);
+  return t ? Number(t.mantel) : null;
+}
+function einfMantelZeileHtml(st, ma) {
+  return `<div class="einfs-mantel-zeile" data-einfs-mantel-zeile>
+<input type="number" min="0" step="1" inputmode="numeric" data-einfs-standrohr placeholder="Standrohr Ø" value="${st === "" || st === undefined ? "" : anbEsc(String(st))}" aria-label="Standrohr-Durchmesser (mm)">
+<span aria-hidden="true">→</span>
+<input type="number" min="0" step="1" inputmode="numeric" data-einfs-mantel placeholder="Mantelrohr Ø" value="${ma === "" || ma === undefined ? "" : anbEsc(String(ma))}" aria-label="Mantelrohr-Durchmesser (mm)">
+<button type="button" class="red" data-einfs-mantel-weg aria-label="Zuordnung löschen">✕</button></div>`;
+}
+function einfMantelListeZeichnen(liste) {
+  const box = $("einfsMantelListe");
+  if (!box) return;
+  const z = Array.isArray(liste) ? liste : [];
+  box.innerHTML = z.map(x => einfMantelZeileHtml(x.standrohr, x.mantel)).join("")
+    || '<div class="small">Noch keine Zuordnung – dann wird der Mantelrohr-Durchmesser von Hand eingegeben.</div>';
+}
+function einfMantelListeLesen() {
+  const box = $("einfsMantelListe");
+  if (!box) return [];
+  return [...box.querySelectorAll("[data-einfs-mantel-zeile]")].map(r => ({
+    standrohr: Number(r.querySelector("[data-einfs-standrohr]").value) || 0,
+    mantel: Number(r.querySelector("[data-einfs-mantel]").value) || 0
+  })).filter(x => x.standrohr > 0 && x.mantel > 0);
 }
 function einfEinstellungenSichern(w) {
   einfassungSettings = w;
@@ -424,6 +458,7 @@ function applyEinfassungSettings() {
   setzen("einfsRohrhoehe", s.rohrhoehe);
   setzen("einfsSchweifbord", s.schweifbord);
   setzen("einfsLochZugabe", s.loch_zugabe);
+  if ($("einfsMantelListe") && !$("einfsMantelListe").contains(document.activeElement)) einfMantelListeZeichnen(s.mantel_zuordnung);
 }
 
 // ---- 7. Bedienung ----------------------------------------------------
@@ -468,7 +503,8 @@ function applyEinfassungSettings() {
       rohrhoehe: zahl("einfsRohrhoehe") || 0,
       schweifbord: zahl("einfsSchweifbord") || 0,
       // 0 ist hier erlaubt und heisst "Loch exakt auf Rohrmass".
-      loch_zugabe: Math.max(0, zahl("einfsLochZugabe") || 0)
+      loch_zugabe: Math.max(0, zahl("einfsLochZugabe") || 0),
+      mantel_zuordnung: einfMantelListeLesen()
     };
     if (!EINF_DECKUNGEN[w.deckung]) { appAlert("Bitte ein Deckmaterial wählen."); return; }
     const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
@@ -478,6 +514,18 @@ function applyEinfassungSettings() {
     applyEinfassungSettings();
     appAlert("Gespeichert (gilt nur für dieses Gerät).");
   };
+
+  if ($("einfsMantelNeu")) $("einfsMantelNeu").onclick = () => {
+    const aktuell = einfMantelListeLesen();
+    einfMantelListeZeichnen(aktuell.concat([{ standrohr: "", mantel: "" }]));
+  };
+  if ($("einfsMantelListe")) $("einfsMantelListe").addEventListener("click", e => {
+    const weg = e.target.closest("[data-einfs-mantel-weg]");
+    if (!weg) return;
+    const zeile = weg.closest("[data-einfs-mantel-zeile]");
+    if (zeile) zeile.remove();
+    if (!$("einfsMantelListe").querySelector("[data-einfs-mantel-zeile]")) einfMantelListeZeichnen([]);
+  });
 
   $("resetEinfassungSettings").onclick = async () => {
     if (!await appConfirm("Alle Werte der Einfassung Rund auf die Standardwerte zurücksetzen?")) return;

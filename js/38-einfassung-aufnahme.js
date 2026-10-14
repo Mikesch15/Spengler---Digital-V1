@@ -75,7 +75,7 @@ function einfaNeue(){
  // Richtwert aus den Einstellungen) vorausgefuellt - eine neue Einfassung
  // startet jetzt leer, damit jedes Mass bewusst gemessen und eingetragen
  // werden muss. einfVorgabe() selbst bleibt fuer js/21 unveraendert.
- return {bez:"",durchmesser:"",winkel:"",a:"",b:"",c:"",anzahl:1};
+ return {bez:"",standrohr:"",durchmesser:"",winkel:"",a:"",b:"",c:"",anzahl:1};
 }
 function einfaLeer(){
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)
@@ -169,7 +169,7 @@ function einfaAbwVorgabe(e,bauteil,ctx){
   // Das Tablett ist der Querschnitt, den diese Aufnahme SELBST erfasst -
   // hier fehlt nichts vom Dach. Es fehlt nur der Werkstattstandard Umschlag
   // bzw. Mass seitlich, und der steht in den Einstellungen.
-  nimm("D",e.durchmesser,"Ø Standrohr");
+  nimm("D",e.durchmesser,"Ø Mantelrohr");
   nimmWinkel();
   nimm("a",e.a,"Mass a");
   nimm("b",e.b,"Mass b");
@@ -181,7 +181,7 @@ function einfaAbwVorgabe(e,bauteil,ctx){
   werte.lochZugabe=Math.max(0,einfaZahl(s.loch_zugabe));
   uebernommen.push("Luft am Lochausschnitt (Richtwert)");
  }else{
-  nimm("D",e.durchmesser,"Ø Standrohr");
+  nimm("D",e.durchmesser,"Ø Mantelrohr");
   nimmWinkel();
   nimm("t",c.staerke,"Materialstärke");
   nimm("H",s.rohrhoehe,"Rohrhöhe (Richtwert)");
@@ -358,7 +358,8 @@ function einfaAusmassZeilen(quelle){
   const n=einfaAnzahl(e);
   const bez=(e.bez||"").trim()||("Ø "+einfaMm(e.durchmesser)+" mm");
   dazu("Einfassung "+(i+1)+" · "+bez,n,"Stk",
-    "Zuschnitt "+einfaMm(erg.abwicklung)+" × "+einfaMm(erg.breiteGesamt)+" mm");
+    "Zuschnitt "+einfaMm(erg.abwicklung)+" × "+einfaMm(erg.breiteGesamt)+" mm"
+    +(einfaLeerWert(e.standrohr)?"":" · Mantelrohr Ø "+einfaMm(e.durchmesser)+" (Standrohr Ø "+einfaMm(e.standrohr)+", Info)"));
  });
  const fl=einfaFlaecheM2(q);
  if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Breite");
@@ -385,7 +386,7 @@ function einfaPruefungen(){
  liste.forEach((e,i)=>{
   const nr="Einfassung "+(i+1)+": ";
   if(!(einfaZahl(e.durchmesser)>0))
-   m.push({art:"fehler",text:nr+"Der Rohrdurchmesser fehlt."});
+   m.push({art:"fehler",text:nr+"Der Mantelrohr-Durchmesser fehlt."});
   if(!(einfaZahl(e.a)>0))
    m.push({art:"fehler",text:nr+"Mass a fehlt (vorne bis Mitte Rohr)."});
   if(!(einfaZahl(e.b)>0))
@@ -502,7 +503,8 @@ ${einfaZahlFeld("Anzahl Bleilappen gesamt von Hand (leer = berechnet)","einfa_bl
 function einfaUebersichtHtml(){
  const beispiel={durchmesser:110,winkel:25,a:120,b:100,c:80};
  const zeilen=[
-  ["Ø","Ø Standrohr"],
+  ["Ø","Ø Mantelrohr (gilt für die Abwicklung)"],
+  ["Standrohr","Ø Standrohr (nur zur Information)"],
   ["Winkel","Winkel Dach/Rohr"],
   ["a","vorne bis Mitte Rohr"],
   ["b","ab Mitte Rohr bis hinten"],
@@ -537,7 +539,9 @@ function einfaEinfassungenHtml(){
 <h2 id="einfa_kopf_${i}">${einfaKartenKopfHtml(e,i)}</h2>
 <div class="grid">
 ${einfaFeld("Bezeichnung",`<input id="einfa_bez_${i}" type="text" value="${esc(e.bez||"")}">`)}
-${einfaZahlFeld("Ø Standrohr (mm)","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
+${einfaZahlFeld("Ø Standrohr (mm) · nur zur Information","einfa_standrohr_"+i,e.standrohr)}
+${einfaZahlFeld("Ø Mantelrohr (mm) · gilt für die Abwicklung","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
+<div class="wide small" id="einfa_mantel_hinweis_${i}">${esc(einfaMantelHinweis(e))}</div>
 ${einfaZahlFeld("Winkel Dach/Rohr (°)","einfa_winkel_"+i,einfaWinkelAnzeige(e.winkel),"0.1",true)}
 ${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true,(einfassungSettings||{}).mass_a)}
 ${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b,"1",true,(einfassungSettings||{}).mass_b)}
@@ -734,7 +738,25 @@ function einfaLive(){
 }
 // Zuordnung Eingabefeld -> Zustand. Die Felder der Liste tragen den Index.
 const EINFA_FELDER={einfa_lattenabstand:"lattenabstand",einfa_bleilappenManuell:"bleilappenManuell"};
-const EINFA_LISTENFELDER=["bez","durchmesser","winkel","a","b","c","anzahl"];
+const EINFA_LISTENFELDER=["bez","standrohr","durchmesser","winkel","a","b","c","anzahl"];
+// v3.360: Zur Standrohr-Eingabe den Mantelrohr-Durchmesser aus den Einstellungen übernehmen (falls zugeordnet); der Mantelrohr-Wert bleibt danach von Hand änderbar.
+function einfaMantelHinweis(e){
+ if(einfaLeerWert(e&&e.standrohr))return "Standrohr und Mantelrohr: den Mantelrohr-Durchmesser (rechnerisch) von Hand eingeben oder über das Standrohr aus den Einstellungen übernehmen.";
+ const m=(typeof einfMantelFuer==="function")?einfMantelFuer(e.standrohr):null;
+ return m!==null?("Standrohr Ø "+einfaMm(e.standrohr)+" → Mantelrohr Ø "+einfaMm(m)+" (aus den Einstellungen)"):("Keine Zuordnung für Standrohr Ø "+einfaMm(e.standrohr)+" in den Einstellungen – Mantelrohr-Durchmesser von Hand eingeben.");
+}
+function einfaMantelUebernehmen(i){
+ const e=einfaListe()[i];
+ if(!e)return;
+ const m=(typeof einfMantelFuer==="function")?einfMantelFuer(e.standrohr):null;
+ if(m!==null){
+  e.durchmesser=m;
+  const f=$("einfa_durchmesser_"+i);
+  if(f)f.value=String(m);
+ }
+ const h=$("einfa_mantel_hinweis_"+i);
+ if(h)h.textContent=einfaMantelHinweis(e);
+}
 function einfaFeldZuweisen(id,wert){
  if(EINFA_FELDER[id]!==undefined){einfA[EINFA_FELDER[id]]=wert;return true}
  const m=/^einfa_([a-zA-Z]+)_(\d+)$/.exec(id);
@@ -756,6 +778,7 @@ function einfaVerdrahten(){
  wurzel.addEventListener("input",e=>{
   if(einfaZeichnet)return;
   if(!einfaFeldZuweisen(e.target.id,e.target.value))return;
+  {const ms=/^einfa_standrohr_(\d+)$/.exec(e.target.id);if(ms)einfaMantelUebernehmen(Number(ms[1]))}
   einfaLive();
  });
  wurzel.addEventListener("change",e=>{
@@ -839,7 +862,7 @@ function einfaDaten(){
   // --- neu ab v2.96 ---
   einfassungen:liste.map(e=>{
    const erg=einfaBerechne(e)||{};
-   return {bez:e.bez||"", durchmesser:einfaZahl(e.durchmesser), winkel:einfaZahl(e.winkel),
+   return {bez:e.bez||"", standrohr:einfaLeerWert(e.standrohr)?"":einfaZahl(e.standrohr), durchmesser:einfaZahl(e.durchmesser), winkel:einfaZahl(e.winkel),
      a:einfaZahl(e.a), b:einfaZahl(e.b), c:einfaZahl(e.c), anzahl:einfaAnzahl(e),
      abwicklung:einfaZahl(erg.abwicklung), breiteGesamt:erg.breiteGesamt===null?null:einfaZahl(erg.breiteGesamt),
      bleilappen:erg.anzahlBleilappen===null||erg.anzahlBleilappen===undefined?null:erg.anzahlBleilappen};
@@ -890,7 +913,7 @@ function einfaFuellen(d){
  if(w.bleilappenManuell===0||w.bleilappenManuell)a.bleilappenManuell=w.bleilappenManuell;
  if(Array.isArray(w.einfassungen)&&w.einfassungen.length){
   a.einfassungen=w.einfassungen.map(e=>({
-   bez:(e&&e.bez)||"", durchmesser:einfaZahl(e&&e.durchmesser), winkel:einfaZahl(e&&e.winkel),
+   bez:(e&&e.bez)||"", standrohr:(e&&!einfaLeerWert(e.standrohr))?einfaZahl(e.standrohr):"", durchmesser:einfaZahl(e&&e.durchmesser), winkel:einfaZahl(e&&e.winkel),
    a:einfaZahl(e&&e.a), b:einfaZahl(e&&e.b), c:einfaZahl(e&&e.c),
    anzahl:Math.max(1,Math.round(einfaZahl(e&&e.anzahl)||1))}));
  }else if(w.durchmesser===0||w.durchmesser||w.a===0||w.a){

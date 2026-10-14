@@ -70,7 +70,7 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  // ---- A  Was die Bruecke herausrechnet ------------------------------------
  console.log("\nA · Welche Masse die Bruecke herausrechnet");
  const A=await page.evaluate(()=>einfaAbwicklungVorgabe(0));
- p(A&&A.werte.D===110,"Ø Standrohr 110 wird Durchmesser D",A&&A.werte);
+ p(A&&A.werte.D===110,"Ø Mantelrohr 110 wird Durchmesser D (rechnerisch)",A&&A.werte);
  // Der Winkel ist die Falle: angezeigt 115 (Dach/Rohr), gespeichert 25
  // (Dachneigung). Der Schnittwinkel ist die DACHNEIGUNG.
  p(A&&A.werte.alpha===25,"die DACHNEIGUNG 25 wird Schnittwinkel alpha - nicht die angezeigten 115",A&&A.werte);
@@ -125,7 +125,7 @@ const nurCode=t=>t.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"")
  // ---- C  Die Herkunft nennt BEIDES ----------------------------------------
  console.log("\nC · Der Hinweis nennt auch, was NICHT übernommen wurde");
  p(B.herkunft.indexOf("Einfassung rund")>=0,"woher die Masse kommen",B.herkunft.slice(0,200));
- p(B.herkunft.indexOf("Ø Standrohr")>=0&&B.herkunft.indexOf("Materialstärke")>=0,
+ p(B.herkunft.indexOf("Ø Mantelrohr")>=0&&B.herkunft.indexOf("Materialstärke")>=0,
    "was uebernommen wurde",B.herkunft.slice(0,300));
  p(B.herkunft.indexOf("nicht übernommen")>=0&&B.herkunft.indexOf("Rohrhöhe")>=0,
    "UND was nicht - sonst raet der Anwender, welche Zahl er noch pruefen muss",B.herkunft.slice(0,400));

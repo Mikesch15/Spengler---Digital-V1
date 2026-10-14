@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.359`
+- Aktueller Entwicklungsstand: `v3.360`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.360 — Einfassung rund: Mantelrohr-Durchmesser, bemasster Lochausschnitt
+
+Wunsch: (1) Einfassung rund braucht ein Eingabefeld für das Mantelrohr; in den Einstellungen wird festgelegt, welcher Standrohr-Durchmesser welchen Mantelrohr-Durchmesser ergibt; der Mantelrohr-Durchmesser gilt für die Abwicklung, der Standrohr-Durchmesser ist rein informativ. (2) In der Zeichnung des Lochausschnitts sollen die Masse von Mitte Loch bis vorne und bis hinten vermasst sein.
+**Umsetzung:** Pro Einfassung neues Feld `standrohr` (Information, js/38); das bisherige Feld `durchmesser` bleibt das rechnerische Mass und heisst jetzt „Ø Mantelrohr“ – alte Datensätze öffnen unverändert (ihr Durchmesser gilt als Mantelrohr, Standrohr leer). Gibt es in den Einstellungen (Einfassung rund, nur dieses Gerät wie die übrigen Werte, `mantel_zuordnung` in js/21) eine Zuordnung, wird beim Eintippen des Standrohr-Ø der Mantelrohr-Ø übernommen (danach von Hand änderbar), mit Hinweis; ohne Zuordnung bleibt es von Hand (nichts erfunden). Die Abwicklungsrechner-Bücke (`einfaAbwVorgabe`) und der Zuschnitt nutzen den Mantelrohr-Ø; das Ausmass nennt beide (Standrohr als Info). **Zeichnung (js/77/78):** `abwTablett` liefert `massVorne`/`massHinten` (Mitte Loch bis Vorder-/Hinterkante des Zuschnitts); Vorschau und SVG-Datei zeigen links die Masslinien mit Zahlen und ein Kreuz in der Lochmitte, die DXF-Datei dieselben Linien/Texte auf dem Layer BEMASSUNG. Keine Datenbankänderung (Einstellungen sind lokal wie bisher). Prüfstand `mantelrohr-v3-360` (16); Mutationen (Zuordnung ignoriert, falsches Hintermass, keine Bemassung, Standrohr rechnet, keine Übernahme) erkannt; `abwicklung-einfassung-v3-191` und `einfassung-app-v2-96` auf die neuen Bezeichnungen angepasst.
 
 ### v3.359 — Einheitliches Erscheinungsbild für alle Seiten
 
@@ -14,10 +19,6 @@ Auftrag: „Überarbeite alle Seiten der App nach den bisherigen Entwürfen – 
 ### v3.358 — Logo weiss im Kopf; Titelbild wird beim Speichern nicht mehr überschrieben
 
 Meldung (Bild): „Jetzt sieht das Logo komisch aus.“ Das (dunkelblaue, transparente) Logo war auf dem Blau kaum zu lesen. Jetzt erscheint es im Kopf der Startseite weiss (`filter:brightness(0) invert(1)`, css/05) – wie in der Vorlage; ein farbiges Logo wird dort bewusst einfarbig weiss gezeigt. **Titelbild:** Beim Nachprüfen stand `app_settings.kopf_bild_url` leer, obwohl vorher gespeichert (Spaltenwert nachgeprüft). Ursache im Code: `saveCompanyName` schrieb das Titelbild bei JEDEM Speichern der Firmendaten mit (auch mit leerem Stand) und konnte ein vorhandenes Bild so löschen. Behoben (js/01, js/07): `kopfBildGeaendert` – das Feld wird nur mitgeschrieben, wenn ein neues Bild gewählt oder „Titelbild entfernen“ gedrückt wurde. Das Bild muss einmal neu hochgeladen werden; der Lesezugriff (Migration v3.356) ist vorhanden. Prüfstand `projektseiten-wunschbild-v3-356` auf 27; Mutationen (Feld immer geschrieben, Logo ohne Weiss-Filter) erkannt.
-
-### v3.357 — Stammdaten nach dem Wunschbild
-
-Wunsch („Danach das umbauen“, Bild der Seite Stammdaten). Nur Darstellung im Rahmen der Ansicht (`a2-nur-stammdaten`, css/05; dieselben Felder, derselbe Speichern-Weg `cockpitSaveStammdaten`): Titel gross in Blau, Status-Zeile mit Beschriftung und Auswahl mit farbigem Punkt (die doppelte Marke daneben entfällt; die Optionen heissen ohne unklares Zeichen, js/24), Überschrift „Projektinformationen“ (index.html, `.stamm-kopf`), Beschriftungen in normaler Schrift, grosse Eingabefelder, „Zugeteilt an“ als Abschnitt mit zweispaltigen Personenfeldern, Speichern-Knopf voll breit, „Zurück zur Projektübersicht“ als ruhiger Rahmen-Knopf statt grün. Prüfstand `projektseiten-wunschbild-v3-356` auf 25 (Abschnitt E); Mutationen (Zeichen in Optionen, doppelte Marke, einspaltige Zuteilung, fehlende Überschrift) erkannt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

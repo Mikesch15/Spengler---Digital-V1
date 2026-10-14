@@ -459,7 +459,7 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
   const alt=einfaListe()[0].durchmesser; einfaListe()[0].durchmesser=0;
   const m=einfaPruefungen(); einfaListe()[0].durchmesser=alt; return m;
  });
- p(k2.some(x=>x.art==="fehler"&&/Rohrdurchmesser/.test(x.text)),"fehlender Durchmesser ist ein Fehler",k2.map(x=>x.text));
+ p(k2.some(x=>x.art==="fehler"&&/Mantelrohr-Durchmesser/.test(x.text)),"fehlender Durchmesser ist ein Fehler",k2.map(x=>x.text));
  const k3=await page.evaluate(()=>{
   const alt=einfA.lattenabstand; einfA.lattenabstand=0;
   const m=einfaPruefungen(); einfA.lattenabstand=alt; return m;

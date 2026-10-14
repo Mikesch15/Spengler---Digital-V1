@@ -388,6 +388,8 @@ function abwTablett(roh){
  return {
   ok:true, bauteil:"tablett", fehler:[], warnungen, eingaben:e, punkte,
   breite, laenge, mitteX, mitteY,
+  // v3.360: Masse von Mitte Loch bis zur Vorderkante und bis zur Hinterkante des Tabletts (Zuschnittmasse, wie gezeichnet).
+  massVorne:mitteY, massHinten:laenge-mitteY,
   halbQuer, halbLang, lochQuer:2*halbQuer, lochLang:2*halbLang,
   kontur, biegeLinien:quer.concat(laengs), loch,
   // Damit die gemeinsamen Bausteine in js/78 (Vorschau, Schablone, DXF)
