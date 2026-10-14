@@ -1,7 +1,7 @@
 ABSCHLUSSBERICHT v3.359 – Einheitliches Erscheinungsbild
 Datum: 14.10.2026
 Ausgangscommit: 7543a35 (v3.358, Pages success, Regression 187/187)
-Zielcommit: siehe Git-Log (Commit „v3.359“)
+Zielcommit: 826e674 (v3.359)
 
 AUFTRAG: Alle Seiten nach den bisherigen Entwürfen überarbeiten; die App soll modern und übersichtlich wirken.
 
