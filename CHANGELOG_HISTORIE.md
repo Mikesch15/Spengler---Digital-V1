@@ -127,6 +127,12 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.364 — Startseite: festes Banner im Kopf
+
+Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Logo + Werkzeug), Name/Datum/Gruss bleiben, Hintergrund fest.
+**Umsetzung:** `img/startbanner.jpg` (1400×525, aus dem gelieferten PNG), in `sw.js` im App-Cache. `a2HeuteHeroHtml` (js/70) zeigt das Banner voll breit, darunter Gruss und Datum · Name; `css/05` (`.a2-hero-fix`). Das Banner ist unabhängig von Logo/Titelbild; der Titelbild-Upload in den Firmeneinstellungen ist ausgeblendet (`#kopfBildBlock`, Code und DB-Spalte bleiben). Prüfstände angepasst: ansicht2-vorgabe-151, projektseiten-wunschbild-356 (D), startseite-dashboard-352 (H).
+
 ### v3.363 — Rotes Ausrufezeichen bei ungewöhnlichem Mass
 
 Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt der üblichen 50 erfasst (Tippfehler, erst an der zu grossen Abwicklung gemerkt). Wunsch: nur ein **rotes Ausrufezeichen** am Feld, das man antippen kann, um das Problem zu sehen.

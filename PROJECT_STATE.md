@@ -3,9 +3,15 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.366`
+- Aktueller Entwicklungsstand: `v3.367`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.367 — Abacus-Import: sichere Projektzuordnung (Nachbesserung)
+
+Auftrag „Nachbesserung Abacus Projektzuordnung“. **Befund bestätigt:** In v3.366 wurde eine Zeile mit abweichender Auftragsnummer nur „unklar“ (Hinweis), blieb aber wählbar und wurde beim Speichern übernommen; ausserdem wählte die Erkennung bei einem Dokument mit A-1001 + unbekannter Nummer das Projekt A-1001 für das ganze Dokument.
+**Korrektur (js/87, js/88):** neuer Status `falscher_auftrag` (Zeile nennt eine Nummer ≠ Nummer des gewählten Projekts, auch bei unbekannter Nummer): nie wählbar, Checkbox gesperrt, nicht vorgewählt, Grund in der Zeile. Eine Regel `nkDarfEin()` für Anzeige, Checkbox, Korrektur und Speichern. `nkSpeichern()` prüft jede ausgewählte Zeile VOR dem ersten Datenbankzugriff neu aus den Rohwerten und bricht bei einer verbotenen Zeile ganz ab. Zeilen ohne Nummer: Kennzeichnung „Auftrag nicht in Zeile · manuelle Projektzuordnung“, nur nach ausdrücklicher Bestätigung (Projektwahl oder Bestätigungsfeld), gespeichert ohne Nummer; Nummer aus dem Dokumentkopf zählt nur, wenn das Dokument genau eine Nummer nennt. Projekt wird nur automatisch gewählt, wenn das ganze Dokument genau EINE Nummer nennt und sie genau ein Projekt trifft. Korrektur der Nummer/Projektwechsel/Spaltenänderung berechnet Status und Auswahl sofort neu.
+**Datenbank (additiv, `supabase/migrations/v3367_abacus_auftrag_passt.sql`, angewendet):** Funktion `enforce_abacus_auftrag_passt` + Trigger `enforce_abacus_auftrag_trg` auf `abacus_stunden`: eine Zeile mit Nummer ≠ Projektnummer wird abgewiesen. Policies unverändert. Live per SQL in einer zurückgerollten Transaktion geprüft (falsche Nummer abgelehnt, ohne Nummer und passende Nummer in anderer Schreibweise erlaubt, danach 0 Zeilen). Prüfstand `nachkalkulation-v3-366` auf 106 Prüfungen erweitert.
 
 ### v3.366 — Nachkalkulation: Abacus-Stunden importieren und abgleichen
 
@@ -17,11 +23,6 @@ Auftrag „Nachkalkulation aus Abacus-Stundenrapporten: PDF- und Excel-Import“
 ### v3.365 — Startbanner bleibt anpassbar
 
 Wunsch: Logo/Banner soll anpassbar bleiben. Standard bleibt `img/startbanner.jpg`; ein in den Firmeneinstellungen hochgeladenes Banner (`kopf_bild_url`, bestehender Weg) ersetzt es in `a2HeuteHeroHtml` (js/70). Feld „Banner der Startseite“ wieder sichtbar, „Standard-Banner wiederherstellen“ setzt zurück. Keine DB-Änderung. Prüfstand projektseiten-wunschbild-356 (D) um den Ersatz-Fall erweitert.
-
-### v3.364 — Startseite: festes Banner im Kopf
-
-Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Logo + Werkzeug), Name/Datum/Gruss bleiben, Hintergrund fest.
-**Umsetzung:** `img/startbanner.jpg` (1400×525, aus dem gelieferten PNG), in `sw.js` im App-Cache. `a2HeuteHeroHtml` (js/70) zeigt das Banner voll breit, darunter Gruss und Datum · Name; `css/05` (`.a2-hero-fix`). Das Banner ist unabhängig von Logo/Titelbild; der Titelbild-Upload in den Firmeneinstellungen ist ausgeblendet (`#kopfBildBlock`, Code und DB-Spalte bleiben). Prüfstände angepasst: ansicht2-vorgabe-151, projektseiten-wunschbild-356 (D), startseite-dashboard-352 (H).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

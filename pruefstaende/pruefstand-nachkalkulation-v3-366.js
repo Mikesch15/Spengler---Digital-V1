@@ -45,6 +45,8 @@ function __tab(name){
      if(!pr||pr.company_id!==db.firma)return {data:null,error:{message:'Projekt gehoert nicht zur eigenen Firma.'}};
      if(name==='abacus_stunden'){
       if(db.fehlerStunden)return {data:null,error:{message:'boom'}};
+      const pnr=String(pr.order_no||'').replace(/\s+/g,'').toUpperCase(),znr=String(z.auftrag_nr||'').replace(/\s+/g,'').toUpperCase();
+      if(znr&&pnr&&znr!==pnr)return {data:null,error:{message:'Auftragsnummer '+znr+' gehoert nicht zu diesem Projekt ('+pnr+').'}};
       const im=db.abacus_importe.find(x=>x.id===z.import_id);
       if(!im||im.project_id!==z.project_id)return {data:null,error:{message:'Import gehoert nicht zu diesem Projekt.'}};
       if(db.abacus_stunden.some(x=>x.project_id===z.project_id&&x.fingerprint===z.fingerprint)||neu.some(x=>x.fingerprint===z.fingerprint&&x.project_id===z.project_id))return {data:null,error:{message:'duplicate key value violates unique constraint',code:'23505'}};
@@ -106,6 +108,11 @@ FIX.zeitformat=wbBuf([["Z",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stund
 FIX.formel=wbBuf([["F",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"],["03.03.2026","A-1001","Hans Muster","Montage",0]]]],
  (n,ws)=>{ws["E2"]={t:"n",f:"2*3.5"}});            // Formel ohne gespeichertes Ergebnis
 FIX.csv=Buffer.from("Datum;Auftrag;Mitarbeiter;Tätigkeit;Stunden\n03.03.2026;A-1001;Hans Muster;Montage;\"7,5\"\n04.03.2026;A-1001;Hans Muster;Montage;4\n","utf8");
+const KP=["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"];
+FIX.passend=wbBuf([["B",[KP,["03.03.2026","A-1001","Hans Muster","Montage",4]]]]);
+FIX.fremd1=wbBuf([["B",[KP,["03.03.2026","A-2002","Hans Muster","Montage",4]]]]);
+FIX.gemischt=wbBuf([["B",[KP,["03.03.2026","A-1001","Hans Muster","Montage",4],["04.03.2026","A-2002","Hans Muster","Montage",3],["05.03.2026","Z-777","Peter Beispiel","Montage",2],["06.03.2026","","Hans Muster","Rüsten",1.5]]]]);
+FIX.einsPlusUnbekannt=wbBuf([["B",[KP,["03.03.2026","A-1001","Hans Muster","Montage",4],["04.03.2026","Z-777","Hans Muster","Montage",3]]]]);
 FIX.maxDub=wbBuf([["B",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"],["03.03.2026","A-1001","Hans Muster","Spenglerarbeiten",7.5]]]]);
 
 (async()=>{
@@ -204,7 +211,7 @@ FIX.maxDub=wbBuf([["B",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"]
  await page.evaluate(()=>{const e=document.querySelector('[data-nk="projekt"]');e.value="1";e.dispatchEvent(new Event("change",{bubbles:true}))});
  await page.waitForTimeout(100);
  s=await zustand();
- p(s&&s.st.join()==="neu,unklar"&&s.c.ein===1,"Zeile mit Auftrag A-2002 im Projekt A-1001: „unklar“ (weicht ab) und standardmässig NICHT dabei",s);
+ p(s&&s.st.join()==="neu,falscher_auftrag"&&s.c.ein===1,"Zeile mit Auftrag A-2002 im Projekt A-1001: „falscher Auftrag“, nicht dabei",s);
  await page.evaluate(()=>nkDialogSchliessen());
 
  console.log("\nF · Abweichende Spalten, manuelle Zuordnung, mehrere Blätter, CSV");
@@ -418,6 +425,117 @@ FIX.maxDub=wbBuf([["B",[["Datum","Auftrag","Mitarbeiter","Tätigkeit","Stunden"]
  p(L.rundung.status==="Abweichung"&&/Rundung/.test(L.rundung.rundung)&&L.rundung2.rundung==="","Rundungsdifferenz 0,03 h wird als mögliche Rundung benannt; 0,10 h nicht",[L.rundung.rundung,L.rundung2.rundung]);
  p(L.zeitformat.status==="Übereinstimmend","Unterschiedliche Zeitformate (7:30 ↔ 7,5) ergeben dieselben Stunden",L.zeitformat);
  p(L.eintraegeAusRapport.eintraege.length===2&&L.eintraegeAusRapport.eintraege[0].stunden===7.5&&L.eintraegeAusRapport.eintraege[1].stunden===null&&L.eintraegeAusRapport.unlesbar===1,"App-Seite: Stunden aus work_entries (Komma erlaubt), ungültige Stunden → null, unlesbarer Rapport gezählt",L.eintraegeAusRapport);
+
+ console.log("\nN · Auftrags-Schutzprüfung (v3.367)");
+ const ist=()=>page.evaluate(()=>window.__db.abacus_stunden.map(z=>({d:z.datum,a:z.auftrag_nr,h:z.stunden,p:z.project_id})));
+ const waehle=async(id)=>{await page.evaluate(i=>{const e=document.querySelector('[data-nk="projekt"]');e.value=String(i);e.dispatchEvent(new Event("change",{bubbles:true}))},id);await page.waitForTimeout(100)};
+ // A passende Nummer
+ await reset();await datei("passend.xlsx",FIX.passend);s=await zustand();
+ p(s&&s.projektId===1&&s.st.join()==="neu"&&s.c.ein===1,"A: Zeile mit passender Auftragsnummer: Projekt erkannt, vorgewählt",s);
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(100);
+ let db=await ist();
+ p(db.length===1&&db[0].a==="A-1001"&&db[0].p===1,"A: nach Vorschau und Bestätigen übernommen",db);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // B fremde Nummer
+ await reset();await datei("fremd1.xlsx",FIX.fremd1);
+ s=await zustand();
+ p(s&&s.projektId===2&&s.st.join()==="neu","B: Nummer A-2002 gehört zu Projekt A-2002: die Erkennung wählt dieses Projekt (nicht A-1001)",s);
+ await waehle(1);s=await zustand();
+ const b1=await page.evaluate(()=>{const c=document.querySelector('[data-nk="ein"]');return {dis:c.disabled,chip:document.querySelector(".a2-nk-s-falscher_auftrag")?document.querySelector(".a2-nk-s-falscher_auftrag").textContent:"",grund:/Falscher Auftrag: Die Zeile nennt A-2002, das gewählte Projekt hat A-1001/.test(document.getElementById("a2NkBox").textContent),speichern:document.querySelector('[data-nk="speichern"]').disabled}});
+ p(s&&s.st.join()==="falscher_auftrag"&&s.c.ein===0&&b1.dis&&b1.chip==="falscher Auftrag"&&b1.grund&&b1.speichern,"B: Status „falscher Auftrag“ mit Grund sichtbar, Checkbox gesperrt, nicht vorgewählt, Übernehmen gesperrt",[s,b1]);
+ await page.evaluate(()=>{const c=document.querySelector('[data-nk="ein"]');c.disabled=false;c.checked=true;c.dispatchEvent(new Event("change",{bubbles:true}))});
+ await page.waitForTimeout(80);
+ s=await zustand();
+ p(s&&s.c.ein===0&&s.st.join()==="falscher_auftrag"&&(await page.evaluate(()=>nkD.zeilen[0].ein))===false,"B: auch eine per Programm erzwungene Checkbox wählt die Zeile nicht aus (ein bleibt false)",s);
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(100);
+ db=await ist();
+ p(db.length===0,"B: beim Speichern sicher ausgeschlossen (Datenbank leer)",db);
+ await page.evaluate(()=>nkDialogSchliessen());
+ await reset();await datei("eins-unbekannt.xlsx",FIX.einsPlusUnbekannt);s=await zustand();
+ p(s&&s.projektId===null&&s.auto===false,"C: Dokument mit A-1001 UND unbekannter Nummer Z-777: kein Projekt automatisch (nicht das ganze Dokument einem Projekt zugeordnet)",s);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // C gemischtes Dokument
+ await reset();await datei("gemischt.xlsx",FIX.gemischt);s=await zustand();
+ p(s&&s.projektId===null&&!s.speicherOffen,"C: Dokument mit mehreren Aufträgen: das Projekt wird NICHT automatisch gewählt",s);
+ await waehle(1);s=await zustand();
+ p(s&&s.st.join()==="neu,falscher_auftrag,falscher_auftrag,neu"&&s.c.falscher_auftrag===2,"C: A-1001 neu; A-2002 und die unbekannte Nummer Z-777 „falscher Auftrag“; Zeile ohne Nummer separat",s);
+ const c1=await page.evaluate(()=>({ohne:nkD.zeilen[3].ohneAuftrag,ein:nkD.zeilen.map(z=>z.ein),chip:/Auftrag nicht in Zeile · manuelle Projektzuordnung/.test(document.getElementById("a2NkBox").textContent)}));
+ p(c1.ohne&&c1.chip,"D: Zeile ohne Nummer ist als „Auftrag nicht in Zeile · manuelle Projektzuordnung“ gekennzeichnet",c1);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // C/D Speichern gemischt
+ await reset();await datei("gemischt.xlsx",FIX.gemischt);await waehle(1);
+ const c2=await page.evaluate(()=>({ein:nkD.zeilen.map(z=>z.ein),manuell:nkD.projektManuell,dis:document.querySelector('[data-nk="ein"][data-nk-i="3"]').disabled}));
+ p(c2.ein.join()==="true,false,false,false"||(c2.ein[0]&&!c2.ein[1]&&!c2.ein[2]),"C: vorgewählt ist nur die Zeile A-1001; A-2002 und Z-777 nicht",c2);
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(150);
+ db=await ist();
+ p(db.length>=1&&db.every(x=>x.a==="A-1001"||x.a===null)&&!db.some(x=>x.a==="A-2002"||x.a==="Z-777"),"C: nur Zeilen A-1001 (und bestätigte ohne Nummer) wurden gespeichert, A-2002/Z-777 nie",db);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // D ohne Nummer: Bestätigung; keine Nummer von einer anderen Zeile
+ await reset();await datei("gemischt.xlsx",FIX.gemischt);await waehle(1);
+ await page.evaluate(()=>{nkD.projektManuell=false});await page.evaluate(async()=>{await nkZeilenBewerten();nkDialogZeichnen()});
+ const d1=await page.evaluate(()=>({dis:document.querySelector('[data-nk="ein"][data-nk-i="3"]').disabled,ein:nkD.zeilen[3].ein,box:!!document.querySelector('[data-nk="projektok"]')}));
+ p(d1.dis&&!d1.ein&&d1.box,"D: Zeile ohne Auftragsnummer ist erst nach ausdrücklicher Bestätigung wählbar (Bestätigungsfeld sichtbar)",d1);
+ await page.evaluate(()=>{const c=document.querySelector('[data-nk="projektok"]');c.checked=true;c.dispatchEvent(new Event("change",{bubbles:true}))});await page.waitForTimeout(100);
+ const d2=await page.evaluate(()=>({dis:document.querySelector('[data-nk="ein"][data-nk-i="3"]').disabled,ein:nkD.zeilen[3].ein}));
+ p(!d2.dis&&d2.ein,"D: nach Bestätigung ist die Zeile wählbar und vorgewählt",d2);
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(150);
+ db=await ist();
+ const ohneNr=db.find(x=>x.d==="2026-03-06");
+ p(ohneNr&&ohneNr.a===null&&db.length===2,"D: die Zeile ohne Nummer wird OHNE Auftragsnummer gespeichert – keine Nummer von einer anderen Zeile übertragen",db);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // Bestätigung nicht umgehbar: ohne Bestätigung speichern -> abgewiesen
+ await reset();await datei("gemischt.xlsx",FIX.gemischt);await waehle(1);
+ await page.evaluate(async()=>{nkD.projektManuell=false;await nkZeilenBewerten();nkD.zeilen[3].ein=true;await nkSpeichern()});await page.waitForTimeout(100);
+ db=await ist();
+ p(db.length===0&&await page.evaluate(()=>/nichts gespeichert/.test(nkD.meldung)),"D: Zeile ohne Nummer ohne Bestätigung per Programmaufruf ausgewählt: Speichern weist ab, nichts gespeichert",db);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // E unbekannte Nummer + manuelle Projektwahl
+ await reset();await datei("fremd.xlsx",FIX.fremdNr);await waehle(1);s=await zustand();
+ p(s&&s.st.join()==="falscher_auftrag"&&s.c.ein===0&&!s.speicherOffen,"E: unbekannte Nummer Z-777 + manuell gewähltes Projekt A-1001: bleibt „falscher Auftrag“, nicht übernehmbar",s);
+ await waehle(2);s=await zustand();
+ p(s&&s.st.join()==="falscher_auftrag","E: auch mit Projekt A-2002 (anderes Projekt) bleibt Z-777 gesperrt",s);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // F Korrektur der Nummer in der Vorschau
+ await reset();await datei("fremd1.xlsx",FIX.fremd1);await waehle(1);
+ const setzeNr=v=>page.evaluate(x=>{const i=document.querySelector('[data-nk-feld="auftrag"][data-nk-i="0"]');i.value=x;i.dispatchEvent(new Event("change",{bubbles:true}))},v);
+ await setzeNr("A-1001");await page.waitForTimeout(120);
+ s=await zustand();
+ p(s&&s.st.join()==="neu"&&s.c.ein===1&&s.speicherOffen,"F: Nummer in der Vorschau auf A-1001 korrigiert: Status und Auswahl sofort neu berechnet (übernehmbar)",s);
+ await setzeNr("A-2002");await page.waitForTimeout(120);
+ s=await zustand();
+ p(s&&s.st.join()==="falscher_auftrag"&&s.c.ein===0&&!s.speicherOffen&&(await page.evaluate(()=>nkD.zeilen[0].ein))===false,"F: Nummer wieder auf A-2002: sofort gesperrt und abgewählt (ein=false) – die frühere Auswahl wirkt nicht nach",s);
+ await waehle(2);s=await zustand();
+ p(s&&s.st.join()==="neu","F: Projektwechsel auf A-2002 berechnet die Prüfung neu (jetzt passend)",s);
+ await waehle(1);s=await zustand();
+ p(s&&s.st.join()==="falscher_auftrag"&&s.c.ein===0&&(await page.evaluate(()=>nkD.zeilen[0].ein))===false,"F: Projektwahl zurück auf A-1001: wieder gesperrt, nicht stillschweigend noch ausgewählt",s);
+ // Spaltenänderung macht falsche Zeile nicht importierbar
+ await page.evaluate(()=>nkD.manuell&&(nkD.manuell[nkD.zeilen[0].quelle]=true));
+ await page.evaluate(async()=>{const e=document.querySelector('[data-nk="map"][data-nk-key="auftrag_nr"]');e.value=e.value;e.dispatchEvent(new Event("change",{bubbles:true}))});await page.waitForTimeout(150);
+ s=await zustand();
+ p(s&&s.st.join()==="falscher_auftrag"&&s.c.ein===0&&(await page.evaluate(()=>nkD.zeilen[0].ein))===false,"F: auch Spaltenänderung oder eine frühere manuelle Auswahl machen die falsche Zeile nicht wieder importierbar",s);
+ // G manipulierter Zustand
+ await page.evaluate(()=>{const z=nkD.zeilen[0];z.ein=true});
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(100);
+ db=await ist();
+ let g=await page.evaluate(()=>({m:nkD.meldung,sp:nkD.speichert,ruf:window.__ruf.filter(x=>x.op!=="select").length}));
+ p(db.length===0&&g.ruf===0&&/nichts gespeichert/.test(g.m)&&/nicht zum gewählten Projekt/.test(g.m),"G: ausgewählte falsche Zeile (ein=true erzwungen): Speichern weist ab, VOR dem ersten Datenbankzugriff",g);
+ await page.evaluate(()=>{const z=nkD.zeilen[0];z.status="neu";z.auftragPruefung="passt";z.ein=true;z.fingerprint=z.fingerprint||"abx|x"});
+ await page.evaluate(()=>nkSpeichern());await page.waitForTimeout(100);
+ db=await ist();
+ g=await page.evaluate(()=>({m:nkD.meldung,ruf:window.__ruf.filter(x=>x.op!=="select").length}));
+ p(db.length===0&&g.ruf===0&&/nichts gespeichert/.test(g.m),"G: auch ein gefälschter Status „neu“ hilft nicht – die Zeile wird beim Speichern aus den Rohwerten neu geprüft",g);
+ await page.evaluate(()=>{nkD.projektId="1";nkD.zeilen[0].auftrag_eff="A-2002"});
+ const dbLayer=await page.evaluate(async()=>{
+  const im=await sb.from("abacus_importe").insert({project_id:1,dateiname:"x",dateityp:"csv"}).select("id").single();
+  const r=await sb.from("abacus_stunden").insert({project_id:1,import_id:im.data.id,fingerprint:"zz",stunden:1,auftrag_nr:"A-2002"});
+  return {fehler:r.error&&r.error.message};
+ });
+ p(dbLayer.fehler&&/gehoert nicht zu diesem Projekt/.test(dbLayer.fehler),"G: Datenbankschicht (Trigger enforce_abacus_auftrag_passt, hier nachgespielt) weist eine fremde Nummer ebenfalls ab",dbLayer);
+ await page.evaluate(()=>nkDialogSchliessen());
+ // Code-Zusicherungen
+ const k88b=fs.readFileSync("js/88-nachkalkulation.js","utf8"),mig2=fs.readFileSync("supabase/migrations/v3367_abacus_auftrag_passt.sql","utf8");
+ p(/function nkDarfEin/.test(k88b)&&/const verboten=d\.zeilen\.filter/.test(k88b)&&/abZeileBewerten\(z\._roh,kontext\)/.test(k88b),"Schutzprüfung steht in nkSpeichern() selbst (neue Bewertung aus Rohwerten), nicht nur in der Darstellung");
+ p(/create trigger enforce_abacus_auftrag_trg before insert on public\.abacus_stunden/.test(mig2)&&!/(drop|alter) (policy|table)/i.test(mig2),"Migration v3367 ist additiv (nur Funktion + Trigger), keine Policy angefasst");
 
  console.log("\nM · Einbindung, Sicherheit, Dateien");
  const src=n=>fs.readFileSync(n,"utf8");

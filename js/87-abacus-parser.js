@@ -174,6 +174,19 @@ function abZeilenAusTabelle(zeilen,zuordnung,startZeile,dok){
  return out;
 }
 
+// Passt die Auftragsnummer der Zeile zum gewählten Projekt? (v3.367)
+//  "falsch"        Zeile nennt eine Nummer, das Projekt hat eine andere -> NIE importierbar
+//  "fehlt"         Zeile (und Dokumentkopf) nennen keine Nummer -> nur nach ausdrücklicher Projektbestätigung
+//  "nicht_pruefbar" Zeile nennt eine Nummer, das Projekt hat keine -> unklar, nicht vorgewählt
+//  "passt"         gleiche Nummer
+//  "kein_projekt"  noch kein Projekt gewählt
+function abAuftragPruefen(zeilenNr,projektNr){
+ const z=abNr(zeilenNr),p=abNr(projektNr);
+ if(projektNr===undefined||projektNr===null)return "kein_projekt";
+ if(!z)return "fehlt";
+ if(!p)return "nicht_pruefbar";
+ return z===p?"passt":"falsch";
+}
 // Bewertet EINE Buchungszeile (auch nach manueller Korrektur in der Vorschau erneut aufrufbar).
 function abZeileBewerten(roh,ctx){
  ctx=ctx||{};
@@ -185,6 +198,19 @@ function abZeileBewerten(roh,ctx){
   hinweise:[],fehler:[]
  };
  if(z2.summe){z2.status="summe";z2.hinweise.push("Summenzeile: "+z2.summe+" – wird nicht zusätzlich importiert");return z2}
+ // v3.367: Auftrag prüfen, BEVOR irgendetwas anderes zählt. Die Nummer des Dokumentkopfes gilt nur für Zeilen ohne eigene Nummer
+ // (und nur, wenn ctx.dokAuftrag gesetzt ist, d. h. das Dokument genau eine Nummer nennt) - nie von Zeile zu Zeile.
+ z2.auftrag_eff=z2.auftrag_nr||abNr(ctx.dokAuftrag||"");
+ z2.auftrag_quelle=z2.auftrag_nr?"zeile":(z2.auftrag_eff?"dokumentkopf":"");
+ z2.auftragPruefung=abAuftragPruefen(z2.auftrag_eff,ctx.projektNr);
+ if(z2.auftragPruefung==="falsch"){
+  z2.status="falscher_auftrag";
+  z2.hinweise.push("Falscher Auftrag: "+(z2.auftrag_quelle==="dokumentkopf"?"Das Dokument nennt ":"Die Zeile nennt ")+z2.auftrag_eff+", das gewählte Projekt hat "+abNr(ctx.projektNr)+" – wird nicht importiert");
+  return z2;
+ }
+ if(z2.auftragPruefung==="fehlt"){z2.ohneAuftrag=true;z2.hinweise.push("Auftrag nicht in der Zeile vorhanden – nur mit ausdrücklich bestätigter Projektzuordnung")}
+ else if(z2.auftragPruefung==="nicht_pruefbar")z2.hinweise.push("Auftrag "+z2.auftrag_eff+" nicht prüfbar: das Projekt hat keine Auftragsnummer");
+ else if(z2.auftrag_quelle==="dokumentkopf")z2.hinweise.push("Auftrag "+z2.auftrag_eff+" aus dem Dokumentkopf");
  if(z.unklar)z2.fehler.push(z.unklar);
  else if(z.leer)z2.fehler.push("Stunden fehlen");
  if(z.gerundet)z2.hinweise.push("Stunden auf zwei Stellen gerundet");
@@ -196,10 +222,7 @@ function abZeileBewerten(roh,ctx){
   if(z.wert>16)z2.hinweise.push("Mehr als 16 Stunden in einer Buchung – bitte prüfen");
  }
  if(!z2.mitarbeiter)z2.hinweise.push("Mitarbeiter fehlt");
- if(ctx.projektNr){
-  if(z2.auftrag_nr&&abNr(ctx.projektNr)&&z2.auftrag_nr!==abNr(ctx.projektNr))z2.hinweise.push("Auftragsnummer "+z2.auftrag_nr+" weicht vom Projekt ("+abNr(ctx.projektNr)+") ab");
- }
- z2.status=z2.fehler.length?"fehler":(z2.hinweise.some(h=>/weicht|Datum fehlt|Mehr als 16|Negative/.test(h))?"unklar":"neu");
+ z2.status=z2.fehler.length?"fehler":(z2.hinweise.some(h=>/nicht prüfbar|Datum fehlt|Mehr als 16|Negative/.test(h))?"unklar":"neu");
  return z2;
 }
 
@@ -216,7 +239,7 @@ function abDublettenPruefen(zeilen,vorhanden,bestehende){
  const zaehler={};
  const exist=vorhanden instanceof Set?vorhanden:new Set(vorhanden||[]);
  zeilen.forEach(z=>{
-  if(z.status==="summe"||z.status==="fehler"){z.fingerprint=null;return}
+  if(z.status==="summe"||z.status==="fehler"||z.status==="falscher_auftrag"){z.fingerprint=null;return}
   z.fingerprint=abFingerabdruck(z,zaehler);
   if(exist.has(z.fingerprint)){z.status="vorhanden";z.hinweise.push("Bereits importiert – wird nicht doppelt gespeichert");return}
   const aehnlich=(bestehende||[]).find(b=>b.datum&&z.datum&&b.datum===z.datum&&Math.abs(Number(b.stunden)-z.stunden)<=AB_TOLERANZ

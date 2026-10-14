@@ -230,7 +230,7 @@ const bl=await page.evaluate(()=>{
  kaGeladen();
  out.ohne=!document.querySelector(".ka-bleilappen")&&!/Bleilappen/.test($("cockpitKomplettBody").textContent);
  projectMeasurementsCache=[mk2(1,6),{...mk2(2,8),project_id:9}];kaGeladen();
- {const t=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");out.fremd=/Bleilappen\s*6 Stk/.test(t)&&t.indexOf("14")<0;}
+ {const t=$("cockpitKomplettBody").textContent.replace(/\s+/g," ");out.fremd=/Bleilappen\s*6 Stk/.test(t)&&!/14 Stk/.test(t);}   // v3.367: nicht nach „14“ allein suchen - der Stempel „Stand: 14:08 Uhr“ enthielt zwischen 14:00 und 14:59 diese Zahl
  return out;
 });
 p(!bl.zeile&&bl.anz===1,"v3.350: Bleilappen nur noch einmal (keine feste Zeile oben)",bl);

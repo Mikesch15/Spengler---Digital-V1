@@ -1,0 +1,32 @@
+ABSCHLUSSBERICHT v3.367 – Abacus-Import: sichere Projektzuordnung
+
+1. URSACHE (Befund bestätigt)
+- v3.366: abweichende Auftragsnummer ergab nur Status "unklar" (Hinweis "weicht ab"). "unklar" war wählbar (Checkbox aktiv) und wurde in nkSpeichern() übernommen. Ein Anwender konnte so Stunden eines anderen Auftrags dem gewählten Projekt zuordnen.
+- Zusätzlich: Ein Dokument mit A-1001 und einer unbekannten Nummer wählte automatisch Projekt A-1001 für das ganze Dokument.
+- Zusätzlich: der Dokumentkopf-Auftrag wurde beim Speichern an Zeilen ohne Nummer weitergereicht (ungeprüft).
+
+2. ÄNDERUNGEN
+- js/87-abacus-parser.js: abAuftragPruefen(); Status "falscher_auftrag" (Zeile/Dokumentkopf-Nummer ≠ Projektnummer, auch unbekannte Nummer); ohneAuftrag-Kennzeichen; Dokumentkopf-Nummer nur als Ersatz für Zeilen ohne Nummer; Dubletten-Logik unverändert.
+- js/88-nachkalkulation.js: nkDarfEin() als eine Regel für Anzeige, Checkbox, Korrektur, Speichern; Schutzprüfung in nkSpeichern() (Neubewertung aus Rohwerten vor dem ersten DB-Zugriff, Abbruch bei verbotener Zeile); Bestätigungsfeld für Zeilen ohne Nummer; Auto-Projektwahl nur bei genau einer Nummer im Dokument; gespeicherte Auftragsnummer = tatsächlich geprüfte Nummer, nie von einer anderen Zeile.
+- supabase/migrations/v3367_abacus_auftrag_passt.sql (angewendet): Trigger enforce_abacus_auftrag_trg – serverseitige Abweisung einer Nummer, die nicht zum Projekt passt. Additiv; Policies unverändert (tenant_boundary_*/feature_boundary_* RESTRICTIVE).
+- Prüfstand nachkalkulation-v3-366 erweitert (Abschnitt N).
+
+3. TESTS
+- nachkalkulation-v3-366: 106 ok / 0 fehlgeschlagen (A–J der Aufgabe: passende/fremde/gemischte/ohne/unbekannte Nummer, Korrektur in der Vorschau, manipulierter Aufruf, Dubletten/Summen/Fehler, Firma/Freigabe, HTML-Escaping).
+- Mutationsproben: 8 Defekte (falscher Auftrag nicht erkannt, Speicherschutz entfernt, Checkbox erzwingbar, Korrektur wählt immer aus, Auto-Projekt bei mehreren Nummern, u. a.) werden je erkannt.
+- Schnellprüfung und volle Regression: siehe Nachtrag.
+
+4. DATENBANK/RLS
+- Trigger live geprüft in einer zurückgerollten Transaktion (Sitzungs-JWT eines echten Benutzers, nicht als Rollenwechsel): falsche Nummer abgelehnt, Zeile ohne Nummer und passende Nummer (andere Schreibweise) erlaubt; danach 0 Zeilen (nichts zurückgeblieben).
+- Grenze: Policies selbst wurden nur aufgelistet, ein Test mit Rollenwechsel authenticated/anon wurde nicht ausgeführt.
+
+5. EINSCHRÄNKUNGEN
+- Hat das Projekt KEINE Auftragsnummer, kann eine Nummer in der Zeile nicht verglichen werden: Status "unklar" (nicht vorgewählt, wählbar).
+- Zeilen ohne Nummer sind per Datenbank nicht prüfbar; dort schützt nur die ausdrückliche Bestätigung im Client.
+- Praxis-Test mit echtem Abacus-Export steht weiter aus.
+
+6. WAS DU LIVE TESTEN SOLLTEST
+- Export mit Aufträgen A und B ins Projekt A importieren: B-Zeilen müssen rot "falscher Auftrag" sein, ohne aktivierbare Checkbox.
+- Export ohne Auftragsspalte: Projekt wählen, Zeilen müssen als "Auftrag nicht in Zeile" erscheinen; Import nur mit Bestätigung.
+- In der Vorschau eine Nummer im Feld "Auftrag" korrigieren: Status wechselt sofort.
+- Gleiche Datei zweimal importieren: alles "bereits vorhanden".

@@ -23,6 +23,14 @@
 let nkZugriff=false;
 let nk={projektId:null,laedt:false,fehler:"",stunden:[],importe:[],abgleich:[],reports:[],angebote:[],angeboteFehler:"",geladen:false};
 let nkD=null;   // Zustand des offenen Import-Dialogs
+// v3.367: Nur diese Status können überhaupt übernommen werden. "falscher_auftrag", "vorhanden", "fehler" und "summe" nie.
+const NK_WAEHLBAR=["neu","unklar","moegliche_dublette"];
+// Darf diese Zeile ausgewählt/übernommen werden? EINE Regel für Anzeige, Checkbox und Speichern.
+function nkDarfEin(z){
+ if(!z||!NK_WAEHLBAR.includes(z.status)||z.auftragPruefung==="falsch")return false;
+ if(z.ohneAuftrag&&!(nkD&&nkD.projektManuell))return false;   // Auftrag fehlt: erst nach ausdrücklicher Projektbestätigung
+ return true;
+}
 
 function nkAktiv(){return !!nkZugriff}
 async function checkNachkalkulationZugriff(){
@@ -319,14 +327,21 @@ async function nkAuswerten(erst){
  nkProjekte().forEach(p=>{const n=abNr(p.order_no);if(n&&nummern.has(n)){if(!treffer.has(n))treffer.set(n,[]);treffer.get(n).push(p)}});
  d.erkannt=[...treffer.values()].flat();
  if(erst){
-  d.projektId=(d.nummern.length&&d.erkannt.length===1&&treffer.size===1)?d.erkannt[0].id:null;
+  d.projektId=(d.nummern.length===1&&d.erkannt.length===1&&treffer.size===1)?d.erkannt[0].id:null;
   d.projektAuto=!!d.projektId;
  }else if(!d.projektManuell){
   // Spalten wurden geändert: ohne ausdrückliche Projektwahl die Erkennung nachziehen
-  d.projektId=(d.nummern.length&&d.erkannt.length===1&&treffer.size===1)?d.erkannt[0].id:null;
+  d.projektId=(d.nummern.length===1&&d.erkannt.length===1&&treffer.size===1)?d.erkannt[0].id:null;
   d.projektAuto=!!d.projektId;
  }
  await nkZeilenBewerten();
+}
+// Kontext der Prüfung. Das Projekt ist das GEWÄHLTE Projekt (nie aus der Datei). Die Nummer des Dokumentkopfes gilt nur für
+// Zeilen ohne eigene Nummer und nur, wenn das ganze Dokument genau eine Nummer nennt.
+function nkBewertungsKontext(){
+ const d=nkD;
+ return {projektNr:d.projektId?(nkProjektNr(d.projektId)||""):undefined,
+         dokAuftrag:(d.dok&&d.dok.auftrag_nr&&d.nummern&&d.nummern.length===1)?d.dok.auftrag_nr:""};
 }
 async function nkZeilenBewerten(){
  const d=nkD;
@@ -336,25 +351,24 @@ async function nkZeilenBewerten(){
  }
  d.best=best;
  d.zeilen=d.roh.map(r=>{
-  const z=abZeileBewerten(r,{projektNr:d.projektId?nkProjektNr(d.projektId):""});
-  if(!z.auftrag_nr&&d.dok.auftrag_nr)z.dokAuftrag=d.dok.auftrag_nr;
+  const z=abZeileBewerten(r,nkBewertungsKontext());
   z._roh=r;return z;
  });
  abDublettenPruefen(d.zeilen,best.fp,best.zeilen);
  d.zeilen.forEach(z=>{
   const m=d.manuell&&d.manuell[z.quelle];
-  z.ein=["neu","unklar","moegliche_dublette"].includes(z.status)?(m!==undefined?m:abStandardAuswahl(z)):false;
+  z.ein=nkDarfEin(z)?(m!==undefined?m:abStandardAuswahl(z)&&!z.ohneAuftrag||(!!z.ohneAuftrag&&!!d.projektManuell&&z.status==="neu")):false;
  });
 }
 function nkZaehlung(){
- const d=nkD,c={neu:0,vorhanden:0,unklar:0,moegliche_dublette:0,fehler:0,summe:0,ein:0,stunden:0};
- d.zeilen.forEach(z=>{c[z.status]++;if(z.ein&&["neu","unklar","moegliche_dublette"].includes(z.status)){c.ein++;c.stunden+=z.stunden||0}});
+ const d=nkD,c={neu:0,vorhanden:0,unklar:0,moegliche_dublette:0,fehler:0,summe:0,falscher_auftrag:0,ohne_auftrag:0,ein:0,stunden:0};
+ d.zeilen.forEach(z=>{c[z.status]++;if(z.ohneAuftrag)c.ohne_auftrag++;if(z.ein&&nkDarfEin(z)){c.ein++;c.stunden+=z.stunden||0}});
  c.stunden=abRund2(c.stunden);
  return c;
 }
 
 // ---- Vorschau -----------------------------------------------------------------
-const NK_STATUS_TEXT={neu:"neu",vorhanden:"bereits vorhanden",unklar:"unklar",moegliche_dublette:"mögliche Dublette",fehler:"fehlerhaft",summe:"Summenzeile"};
+const NK_STATUS_TEXT={neu:"neu",vorhanden:"bereits vorhanden",unklar:"unklar",moegliche_dublette:"mögliche Dublette",fehler:"fehlerhaft",summe:"Summenzeile",falscher_auftrag:"falscher Auftrag"};
 function nkDialogZeichnen(){
  const box=document.getElementById("a2NkBox");
  if(!box||!nkD)return;
@@ -395,12 +409,14 @@ function nkDialogZeichnen(){
    <div><span>unklar / mögliche Dublette</span><b>${c.unklar+c.moegliche_dublette}</b></div>
    <div><span>fehlerhaft</span><b>${c.fehler}</b></div><div><span>Summenzeilen</span><b>${c.summe}</b></div></div>
    <div class="small">Wird übernommen: <b>${c.ein} Zeilen · ${esc(nkStd(c.stunden))}</b></div>`;
+  if(c.falscher_auftrag)h+=`<div class="a2-hinweis a2-h-warnung"><b>${c.falscher_auftrag} Zeile${c.falscher_auftrag===1?"":"n"} mit falschem Auftrag</b> – gehört nicht zum gewählten Projekt, wird nie importiert (Zeile unten mit Grund). Falls die Nummer in der Datei falsch ist, kannst du sie in der Spalte „Auftrag“ korrigieren.</div>`;
+  if(c.ohne_auftrag&&d.projektId)h+=`<label class="a2-nk-bestaetigung"><input type="checkbox" data-nk="projektok"${d.projektManuell?" checked":""}> ${c.ohne_auftrag} Zeile${c.ohne_auftrag===1?"":"n"} ohne Auftragsnummer: Ich bestätige, dass sie zu diesem Projekt gehören.</label>`;
   h+=`<div class="a2-nk-scroll"><table class="a2-nk-tab"><thead><tr><th></th><th>Status</th><th>Datum</th><th>Auftrag</th><th>Mitarbeiter</th><th>Tätigkeit</th><th>Zeit</th><th>Std.</th></tr></thead><tbody>${
    d.zeilen.map((z,i)=>{
-    const wählbar=["neu","unklar","moegliche_dublette"].includes(z.status);
+    const wählbar=nkDarfEin(z);
     const ed=(feld,wert)=>`<input data-nk-feld="${feld}" data-nk-i="${i}" value="${esc(wert===null||wert===undefined?"":wert)}"${z.status==="summe"||z.status==="vorhanden"?" disabled":""}>`;
     return `<tr class="a2-nk-st-${z.status}"><td><input type="checkbox" data-nk="ein" data-nk-i="${i}"${z.ein?" checked":""}${wählbar?"":" disabled"}></td>
-     <td><span class="a2-nk-chip a2-nk-s-${z.status}">${esc(NK_STATUS_TEXT[z.status])}</span>${z.fehler.concat(z.hinweise).map(t=>`<div class="small">${esc(t)}</div>`).join("")}<div class="small a2-nk-qz">${esc(z.quelle)}</div></td>
+     <td><span class="a2-nk-chip a2-nk-s-${z.status}">${esc(NK_STATUS_TEXT[z.status])}</span>${z.ohneAuftrag?'<span class="a2-nk-chip a2-nk-s-unklar">Auftrag nicht in Zeile · manuelle Projektzuordnung</span>':""}${z.fehler.concat(z.hinweise).map(t=>`<div class="small">${esc(t)}</div>`).join("")}<div class="small a2-nk-qz">${esc(z.quelle)}</div></td>
      <td>${ed("datum",abTrim(z._roh.datum_roh instanceof Date?(z.datum||""):z._roh.datum_roh))}</td><td>${ed("auftrag",z.auftrag_nr||z.dokAuftrag||"")}</td>
      <td>${ed("mitarbeiter",z.mitarbeiter)}</td><td>${ed("taetigkeit",z.taetigkeit)}</td>
      <td>${ed("zeit",abTrim(z._roh.zeit_roh))}</td><td class="r">${esc(z.stunden===null?"–":nkStd(z.stunden))}</td></tr>`;
@@ -423,7 +439,20 @@ async function nkSpeichern(){
  try{
   // Frischer Stand der vorhandenen Zeilen: zwischen Vorschau und Bestätigen kann ein anderer Import dazugekommen sein.
   const best=await nkBestehende(pid);
-  const ausgewaehlt=d.zeilen.filter(z=>z.ein&&["neu","unklar","moegliche_dublette"].includes(z.status)&&z.fingerprint);
+  // v3.367 Schutzprüfung - unabhängig von Darstellung und Checkbox. Jede ausgewählte Zeile wird aus ihren Rohwerten NEU gegen das
+  // gewählte Projekt geprüft; schon eine einzige verbotene Zeile bricht das Speichern ab, bevor die Datenbank etwas sieht.
+  const kontext=nkBewertungsKontext();
+  if(kontext.projektNr===undefined)throw new Error("Kein Projekt gewählt.");
+  const verboten=d.zeilen.filter(z=>{
+   if(!z.ein)return false;
+   if(!NK_WAEHLBAR.includes(z.status)||z.auftragPruefung==="falsch"||!z.fingerprint)return true;
+   const frisch=abZeileBewerten(z._roh,kontext);
+   if(frisch.status==="falscher_auftrag"||!NK_WAEHLBAR.includes(frisch.status))return true;
+   if(frisch.ohneAuftrag&&!d.projektManuell)return true;
+   return false;
+  });
+  if(verboten.length)throw new Error(verboten.length+" ausgewählte Zeile"+(verboten.length===1?" gehört":"n gehören")+" nicht zum gewählten Projekt oder "+(verboten.length===1?"ist":"sind")+" nicht übernehmbar ("+verboten.slice(0,3).map(z=>z.quelle).join(", ")+(verboten.length>3?" …":"")+"). Bitte die Auswahl in der Vorschau prüfen.");
+  const ausgewaehlt=d.zeilen.filter(z=>z.ein&&nkDarfEin(z)&&z.fingerprint);
   const neu=ausgewaehlt.filter(z=>!best.fp.has(z.fingerprint));
   const doppelt=ausgewaehlt.length-neu.length;
   const c=nkZaehlung();
@@ -437,7 +466,7 @@ async function nkSpeichern(){
   importId=imp.id;
   for(let i=0;i<neu.length;i+=200){
    const teil=neu.slice(i,i+200).map(z=>({project_id:pid,import_id:importId,fingerprint:z.fingerprint,
-     rapport_ref:z.rapport_ref||null,auftrag_nr:(z.auftrag_nr||z.dokAuftrag)||null,datum:z.datum,mitarbeiter:z.mitarbeiter||null,
+     rapport_ref:z.rapport_ref||null,auftrag_nr:z.auftrag_eff||null,datum:z.datum,mitarbeiter:z.mitarbeiter||null,
      taetigkeit:z.taetigkeit||null,stunden:z.stunden,zeit_roh:abTrim(z.zeit_roh)||null,kostenstelle:z.kostenstelle||null}));
    const {error:e2}=await sb.from("abacus_stunden").insert(teil);
    if(e2)throw new Error(e2.message);
@@ -510,9 +539,15 @@ document.addEventListener("change",async e=>{
   d.kopfZeile=Math.max(-1,Number(t.value)-2);
   d.zuordnung=d.zuordnung||{};
   await nkAuswerten(false);nkDialogZeichnen();
+ }else if(was==="projektok"){
+  d.projektManuell=!!t.checked;
+  await nkZeilenBewerten();nkDialogZeichnen();
  }else if(was==="ein"){
   const z=d.zeilen[Number(t.getAttribute("data-nk-i"))];
-  if(z){z.ein=t.checked;d.manuell=d.manuell||{};d.manuell[z.quelle]=t.checked}
+  if(z){
+   // Eine nicht übernehmbare Zeile (falscher Auftrag, Dublette, Fehler …) lässt sich auch per Programmaufruf nicht auswählen.
+   z.ein=t.checked&&nkDarfEin(z);d.manuell=d.manuell||{};d.manuell[z.quelle]=z.ein;
+  }
   nkDialogZeichnen();
  }else if(feld){
   const i=Number(t.getAttribute("data-nk-i"));
@@ -527,7 +562,8 @@ document.addEventListener("change",async e=>{
   await nkZeilenBewerten();
   // Eine korrigierte Zeile wird bewusst eingeschlossen, sobald sie importierbar ist.
   const z=d.zeilen[i];
-  if(z&&["neu","unklar","moegliche_dublette"].includes(z.status)){z.ein=true;d.manuell=d.manuell||{};d.manuell[z.quelle]=true}
+  // Nach einer Korrektur ist der Status NEU berechnet; ausgewählt wird nur, was jetzt übernehmbar ist.
+  if(z){z.ein=nkDarfEin(z);d.manuell=d.manuell||{};d.manuell[z.quelle]=z.ein}
   nkDialogZeichnen();
  }
 });
