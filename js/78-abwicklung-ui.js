@@ -24,7 +24,7 @@
 const ABW_FELDER=["D","t","H","alpha","b","r","nahtLang","f","faktorA","faktorB","zugabeOben"];
 // v3.192: das zweite Bauteil. Eigene Feld-Vorsilbe "tab_", damit sich die
 // beiden Formulare nicht ins Gehege kommen; gerechnet wird es in js/77.
-const ABW_TABLETT_FELDER=["D","alpha","a","b","c","umschlag","massSeitlich","lochZugabe"];
+const ABW_TABLETT_FELDER=["D","alpha","a","b","c","umschlag","umschlagHinten","umschlagSeitlich","anreiss","massSeitlich","lochZugabe"];
 // GETEILTE MASSE: was bei beiden Bauteilen DASSELBE ist, steht nur einmal.
 // v3.196 der Dachwinkel (beim Rohr hiess er "Schnittwinkel", beim Tablett
 // "Dachwinkel"), v3.197 der Rohrdurchmesser. Wer dasselbe Mass zweimal
@@ -81,7 +81,11 @@ function abwTablettStandard(){
  const v=(typeof einfVorgabe==="function")?einfVorgabe():{};
  const s=(typeof einfassungSettings==="object"&&einfassungSettings)||{};
  return {D:v.durchmesser, alpha:v.winkel, a:v.a, b:v.b, c:v.c,
-         umschlag:s.umschlag, massSeitlich:s.mass_seitlich, lochZugabe:s.loch_zugabe};
+         umschlag:s.umschlag,
+         umschlagHinten:s.umschlag_hinten!==undefined?s.umschlag_hinten:s.umschlag,
+         umschlagSeitlich:s.umschlag_seitlich!==undefined?s.umschlag_seitlich:s.umschlag,
+         anreiss:(typeof einfAnreiss==="function")?einfAnreiss():18,
+         massSeitlich:s.mass_seitlich, lochZugabe:s.loch_zugabe};
 }
 function abwTablettFelderLesen(){
  const p={};

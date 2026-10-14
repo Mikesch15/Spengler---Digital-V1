@@ -174,7 +174,13 @@ function einfaAbwVorgabe(e,bauteil,ctx){
   nimm("a",e.a,"Mass a");
   nimm("b",e.b,"Mass b");
   nimm("c",e.c,"Mass c (Aufbug)");
-  nimm("umschlag",s.umschlag,"Umschlag (Richtwert)");
+  nimm("umschlag",s.umschlag,"Umschlag vorne (Richtwert)");
+  // v3.361: Umschlag hinten, Umschläge seitlich und Anreiff sind einzeln einstellbar; ältere Stände kennen nur "umschlag".
+  nimm("umschlagHinten",s.umschlag_hinten!==undefined?s.umschlag_hinten:s.umschlag,"Umschlag hinten (Richtwert)");
+  nimm("umschlagSeitlich",s.umschlag_seitlich!==undefined?s.umschlag_seitlich:s.umschlag,"Umschläge seitlich (Richtwert)");
+  // Der Anreiff darf 0 sein (kein Anreiff) - deshalb nicht über nimm().
+  werte.anreiss=(typeof einfAnreiss==="function")?einfAnreiss():18;
+  uebernommen.push("Anreiff vorne (Richtwert, in a enthalten)");
   nimm("massSeitlich",s.mass_seitlich,"Mass seitlich neben Rohr (Richtwert)");
   // 0 heisst hier "Loch exakt auf Rohrmass" und ist ein gueltiger Wert -
   // deshalb ebenfalls nicht ueber nimm().
@@ -506,7 +512,7 @@ function einfaUebersichtHtml(){
   ["Ø","Ø Mantelrohr (gilt für die Abwicklung)"],
   ["Standrohr","Ø Standrohr (nur zur Information)"],
   ["Winkel","Winkel Dach/Rohr"],
-  ["a","vorne bis Mitte Rohr"],
+  ["a","vorne bis Mitte Rohr, inklusive Anreiff"],
   ["b","ab Mitte Rohr bis hinten"],
   ["c","Aufbug 90°, oben Umschlag 135°"]
  ].map(([sym,name])=>`<tr><td><b>${esc(sym)}</b></td><td>${esc(name)}</td></tr>`).join("");
@@ -543,7 +549,7 @@ ${einfaZahlFeld("Ø Standrohr (mm) · nur zur Information","einfa_standrohr_"+i,
 ${einfaZahlFeld("Ø Mantelrohr (mm) · gilt für die Abwicklung","einfa_durchmesser_"+i,e.durchmesser,"1",true)}
 <div class="wide small" id="einfa_mantel_hinweis_${i}">${esc(einfaMantelHinweis(e))}</div>
 ${einfaZahlFeld("Winkel Dach/Rohr (°)","einfa_winkel_"+i,einfaWinkelAnzeige(e.winkel),"0.1",true)}
-${einfaZahlFeld("a · vorne bis Mitte Rohr (mm)","einfa_a_"+i,e.a,"1",true,(einfassungSettings||{}).mass_a)}
+${einfaZahlFeld("a · vorne bis Mitte Rohr, inkl. Anreiff (mm)","einfa_a_"+i,e.a,"1",true,(einfassungSettings||{}).mass_a)}
 ${einfaZahlFeld("b · ab Mitte Rohr bis hinten (mm)","einfa_b_"+i,e.b,"1",true,(einfassungSettings||{}).mass_b)}
 ${einfaZahlFeld("c · Aufbug 90°, oben Umschlag 135° (mm)","einfa_c_"+i,e.c,"1",true,(einfassungSettings||{}).mass_c)}
 ${einfaZahlFeld("Stückzahl","einfa_anzahl_"+i,e.anzahl)}

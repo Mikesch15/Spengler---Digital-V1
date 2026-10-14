@@ -92,6 +92,65 @@ const STUB=QP.slice(QP.indexOf("const STUB=`")+12,QP.indexOf("`;\n\nconst ICH"))
  p(f.durchm===125&&f.feld==="125"&&/125/.test(f.hinweis),"Standrohr 100 → Mantelrohr 125 wird übernommen, mit Hinweis",f);
  p(f.ohneZuordnung===111&&/Keine Zuordnung/.test(f.hinweis2),"ohne Zuordnung bleibt der Mantelrohr-Wert, Hinweis nennt es",f);
 
+ console.log("\nE · Umschläge einzeln, Anreiff in Mass a (v3.361)");
+ const u=await page.evaluate(()=>{
+  const r={};
+  einfEinstellungenSichern(Object.assign({},EINFASSUNG_STANDARD,{umschlag:20,umschlag_hinten:30,umschlag_seitlich:25,anreiss:18,mass_seitlich:100,mantel_zuordnung:[]}));
+  const t=abwTablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,umschlagHinten:30,umschlagSeitlich:25,anreiss:18,massSeitlich:100,lochZugabe:0});
+  const e={bez:"",durchmesser:110,winkel:25,a:250,b:200,c:35,lattenabstand:330};
+  const erg=einfBerechnen({deckung:"biber_einfach",durchmesser:110,winkel:25,a:250,b:200,c:35,lattenabstand:330});
+  r.laenge=t.laenge;r.breite=t.breite;r.mitteY=t.mitteY;r.quer=t.biegeLinien.filter(l=>l[0][0]===0&&l[1][0]===t.breite).map(l=>l[0][1]);
+  r.laengs=t.biegeLinien.filter(l=>l[0][1]===0&&l[1][1]===t.laenge).map(l=>l[0][0]);
+  r.abw=Math.round(erg.abwicklung);r.breiteGesamt=erg.breiteGesamt;
+  // Anreiff ändert die Länge nicht (in a enthalten)
+  const t0=abwTablett({D:110,alpha:25,a:250,b:200,c:35,umschlag:20,umschlagHinten:30,umschlagSeitlich:25,anreiss:0,massSeitlich:100,lochZugabe:0});
+  r.ohneAnreiss=t0.laenge;
+  // Warnung: Loch reicht in den Anreiff, wenn a - anreiss zu klein
+  const w=abwTablett({D:110,alpha:25,a:70,b:200,c:35,umschlag:20,umschlagHinten:20,umschlagSeitlich:20,anreiss:18,massSeitlich:100,lochZugabe:0});
+  r.warnung=w.warnungen.some(x=>/Anreiff vorne/.test(x));
+  // Brücke aus den Einstellungen
+  const v=einfaAbwVorgabe({bez:"",durchmesser:110,winkel:25,a:250,b:200,c:35},"tablett",{nr:1});
+  r.vorgabe=[v.werte.umschlag,v.werte.umschlagHinten,v.werte.umschlagSeitlich,v.werte.anreiss];
+  return r;
+ });
+ p(u.laenge===535&&u.breite===360&&u.mitteY===270,"Tablett: Länge 20+250+200+35+30 = 535, Breite 110+2×25+200 = 360, Mitte Rohr bei 270 (a inkl. Anreiff)",u);
+ p(u.abw===u.laenge&&u.breiteGesamt===u.breite,"Abwicklung der Einfassung = Tablett (Länge und Breite)",u);
+ p(JSON.stringify(u.quer.sort((x,y)=>x-y))==="[20,38,470,505]"&&JSON.stringify(u.laengs.sort((x,y)=>x-y))==="[25,335]","Biegelinien: vorne 20, Anreiff 38, Aufbug 470, hinten 505; seitlich 25 und 335",[u.quer,u.laengs]);
+ p(u.ohneAnreiss===u.laenge,"Der Anreiff ändert die Länge nicht (in a enthalten)",u.ohneAnreiss);
+ p(u.warnung,"Warnung, wenn das Loch in den Anreiff reicht (a abzüglich Anreiff)",u.warnung);
+ p(JSON.stringify(u.vorgabe)==="[20,30,25,18]","Abwicklungsrechner übernimmt die einzelnen Masse aus den Einstellungen",u.vorgabe);
+
+ console.log("\nF · Einstellungen einzeln, Altbestand, firmenweite Zuordnung");
+ const g=await page.evaluate(async()=>{
+  const r={};
+  r.felder=["einfsUmschlag","einfsUmschlagHinten","einfsUmschlagSeitlich","einfsAnreiss","einfsMantelSpeichern"].every(i=>!!document.getElementById(i));
+  // Altbestand: nur "umschlag" gespeichert
+  localStorage.setItem(EINF_EINSTELLUNGEN,JSON.stringify({umschlag:25,deckung:"biber_einfach"}));
+  const alt=einfEinstellungenLaden();
+  r.alt=[alt.umschlag,alt.umschlag_hinten,alt.umschlag_seitlich,alt.anreiss];
+  localStorage.removeItem(EINF_EINSTELLUNGEN);
+  // Firmenweit
+  einfMantelFirma=[{standrohr:100,mantel:125}];
+  einfEinstellungenSichern(Object.assign({},EINFASSUNG_STANDARD,{mantel_zuordnung:[{standrohr:100,mantel:999}]}));
+  r.firma=einfMantelFuer(100);
+  einfMantelFirma=[];
+  r.ersatz=einfMantelFuer(100);   // Altbestand vom Gerät gilt nur ersatzweise
+  einfEinstellungenSichern(Object.assign({},EINFASSUNG_STANDARD));
+  // Speichern ruft den Firmen-Weg mit dem richtigen Feld
+  let gesendet=null;const orig=window.speichereAppSettings;
+  window.speichereAppSettings=async f=>{gesendet=f;return {fehler:null}};
+  einfMantelListeZeichnen([{standrohr:110,mantel:130}]);
+  document.getElementById("einfsMantelSpeichern").click();
+  await new Promise(x=>setTimeout(x,200));
+  r.gesendet=JSON.stringify(gesendet);r.nachher=einfMantelFuer(110);
+  window.speichereAppSettings=orig;
+  return r;
+ });
+ p(g.felder,"Einstellungen: Umschlag vorne, hinten, seitlich, Anreiff und Zuordnung speichern",g);
+ p(JSON.stringify(g.alt)==="[25,25,25,18]","Altbestand: hinten und seitlich übernehmen den bisherigen Umschlag, Anreiff 18",g.alt);
+ p(g.firma===125&&g.ersatz===999,"Zuordnung: firmenweite Liste gilt zuerst, Altbestand vom Gerät nur ersatzweise",[g.firma,g.ersatz]);
+ p(g.gesendet==='{"einfassung_mantel_zuordnung":[{"standrohr":110,"mantel":130}]}'&&g.nachher===130,"Zuordnung speichern schreibt in die Firmeneinstellungen (einfassung_mantel_zuordnung)",[g.gesendet,g.nachher]);
+
  console.log("\nD · Lochausschnitt bemasst");
  const d=await page.evaluate(()=>{
   const r0=abwTablett({D:125,alpha:25,a:250,b:200,c:35,umschlag:20,massSeitlich:100,lochZugabe:2});

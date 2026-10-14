@@ -389,8 +389,8 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  const z0=zu[0]||{}, z1=zu[1]||{}, z2=zu[2]||{};
  // v3.303 (Ansage: "die Abschnittlaenge muss die Abwicklung sein"): Laenge = Abwicklung (laengs zur Rolle),
  // Breite = Breite der gesamten Einfassung (quer). Vorher war es umgekehrt (350 lang, 278 breit).
- p(z0.l===278&&z0.b===350,"Zuschnitt 1: Länge 278 (Abwicklung) × Breite 350 (Einfassung)",z0);
- p(z1.l===308&&z1.b===400&&z2.l===308&&z2.b===400,"die beiden Ø160: Länge 308 (Abwicklung) × Breite 400 (Einfassung)",zu);
+ p(z0.l===260&&z0.b===350,"Zuschnitt 1: Länge 260 (Abwicklung; seit v3.361 ist a inkl. Anreiff) × Breite 350 (Einfassung)",z0);
+ p(z1.l===290&&z1.b===400&&z2.l===290&&z2.b===400,"die beiden Ø160: Länge 290 (Abwicklung) × Breite 400 (Einfassung)",zu);
  p(z1.h==="Küche"&&z2.h==="Küche","die Bezeichnung reist als Hinweis mit",z1);
  const flaeche=await page.evaluate(()=>Number(einfaFlaecheM2().toFixed(4)));
  const soll=Number((((z0.l||0)*(z0.b||0)+(z1.l||0)*(z1.b||0)+(z2.l||0)*(z2.b||0))/1e6).toFixed(4));
@@ -399,8 +399,8 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  // gesamten Einfassung, die Abschnittlaenge (laengs) die Abwicklung - nicht umgekehrt.
  const rpl=await page.evaluate(()=>{const q=einfaRollenPlan();return {breiten:(q.gruppen||[]).map(g=>g.breite).sort((a,b)=>a-b),
    laengen:(q.gruppen||[]).map(g=>g.abschnittLaenge).sort((a,b)=>a-b)}});
- p(JSON.stringify(rpl.breiten)===JSON.stringify([350,400])&&JSON.stringify(rpl.laengen)===JSON.stringify([278,308]),
-   "Zuschnittplan: Streifenbreiten 350/400 (Einfassung), Abschnittlängen 278/308 (Abwicklung)",rpl);
+ p(JSON.stringify(rpl.breiten)===JSON.stringify([350,400])&&JSON.stringify(rpl.laengen)===JSON.stringify([260,290]),
+   "Zuschnittplan: Streifenbreiten 350/400 (Einfassung), Abschnittlängen 260/290 (Abwicklung)",rpl);
  const bl=await page.evaluate(()=>einfaBleilappenGesamt());
  // Mit der Regel aus v3.70 (a+b, abgerundet, verdoppelt, mindestens 1)
  // liefert jede der drei Einfassungen 1 Lappen: 1 + 2*1 = 3.
@@ -583,8 +583,8 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  // faellt es hier auf, statt still wieder zu verschwinden.
  p(svgImGitter!==1,"nicht mehr nur der eine gespiegelte Schnitt",svgImGitter);
  p(imGitter===1,"zwei passen in EIN Raster - erst ab fuenf wird umgebrochen",imGitter);
- // pdfLxB() schreibt "308 × 400" (Länge = Abwicklung × Breite der Einfassung, v3.303); die Einheit steht im Spaltenkopf "(mm)".
- p(/308\s*(&#215;|×)\s*400/.test(dr)&&/Zuschnitt L (&#215;|×) B \(mm\)/.test(dr),
+ // pdfLxB() schreibt "290 × 400" (Länge = Abwicklung × Breite der Einfassung, v3.303); die Einheit steht im Spaltenkopf "(mm)".
+ p(/290\s*(&#215;|×)\s*400/.test(dr)&&/Zuschnitt L (&#215;|×) B \(mm\)/.test(dr),
    "Zuschnitt als L × B im PDF",(dr.match(/.{0,50}(×|&#215;) 400.{0,20}/)||[""])[0]);
  p(!/NaN|undefined/.test(dr),"kein NaN im PDF");
  // Der Winkel wird auch im PDF als Innenwinkel Dach/Rohr gezeigt (30 + 90).

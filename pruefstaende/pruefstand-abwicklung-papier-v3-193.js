@@ -83,12 +83,12 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
   return {breite:r.breite, hoehe:r.laenge,
           a4h:n("a4-hoch"), a3q:n("a3-quer"), a2h:n("a2-hoch"), a1h:n("a1-hoch")};
  });
- p(B.breite===350&&B.hoehe===543,"gerechnet wird mit dem Tablett 350 x 543 mm",B);
+ p(B.breite===350&&B.hoehe===525,"gerechnet wird mit dem Tablett 350 x 525 mm (a inkl. Anreiff, v3.361)",B);
  p(B.a4h.nutzB===180&&B.a4h.nutzH===243,
    "A4 hoch laesst 180 x 243 mm Zeichnung je Blatt",B.a4h);
  p(B.a4h.spalten===2&&B.a4h.zeilen===3&&B.a4h.seiten===6,"A4 hoch: 2 x 3 = 6 Blatt",B.a4h);
  p(B.a3q.spalten===1&&B.a3q.zeilen===3&&B.a3q.seiten===3,"A3 quer: 1 x 3 = 3 Blatt",B.a3q);
- p(B.a2h.seiten===2,"A2 hoch: 2 Blatt - 543 passt um 3 mm nicht auf 540",B.a2h);
+ p(B.a2h.seiten===1,"A2 hoch: 1 Blatt - 525 passt auf 540 (seit v3.361; vorher 543)",B.a2h);
  p(B.a1h.seiten===1,"A1 hoch: ein einziges Blatt",B.a1h);
 
  // ---- C  Der Vorschlag ----------------------------------------------------
@@ -106,7 +106,7 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
           rohr:{name:rohr.name,seiten:rohr.seiten},
           klein:{name:klein.name,seiten:klein.seiten}};
  });
- p(C.hab.name==="A1 hoch"&&C.hab.seiten===1,"fürs Tablett A1 hoch, ein Blatt",C.hab);
+ p(C.hab.name==="A2 hoch"&&C.hab.seiten===1,"fürs Tablett A2 hoch, ein Blatt (kleinstes Papier mit einem Blatt)",C.hab);
  p(C.rohr.name==="A2 hoch"&&C.rohr.seiten===1,"fürs Rohr A2 hoch, ein Blatt",C.rohr);
  // DIE GEGENPROBE: "am wenigsten Blaetter" allein reicht nicht als Regel -
  // A1 braucht fuer alles ein Blatt. Bei gleich vielen Blaettern muss das
@@ -197,14 +197,14 @@ const lies=f=>fs.readFileSync(path.join(process.cwd(),f),"utf8");
  });
  p(F.html.indexOf("A4 hoch · 6 Blatt")>=0&&F.html.indexOf("A3 quer · 3 Blatt")>=0,
    "bei jedem Format steht, wie viele Blätter es wären",F.html);
- p(F.html.indexOf("automatisch – A1 hoch · 1 Blatt")>=0,
+ p(F.html.indexOf("automatisch – A2 hoch · 1 Blatt")>=0,
    "und ganz oben der Vorschlag mit Namen",F.html);
  // Das war der naheliegende Fehler: die Liste wird bei jedem Tastendruck neu
  // aufgebaut, und die Wahl faellt dabei auf "automatisch" zurueck.
  p(F.nachTippen==="a3-quer",
    "die eigene Wahl überlebt eine Massänderung",F.nachTippen);
  p(F.seitenNachTippen===3,"und gilt auch fuer die Schablone",F.seitenNachTippen);
- p(F.hinweisAuto.indexOf("A1")>=0&&F.hinweisAuto.indexOf("statt")>=0
+ p(F.hinweisAuto.indexOf("A2")>=0&&F.hinweisAuto.indexOf("statt")>=0
    &&F.hinweisAuto.indexOf("A4")>=0,
    "der Hinweis nennt die Ersparnis gegenüber A4",F.hinweisAuto);
  p(F.hinweisA3.indexOf("A3 quer")>=0&&F.hinweisA3.indexOf("3 Blatt")>=0,

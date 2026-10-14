@@ -129,8 +129,8 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  });
  p(nah((A2.xMin+A2.xMax)/2,A2.mitteX)&&nah(A2.mitteX,175),
    "das Loch liegt quer genau in der Mitte (175 mm von jeder Kante)",A2);
- p(nah((A2.yMin+A2.yMax)/2,A2.mitteY)&&nah(A2.mitteY,288),
-   "und in der Laenge bei Mitte Rohr: 20 Umschlag + 18 Anreiff + 250 = 288 mm",A2);
+ p(nah((A2.yMin+A2.yMax)/2,A2.mitteY)&&nah(A2.mitteY,270),
+   "und in der Laenge bei Mitte Rohr: 20 Umschlag + 250 (a inkl. Anreiff, v3.361) = 270 mm",A2);
  p(A2.yMin>0&&A2.yMax<A2.laenge&&A2.xMin>0&&A2.xMax<A2.breite,
    "das Loch liegt vollstaendig im Blech",A2);
 
@@ -153,16 +153,16 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
    "abwTablett().laenge = einfBerechnen().abwicklung in allen fuenf Faellen",B);
  p(B.every(x=>Math.round(x.breite)===x.breiteGesamt),
    "und die Breite = breiteGesamt der Massaufnahme",B);
- // Von Hand nachgerechnet: 20 + 18 + 250 + 200 + 35 + 20 = 543.
- p(nah(B[0].laenge,543)&&nah(B[0].breite,350),
-   "erster Fall von Hand: 350 × 543 mm",B[0]);
+ // Von Hand nachgerechnet (v3.361: a ist inklusive Anreiff): 20 + 250 + 200 + 35 + 20 = 525.
+ p(nah(B[0].laenge,525)&&nah(B[0].breite,350),
+   "erster Fall von Hand: 350 × 525 mm",B[0]);
  // Der Anreiff wird NICHT kopiert, sondern aus js/21 geholt.
  const B2=await page.evaluate(()=>({
   ausJs21:EINF_ANREISS_LAENGE, ausJs77:abwTablettAnreiss(),
   ohneAnreiss:abwTablett({D:110,alpha:25,a:250,b:200,c:35,
     umschlag:20,massSeitlich:100,lochZugabe:0,anreiss:0}).laenge}));
  p(B2.ausJs21===B2.ausJs77,"der Anreiff kommt aus js/21, er ist nicht kopiert",B2);
- p(nah(B2.ohneAnreiss,525),"ohne Anreiff werden es 18 mm weniger",B2.ohneAnreiss);
+ p(nah(B2.ohneAnreiss,525),"v3.361: der Anreiff ist in a enthalten - er ändert die Länge nicht",B2.ohneAnreiss);
 
  // ---- C  Fehler und Warnungen ---------------------------------------------
  console.log("\nC · Was die Rechnung verweigert und wovor sie warnt");
@@ -210,16 +210,16 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  });
  p(D.konturLen===4,"der Zuschnitt ist ein Rechteck - vier Eckpunkte",D.konturLen);
  // 20 (Umschlag vorne), 38 (Anreiff-Knick), 488 (Aufbug), 523 (Umschlag oben)
- p(JSON.stringify(D.quer)===JSON.stringify([20,38,488,523]),
+ p(JSON.stringify(D.quer)===JSON.stringify([20,38,470,505]),
    "vier Biegelinien quer: Umschlag vorne, Anreiff, Aufbug, Umschlag oben",D.quer);
  p(JSON.stringify(D.laengs)===JSON.stringify([20,330]),
    "zwei laengs: der seitliche Umschlag an beiden Kanten",D.laengs);
  // GEGENPROBE: ohne Umschlag verschwinden genau die Linien, die es dann nicht
  // gibt - eine Biegelinie ohne Biegung waere eine Behauptung.
  p(D.ohneLaengs.length===0,"ohne Umschlag gibt es keine seitliche Biegelinie",D.ohneLaengs);
- p(JSON.stringify(D.ohneQuer)===JSON.stringify([18,468]),
+ p(JSON.stringify(D.ohneQuer)===JSON.stringify([18,450]),
    "und quer nur noch Anreiff und Aufbug",D.ohneQuer);
- p(JSON.stringify(D.ohneCQuer)===JSON.stringify([20,38,488]),
+ p(JSON.stringify(D.ohneCQuer)===JSON.stringify([20,38,470]),
    "ohne Aufbug faellt auch der obere Umschlag weg",D.ohneCQuer);
 
  // ---- E  Die Oberflaeche: zwei Bauteile, ein Rechner ----------------------
@@ -382,7 +382,7 @@ const nah=(a,b,e)=>Math.abs(Number(a)-Number(b))<(e===undefined?0.005:e);
  p(G.r&&G.r.ok===true,"gespeichert",G.r);
  p(G.satz&&G.satz.bauteil==="tablett","das Bauteil wird mitgeschrieben",G.satz&&G.satz.bauteil);
  p(G.satz&&G.satz.measurement_id===99,"und die Massaufnahme",G.satz&&G.satz.measurement_id);
- p(G.satz&&nah(G.satz.ergebnis.laenge,543)&&nah(G.satz.ergebnis.lochLang,125.785,0.002),
+ p(G.satz&&nah(G.satz.ergebnis.laenge,525)&&nah(G.satz.ergebnis.lochLang,125.785,0.002),
    "die Kennzahlen des Tabletts stehen im Datensatz",G.satz&&G.satz.ergebnis);
  p(G.satz&&G.satz.ergebnis.streckung===undefined,
    "und NICHT die des Rohrs",G.satz&&G.satz.ergebnis);

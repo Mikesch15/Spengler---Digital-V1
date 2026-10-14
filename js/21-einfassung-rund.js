@@ -48,6 +48,12 @@ const EINF_DECKUNGEN = Object.freeze({
 // eigenes Eingabefeld, siehe Rückmeldung an den Anwender.
 const EINF_ANREISS_WINKEL = 20;
 const EINF_ANREISS_LAENGE = 18;
+// v3.361: Der Anreiff vorne ist einstellbar (Einstellungen → Einfassung rund); ohne Eintrag gilt die bisherige Länge.
+function einfAnreiss() {
+  const s = (typeof einfassungSettings === "object" && einfassungSettings) || {};
+  const n = Number(s.anreiss);
+  return (s.anreiss !== undefined && s.anreiss !== null && s.anreiss !== "" && Number.isFinite(n) && n >= 0) ? n : EINF_ANREISS_LAENGE;
+}
 
 // ---- 2. Eigene Einstellungen ---------------------------------------
 // "Umschlag" und "Mass seitlich neben Rohr" gelten nur für die Breite
@@ -56,7 +62,12 @@ const EINF_ANREISS_LAENGE = 18;
 // gedacht, technisch aber wie beim Anschlussblech pro Gerät gespeichert.
 const EINFASSUNG_STANDARD = Object.freeze({
   deckung: "biber_einfach",
-  umschlag: 20,        // Umschlag vorne (180°) und oben am Aufbug (135°)
+  umschlag: 20,        // Umschlag vorne (180°)
+  // v3.361: Die drei weiteren Masse sind jetzt einzeln einstellbar (vorher galt "umschlag" für vorne, hinten und seitlich, und der
+  // Anreiff war fest 18 mm). Ältere Geräte-Einstellungen übernehmen beim Laden den bisherigen Wert (siehe einfEinstellungenLaden).
+  umschlag_hinten: 20,   // Umschlag hinten am 90°-Aufbug (135°)
+  umschlag_seitlich: 20, // Umschläge seitlich (links und rechts, je Seite)
+  anreiss: 18,           // Anreiff vorne - Teil von Mass a (a ist INKLUSIVE Anreiff)
   mass_seitlich: 100,  // Mass seitlich neben Rohr
   lattenabstand: 330,  // für Anzahl Bleilappen
   // Vorgabemasse einer NEUEN Einfassung (v2.99, auf Ansage des Betriebs).
@@ -86,7 +97,7 @@ const EINFASSUNG_STANDARD = Object.freeze({
   // v3.360: Zuordnung Standrohr-Durchmesser -> Mantelrohr-Durchmesser (mm). Der Mantelrohr-Durchmesser ist der RECHNERISCHE
   // Durchmesser (Abwicklung, Zuschnitt, Tablett); der Standrohr-Durchmesser ist nur Information. Leer = keine Zuordnung
   // (nichts wird erfunden); je Eintrag {standrohr, mantel}.
-  mantel_zuordnung: []
+  mantel_zuordnung: []   // nur noch Altbestand (v3.360, nur dieses Gerät); massgebend ist die firmenweite Liste einfMantelFirma
 });
 const EINF_EINSTELLUNGEN = "sd_einfassungRundSettings";
 
@@ -95,15 +106,26 @@ let einfassungSettings = einfEinstellungenLaden();
 function einfEinstellungenLaden() {
   let w = null;
   try { w = JSON.parse(localStorage.getItem(EINF_EINSTELLUNGEN) || "null"); } catch (e) { w = null; }
-  w = Object.assign({}, EINFASSUNG_STANDARD, w || {});
+  const alt = w || {};
+  w = Object.assign({}, EINFASSUNG_STANDARD, alt);
+  // v3.361: Ein früher gespeicherter Stand kennt nur "umschlag" - der galt bisher für hinten und seitlich mit; das bleibt so, bis jemand es trennt.
+  if (alt.umschlag_hinten === undefined && alt.umschlag !== undefined) w.umschlag_hinten = alt.umschlag;
+  if (alt.umschlag_seitlich === undefined && alt.umschlag !== undefined) w.umschlag_seitlich = alt.umschlag;
   if (!EINF_DECKUNGEN[w.deckung]) w.deckung = EINFASSUNG_STANDARD.deckung;
   return w;
 }
 // v3.360: Mantelrohr-Durchmesser zu einem Standrohr-Durchmesser aus den Einstellungen; null = keine Zuordnung.
+// v3.361: Die Zuordnung gilt FIRMENWEIT (app_settings.einfassung_mantel_zuordnung, geladen in js/05). Fehlt sie dort, gilt ersatzweise eine
+// früher auf diesem Gerät gespeicherte (v3.360), damit nichts verloren geht.
+let einfMantelFirma = [];
+function einfMantelListeAktuell() {
+  if (Array.isArray(einfMantelFirma) && einfMantelFirma.length) return einfMantelFirma;
+  return ((typeof einfassungSettings === "object" && einfassungSettings && einfassungSettings.mantel_zuordnung) || []);
+}
 function einfMantelFuer(standrohr) {
   const n = Number(standrohr);
   if (!(n > 0)) return null;
-  const z = ((typeof einfassungSettings === "object" && einfassungSettings && einfassungSettings.mantel_zuordnung) || []);
+  const z = einfMantelListeAktuell();
   const t = z.find(x => x && Number(x.standrohr) === n && Number(x.mantel) > 0);
   return t ? Number(t.mantel) : null;
 }
@@ -164,7 +186,11 @@ function einfProfil(e) {
   const a = z(e.a), b = z(e.b), c = z(e.c);
   const winkel = z(e.winkel);
   const s = einfassungSettings || EINFASSUNG_STANDARD;
-  const foldLen = Math.max(0, Number(s.umschlag) || 0);
+  const foldLen = Math.max(0, Number(s.umschlag) || 0);                       // Umschlag vorne (180°)
+  const foldHinten = Math.max(0, Number(s.umschlag_hinten !== undefined ? s.umschlag_hinten : s.umschlag) || 0);  // Umschlag hinten (135°)
+  // v3.361: Mass a ist INKLUSIVE Anreiff. Der Anreiff-Teil läuft steiler (kickDir); der Rest von a läuft in der Dachschräge.
+  const anreiss = Math.min(einfAnreiss(), Math.max(0, a));
+  const aRest = Math.max(0, a - anreiss);
 
   const rot = (v, grad) => {
     const r = grad * Math.PI / 180;
@@ -175,16 +201,17 @@ function einfProfil(e) {
   const cDir = rot(u, 90);                                // Aufbug: immer 90° zur Dachschräge
 
   const p0 = [0, 0];
-  const p1 = [p0[0] + kickDir[0] * EINF_ANREISS_LAENGE, p0[1] + kickDir[1] * EINF_ANREISS_LAENGE];
-  const p2 = [p1[0] + u[0] * a, p1[1] + u[1] * a];        // Mitte Rohr
+  const p1 = [p0[0] + kickDir[0] * anreiss, p0[1] + kickDir[1] * anreiss];
+  const p2 = [p1[0] + u[0] * aRest, p1[1] + u[1] * aRest];  // Mitte Rohr
   const p3 = [p2[0] + u[0] * b, p2[1] + u[1] * b];
   const p4 = [p3[0] + cDir[0] * c, p3[1] + cDir[1] * c];
   const foldDir = rot(cDir, 135);                         // 135°-Umschlag, relativ zu c
-  const p5 = [p4[0] + foldDir[0] * foldLen, p4[1] + foldDir[1] * foldLen];
+  const p5 = [p4[0] + foldDir[0] * foldHinten, p4[1] + foldDir[1] * foldHinten];
 
   return {
     pts: [p0, p1, p2, p3, p4, p5],
     foldLen: foldLen,
+    foldHinten: foldHinten,
     aMid: [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2],
     bMid: [(p2[0] + p3[0]) / 2, (p2[1] + p3[1]) / 2],
     rohrMitte: p2
@@ -340,7 +367,8 @@ function einfBerechnen(e) {
 
   const s = einfassungSettings || EINFASSUNG_STANDARD;
   const durchmesser = Math.max(0, Number(e.durchmesser) || 0);
-  const umschlag = Math.max(0, Number(s.umschlag) || 0);
+  // v3.361: seitliche Umschläge einzeln (ältere Stände: wie bisher der gemeinsame Umschlag)
+  const umschlag = Math.max(0, Number(s.umschlag_seitlich !== undefined ? s.umschlag_seitlich : s.umschlag) || 0);
   const massSeitlich = Math.max(0, Number(s.mass_seitlich) || 0);
   const breiteGesamt = durchmesser > 0 ? Math.round(durchmesser + 2 * umschlag + 2 * massSeitlich) : null;
 
@@ -450,6 +478,9 @@ function applyEinfassungSettings() {
     if (el && document.activeElement !== el) el.value = wert;
   };
   setzen("einfsUmschlag", s.umschlag);
+  setzen("einfsUmschlagHinten", s.umschlag_hinten);
+  setzen("einfsUmschlagSeitlich", s.umschlag_seitlich);
+  setzen("einfsAnreiss", s.anreiss);
   setzen("einfsMassSeitlich", s.mass_seitlich);
   setzen("einfsLattenabstand", s.lattenabstand);
   setzen("einfsMassA", s.mass_a);
@@ -458,7 +489,7 @@ function applyEinfassungSettings() {
   setzen("einfsRohrhoehe", s.rohrhoehe);
   setzen("einfsSchweifbord", s.schweifbord);
   setzen("einfsLochZugabe", s.loch_zugabe);
-  if ($("einfsMantelListe") && !$("einfsMantelListe").contains(document.activeElement)) einfMantelListeZeichnen(s.mantel_zuordnung);
+  if ($("einfsMantelListe") && !$("einfsMantelListe").contains(document.activeElement)) einfMantelListeZeichnen(einfMantelListeAktuell());
 }
 
 // ---- 7. Bedienung ----------------------------------------------------
@@ -495,6 +526,9 @@ function applyEinfassungSettings() {
     const w = {
       deckung: $("einfsDeckung").value,
       umschlag: zahl("einfsUmschlag") || 0,
+      umschlag_hinten: zahl("einfsUmschlagHinten") || 0,
+      umschlag_seitlich: zahl("einfsUmschlagSeitlich") || 0,
+      anreiss: zahl("einfsAnreiss") || 0,
       mass_seitlich: zahl("einfsMassSeitlich") || 0,
       lattenabstand: zahl("einfsLattenabstand") || 0,
       mass_a: zahl("einfsMassA") || 0,
@@ -504,10 +538,10 @@ function applyEinfassungSettings() {
       schweifbord: zahl("einfsSchweifbord") || 0,
       // 0 ist hier erlaubt und heisst "Loch exakt auf Rohrmass".
       loch_zugabe: Math.max(0, zahl("einfsLochZugabe") || 0),
-      mantel_zuordnung: einfMantelListeLesen()
+      mantel_zuordnung: (einfassungSettings && einfassungSettings.mantel_zuordnung) || []   // Altbestand bleibt unverändert; die firmenweite Liste speichert ihr eigener Knopf
     };
     if (!EINF_DECKUNGEN[w.deckung]) { appAlert("Bitte ein Deckmaterial wählen."); return; }
-    const negativ = ["umschlag", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
+    const negativ = ["umschlag", "umschlag_hinten", "umschlag_seitlich", "anreiss", "mass_seitlich", "lattenabstand", "mass_a", "mass_b", "mass_c",
                      "rohrhoehe", "schweifbord", "loch_zugabe"].some(k => w[k] < 0);
     if (negativ) { appAlert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
@@ -515,6 +549,18 @@ function applyEinfassungSettings() {
     appAlert("Gespeichert (gilt nur für dieses Gerät).");
   };
 
+  // v3.361: Die Zuordnung gilt für die ganze Firma und wird deshalb in den Firmeneinstellungen (Datenbank) gespeichert, nicht auf dem Gerät.
+  if ($("einfsMantelSpeichern")) $("einfsMantelSpeichern").onclick = async () => {
+    const liste = einfMantelListeLesen();
+    const knopf = $("einfsMantelSpeichern");
+    knopf.disabled = true;
+    const r = (typeof speichereAppSettings === "function") ? await speichereAppSettings({ einfassung_mantel_zuordnung: liste }) : { fehler: "Speichern ist nicht verfügbar." };
+    knopf.disabled = false;
+    if (r.fehler) { appAlert("Konnte nicht gespeichert werden: " + r.fehler); return; }
+    einfMantelFirma = liste;
+    einfMantelListeZeichnen(liste);
+    appAlert("Gespeichert (gilt für die ganze Firma).");
+  };
   if ($("einfsMantelNeu")) $("einfsMantelNeu").onclick = () => {
     const aktuell = einfMantelListeLesen();
     einfMantelListeZeichnen(aktuell.concat([{ standrohr: "", mantel: "" }]));

@@ -20,3 +20,10 @@ Keine Geräte-/Live-Tests; Zeichnung nur im Testbrowser geprüft. Die Zuordnung 
 
 5. MANUELLE PRÜFUNG
 Einstellungen → Einfassung rund: Zuordnung „100 → 125“ anlegen, speichern. Massaufnahme Einfassung rund: Standrohr 100 eintippen → Mantelrohr 125; Abwicklung Tablett öffnen: Masse „Mitte Loch bis vorne/hinten“ links eingezeichnet; DXF exportieren.
+
+NACHTRAG v3.361 (Ausgangscommit 7e6812a)
+- Einstellungen Einfassung rund: Umschlag vorne, Umschlag hinten am 90°-Aufbug, Umschläge seitlich und Anreiff vorne einzeln. Ältere Stände übernehmen ihren bisherigen Umschlag für hinten/seitlich; Anreiff vorbelegt mit 18 mm (wie bisher fest).
+- Mass a ist inklusive Anreiff: Profil (Abwicklung der Einfassung) und Tablett rechnen a als Gesamtmass; der Anreiff wird nicht mehr zusätzlich addiert. FOLGE: Zuschnittlängen/Abwicklungen sind bei gleichen Eingaben um den Anreiff (18 mm) kürzer als bis v3.360; Tablett 350×525 statt 350×543 (passt jetzt auf A2 hoch). Gespeicherte Massaufnahmen rechnen beim Öffnen neu.
+- Zuordnung Standrohr → Mantelrohr firmenweit: neue Spalte app_settings.einfassung_mantel_zuordnung (jsonb, additiv, Policies unverändert); Knopf „Zuordnung speichern (ganze Firma)“. Die lokale Liste aus v3.360 gilt nur ersatzweise.
+- Tests: mantelrohr-v3-360 jetzt 26 Prüfungen; angepasst: abwicklung-tablett-v3-192, abwicklung-papier-v3-193, einfassung-app-v2-96 (neue Geometrie).
+- Grenze: nicht live getestet; wer die Zuordnung speichern will, braucht das Recht für die Firmeneinstellungen (sonst Fehlermeldung).

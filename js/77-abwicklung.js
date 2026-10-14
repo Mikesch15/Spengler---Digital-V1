@@ -294,6 +294,8 @@ function abwRechne(roh){
 // hier nicht kopiert, sondern bei jedem Aufruf von dort geholt; die 18 gelten
 // nur, wenn diese Datei ohne js/21 laeuft (Pruefstand).
 function abwTablettAnreiss(){
+ // v3.361: einstellbar (Einstellungen → Einfassung rund); sonst die bisherige feste Länge.
+ if(typeof einfAnreiss==="function")return einfAnreiss();
  return (typeof EINF_ANREISS_LAENGE==="number"&&EINF_ANREISS_LAENGE>0)
   ? EINF_ANREISS_LAENGE : 18;
 }
@@ -303,7 +305,10 @@ function abwTablettEingaben(roh){
  return {
   D:g("D",0), alpha:g("alpha",0),
   a:g("a",0), b:g("b",0), c:g("c",0),
-  umschlag:g("umschlag",0), massSeitlich:g("massSeitlich",0),
+  umschlag:g("umschlag",0),
+  // v3.361: hinten (am 90°-Aufbug) und seitlich einzeln; ohne eigenen Wert gilt der bisherige gemeinsame Umschlag.
+  umschlagHinten:g("umschlagHinten",g("umschlag",0)), umschlagSeitlich:g("umschlagSeitlich",g("umschlag",0)),
+  massSeitlich:g("massSeitlich",0),
   lochZugabe:g("lochZugabe",0), anreiss:g("anreiss",abwTablettAnreiss())
  };
 }
@@ -316,6 +321,9 @@ function abwTablettFehler(e){
  if(!(e.b>0))f.push("Mass b (Mitte Rohr bis hinten) muss grösser als 0 sein.");
  if(!(e.c>=0))f.push("Mass c (Aufbug) darf nicht negativ sein.");
  if(!(e.umschlag>=0))f.push("Der Umschlag darf nicht negativ sein.");
+ if(!(e.umschlagHinten>=0))f.push("Der Umschlag hinten darf nicht negativ sein.");
+ if(!(e.umschlagSeitlich>=0))f.push("Der Umschlag seitlich darf nicht negativ sein.");
+ if(!(e.anreiss>=0))f.push("Der Anreiff darf nicht negativ sein.");
  if(!(e.massSeitlich>=0))f.push("Das Mass seitlich neben dem Rohr darf nicht negativ sein.");
  if(!(e.lochZugabe>=0))f.push("Die Luft am Lochausschnitt darf nicht negativ sein.");
  if(!(e.anreiss>=0))f.push("Der Anreiff darf nicht negativ sein.");
@@ -332,10 +340,11 @@ function abwTablett(roh){
 
  // x laeuft quer zum Gefaelle (0 ... breite), y in Gefaellerichtung
  // (0 = Vorderkante des vorderen Umschlags, laenge = Kopf des oberen).
- const breite=e.D+2*e.umschlag+2*e.massSeitlich;
- const laenge=e.umschlag+e.anreiss+e.a+e.b+e.c+e.umschlag;
+ const breite=e.D+2*e.umschlagSeitlich+2*e.massSeitlich;
+ // v3.361: Mass a ist INKLUSIVE Anreiff (Vorderkante auf dem Deckmaterial bis Mitte Rohr) - der Anreiff wird nicht mehr zusätzlich addiert.
+ const laenge=e.umschlag+e.a+e.b+e.c+e.umschlagHinten;
  const mitteX=breite/2;
- const mitteY=e.umschlag+e.anreiss+e.a;          // Mitte Rohr
+ const mitteY=e.umschlag+e.a;                    // Mitte Rohr
 
  const halbQuer=e.D/2+e.lochZugabe;              // quer zum Gefaelle
  const halbLang=halbQuer/cosA;                   // in Gefaellerichtung
@@ -348,21 +357,21 @@ function abwTablett(roh){
  const quer=[];
  const querY=[];
  if(e.umschlag>0)querY.push(e.umschlag);
- if(e.anreiss>0)querY.push(e.umschlag+e.anreiss);
+ if(e.anreiss>0&&e.anreiss<e.a)querY.push(e.umschlag+e.anreiss);     // Anreiff-Knick liegt IN a
  if(e.c>0){
-  querY.push(e.umschlag+e.anreiss+e.a+e.b);
-  if(e.umschlag>0)querY.push(e.umschlag+e.anreiss+e.a+e.b+e.c);
- }else if(e.umschlag>0){
-  querY.push(e.umschlag+e.anreiss+e.a+e.b);
+  querY.push(e.umschlag+e.a+e.b);
+  if(e.umschlagHinten>0)querY.push(e.umschlag+e.a+e.b+e.c);
+ }else if(e.umschlagHinten>0){
+  querY.push(e.umschlag+e.a+e.b);
  }
  querY.forEach(y=>quer.push([[0,y],[breite,y]]));
 
  // Biegelinien laengs: der seitliche Umschlag, derselbe, der in
  // einfBerechnen() zweimal in der Gesamtbreite steckt.
  const laengs=[];
- if(e.umschlag>0){
-  laengs.push([[e.umschlag,0],[e.umschlag,laenge]]);
-  laengs.push([[breite-e.umschlag,0],[breite-e.umschlag,laenge]]);
+ if(e.umschlagSeitlich>0){
+  laengs.push([[e.umschlagSeitlich,0],[e.umschlagSeitlich,laenge]]);
+  laengs.push([[breite-e.umschlagSeitlich,0],[breite-e.umschlagSeitlich,laenge]]);
  }
 
  const loch=[];
@@ -372,8 +381,8 @@ function abwTablett(roh){
  }
 
  const warnungen=[];
- if(halbLang>=e.a)
-  warnungen.push("Das Loch reicht bis in den Anreiff vorne (Mass a ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Tablett nicht kanten.");
+ if(halbLang>=e.a-e.anreiss)
+  warnungen.push("Das Loch reicht bis in den Anreiff vorne (Mass a abzüglich Anreiff ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm). So lässt sich das Tablett nicht kanten.");
  if(halbLang>=e.b)
   warnungen.push("Das Loch reicht bis in den Aufbug hinten (Mass b ist kleiner als der halbe Lochausschnitt von "+halbLang.toFixed(1).replace(".",",")+" mm).");
  if(halbQuer>=e.D/2+e.massSeitlich)

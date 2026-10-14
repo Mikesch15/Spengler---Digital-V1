@@ -3,9 +3,14 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.360`
+- Aktueller Entwicklungsstand: `v3.361`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.361 — Einfassung rund: Umschläge einzeln, Anreiff in Mass a, Zuordnung firmenweit
+
+Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 90°-Aufbug, Umschläge seitlich, Anreiff vorne; **Mass a (vorne bis Mitte Rohr) ist inklusive Anreiff**; die Zuordnung Standrohr→Mantelrohr gilt firmenweit.
+**Umsetzung:** Einstellungen Einfassung rund (js/21, index.html): `umschlag` = vorne (180°), neu `umschlag_hinten`, `umschlag_seitlich`, `anreiss` (Standard 20/20/18; ältere Geräte-Stände übernehmen beim Laden ihren bisherigen `umschlag` für hinten und seitlich). `einfProfil`: p0→p1 = Anreiff, p1→Mitte Rohr = a − Anreiff (Gesamt a); Umschlag hinten am p4→p5; `einfBerechnen`: Breite mit `umschlag_seitlich`. Tablett (js/77): Länge = vorne + a + b + c + hinten (Anreiff nicht mehr zusätzlich), Breite mit seitlichem Umschlag, Anreiff-Knick liegt in a, Warnung „Loch reicht in den Anreiff“ prüft a − Anreiff; Abwicklungsrechner (js/78/index.html) neue Felder, Vorgaben aus den Einstellungen (js/38). **Folge:** gleiche Eingaben ergeben nun 18 mm kürzere Zuschnitte/Abwicklungen als bis v3.360 (a enthält den Anreiff); gespeicherte Massaufnahmen rechnen beim Öffnen neu, bereits gedruckte Werte bleiben unverändert. **Zuordnung firmenweit:** neue Spalte `app_settings.einfassung_mantel_zuordnung jsonb` (Migration „app_settings_einfassung_mantel_zuordnung“, additiv, Datei `supabase/migrations/v3361_…sql`; Policies unverändert), Knopf „Zuordnung speichern (ganze Firma)“ über `speichereAppSettings`; die lokale Liste aus v3.360 gilt nur ersatzweise. Prüfstand `mantelrohr-v3-360` auf 26; angepasst wegen der neuen Geometrie: `abwicklung-tablett-v3-192`, `abwicklung-papier-v3-193` (Tablett 350×525 passt jetzt auf A2), `einfassung-app-v2-96`. Bericht: `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt` (Nachtrag).
 
 ### v3.360 — Einfassung rund: Mantelrohr-Durchmesser, bemasster Lochausschnitt
 
@@ -15,10 +20,6 @@ Wunsch: (1) Einfassung rund braucht ein Eingabefeld für das Mantelrohr; in den 
 ### v3.359 — Einheitliches Erscheinungsbild für alle Seiten
 
 Auftrag: „Überarbeite alle Seiten der App nach den bisherigen Entwürfen – die App soll modern und übersichtlich wirken.“ Umgesetzt als EINE gemeinsame Gestaltungsschicht am Ende von css/05 (nur Darstellung, keine Struktur/Logik): ruhiger flacher Grund statt Blaugrau-Verlauf (Seite und Fenster), flache Karten (Rundung 12px, feine Linie, kein Schatten), ruhige Knöpfe (grau mit Rand, blau/grün ohne Schatten, Rundung 10px), Tabellenkopf/Zeilen/Einstellungsabschnitte in den neuen Tönen, Dunkelmodus über dieselben Variablen; Register der Projektseite etwas dichter und der aktive Reiter bleibt sichtbar. **Bewusst nicht geändert:** Feldgrössen und Beschriftungen der Formulare (früherer Entscheid, geprüft in `einstellungen-optik-v3-151`, `formulare-optik-v3-154`, `massaufnahme-optik-v3-152`; ein erster Versuch mit grösseren Feldern wurde deshalb zurückgenommen). Bereits einzeln nach Wunschbild gestaltet: Startseite, Projektliste, Projektseite, Stammdaten. Nicht einzeln umgebaut (nur die gemeinsame Schicht): Massaufnahme-Formulare, Regierapport, Ausmass, Offerte, Werkstatt, Lager, Einstellungen, Mehr – für eine Seite nach eigenem Bild bitte den Entwurf nennen. Prüfstand `design-einheitlich-v3-359` (11; Grund, Karten, Knöpfe, Felder unberührt, kein Überlaufen auf 12 Seiten bei 390/768/1280 px, Dunkelmodus); Mutationen erkannt. Bericht: `ABSCHLUSSBERICHT_Design_v3.359.txt`.
-
-### v3.358 — Logo weiss im Kopf; Titelbild wird beim Speichern nicht mehr überschrieben
-
-Meldung (Bild): „Jetzt sieht das Logo komisch aus.“ Das (dunkelblaue, transparente) Logo war auf dem Blau kaum zu lesen. Jetzt erscheint es im Kopf der Startseite weiss (`filter:brightness(0) invert(1)`, css/05) – wie in der Vorlage; ein farbiges Logo wird dort bewusst einfarbig weiss gezeigt. **Titelbild:** Beim Nachprüfen stand `app_settings.kopf_bild_url` leer, obwohl vorher gespeichert (Spaltenwert nachgeprüft). Ursache im Code: `saveCompanyName` schrieb das Titelbild bei JEDEM Speichern der Firmendaten mit (auch mit leerem Stand) und konnte ein vorhandenes Bild so löschen. Behoben (js/01, js/07): `kopfBildGeaendert` – das Feld wird nur mitgeschrieben, wenn ein neues Bild gewählt oder „Titelbild entfernen“ gedrückt wurde. Das Bild muss einmal neu hochgeladen werden; der Lesezugriff (Migration v3.356) ist vorhanden. Prüfstand `projektseiten-wunschbild-v3-356` auf 27; Mutationen (Feld immer geschrieben, Logo ohne Weiss-Filter) erkannt.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
