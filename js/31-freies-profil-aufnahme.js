@@ -817,6 +817,9 @@ function fpaAusData(d){
 }
 function fpaZuruecksetzen(){
  fpA=fpaLeer(); fpaSchritt=1; fpaBestaetigt=new Set();
+ // v3.369: newMeasurementWithType() zeigt die Art ZUERST und setzt das Formular danach zurueck - ohne diese Zeile
+ // verschwand die Dachrand-Variante beim Zuruecksetzen und es erschien das Freie Profil.
+ if(typeof drbAktivieren==="function"&&$("measType")&&$("measType").value==="dachrandblech")drbAktivieren();
  fpSchenkel=fpA.schenkel; fpSegmente=fpA.segmente;
  fpaVerdrahten(); renderFreiesProfilAufnahme();
 }

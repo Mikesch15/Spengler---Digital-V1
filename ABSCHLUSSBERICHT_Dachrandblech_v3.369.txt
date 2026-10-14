@@ -15,3 +15,5 @@ TESTS: dachrandblech-v3-369 (46 Prüfungen): Art/Register, Detail 1.5 mit Origin
 NICHT GETESTET: echtes Gerät; Einhängestreifen an einem echten Teil.
 
 OFFEN: Einhängestreifen im Zuschnittplan; Eckzuschläge; Rückmeldung zur Streifenformel.
+
+NACHTRAG v3.370: Ursache und Korrektur des "Kopie vom Freien Profil"-Fehlers siehe PROJECT_STATE.md v3.370. Der Prüfstand testet jetzt den echten Weg über die Kachel (48 Prüfungen).

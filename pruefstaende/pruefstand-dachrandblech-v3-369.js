@@ -33,6 +33,22 @@ const ROUTE=(fs.readFileSync("pruefstaende/pruefstand-freies-profil-app-v2-77.js
  const feld=async(sel,wert,ereignis)=>{await page.evaluate(([s,w,ev])=>{const e=document.querySelector(s);e.value=w;e.dispatchEvent(new Event(ev||"input",{bubbles:true}))},[sel,String(wert),ereignis]);await page.waitForTimeout(40)};
  const klick=async sel=>{const r=await page.evaluate(s=>{const e=document.querySelector(s);if(!e)return "fehlt";e.click();return "ok"},sel);await page.waitForTimeout(150);return r};
 
+ console.log("\nA0 · Der echte Weg: Kachel „Dachrandblech“ in „Neue Massaufnahme“");
+ const echt=await page.evaluate(()=>{
+  measSelectedProjectId=7;
+  const knopf=document.querySelector('[data-choose-meas-type="dachrandblech"]')||(renderMeasTypeChooser(),document.querySelector('[data-choose-meas-type="dachrandblech"]'));
+  newMeasurementWithType(knopf.dataset.chooseMeasType);
+  return {art:$("measType").value,variante:fpA.variante,reg:fpaRegister().map(r=>r.kurz),n:fpA.schenkel.length,
+   sichtbar:[...document.querySelectorAll("#fpa_register .ra-register-text")].map(x=>x.textContent)};
+ });
+ await page.waitForTimeout(200);
+ p(echt.art==="dachrandblech"&&echt.variante==="dachrand"&&echt.sichtbar.join()==="Grunddaten,Detail,Profil,Grundriss,Stücke,Einhängestreifen,Zuschnitt,Ausmass,Kontrolle"&&echt.n===7,"Neue Massaufnahme über die Kachel: Dachrandblech-Register sichtbar (nicht das Freie Profil), Detail 1.5 geladen",echt);
+ await page.evaluate(()=>{newMeasurementWithType("freies_profil")});
+ await page.waitForTimeout(150);
+ const fpWeg=await page.evaluate(()=>({v:fpA.variante,sichtbar:[...document.querySelectorAll("#fpa_register .ra-register-text")].map(x=>x.textContent),n:fpA.schenkel.length}));
+ p(fpWeg.v===""&&fpWeg.sichtbar[1]==="Skizze → Profil"&&fpWeg.n===0,"Kachel „Freies Profil“ danach: normale Register, leeres Profil",fpWeg);
+ await page.evaluate(()=>{newMeasurementWithType("dachrandblech")});
+ await page.waitForTimeout(150);
  console.log("\nA · Art, Register, Detail 1.5");
  const a=await page.evaluate(()=>({
   label:MEAS_TYPE_LABELS.dachrandblech,kat:measKategorie("dachrandblech"),opt:!![...$("measType").options].find(o=>o.value==="dachrandblech"),
@@ -169,7 +185,7 @@ const ROUTE=(fs.readFileSync("pruefstaende/pruefstand-freies-profil-app-v2-77.js
 
  console.log("\nG · Freies Profil bleibt unverändert (Gegenprobe)");
  const fp=await page.evaluate(()=>{
-  fpaZuruecksetzen();$("measType").value="freies_profil";showMeasTypeSection("freies_profil");
+  $("measType").value="freies_profil";fpaZuruecksetzen();showMeasTypeSection("freies_profil");
   return {v:fpA.variante,reg:fpaRegister().map(r=>r.kurz),sch:fpA.schenkel.length,konisch:/Konisch/.test($("fpa_kopf").textContent)};
  });
  p(fp.v===""&&fp.reg.join()==="Grunddaten,Skizze → Profil,Profil,Zeichnung,Segmente,Zuschnitt,Ausmass,Kontrolle"&&fp.sch===0&&fp.konisch,"Freies Profil: eigene Register, kein Detail vorgeladen, Feld „Konisch“ vorhanden",fp);

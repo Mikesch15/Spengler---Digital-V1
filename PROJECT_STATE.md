@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.369`
+- Aktueller Entwicklungsstand: `v3.370`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.370 — Dachrandblech: Variante ging beim Öffnen verloren (Korrektur zu v3.369)
+
+Meldung des Anwenders: „Das ist 1 zu 1 eine Kopie vom Freien Profil.“ **Ursache:** `newMeasurementWithType()` (js/10) zeigt die Art ZUERST (`showMeasTypeSection`) und setzt das Formular danach zurück (`fpaZuruecksetzen`); das Zurücksetzen löschte die Dachrand-Variante, es erschien das Freie Profil. Der Prüfstand v3.369 rief die beiden Schritte in umgekehrter Reihenfolge auf und merkte es nicht. **Korrektur:** `fpaZuruecksetzen()` (js/31) aktiviert die Variante wieder, wenn die gewählte Art `dachrandblech` ist. Prüfstand `dachrandblech-v3-369` ruft jetzt den echten Weg über die Kachel auf (Abschnitt A0, mit Mutationsprobe).
 
 ### v3.369 — Neue Massaufnahme: Dachrandblech
 
@@ -17,12 +21,6 @@ Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse an
 ### v3.368 — Reiter „Stunden“ mit Symbol
 
 Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Projektseite ein kleines Linien-Symbol (Uhr, `A2_ICON.stunden` in js/70). Nur Darstellung, keine Datenänderung. Prüfstand nachkalkulation-v3-366 um die Symbol-Prüfung erweitert (107).
-
-### v3.367 — Abacus-Import: sichere Projektzuordnung (Nachbesserung)
-
-Auftrag „Nachbesserung Abacus Projektzuordnung“. **Befund bestätigt:** In v3.366 wurde eine Zeile mit abweichender Auftragsnummer nur „unklar“ (Hinweis), blieb aber wählbar und wurde beim Speichern übernommen; ausserdem wählte die Erkennung bei einem Dokument mit A-1001 + unbekannter Nummer das Projekt A-1001 für das ganze Dokument.
-**Korrektur (js/87, js/88):** neuer Status `falscher_auftrag` (Zeile nennt eine Nummer ≠ Nummer des gewählten Projekts, auch bei unbekannter Nummer): nie wählbar, Checkbox gesperrt, nicht vorgewählt, Grund in der Zeile. Eine Regel `nkDarfEin()` für Anzeige, Checkbox, Korrektur und Speichern. `nkSpeichern()` prüft jede ausgewählte Zeile VOR dem ersten Datenbankzugriff neu aus den Rohwerten und bricht bei einer verbotenen Zeile ganz ab. Zeilen ohne Nummer: Kennzeichnung „Auftrag nicht in Zeile · manuelle Projektzuordnung“, nur nach ausdrücklicher Bestätigung (Projektwahl oder Bestätigungsfeld), gespeichert ohne Nummer; Nummer aus dem Dokumentkopf zählt nur, wenn das Dokument genau eine Nummer nennt. Projekt wird nur automatisch gewählt, wenn das ganze Dokument genau EINE Nummer nennt und sie genau ein Projekt trifft. Korrektur der Nummer/Projektwechsel/Spaltenänderung berechnet Status und Auswahl sofort neu.
-**Datenbank (additiv, `supabase/migrations/v3367_abacus_auftrag_passt.sql`, angewendet):** Funktion `enforce_abacus_auftrag_passt` + Trigger `enforce_abacus_auftrag_trg` auf `abacus_stunden`: eine Zeile mit Nummer ≠ Projektnummer wird abgewiesen. Policies unverändert. Live per SQL in einer zurückgerollten Transaktion geprüft (falsche Nummer abgelehnt, ohne Nummer und passende Nummer in anderer Schreibweise erlaubt, danach 0 Zeilen). Prüfstand `nachkalkulation-v3-366` auf 106 Prüfungen erweitert.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
