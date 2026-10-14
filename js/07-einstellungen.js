@@ -103,13 +103,14 @@ $("kopfBildInput").addEventListener("change",async e=>{
  if(!file)return;
  try{
   kopfBildDataUrl=await resizeImageFile(file,1200,0.85,"jpeg");
+  kopfBildGeaendert=true;
   $("kopfBildPreview").src=kopfBildDataUrl;
   $("kopfBildPreview").hidden=false;
   $("kopfBildRemove").hidden=false;
  }catch(err){appAlert("Titelbild konnte nicht geladen werden: "+err.message)}
 });
 $("kopfBildRemove").onclick=()=>{
- kopfBildDataUrl=null;kopfBildUrl="";kopfBildSigniert="";
+ kopfBildDataUrl=null;kopfBildUrl="";kopfBildSigniert="";kopfBildGeaendert=true;
  $("kopfBildPreview").hidden=true;$("kopfBildPreview").src="";
  $("kopfBildInput").value="";
  $("kopfBildRemove").hidden=true;
@@ -241,7 +242,8 @@ $("saveCompanyName").onclick=async()=>{
    company_address:$("companyAddressInput").value,
    default_vat:$("defaultVatInput").value.trim()||"8.1 %",
    logo_url:newLogoUrl,
-   kopf_bild_url:newKopfBildUrl,
+   // v3.358: Das Titelbild wird NUR mitgeschrieben, wenn es hier geändert wurde (neues Bild oder Entfernen) - sonst überschriebe jedes Speichern der Firmendaten ein bestehendes Bild mit einem leeren Stand.
+   ...(kopfBildGeaendert?{kopf_bild_url:newKopfBildUrl}:{}),
    // v3.200: Vorgaben fuer neue Offerten - liegen bei den Firmendaten, weil
    // Briefkopf, MwSt und diese Texte zusammen das Erscheinungsbild der Firma
    // nach aussen ergeben.
@@ -260,6 +262,7 @@ $("saveCompanyName").onclick=async()=>{
   logoDataUrl=null;
   kopfBildUrl=newKopfBildUrl;
   kopfBildDataUrl=null;
+  kopfBildGeaendert=false;
   applyCompanyName();
   appAlert("Gespeichert.");
  }catch(err){

@@ -135,6 +135,10 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  });
  p(l&&(l.bg==="rgba(0, 0, 0, 0)"||l.bg==="transparent")&&l.pad==="0px","Logo ohne weissen Kasten (transparent)",l);
  p(l&&l.maxH>=56,"Logo grösser (max. Höhe ≥ 56px)",l);
+ const lf=await page.evaluate(()=>{const i=document.querySelector("#a2Inhalt .a2-hero-logo");return i?getComputedStyle(i).filter:""});
+ p(/brightness\(0\)/.test(lf)&&/invert\(1\)/.test(lf),"Logo erscheint weiss auf dem Blau (auch dunkle Logos bleiben lesbar)",lf);
+ const q7=require("fs").readFileSync(path.join(process.cwd(),"js/07-einstellungen.js"),"utf8");
+ p(/kopfBildGeaendert\?\{kopf_bild_url:newKopfBildUrl\}:\{\}/.test(q7)&&/kopfBildGeaendert=true/.test(q7),"Titelbild wird nur geschrieben, wenn geändert – Speichern der Firmendaten überschreibt es nie");
  p(fehler.length===0,"keine JS-Fehler",fehler);
  await b.close();
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");

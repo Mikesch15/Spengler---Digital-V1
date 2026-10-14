@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.357`
+- Aktueller Entwicklungsstand: `v3.358`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.358 — Logo weiss im Kopf; Titelbild wird beim Speichern nicht mehr überschrieben
+
+Meldung (Bild): „Jetzt sieht das Logo komisch aus.“ Das (dunkelblaue, transparente) Logo war auf dem Blau kaum zu lesen. Jetzt erscheint es im Kopf der Startseite weiss (`filter:brightness(0) invert(1)`, css/05) – wie in der Vorlage; ein farbiges Logo wird dort bewusst einfarbig weiss gezeigt. **Titelbild:** Beim Nachprüfen stand `app_settings.kopf_bild_url` leer, obwohl vorher gespeichert (Spaltenwert nachgeprüft). Ursache im Code: `saveCompanyName` schrieb das Titelbild bei JEDEM Speichern der Firmendaten mit (auch mit leerem Stand) und konnte ein vorhandenes Bild so löschen. Behoben (js/01, js/07): `kopfBildGeaendert` – das Feld wird nur mitgeschrieben, wenn ein neues Bild gewählt oder „Titelbild entfernen“ gedrückt wurde. Das Bild muss einmal neu hochgeladen werden; der Lesezugriff (Migration v3.356) ist vorhanden. Prüfstand `projektseiten-wunschbild-v3-356` auf 27; Mutationen (Feld immer geschrieben, Logo ohne Weiss-Filter) erkannt.
 
 ### v3.357 — Stammdaten nach dem Wunschbild
 
@@ -19,10 +23,6 @@ Wünsche: (1) Projektliste und Projektseite nach den Wunschbildern umbauen; (2) 
 **Projektliste (js/70, js/09, css/05):** Karten mit Symbolkreis, Titel + Status-Marke (Punkt statt unklarem Zeichen), Adresszeile und Stand-Zeile mit farbigen Punkten (`projektStandTeile`; der Satz „n Massaufnahmen · k offen · z zu rüsten“ bleibt derselbe), Suchfeld mit Filterknopf (öffnet „Archiv und Filter“).
 **Projektseite:** Register als Symbolleiste mit Unterstreichung (seitlich wischbar), „Als Nächstes“ mit Symbolfeld, Projektübersicht mit Symbol je Bezeichnung und Status-Marke, Material-/Mengentabelle mit Werkstoff-Farbfeld (nur Orientierung), Komplettausmass mit drei Kennzahlen-Feldern und Positionen als Zeilen mit Symbol und Pfeil (js/85, css/01). Nicht übernommen: Status-Auswahlliste in der Marke (wäre ein Schreibweg; Status wird weiter über „Stammdaten bearbeiten“ geändert).
 Prüfstand `projektseiten-wunschbild-v3-356` (18); `uebersichtlichkeit-v3-289` (Filterknopf im Suchfeld erlaubt). Bericht: `ABSCHLUSSBERICHT_Projektseiten_v3.356.txt`.
-
-### v3.355 — Titelbild der Startseite in den Firmeneinstellungen
-
-Wunsch: „Mache das Bild im Kopfteil so wie in der Vorlage, man soll es in den Firmeneinstellungen hochladen können.“ Neu: Firmeneinstellungen → „Titelbild der Startseite“ (Hochladen mit Vorschau, Entfernen; Bild wird auf 1200 px Breite verkleinert, JPEG) – gleicher Weg wie das Logo (`uploadMeasurementImage`, Bucket `measurements`, signierte Adresse über `storageSignedUrl`). **Datenbank:** eine neue, leere Textspalte `app_settings.kopf_bild_url` (Migration „app_settings_kopf_bild_url“, additiv, Datei `supabase/migrations/v3355_app_settings_kopf_bild_url.sql`; vorher Spalten und Rechte der Tabelle geprüft, keine Policy geändert). Anzeige: Kopf der Startseite (js/70 `a2HeuteHeroHtml`, css/05 `.a2-hero-mit-bild`) mit dem Bild rechts, links ins Markenblau ausgeblendet; ohne Bild bleibt der blaue Kopf. Zustand `kopfBildUrl/kopfBildDataUrl/kopfBildSigniert` (js/01), Laden js/05, Speichern js/07. Prüfstand `startseite-dashboard-v3-352` auf 34; Mutationen (Bild ignoriert, Feld nicht gespeichert, Entfernen setzt nicht zurück) erkannt. Nicht live getestet: das Hochladen mit echtem Storage (Testumgebung ohne Supabase). Bericht: `ABSCHLUSSBERICHT_Startseite_Titelbild_v3.355.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

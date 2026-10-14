@@ -349,7 +349,7 @@ let offerteSchlusstext="";
 let offerteGueltigTage=30;
 let logoDataUrl=null;
 // v3.355: Titelbild im Kopf der Startseite (app_settings.kopf_bild_url): gespeicherter Pfad, neu gewähltes Bild (data:) und die signierte Adresse zum Anzeigen.
-let kopfBildUrl="", kopfBildDataUrl=null, kopfBildSigniert="";
+let kopfBildUrl="", kopfBildDataUrl=null, kopfBildSigniert="", kopfBildGeaendert=false;
 let recentCount=Number(localStorage.getItem("sd_recentCount"))||5;
 let isDirty=false;
 let darkMode=localStorage.getItem("sd_darkMode")==="ja";
