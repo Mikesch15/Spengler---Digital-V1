@@ -125,6 +125,12 @@ Elf der zwölf Arten werden über Register erfasst – ohne ist nur Skizze/Foto,
 und zwar bewusst (Abschnitt 89.1).
 
 
+
+### v3.362 — Tablett: Zeichnung wählbar (ganz / nur Lochausschnitt), Gesamtmasse bemasst
+
+Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett oder nur der Lochausschnitt mit den Massen angezeigt/gedruckt wird; Gesamtlänge und Gesamtbreite sollen in beiden Fällen bemasst und zu sehen sein.
+**Umsetzung (js/77, js/78, index.html):** Auswahlfeld „Zeichnung“ im Abwicklungsdialog beim Tablett (`abw_tab_ansicht`: Ganzes Tablett / Nur Lochausschnitt mit Massen; gilt für Vorschau, Druck, SVG und DXF, wird nicht mit der Abwicklung gespeichert; Rechenwerte unverändert). `abwTablett` liefert `ansicht`, `gesamtLaenge`/`gesamtBreite` und die Geometrie `zeichnungLoch` (Loch in wahrer Grösse mit 35 mm Blechstreifen rundum, Weg zur Kante GEKÜRZT dargestellt). Eine Zeichen-Geometrie für alles, was zeichnet/druckt/exportiert: `abwZ(r)`. Bemassung (`abwMassSvg`, beide Zeichnungen): Mitte Loch bis vorne/hinten, Gesamtlänge (links aussen), Gesamtbreite (unten), Kreuz in der Lochmitte; die Zahlen sind immer die wahren Masse, im Ausschnitt mit Unterbrechungszeichen. Druck 1:1: Bemassung auf dem Blatt (Schrift 4 mm), Papierberechnung mit Platz dafür (ganzes Tablett auf A4: 9 statt 6 Blatt, weil 350 + 20 mm nicht mehr in zwei Spalten passen; Ausschnitt: 1 Blatt A3). DXF: Layer BEMASSUNG mit vier Texten. Prüfstand `mantelrohr-v3-360` auf 37; angepasst: `abwicklung-papier-v3-193` (A4 hoch 9 Blatt). Bericht: Nachtrag in `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt`.
+
 ### v3.361 — Einfassung rund: Umschläge einzeln, Anreiff in Mass a, Zuordnung firmenweit
 
 Wunsch: In den Einstellungen müssen separat erfassbar sein: Umschlag hinten am 90°-Aufbug, Umschläge seitlich, Anreiff vorne; **Mass a (vorne bis Mitte Rohr) ist inklusive Anreiff**; die Zuordnung Standrohr→Mantelrohr gilt firmenweit.

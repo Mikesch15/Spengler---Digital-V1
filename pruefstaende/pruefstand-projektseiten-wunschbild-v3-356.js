@@ -126,7 +126,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const l=await page.evaluate(async()=>{
   const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
   if(a2Zustand.bereich)a2BereichSchliessen();
-  $("startLogo").src=gif;$("startLogo").hidden=false;kopfBildSigniert=gif;
+  $("startLogo").src=gif;$("startLogo").hidden=false;kopfBildSigniert="";
   a2Zustand.seite="heute";a2Zeichnen();
   await new Promise(x=>setTimeout(x,400));
   const i=document.querySelector("#a2Inhalt .a2-hero-fix .a2-hero-bild");
@@ -138,7 +138,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  });
  p(l&&l.src==="img/startbanner.jpg"&&l.geladen&&l.breite>=l.hw-2,"Kopf zeigt das feste Banner über die ganze Breite (Datei geladen)",l);
  p(l&&l.gruss&&/ · /.test(l.unter)&&l.unter.length>8,"Begrüssung, Datum und Name stehen unter dem Banner",l);
- p(l&&!l.altLogo&&!l.mitBild,"unabhängig von Firmenlogo und Titelbild-Einstellung: immer dasselbe Banner",l);
+ p(l&&!l.altLogo&&!l.mitBild,"ohne eigenes Bild: Standard-Banner, unabhängig vom Firmenlogo",l);
+ const eig=await page.evaluate(()=>{const gif="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";kopfBildSigniert=gif;a2Zeichnen();const a=document.querySelector("#a2Inhalt .a2-hero-bild").getAttribute("src");kopfBildSigniert="";a2Zeichnen();const b=document.querySelector("#a2Inhalt .a2-hero-bild").getAttribute("src");return {a:a===gif,b,vis:!document.getElementById("kopfBildBlock").hidden};});
+ p(eig.a&&eig.b==="img/startbanner.jpg"&&eig.vis,"v3.364: eigenes Banner aus den Firmeneinstellungen ersetzt das Standard-Banner; Entfernen stellt es wieder her; Feld sichtbar",eig);
  const swq=require("fs").readFileSync("sw.js","utf8");
  p(/\.\/img\/startbanner\.jpg/.test(swq)&&require("fs").existsSync("img/startbanner.jpg")&&require("fs").statSync("img/startbanner.jpg").size>20000,"Banner liegt im Repo und in der App-Shell von sw.js (offline verfügbar)");
  const q7=require("fs").readFileSync(path.join(process.cwd(),"js/07-einstellungen.js"),"utf8");

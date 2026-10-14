@@ -3,9 +3,13 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.364`
+- Aktueller Entwicklungsstand: `v3.365`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.365 — Startbanner bleibt anpassbar
+
+Wunsch: Logo/Banner soll anpassbar bleiben. Standard bleibt `img/startbanner.jpg`; ein in den Firmeneinstellungen hochgeladenes Banner (`kopf_bild_url`, bestehender Weg) ersetzt es in `a2HeuteHeroHtml` (js/70). Feld „Banner der Startseite“ wieder sichtbar, „Standard-Banner wiederherstellen“ setzt zurück. Keine DB-Änderung. Prüfstand projektseiten-wunschbild-356 (D) um den Ersatz-Fall erweitert.
 
 ### v3.364 — Startseite: festes Banner im Kopf
 
@@ -16,11 +20,6 @@ Wunsch: Kopfbild der Startseite wie das gelieferte Banner (Künzi Spenglerei, Lo
 
 Anlass: Beim Dachfenster Ost war „seitlich unter Deckmaterial“ mit 60 statt der üblichen 50 erfasst (Tippfehler, erst an der zu grossen Abwicklung gemerkt). Wunsch: nur ein **rotes Ausrufezeichen** am Feld, das man antippen kann, um das Problem zu sehen.
 **Umsetzung (js/86-plausibilitaet.js, neu; index.html, sw.js, css/01):** Quelle des „Üblichen“ ist das Zählwerk (Sicht `messwert_nutzung`, js/71) – keine feste Annahme im Code. Das Zeichen erscheint, wenn es ≥ 5 bisherige Messungen des Feldes gibt, EIN Wert ≥ 70 % davon ausmacht, der eingetragene Wert ein anderer ist und selbst < 20 % der Fälle ausmacht; wechselnde Masse (a, d) lösen nie etwas aus. Antippen zeigt „Ungewöhnlicher Wert: 60. Üblich ist 50 (bei 9 von 11 bisherigen Aufnahmen); 60 kam bisher 1× vor …“, nochmal Antippen klappt zu. Kein Fehler, nichts blockiert, die Eingabe bleibt unverändert. Geprüft werden Dachfenster (f, g links/rechts, Richtwert-Felder) und Kamineinfassung (Richtwert-Felder). **Datenbank (additiv, geprüft):** die Sicht `messwert_nutzung` zählt jetzt für das Dachfenster auch f und g (Migration „messwert_nutzung_dachfenster_seitenmasse“, Datei `supabase/migrations/v3363_…sql`; geändert eine Zeile ARRAY['a','d'] → ['a','d','f','g']; Spalten, Rechte und `security_invoker=true` unverändert – nachgeprüft). Prüfstand `plausibilitaet-v3-363` (21; alle Schwellen einzeln durch Mutationen abgesichert). Bericht: `ABSCHLUSSBERICHT_Plausibilitaet_v3.363.txt`.
-
-### v3.362 — Tablett: Zeichnung wählbar (ganz / nur Lochausschnitt), Gesamtmasse bemasst
-
-Wunsch: Bei der Zeichnung des Tabletts soll wählbar sein, ob das ganze Tablett oder nur der Lochausschnitt mit den Massen angezeigt/gedruckt wird; Gesamtlänge und Gesamtbreite sollen in beiden Fällen bemasst und zu sehen sein.
-**Umsetzung (js/77, js/78, index.html):** Auswahlfeld „Zeichnung“ im Abwicklungsdialog beim Tablett (`abw_tab_ansicht`: Ganzes Tablett / Nur Lochausschnitt mit Massen; gilt für Vorschau, Druck, SVG und DXF, wird nicht mit der Abwicklung gespeichert; Rechenwerte unverändert). `abwTablett` liefert `ansicht`, `gesamtLaenge`/`gesamtBreite` und die Geometrie `zeichnungLoch` (Loch in wahrer Grösse mit 35 mm Blechstreifen rundum, Weg zur Kante GEKÜRZT dargestellt). Eine Zeichen-Geometrie für alles, was zeichnet/druckt/exportiert: `abwZ(r)`. Bemassung (`abwMassSvg`, beide Zeichnungen): Mitte Loch bis vorne/hinten, Gesamtlänge (links aussen), Gesamtbreite (unten), Kreuz in der Lochmitte; die Zahlen sind immer die wahren Masse, im Ausschnitt mit Unterbrechungszeichen. Druck 1:1: Bemassung auf dem Blatt (Schrift 4 mm), Papierberechnung mit Platz dafür (ganzes Tablett auf A4: 9 statt 6 Blatt, weil 350 + 20 mm nicht mehr in zwei Spalten passen; Ausschnitt: 1 Blatt A3). DXF: Layer BEMASSUNG mit vier Texten. Prüfstand `mantelrohr-v3-360` auf 37; angepasst: `abwicklung-papier-v3-193` (A4 hoch 9 Blatt). Bericht: Nachtrag in `ABSCHLUSSBERICHT_Mantelrohr_v3.360.txt`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

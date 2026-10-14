@@ -180,7 +180,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return r;
  });
  p(kb.ohne,"ohne Titelbild: Kopf wie bisher (kein Bildhintergrund)",kb);
- p(kb.mit===false,"v3.364: das Kopfbild ist fest - eine Titelbild-Einstellung ändert den Kopf nicht mehr",kb);
+ p(kb.mit===false,"v3.364: eigenes Banner ersetzt das Bild im Kopf (nicht mehr als Hintergrundbild)",kb);
  p(kb.felder&&kb.accept==="image/*","Firmeneinstellungen: Hochladen, Vorschau und Entfernen vorhanden",kb);
  p(kb.entfernt&&kb.nachEntfernen,"Titelbild entfernen setzt Zustand zurück, Kopf ohne Bild",kb);
  const quelle=require("fs").readFileSync(path.join(process.cwd(),"js/07-einstellungen.js"),"utf8");
