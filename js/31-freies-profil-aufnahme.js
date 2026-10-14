@@ -47,6 +47,11 @@ const FPA_REGISTER=[
 // Die Kontrolle ist immer das LETZTE Register - die Marke haengt deshalb an
 // der Registerzahl, nicht an einer festen Nummer.
 const FPA_KONTROLLE=FPA_REGISTER.length;
+// v3.369: Dachrandblech (js/89) ist eine Variante dieses Moduls: gleiches Modell (fpA), gleiche Schenkel-/Zuschnitt-/Ausmass-Teile,
+// aber eigene Register. fpaRegister() liefert die Liste der gerade gezeigten Variante; die Kontrolle ist immer das letzte Register.
+function fpaIstDachrand(){return !!(fpA&&fpA.variante==="dachrand"&&typeof DRB_REGISTER!=="undefined")}
+function fpaRegister(){return fpaIstDachrand()?DRB_REGISTER:FPA_REGISTER}
+function fpaKontrolleNr(){return fpaRegister().length}
 let fpaSchritt=1;
 // v3.94: siehe dfaBestaetigt (js/66) fuer die Begruendung und die bewusste
 // Grenze dieser Anzeige.
@@ -70,7 +75,7 @@ const fpaMm=v=>Math.round(fpaZahl(v)).toLocaleString("de-CH");
 const fpaMeter=v=>(fpaZahl(v)/1000).toFixed(2).replace(".",",");
 
 // rollenAuswahl: leer = das ganze Blechlager der Firma (nichts abgewaehlt).
-function fpaLeer(){return {material:"",konisch:"nein",ansicht:"links",schenkel:[],segmente:[],rollenAuswahl:[]}}
+function fpaLeer(){return {material:"",konisch:"nein",ansicht:"links",schenkel:[],segmente:[],rollenAuswahl:[],variante:"",dachrand:null}}
 let fpA=fpaLeer();
 
 // ---- Brücke zum bestehenden Modul -----------------------------------------
@@ -141,6 +146,7 @@ function fpaUmschlaege(){return (fpA.schenkel||[]).filter((s,i)=>i>0&&fpaIstUmsc
 // Entsteht ausschliesslich aus der Aufnahme. Nichts wird ein zweites Mal
 // eingegeben, es gibt keine Artikelnummern und keine Preise.
 function fpaAusmassZeilen(){
+ if(fpaIstDachrand()&&typeof drbAusmassZeilen==="function"){drbSync();fpaMasseFuellen();return drbAusmassZeilen()}
  fpaMasseFuellen();
  const z=[]; let pos=0;
  // v3.17: teil sagt, ob die Zeile ein Teil ist, das beschafft wird (Halbfabrikat,
@@ -260,6 +266,7 @@ function fpaRollenPlan(){
 // im Bereich, den die Erkennung zulässt (±180°), und eine Geometrie, die sich
 // zeichnen lässt. Es werden KEINE eigenen Grenzwerte erfunden.
 function fpaPruefungen(){
+ if(fpaIstDachrand())drbSync();
  const m=[], sch=fpA.schenkel||[], segs=fpA.segmente||[];
  const grenze=(typeof FP_MAX_SCHENKEL==="number")?FP_MAX_SCHENKEL:24;
  if(!sch.length)m.push({art:"fehler",text:"Noch kein Schenkel erfasst. Ein Profil braucht mindestens zwei."});
@@ -288,13 +295,14 @@ function fpaPruefungen(){
    m.push({art:"fehler",text:"Die Geometrie lässt sich nicht zeichnen. Bitte Längen und Winkel prüfen."});
  }
  if(!fpA.material)m.push({art:"warnung",text:"Kein Material gewählt."});
- if(!segs.length)m.push({art:"warnung",text:"Noch kein Segment – ohne Segment gibt es kein Ausmass."});
+ if(!segs.length&&!fpaIstDachrand())m.push({art:"warnung",text:"Noch kein Segment – ohne Segment gibt es kein Ausmass."});
  segs.forEach((seg,i)=>{
   if(fpaZahl(seg.laenge)<=0)m.push({art:"warnung",text:"Segment "+(i+1)+": keine Länge."});
   const a=fpaAbwicklungSegment(seg);
   if(a.links<=0)m.push({art:"warnung",text:"Segment "+(i+1)+": keine Masse erfasst."});
   if(fpaKonisch()&&a.rechts<=0)m.push({art:"warnung",text:"Segment "+(i+1)+": konisch, aber rechts ist leer."});
  });
+ if(fpaIstDachrand()&&typeof drbPruefungen==="function")drbPruefungen().forEach(x=>m.push(x));
  return m;
 }
 
@@ -304,7 +312,7 @@ function fpaFeld(label,inhalt,voll){
 }
 function fpaKarte(titel,inhalt){
  // Info-Knopf nur an der Hauptkarte des Registers (js/41-hilfe.js).
- const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,FPA_REGISTER):"";
+ const h=(typeof hilfeKarte==="function")?hilfeKarte(titel,fpaRegister()):"";
  return `<div class="ra-block"><h2 style="margin-top:14px">${esc(titel)}${h}</h2>${inhalt}</div>`;
 }
 function fpaGrunddatenHtml(){
@@ -509,9 +517,9 @@ function fpaKontrolleHtml(){
  const a=fpA;
  const uebersicht=`<div class="scroll"><table class="eb-table fpa-tab"><tbody>
 <tr><td>Material</td><td>${esc((findMeasurementMaterial(a.material)||{}).name||"–")}</td></tr>
-<tr><td>Konisch</td><td>${fpaKonisch()?"Ja":"Nein"}</td></tr>
+${fpaIstDachrand()?"":`<tr><td>Konisch</td><td>${fpaKonisch()?"Ja":"Nein"}</td></tr>`}
 <tr><td>Schenkel</td><td>${a.schenkel.length}</td></tr>
-<tr><td>Segmente</td><td>${(a.segmente||[]).length}</td></tr>
+<tr><td>${fpaIstDachrand()?"Stücke":"Segmente"}</td><td>${(a.segmente||[]).length}</td></tr>
 <tr><td>Laufmeter</td><td>${esc(fpaMeter(fpaLaufmeter()))} m</td></tr>
 <tr><td>Blechfläche</td><td>${esc(fpaFlaecheM2().toFixed(2).replace(".",","))} m²</td></tr>
 </tbody></table></div>`;
@@ -524,7 +532,7 @@ Speichern nötig ist, liegt vor.</div>`;
 
 // ---- Register --------------------------------------------------------------
 function fpaSetzeSchritt(n){
- fpaSchritt=Math.max(1,Math.min(FPA_REGISTER.length,Number(n)||1));
+ fpaSchritt=Math.max(1,Math.min(fpaRegister().length,Number(n)||1));
  renderFreiesProfilAufnahme();
  // Der Foto-/Skizzenbereich haengt am Register: nur das letzte zeigt ihn.
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit();
@@ -536,14 +544,15 @@ function fpaRegisterHtml(){
  const pr=fpaPruefungen();
  const fehler=pr.filter(m=>m.art==="fehler").length;
  const warn=pr.length-fehler;
- return raFortschrittHtml(fpaSchritt,FPA_REGISTER.length)+`<div class="ra-register" id="fpa_register">`+FPA_REGISTER.map(r=>{
-  const marke=r.nr===FPA_KONTROLLE&&(fehler||warn)
+ return raFortschrittHtml(fpaSchritt,fpaRegister().length)+`<div class="ra-register" id="fpa_register">`+fpaRegister().map(r=>{
+  const marke=r.nr===fpaKontrolleNr()&&(fehler||warn)
    ? `<span class="ra-register-punkt${fehler?" fehler":""}" title="${fehler?fehler+" Hinweis(e) zu beheben":warn+" Hinweis(e)"}"></span>`:"";
   return `<button type="button" class="ra-register-knopf${r.nr===fpaSchritt?" aktiv":""}" data-fpa-schritt="${r.nr}">`
    +`<span class="ra-register-nr">${r.nr}</span><span class="ra-register-text">${esc(r.kurz)}</span>${marke}${raRegisterHakenHtml(fpaBestaetigt,r.nr)}</button>`;
  }).join("")+`</div>`;
 }
 function fpaSchrittInhalt(){
+ if(fpaIstDachrand()&&typeof drbSchrittInhalt==="function")return drbSchrittInhalt();
  if(fpaSchritt===1)return fpaKarte("1 · Grunddaten",fpaGrunddatenHtml());
  if(fpaSchritt===2)return fpaKarte("2 · Skizze → Profil",fpaSkizzeHtml());
  if(fpaSchritt===3)return fpaKarte("3 · Profil aufnehmen",fpaProfilHtml());
@@ -566,7 +575,7 @@ function fpaGeruest(){
 }
 function fpaSkizzeBoxZeigen(){
  const box=$("fpaSkizzeBox"); if(!box)return;
- box.hidden=fpaSchritt!==2;
+ box.hidden=fpaIstDachrand()&&typeof drbSkizzeSichtbar==="function"?!drbSkizzeSichtbar():fpaSchritt!==2;
 }
 function renderFreiesProfilAufnahme(){
  const ziel=$("freiesProfilAufnahme");
@@ -582,7 +591,7 @@ function renderFreiesProfilAufnahme(){
  $("fpa_fuss").innerHTML=`<div class="bar ra-blaettern">
 <button type="button" class="gray" id="fpa_zurueck"${fpaSchritt<=1?" disabled":""}>‹ Zurück</button>
 <button type="button" class="gray" id="fpa_weiter">${
- fpaSchritt>=FPA_REGISTER.length?"Fertig › Fotos und Speichern":"Weiter › "+esc(FPA_REGISTER[fpaSchritt].kurz)}</button>
+ fpaSchritt>=fpaRegister().length?"Fertig › Fotos und Speichern":"Weiter › "+esc(fpaRegister()[fpaSchritt].kurz)}</button>
 </div>`;
  }finally{fpaZeichnet=false}
  fpaSkizzeBoxZeigen();
@@ -598,6 +607,7 @@ function renderFreiesProfilAufnahme(){
 // das Feld nach dem ersten Zeichen den Fokus. Aktualisiert werden nur die
 // abgeleiteten Anzeigen.
 function fpaLive(){
+ if(fpaIstDachrand()&&typeof drbSync==="function")drbSync();
  fpaBruecke();
  const bild=$("fpa_profilBild"); if(bild)bild.innerHTML=fpaProfilSvg(fpA.schenkel);
  const gross=$("fpa_profilGross"); if(gross)gross.innerHTML=fpaProfilSvg(fpA.schenkel);
@@ -707,7 +717,7 @@ function fpaVerdrahten(){
   if(t.id==="fpa_weiter"){
    if(!pflichtPruefenUndSpringen(wurzel))return;
    fpaBestaetigt.add(fpaSchritt);
-   if(fpaSchritt<FPA_REGISTER.length)fpaSetzeSchritt(fpaSchritt+1);
+   if(fpaSchritt<fpaRegister().length)fpaSetzeSchritt(fpaSchritt+1);
    else fpaAbschluss();
    return;
   }
@@ -784,6 +794,8 @@ function fpaVerdrahten(){
    renderFreiesProfilAufnahme(); return;
   }
  });
+ // v3.369: die Felder der Dachrandblech-Register (js/89) haengen an derselben Wurzel.
+ if(typeof drbVerdrahten==="function")drbVerdrahten(wurzel);
 }
 
 // ---- Laden und Zurücksetzen ------------------------------------------------
@@ -800,6 +812,7 @@ function fpaAusData(d){
  a.schenkel=Array.isArray(d.schenkel)?d.schenkel.map(s=>({...s})):[];
  a.segmente=Array.isArray(d.segmente)
   ?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(m=>({...m}))})):[];
+ if(d.dachrand&&typeof drbAusData==="function"){a.variante="dachrand";a.dachrand=drbAusData(d.dachrand)}
  return a;
 }
 function fpaZuruecksetzen(){
@@ -811,7 +824,7 @@ function fpaFuellen(d){
  fpA=fpaAusData(d); fpaSchritt=1;
  // v3.94: siehe dfaFuellen (js/66) fuer die Begruendung.
  fpaBestaetigt=fpaPruefungen().some(x=>x.art==="fehler")
-  ?new Set():new Set(FPA_REGISTER.filter(r=>r.nr!==FPA_KONTROLLE).map(r=>r.nr));
+  ?new Set():new Set(fpaRegister().filter(r=>r.nr!==fpaKontrolleNr()).map(r=>r.nr));
  fpSchenkel=fpA.schenkel; fpSegmente=fpA.segmente;
  fpaVerdrahten(); renderFreiesProfilAufnahme();
 }
@@ -821,8 +834,10 @@ function fpaFuellen(d){
 // nur diese hier an. Die Ergebnisse werden mitgespeichert, damit ein später
 // gedrucktes Blatt gleich bleibt, auch wenn Einstellungen sich ändern.
 function fpaZusatzDaten(){
+ if(fpaIstDachrand())drbSync();
  const plan=fpaRollenPlan();
  return {
+  ...(fpaIstDachrand()&&typeof drbDaten==="function"?{dachrand:drbDaten()}:{}),
   flaeche_m2:Number(fpaFlaecheM2().toFixed(3)),
   ausmass:fpaAusmassZeilen(),
   // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen

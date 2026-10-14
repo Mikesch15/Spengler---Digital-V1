@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.368.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.369.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1023,6 +1023,25 @@ keine eindeutige Form, sagt sie das, statt zu raten.</p>`},
 <p>Ein <b>Segment</b> ist ein Stück dieses Profils mit eigener Länge. Bei
 konisch hat es zwei Sätze Masse – für den Zuschnitt zählt dann die grössere
 Abwicklung, weil das breitere Ende Platz braucht.</p>`},
+
+"drb-detail":{titel:"Detail wählen",text:`
+<p><b>Detail 1.5</b> ist als Vorlage hinterlegt. Alle Masse bleiben anpassbar – im Register „Profil“.</p>
+<p>Für ein <b>anderes Detail</b> erstellst du das Profil selbst: Schenkel für Schenkel oder aus einer Skizze, genau wie beim Freien Profil.</p>`},
+
+"drb-grundriss":{titel:"Grundriss",text:`
+<p>Die Kanten des Dachrands in Laufrichtung erfassen. Je Kante die Länge und die Ecke danach:
+<b>Aussenecke</b> dreht nach rechts, <b>Inneneck</b> nach links. Beim umlaufenden Grundriss prüft die App, ob er wieder am Start ankommt.</p>
+<p>Die Gesamtlänge ist die Summe der Kanten. Die orange Striche in der Zeichnung sind die Stösse.</p>`},
+
+"drb-stuecke":{titel:"Stücke",text:`
+<p><b>Länge pro Stück</b> ist die Länge eines Blechs. An jedem Stoss liegt die <b>Überlappung</b>; sie kommt zur Materiallänge dazu.
+Jede Kante wird für sich eingeteilt – volle Stücke und ein Rest, oder alle gleich lang.</p>
+<p>Aus diesen Stücken rechnen Zuschnitt und Ausmass.</p>`},
+
+"drb-streifen":{titel:"Einhängestreifen",text:`
+<p>Der Einhängestreifen sitzt an der Wand, der Umschlag des Dachrandblechs greift hinein. Die App schlägt ihn aus dem gewählten Umschlag vor:
+Haken = Umschlaglänge minus Spiel, Abwicklung = Befestigungsschenkel plus zweimal Haken (der Haken wird zurückgefalzt).</p>
+<p>Alles ist ein <b>Vorschlag</b> und von Hand änderbar. Länge pro Stück und Gesamtlänge stehen im Ergebnis.</p>`},
 
 "mad-verlauf":{titel:"Verlauf",text:`
 <p>Die Mauerabdeckung wird als Kette aus geraden Segmenten mit Ecken dazwischen

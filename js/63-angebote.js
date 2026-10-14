@@ -1239,6 +1239,7 @@ const ANG_MEAS_WOERTER=Object.freeze({
  mauerabdeckung:       ["mauerabdeckung","attikaabdeckung","mauerabdeck","attika","abdeckblech"],
  anschlussblech:       ["anschlussblech","ortabschluss","ortblech","seitenblech","windbrett","ortblende"],
  einfassung_rund:      ["einfassung rund","rundeinfassung","rohrdurchfuehrung","entlueftung","lueftungsrohr","durchfuehrung"],
+ dachrandblech:        ["dachrandblech","dachrandabschluss","randblech","dachrand"],
  freies_profil:        ["freies profil","sonderprofil","sonderanfertigung"]
 });
 // Dieselbe Schreibweise fuer Suchtext und Stichwort: klein, ohne Umlaute,

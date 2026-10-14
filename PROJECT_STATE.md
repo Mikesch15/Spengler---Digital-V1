@@ -3,9 +3,16 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.368`
+- Aktueller Entwicklungsstand: `v3.369`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
+
+### v3.369 — Neue Massaufnahme: Dachrandblech
+
+Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil erstellen wie beim Freien Profil); dazu Grundriss, Länge pro Stück, Überlappung und ein passender Einhängestreifen (Gesamtlänge, Länge pro Stück).
+**Umsetzung:** Dachrandblech ist eine Variante des Freien Profils, keine Parallelwelt: `js/89-dachrandblech.js` (neu) + kleine Haken in `js/31` (Register je Variante, Hooks für Ausmass/Prüfung/Speicherstand/Laden). Gleiches Modell `fpA`, gleiche Schenkel-Erfassung, Zeichnung, Skizzen-Erkennung, Zuschnitt (Rolle/Tafel) und Ausmass. Neue Art `dachrandblech` (Kategorie Flachdach) in js/01, js/10, js/16 (Anzeige/Speichern/Prüfung/Druck), js/48, js/56, js/60 (Rüstskizzen Profil + Grundriss), js/61, js/63 (Stichwörter), index.html (Auswahl), sw.js. Keine DB-Änderung (measurements.type ist frei).
+**Register:** Grunddaten · Detail · Profil · Grundriss · Stücke · Einhängestreifen · Zuschnitt · Ausmass · Kontrolle. **Detail 1.5** = die Masse der Vorlage (12/18/160/50/30/150/12, Winkel −45/−180/135/−180/−45/−45/180), alle Schenkel editierbar. **Grundriss:** Kanten mit Länge und Ecke (Aussen 90°, Innen 90°, beliebiger Winkel), umlaufend mit Schliess-Prüfung, Zeichnung mit Stössen. **Stücke:** je Kante n = ceil((L−Ü)/(P−Ü)), Materiallänge L+(n−1)·Ü, volle Stücke + Rest oder alle gleich lang; die Stücke SIND die Segmente des Freien Profils (Zuschnitt unverändert). **Einhängestreifen (Vorschlag, alles änderbar):** greift in einen wählbaren Umschlag; Haken = Umschlag − Spiel, Abwicklung = Befestigung + 2 × Haken; Gesamtlänge und Stücke je Kante.
+**Grenzen:** Eckzuschläge/Gehrungen werden nicht abgewickelt (Ecken nur gezählt); der Einhängestreifen erscheint im Ausmass, aber (noch) nicht im Zuschnittplan; die Streifenformel ist ein Vorschlag, noch nicht an einem echten Streifen geprüft. Prüfstand `dachrandblech-v3-369`.
 
 ### v3.368 — Reiter „Stunden“ mit Symbol
 
@@ -16,13 +23,6 @@ Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Proje
 Auftrag „Nachbesserung Abacus Projektzuordnung“. **Befund bestätigt:** In v3.366 wurde eine Zeile mit abweichender Auftragsnummer nur „unklar“ (Hinweis), blieb aber wählbar und wurde beim Speichern übernommen; ausserdem wählte die Erkennung bei einem Dokument mit A-1001 + unbekannter Nummer das Projekt A-1001 für das ganze Dokument.
 **Korrektur (js/87, js/88):** neuer Status `falscher_auftrag` (Zeile nennt eine Nummer ≠ Nummer des gewählten Projekts, auch bei unbekannter Nummer): nie wählbar, Checkbox gesperrt, nicht vorgewählt, Grund in der Zeile. Eine Regel `nkDarfEin()` für Anzeige, Checkbox, Korrektur und Speichern. `nkSpeichern()` prüft jede ausgewählte Zeile VOR dem ersten Datenbankzugriff neu aus den Rohwerten und bricht bei einer verbotenen Zeile ganz ab. Zeilen ohne Nummer: Kennzeichnung „Auftrag nicht in Zeile · manuelle Projektzuordnung“, nur nach ausdrücklicher Bestätigung (Projektwahl oder Bestätigungsfeld), gespeichert ohne Nummer; Nummer aus dem Dokumentkopf zählt nur, wenn das Dokument genau eine Nummer nennt. Projekt wird nur automatisch gewählt, wenn das ganze Dokument genau EINE Nummer nennt und sie genau ein Projekt trifft. Korrektur der Nummer/Projektwechsel/Spaltenänderung berechnet Status und Auswahl sofort neu.
 **Datenbank (additiv, `supabase/migrations/v3367_abacus_auftrag_passt.sql`, angewendet):** Funktion `enforce_abacus_auftrag_passt` + Trigger `enforce_abacus_auftrag_trg` auf `abacus_stunden`: eine Zeile mit Nummer ≠ Projektnummer wird abgewiesen. Policies unverändert. Live per SQL in einer zurückgerollten Transaktion geprüft (falsche Nummer abgelehnt, ohne Nummer und passende Nummer in anderer Schreibweise erlaubt, danach 0 Zeilen). Prüfstand `nachkalkulation-v3-366` auf 106 Prüfungen erweitert.
-
-### v3.366 — Nachkalkulation: Abacus-Stunden importieren und abgleichen
-
-Auftrag „Nachkalkulation aus Abacus-Stundenrapporten: PDF- und Excel-Import“ inkl. Pflichtumfang K (Abgleich der Regiestunden).
-**Datenbank (additiv, `supabase/migrations/v3366_abacus_nachkalkulation.sql`, angewendet):** neue Tabellen `abacus_importe` (Protokoll), `abacus_stunden` (bestätigte Zeilen, unveränderlich, UNIQUE firma+projekt+fingerprint), `abacus_abgleich` (Prüfvermerke). RLS: `tenant_boundary_*` und `feature_boundary_*` RESTRICTIVE, Feature `nachkalkulation` in `feature_access`; Trigger `enforce_abacus_projekt_firma` setzt die Firma serverseitig und prüft Projekt-/Import-Zugehörigkeit. Keine bestehende Tabelle/Policy/Funktion geändert.
-**Code:** `js/87-abacus-parser.js` (rein: Zeit/Datum, Kopfzeile über Synonyme, Summenzeilen, Fingerabdruck, Dubletten, Vergleich, Sollstunden), `js/88-nachkalkulation.js` (Register „Stunden“ in der Projektseite, Import-Dialog mit Vorschau, Speichern, Prüfvermerk), Schalter „Nachkalkulation“ je Mitarbeiter (js/05a), Zugriffsprüfung beim Login (js/03), `vendor/pdf.min.js` + `pdf.worker.min.js` (pdf.js 3.11.174, lazy, nicht in der App-Shell). Quelle der App-Regiestunden: `reports.work_entries` (hours/date/employee), nur gelesen. Sollstunden: nur geltende Offerten, Positionen mit Einheit h/Std; mehrere Offerten werden nicht addiert.
-**Grenzen:** kein OCR (Scan-PDF wird abgelehnt), Quelldatei wird nicht gespeichert, keine Kosten aus Stunden, PDF-Layout nur über Kopfzeile/Spaltenlage oder Muster „Datum … Stunden“ – ungetestet gegen einen echten Abacus-Rapport. Prüfstand: `nachkalkulation-v3-366`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

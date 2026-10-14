@@ -601,13 +601,13 @@ function measFelderAusData(m){
  $("ebk_material").value=findMeasurementMaterial(d.material)?.id??"";
  if(m.type==="einlaufblech_konisch"&&typeof ebkaFuellen==="function")ebkaFuellen(d);
  if(m.type==="einlaufblech_konisch"){renderEbkPiecesTable();refreshEbkRinneList();}
- fpSchenkel=(m.type==="freies_profil"&&Array.isArray(d.schenkel))?d.schenkel.map(s=>({...s})):[];
- fpSegmente=(m.type==="freies_profil"&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];
+ fpSchenkel=((m.type==="freies_profil"||m.type==="dachrandblech")&&Array.isArray(d.schenkel))?d.schenkel.map(s=>({...s})):[];
+ fpSegmente=((m.type==="freies_profil"||m.type==="dachrandblech")&&Array.isArray(d.segmente))?d.segmente.map(s=>({...s,massen:(s.massen||[]).map(mm=>({...mm}))})):[];
  $("fp_konisch").value=d.konisch?"ja":"nein";
  $("fp_ansicht").value=d.ansicht||"links";
  $("fp_material").value=findMeasurementMaterial(d.material)?.id??"";
- if(m.type==="freies_profil"&&typeof fpaFuellen==="function")fpaFuellen(d);
- if(m.type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();}
+ if((m.type==="freies_profil"||m.type==="dachrandblech")&&typeof fpaFuellen==="function")fpaFuellen(d);
+ if(m.type==="freies_profil"||m.type==="dachrandblech"){renderFpSchenkelTable();renderFpSegmenteList();}
  madSegments=(m.type==="mauerabdeckung"&&Array.isArray(d.segments))?d.segments.map(x=>({...x})):[];
  madSchieber=(m.type==="mauerabdeckung"&&Array.isArray(d.schieber))?d.schieber.map(x=>({...x})):[];
  if(m.type==="mauerabdeckung"){

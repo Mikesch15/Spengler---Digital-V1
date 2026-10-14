@@ -37,7 +37,7 @@ function showMeasTypeSection(type){
  $("measTypeEinlaufblech").hidden=(type!=="einlaufblech_gerade");
  $("measTypeRinne").hidden=(type!=="rinne_halbrund");
  $("measTypeEinlaufblechKonisch").hidden=(type!=="einlaufblech_konisch");
- $("measTypeFreiesProfil").hidden=(type!=="freies_profil");
+ $("measTypeFreiesProfil").hidden=(type!=="freies_profil"&&type!=="dachrandblech");
  $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
  $("measTypeLukarne").hidden=(type!=="lukarne");
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
@@ -50,7 +50,11 @@ function showMeasTypeSection(type){
  if(type==="rinne_halbrund"){renderRinneResult();if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();}
  if(type==="einlaufblech_konisch"&&typeof renderEinlaufblechKonischAufnahme==="function")renderEinlaufblechKonischAufnahme();
  if(type==="einlaufblech_gerade")refreshEbRinneList();
- if(type==="freies_profil"){renderFpSchenkelTable();renderFpSegmenteList();
+ if(type==="freies_profil"||type==="dachrandblech"){
+  // v3.369: Dachrandblech ist eine Variante des Freien Profils (js/89)
+  if(type==="dachrandblech"&&typeof drbAktivieren==="function")drbAktivieren();
+  else if(typeof drbDeaktivieren==="function")drbDeaktivieren();
+  renderFpSchenkelTable();renderFpSegmenteList();
   if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
  if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
  if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
@@ -98,7 +102,8 @@ const MEAS_MEDIEN_LETZTES_REGISTER={
  rinne_halbrund:      ()=>raSchritt   >=RA_REGISTER.length,
  einlaufblech_gerade: ()=>ebaSchritt  >=EBA_REGISTER.length,
  einlaufblech_konisch:()=>ebkaSchritt >=EBKA_REGISTER.length,
- freies_profil:       ()=>fpaSchritt  >=FPA_REGISTER.length,
+ freies_profil:       ()=>fpaSchritt  >=fpaRegister().length,
+ dachrandblech:       ()=>fpaSchritt  >=fpaRegister().length,
  mauerabdeckung:      ()=>madaSchritt >=MADA_REGISTER.length,
  kehle:               ()=>keaSchritt  >=KEA_REGISTER.length,
  lukarne:             ()=>lukaSchritt >=LUKA_REGISTER.length,
@@ -207,7 +212,7 @@ function buildMeasurementFromForm(){
   const zusatz=(typeof ebkaZusatzDaten==="function")?ebkaZusatzDaten():{};
   return {...base,...measMedienAusFormular(),data:{abwicklung,dachneigung,montage,engeSeite,pieces:piecesWithEng,gesamtlaenge,material:$("ebk_material").value,...zusatz}};
  }
- if(type==="freies_profil"){
+ if(type==="freies_profil"||type==="dachrandblech"){
   const konisch=$("fp_konisch").value==="ja";
   // Dieselben fuenf Felder wie bisher, dazu die abgeleiteten Werte (Flaeche,
   // Ausmass, Zuschnitt). Eine aeltere Aufnahme oeffnet unveraendert.
@@ -394,9 +399,10 @@ $("saveMeasurement").onclick=async()=>{
   if($("ebk_dachneigung").value===""||$("ebk_dachneigung").value===null){appAlert("Bitte Dachneigung / Winkel eingeben (Pflichtfeld).");return}
   if(ebkPieces.some(p=>!Number(p.massLinks)||!Number(p.massRechts))){appAlert("Bitte bei jedem Stück Mass links und Mass rechts eingeben (Pflichtfelder).");return}
  }
- if(type==="freies_profil"){
+ if(type==="freies_profil"||type==="dachrandblech"){
+  if(type==="dachrandblech"&&typeof drbSync==="function")drbSync();
   if(!fpSchenkel.length){appAlert("Bitte mindestens einen Schenkel im Profil erfassen.");return}
-  if(!fpSegmente.length){appAlert("Bitte mindestens ein Segment erfassen.");return}
+  if(!fpSegmente.length){appAlert(type==="dachrandblech"?"Bitte im Grundriss mindestens eine Kante mit Länge erfassen – daraus entstehen die Stücke.":"Bitte mindestens ein Segment erfassen.");return}
  }
  if(type==="mauerabdeckung"){
   if(!madSegments.length){appAlert("Bitte mindestens ein Segment erfassen.");return}
@@ -1431,8 +1437,9 @@ ${Array.isArray(d.ausmass)&&d.ausmass.length?`<div class="eb-section-head">Ausma
 ${zuDruckHtml(d.rollen,d.abwicklung,"Stück","Die Konizität wird innerhalb des Streifens angerissen.")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
- }else if(m.type==="freies_profil"){
+ }else if(m.type==="freies_profil"||m.type==="dachrandblech"){
   const d=m.data||{};
+  const istDrb=m.type==="dachrandblech";
   const schenkel=d.schenkel||[];
   const segmente=d.segmente||[];
   const konisch=!!d.konisch;
@@ -1455,7 +1462,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${cell("Konisch",konisch?"Ja":"Nein")}</tr>
+<tr>${cell("Anzahl Schenkel",esc(schenkel.length))}${istDrb?"<td></td>":cell("Konisch",konisch?"Ja":"Nein")}</tr>
 <tr>${cell("Material",matName)}<td></td></tr>
 </table>
 <div class="eb-section-head">Profil</div>
@@ -1464,7 +1471,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
 <thead><tr><th>Nr.</th><th>Länge (mm)</th><th>Winkel (°)</th></tr></thead>
 <tbody>${schenkel.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.laenge||0)}</td><td>${esc(s.winkel||0)}</td></tr>`).join("")}</tbody>
 </table>
-<div class="eb-section-head">Segmente</div>
+${istDrb&&typeof drbDruckHtml==="function"?drbDruckHtml(d,cell):`<div class="eb-section-head">Segmente</div>
 ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
 <b>Segment ${i+1}</b> · Zuschnitt ${esc(pdfLxB(seg.laenge,fpSegBreite(seg)))} mm
 <table class="eb-cutlist">
@@ -1474,7 +1481,7 @@ ${segmente.map((seg,i)=>`<div style="margin-top:3mm">
  return konisch?`<tr><td>${j+1}</td><td>${esc(mm.links||0)}</td><td>${esc(mm.rechts||0)}</td></tr>`:`<tr><td>${j+1}</td><td>${esc(mm.mass||0)}</td></tr>`;
 }).join("")}</tbody>
 </table>
-</div>`).join("")}
+</div>`).join("")}`}
 ${(()=>{
  // Ausmass, Flaeche und Zuschnitt nur, wenn sie im Datensatz stehen. Aeltere
  // Aufnahmen (vor v2.77) drucken unveraendert ohne diese Abschnitte, und es
@@ -1493,7 +1500,7 @@ ${(()=>{
  if(Number.isFinite(flaeche)&&flaeche>0){
   html+=`<table class="eb-info-table"><tr>${cell("Blechfl\u00e4che",esc(flaeche.toFixed(2).replace(".",","))+" m\u00b2")}<td></td></tr></table>`;
  }
- html+=zuDruckHtml(zu,0,"Segment");
+ html+=zuDruckHtml(zu,0,istDrb?"Stück":"Segment");
  return html;
 })()}
 ${m.note?`<div class="eb-section-head">Notiz</div>

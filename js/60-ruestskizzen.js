@@ -88,6 +88,13 @@ const RS_SKIZZEN={
   if(typeof generateProfilDiagramSvg==="function")
    rsEintrag(liste,"Profil",()=>generateProfilDiagramSvg(d.schenkel||[]));
  },
+ dachrandblech(d,liste){
+  if(typeof generateProfilDiagramSvg==='function')
+   rsEintrag(liste,"Profil",()=>generateProfilDiagramSvg(d.schenkel||[]));
+  const dr=d&&d.dachrand;
+  if(dr&&typeof drbGrundrissSvg==="function"&&Array.isArray(dr.kanten)&&dr.kanten.length)
+   rsEintrag(liste,"Grundriss",()=>drbGrundrissSvg(dr.kanten,!!dr.geschlossen,{stueckLaenge:dr.stueck&&dr.stueck.laenge,ueberlappung:dr.stueck&&dr.stueck.ueberlappung,gleich:dr.stueck&&dr.stueck.gleich}));
+ },
  lukarne(d,liste){
   if(typeof lukPlanSvg!=="function"||typeof berechneLukarne!=="function")return;
   const g=berechneLukarne({hoehe:d.hoehe,laengeOben:d.laengeOben,winkel:d.winkel,

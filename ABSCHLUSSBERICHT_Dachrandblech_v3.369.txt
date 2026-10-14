@@ -1,0 +1,17 @@
+ABSCHLUSSBERICHT v3.369 – Massaufnahme Dachrandblech
+
+ANFORDERUNG: Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil wie beim Freien Profil); Grundriss; Länge pro Stück; Überlappung; passender Einhängestreifen inkl. Gesamtlänge und Länge pro Stück.
+
+UMSETZUNG: siehe PROJECT_STATE.md v3.369. Variante des Freien Profils (js/89 + Haken in js/31), neue Art "dachrandblech" in den artbezogenen Tabellen. Keine Datenbankänderung.
+
+ANNAHMEN (bitte prüfen):
+- Detail 1.5 = die Schenkelliste aus dem Bildschirmfoto (Abwicklung 432 mm).
+- Länge pro Stück 3000 mm, Überlappung 40 mm als Vorgabe (änderbar).
+- Jede Kante wird für sich eingeteilt (Stoss an Ecken).
+- Einhängestreifen: Haken = Umschlag - 3 mm Spiel, Abwicklung = 40 mm Befestigung + 2 x Haken (zurückgefalzt) - nur ein Vorschlag, überschreibbar.
+- Gesamtlänge = Summe der Kanten im Grundriss (Eckzuschläge/Gehrungen nicht abgewickelt).
+
+TESTS: dachrandblech-v3-369 (46 Prüfungen): Art/Register, Detail 1.5 mit Originalmassen, Grundriss (Ecken, Schliessen, L-Form, beliebiger Winkel), Stücke (Teilung, gleich lang, Fehlerfälle), Einhängestreifen (Vorschlag, Überschreiben, ohne Umschlag), Zuschnitt/Ausmass, Speichern/Laden/Druck, Freies Profil unverändert, anderes Detail. Schnellprüfung/Regression: siehe Nachtrag.
+NICHT GETESTET: echtes Gerät; Einhängestreifen an einem echten Teil.
+
+OFFEN: Einhängestreifen im Zuschnittplan; Eckzuschläge; Rückmeldung zur Streifenformel.

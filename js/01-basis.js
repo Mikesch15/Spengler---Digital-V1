@@ -573,6 +573,7 @@ const MEAS_TYPE_LABELS=Object.freeze({
  rinne_halbrund:"Dachrinne",
  einlaufblech_konisch:"Einlaufblech konisch",
  freies_profil:"Freies Profil",
+ dachrandblech:"Dachrandblech",
  mauerabdeckung:"Mauerabdeckung",
  lukarne:"Lukarne Seitenverkleidung",
  anschlussblech:"Ort- und Seitenbleche",
@@ -594,6 +595,7 @@ const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
  rinne_halbrund:"rinne",            // Anschlusstypen
  einlaufblech_konisch:"einlaufblech-konisch",
  freies_profil:"material",          // kein eigener Abschnitt, nur Material
+ dachrandblech:"material",
  mauerabdeckung:"mauerabdeckung",
  lukarne:"lukarne",
  anschlussblech:"anschlussblech",
@@ -627,6 +629,7 @@ const MEAS_KATEGORIEN_STANDARD=Object.freeze({
  rinne_halbrund:"steildach",
  einlaufblech_konisch:"steildach",
  freies_profil:"allgemein",
+ dachrandblech:"flachdach",
  mauerabdeckung:"flachdach",
  lukarne:"steildach",
  anschlussblech:"flachdach",
@@ -644,7 +647,7 @@ function measKategorie(art){
 // Dieselben Symbole wie bisher in der (bis v3.93 statischen) Kartenauswahl.
 const MEAS_TYPE_ICONS=Object.freeze({
  skizze_foto:"📷", einlaufblech_gerade:"📐", rinne_halbrund:"🏠",
- einlaufblech_konisch:"📐", freies_profil:"📐", mauerabdeckung:"🧱",
+ einlaufblech_konisch:"📐", freies_profil:"📐", dachrandblech:"🔲", mauerabdeckung:"🧱",
  lukarne:"🏚️", anschlussblech:"📐", einfassung_rund:"⭕",
  kamineinfassung:"🧱", dachfenstereinfassung:"🪟", kehle:"📏", rinne:"🚰"
 });

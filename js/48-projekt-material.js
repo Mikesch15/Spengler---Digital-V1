@@ -191,6 +191,7 @@ const PMAT_TEIL_RUECKFALL={
  // das Ganze, es wird nichts zusaetzlich beschafft.
  einlaufblech_konisch: ()=>false,
  freies_profil:        ()=>false,
+ dachrandblech:        ()=>false,
  kehle:                ()=>false,
  lukarne:              ()=>false,
  rinne:                ()=>false,

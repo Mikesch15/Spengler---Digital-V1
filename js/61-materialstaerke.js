@@ -325,6 +325,7 @@ const MEAS_FORM_RENDER={
  einlaufblech_gerade:"renderEinlaufblechAufnahme",
  einlaufblech_konisch:"renderEinlaufblechKonischAufnahme",
  freies_profil:"renderFreiesProfilAufnahme",
+ dachrandblech:"renderFreiesProfilAufnahme",
  mauerabdeckung:"renderMauerabdeckungAufnahme",
  lukarne:"renderLukarneAufnahme",
  anschlussblech:"renderAnschlussblechAufnahme",

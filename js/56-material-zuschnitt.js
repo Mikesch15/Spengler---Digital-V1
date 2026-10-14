@@ -774,6 +774,7 @@ const MZ_ZUSCHNITT_REGISTER={
  einlaufblech_konisch: {tab:()=>typeof EBKA_REGISTER !=="undefined"?EBKA_REGISTER :null, setzen:n=>ebkaSetzeSchritt(n)},
  rinne_halbrund:       {tab:()=>typeof RA_REGISTER   !=="undefined"?RA_REGISTER   :null, setzen:n=>raSetzeSchritt(n)},
  freies_profil:        {tab:()=>typeof FPA_REGISTER  !=="undefined"?FPA_REGISTER  :null, setzen:n=>fpaSetzeSchritt(n)},
+ dachrandblech:        {tab:()=>typeof DRB_REGISTER  !=="undefined"?DRB_REGISTER  :null, setzen:n=>fpaSetzeSchritt(n)},
  mauerabdeckung:       {tab:()=>typeof MADA_REGISTER !=="undefined"?MADA_REGISTER :null, setzen:n=>madaSetzeSchritt(n)},
  kehle:                {tab:()=>typeof KEA_REGISTER  !=="undefined"?KEA_REGISTER  :null, setzen:n=>keaSetzeSchritt(n)},
  lukarne:              {tab:()=>typeof LUKA_REGISTER !=="undefined"?LUKA_REGISTER :null, setzen:n=>lukaSetzeSchritt(n)},
