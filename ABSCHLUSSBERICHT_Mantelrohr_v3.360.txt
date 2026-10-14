@@ -1,7 +1,7 @@
 ABSCHLUSSBERICHT v3.360 – Einfassung rund: Mantelrohr und bemasster Lochausschnitt
 Datum: 14.10.2026
 Ausgangscommit: 6a834d4 (v3.359)
-Zielcommit: siehe Git-Log (Commit „v3.360“)
+Zielcommit: 01abbab (v3.360)
 
 1. MANTELROHR
 - Pro Einfassung: „Ø Standrohr“ (nur Information, neues Feld standrohr) und „Ø Mantelrohr“ (das bisherige Feld durchmesser, rechnerisch). Abwicklung (Tablett/Rohr), Zuschnitt und Ausmass rechnen mit dem Mantelrohr-Ø; das Standrohr ändert keine Rechnung (per Test nachgewiesen).
