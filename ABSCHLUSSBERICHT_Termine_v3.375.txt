@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.375 – Terminplanung mit Kalenderimport
+
+UMGESETZT: Tabelle termine (Migration angewendet), js/91-ics-parser.js, js/92-termine.js, Schirm in index.html, Eintrag unter Mehr, Karte auf Heute (js/70), css/05, sw.js.
+GRENZEN: Handy-Kalender nur über .ics-Datei (Browser hat keinen Kalenderzugriff); Wiederholungstermine nur der erste; keine Erinnerungen/Benachrichtigungen; keine Zwei-Wege-Synchronisation.
+TESTS: termine-v3-375 59 ok (Parser mit Zeitzonen/Ganztags/Dauer/Doppelte, Projekt-Vorschlag, Oberfläche mit nachgespielter Datenbank inkl. Rechte-Verweigerung). 6 Mutationsproben erkannt.
+NICHT GETESTET: echte Datenbank-Abfragen aus der App (Sandbox), Import echter Handy-Exporte (iPhone/Google/Outlook), Anzeige auf dem Gerät.

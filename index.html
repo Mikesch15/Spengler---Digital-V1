@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.374</div>
+<div id="appVersion">Version 3.375</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -763,6 +763,25 @@
 </div>
 <div id="zaehlwerkBody"></div>
 <div class="bar"><button id="closeZaehlwerk" class="gray">← Zurück</button></div>
+</div>
+</div>
+
+<!-- v3.375: Terminplanung (Wochenansicht, Kalender-Import .ics). Logik: js/92-termine.js, Kalenderdatei lesen: js/91-ics-parser.js -->
+<div id="termineModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>📅 Termine</h2>
+<div class="bar">
+<button type="button" class="green" id="terNeu">+ Neuer Termin</button>
+<button type="button" class="gray" id="terImport">📥 Kalender importieren (.ics)</button>
+<input type="file" id="terDatei" accept=".ics,text/calendar" hidden>
+</div>
+<div class="small" style="color:var(--muted)">Kalender vom Handy: Im Kalender den Termin oder Kalender exportieren bzw. teilen (.ics) und hier auswählen. Vor dem Speichern sehen Sie eine Vorschau; ein Projekt wird nur vorgeschlagen.</div>
+</div>
+<div class="card" id="terImportBox" hidden></div>
+<div class="card" id="terEditor" hidden></div>
+<div id="terListe"></div>
+<div class="bar"><button id="closeTermine" class="gray">← Zurück</button></div>
 </div>
 </div>
 
@@ -2450,7 +2469,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.374.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.375.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3155,7 +3174,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.374.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.375.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3631,6 +3650,8 @@ nicht neu installieren.</div>
 <script src="js/88-nachkalkulation.js"></script>
 <script src="js/89-dachrandblech.js"></script>
 <script src="js/90-wetter.js"></script>
+<script src="js/91-ics-parser.js"></script>
+<script src="js/92-termine.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

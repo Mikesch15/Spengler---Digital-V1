@@ -1502,3 +1502,14 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 .a2-wetter-chip{margin-top:3px;border-radius:999px;padding:1px 4px;font-size:10.5px;font-weight:700;background:#e8edf2;color:#33414f;overflow-wrap:anywhere}
 .a2-wetter-chip.a2-wetter-warn{background:#fde3e1;color:#9b1c14}
 .a2-wetter-quelle{margin-top:6px;color:var(--muted)}
+
+/* v3.375 Terminplanung */
+.a2-ter-nav{align-items:center;justify-content:space-between;flex-wrap:nowrap}
+.a2-ter-woche{flex:1;text-align:center;font-size:15px}
+.a2-ter-zeit{min-width:84px;font-size:13px;color:var(--muted);flex:0 0 auto}
+.a2-ter-leer{padding:4px 2px;color:var(--muted)}
+.a2-ter-heute .a2-abschnitt-kopf h2{color:var(--primary,#1f6fb2)}
+.a2-ter-imp{padding:8px 0;border-top:1px solid var(--line)}
+.a2-ter-imp select{width:100%;margin-top:4px}
+.a2-ter-imp-alt{opacity:.55}
+.a2-ter-kz{padding:3px 0;font-size:14px}

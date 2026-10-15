@@ -134,6 +134,7 @@ const A2_BEREICHE={
  projectsModal:     {zu:"closeProjects"},
  zaehlwerkModal:    {zu:"closeZaehlwerk"},
  abwicklungModal:   {zu:"closeAbwicklung"},
+ termineModal:      {zu:"closeTermine"},
  // v3.251: Das Lieferanten-Lager ist seit der Abschaffung der alten
  // Lagerverwaltung der Schirm des Lager-Knopfs. Vorher stand hier
  // settingsModal dafuer. Ohne diesen Eintrag merkt die Kopfzeile nicht, wenn
@@ -801,6 +802,8 @@ function a2SeiteHeute(){
  html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
  // v3.373: Wetter am Firmenstandort - nur wenn der Administrator es eingeschaltet hat (js/90)
  if(typeof wetterKarteHtml==="function")html+=wetterKarteHtml();
+ // v3.375: die nächsten Termine (js/92)
+ if(typeof terKarteHtml==="function")html+=terKarteHtml();
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen
@@ -1258,7 +1261,9 @@ function a2SeiteMehr(){
   {id:"fingerabdruck",gruppe:"geraet", zeichen:"🔒", text:"Fingerabdruck",          unter:"Die App auf diesem Gerät mit dem Finger entsperren"},
   {id:"zaehlwerk",gruppe:"firma",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
-  {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"}
+  {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"},
+  // v3.375: Terminplanung (js/92)
+  {id:"termine",gruppe:"arbeiten", zeichen:"📅", text:"Termine",                   unter:"Wochenübersicht, Kalender vom Handy importieren"}
  ];
  // v3.251: Das Lieferanten-Lager steht NICHT mehr zusaetzlich unter "Mehr".
  // Bis v3.250 war es dort ein eigener Punkt NEBEN der Lagerverwaltung, weil
@@ -1659,6 +1664,10 @@ document.addEventListener("click",async e=>{
  if(was==="kontrollen"&&typeof konAnzeigen==="function"){konAnzeigen();return}
  if(was==="konten"&&typeof kwOeffnen==="function"){kwOeffnen();return}
  if(was==="fingerabdruck"&&typeof faDialogOeffnen==="function"){faDialogOeffnen();return}
+ if(was==="termine"&&typeof terOeffnen==="function"){
+  a2BereichStarten("termineModal","Termine","mehr",()=>terOeffnen());
+  return;
+ }
  if(was==="abwicklung"&&typeof abwOeffnen==="function"){
   a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
   return;
