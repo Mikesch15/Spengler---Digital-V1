@@ -1520,3 +1520,11 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 .a2-zm-uhr{font-size:34px;font-weight:700;font-variant-numeric:tabular-nums;text-align:center;padding:6px 0}
 .a2-zm-notiz{width:100%;margin:6px 0}
 .a2-zm-ergebnis{display:grid;gap:4px;padding:6px 0;font-size:15px}
+.a2-zm-kopf{display:flex;align-items:center;gap:8px;width:100%;background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer;min-height:44px}
+.a2-zm-kopf .a2-karte-titel{flex:0 0 auto}
+.a2-zm-kurz{flex:1;font-size:14px;color:var(--muted);text-align:right}
+.a2-zm-pfeil{flex:0 0 auto;color:var(--muted)}
+.a2-zm-zeiten{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:6px 0}
+.a2-zm-zeiten input{width:100%}
+.a2-zm-notif{margin-top:4px;color:var(--muted)}
+.a2-zm select{width:100%;margin-bottom:6px}

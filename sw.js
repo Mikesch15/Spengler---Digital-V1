@@ -9,7 +9,7 @@
    Offline-Bestand zur ausgelieferten Fassung passt. */
 
 // Muss zur Versionsnummer auf dem Startbildschirm in index.html passen.
-const CACHE = "spengler-digital-3.376";
+const CACHE = "spengler-digital-3.377";
 
 const SHELL = [
   "./",
@@ -189,6 +189,17 @@ self.addEventListener("activate", event => {
    Eine Datei, die weder aus dem Netz noch aus dieser Fassung kommt, wird
    jetzt als Fehler gemeldet statt falsch beantwortet. Lieber eine Datei,
    die fehlt, als eine, die nicht zum Rest passt. */
+/* v3.377: Antippen der Benachrichtigung "Zeit laeuft" (js/93) oeffnet die App bzw. holt sie nach vorn. */
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      return self.clients.openWindow ? self.clients.openWindow("./") : null;
+    })
+  );
+});
+
 self.addEventListener("fetch", event => {
   const req = event.request;
   if (req.method !== "GET") return;

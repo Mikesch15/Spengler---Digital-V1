@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.376.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.377.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1493,13 +1493,22 @@ noch keine Vorschläge – es gibt dann nichts, was sich wiederholen könnte.<br
 Das Feld bleibt ein <b>freies Feld</b>: ein neuer Text lässt sich wie bisher
 einfach eintippen. Die Liste schlägt vor, sie schreibt nichts fest.</div>
 <h4>⏱ Zeit messen (ab 3.376)</h4>
-<p>Über den Zeilen steht eine <b>Stoppuhr</b>: <b>Start</b>, <b>Pause</b>, <b>Weiter</b>, <b>Stopp</b>. Sie läuft auch weiter, wenn
-die App zu ist oder das Handy gesperrt wird, und gilt nur für dieses Gerät.</p>
-<p>Nach dem Stopp zeigt die App die <b>effektive Zeit</b> (z. B. 1 h 08 min) und die auf die <b>nächste Viertelstunde gerundete</b> Zeit
-(1,25 h). <b>Als Arbeitsposition übernehmen</b> trägt die gerundeten Stunden in eine neue Zeile ein – Beschreibung und Mitarbeiter
-bitte prüfen, gespeichert wird erst mit dem Rapport. Wer will, lässt die effektive Zeit in die Beschreibung schreiben.</p>
-<div class="hin">Unter 8 Minuten ergäbe die Rundung 0 Stunden – dann wird nichts übernommen. Die Stoppuhr ist auch auf der Startseite
-(Karte „Zeit messen“) bedienbar.</div>`},
+<p>Über den Zeilen steht die Karte <b>Zeit messen</b>. Mit dem Pfeil klappen Sie sie auf und zu; zugeklappt zeigt sie nur eine
+Zeile („läuft 0:42:10“).</p>
+<p><b>Stoppuhr:</b> Projekt und – wenn gewünscht – die <b>Massaufnahme</b> wählen, <b>Start</b> tippen. Das Feld <b>Beginn</b> leer lassen
+(= jetzt) oder eine frühere Zeit von heute eintragen, wenn Sie vergessen haben zu starten. Dann <b>Pause</b>, <b>Weiter</b>, <b>Stopp</b>.
+<b>Von Hand:</b> Datum, Beginn, Ende (und eine Pause in Minuten) eintragen und <b>Zeit erfassen</b> tippen.</p>
+<p>Danach zeigt die App die <b>effektive Zeit</b> (z. B. 1 h 08 min) und die auf die <b>nächste Viertelstunde gerundete</b> Zeit (1,25 h).
+<b>Als Arbeitsposition übernehmen</b> trägt die gerundeten Stunden mit dem Datum der Messung in eine neue Zeile ein
+(Beschreibung = Notiz und Massaufnahme). Gehört die Messung zu einem anderen Projekt als der offene Rapport, fragt die App nach.
+Gespeichert wird erst mit dem Rapport.</p>
+<h4>🔔 Benachrichtigung</h4>
+<p>Beim Start fragt das Handy einmal nach der Erlaubnis. Danach steht, solange eine Zeit läuft, eine Benachrichtigung
+(„Zeit läuft seit 07:30 – Stand 08:37: 1 h 07 min“). Antippen öffnet die App.</p>
+<div class="hin"><b>Wichtig:</b> Eine Web-App darf im Hintergrund nicht weiterrechnen. Die Benachrichtigung wird jede Minute aufgefrischt,
+<b>solange die App offen oder noch aktiv ist</b>. Danach bleibt sie mit dem letzten „Stand“ stehen – „läuft seit“ stimmt immer, die
+Dauer lässt sich daraus ablesen. Auf dem iPhone gibt es Benachrichtigungen nur, wenn die App zum Home-Bildschirm hinzugefügt ist.
+Unter 8 Minuten ergäbe die Rundung 0 Stunden – dann wird nichts übernommen.</div>`},
 
 "rapport-material":{titel:"Material",text:`
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension,

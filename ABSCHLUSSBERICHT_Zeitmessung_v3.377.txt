@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.377 – Zeitmessung erweitert
+
+UMGESETZT: Handeingabe (Datum/Beginn/Ende/Pause), Projekt- und Massaufnahme-Auswahl, zuklappbare Karte, Benachrichtigung (showNotification, Minutentakt, Klick öffnet App), Hilfetext. Keine DB-Änderung.
+GRENZEN: Benachrichtigung wird im Hintergrund nicht aktualisiert (Web-App); iPhone nur als installierte App; Messung bleibt auf dem Gerät (localStorage).
+TESTS: zeitmessung-v3-376 49 ok, Mutationsproben erkannt.
+NICHT GETESTET: echte Benachrichtigung / gesperrter Bildschirm auf einem Handy.
