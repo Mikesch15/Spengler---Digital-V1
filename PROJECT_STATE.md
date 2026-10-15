@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.371`
+- Aktueller Entwicklungsstand: `v3.372`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
@@ -11,16 +11,17 @@
 
 Meldung des Anwenders: „Das ist 1 zu 1 eine Kopie vom Freien Profil.“ **Ursache:** `newMeasurementWithType()` (js/10) zeigt die Art ZUERST (`showMeasTypeSection`) und setzt das Formular danach zurück (`fpaZuruecksetzen`); das Zurücksetzen löschte die Dachrand-Variante, es erschien das Freie Profil. Der Prüfstand v3.369 rief die beiden Schritte in umgekehrter Reihenfolge auf und merkte es nicht. **Korrektur:** `fpaZuruecksetzen()` (js/31) aktiviert die Variante wieder, wenn die gewählte Art `dachrandblech` ist. Prüfstand `dachrandblech-v3-369` ruft jetzt den echten Weg über die Kachel auf (Abschnitt A0, mit Mutationsprobe).
 
+### v3.372 — Google Maps kostenlos: Route aus mehreren Projekten, Orte in der Nähe, Karte/Street View
+
+Auftrag „Kostenlose Google-Maps-Erweiterungen“. **Nur normale, vom Benutzer ausgelöste Google-Maps-URLs** (feste Domain `https://www.google.com/maps/`, Parameterwerte mit `encodeURIComponent`); keine Maps-Platform-API, kein Schlüssel, kein Geocoding/Places/Directions/Embed/Static, keine Standortabfrage, keine neue Datei/Abhängigkeit/Tabelle. Alles in `js/70` + `css/05`; Adresse weiter nur `projects.object`.
+1. **Route planen** (Projektliste, Knopf über der Liste, kein zweiter Bildschirm): Auswahlmodus – Tipp wählt das Projekt (Nummer = Reihenfolge), erstes = Start, letztes = Ziel, dazwischen Zwischenstopps, keine Optimierung. Projekte ohne Adresse sind nicht wählbar; Route erst ab 2 Projekten; bis 9 Zwischenstopps (11 Projekte), darüber wird nicht geöffnet (Hinweis: teilen); ab 4 Zwischenstopps Warnung (Smartphone kann weniger Stopps übernehmen – nicht live geprüft); gleiche Adressen werden gemeldet.
+2. **In der Nähe suchen** (Projektseite, Projektübersicht): Metallhandel, Baumarkt/Baustoffhandel, Entsorgung/Recycling, Kran/Gerüst – Maps-Suche „<Begriff> nahe <Adresse>“; keine Distanzangaben.
+3. **Street View:** Die offizielle Street-View-URL (`map_action=pano`) verlangt Koordinaten oder eine Panorama-ID; eine Adresse genügt nicht, Koordinaten würden eine Geocoding-API verlangen. Deshalb öffnet „Adresse auf Karte ansehen“ ehrlich die Karte zur Adresse (Such-URL) mit Hinweis, dort Street View zu wählen. Aus der Sandbox ist Google nicht erreichbar (403) – das tatsächliche Verhalten der URLs ist nicht live geprüft.
+„Navigation starten“ (v3.371) unverändert. Prüfstand `karten-v3-372` (32 Prüfungen, 6 Mutationsproben).
+
 ### v3.371 — Projektseite: „Navigation starten“ (Google Maps, Stufe 1)
 
 Auftrag „Google-Maps-Navigation aus einem Projekt öffnen“. Auf der Projektseite (Karte „Projektübersicht“, neben „Stammdaten bearbeiten“, js/70) erscheint bei einem Projekt mit verwertbarer Adresse der Knopf **Navigation starten**: ein Link `https://www.google.com/maps/dir/?api=1&destination=<kodierte Adresse>`, `target="_blank"` mit `rel="noopener noreferrer"`. **Adressquelle ausschliesslich `projects.object`** (die einzige gespeicherte Adresse; Strasse, PLZ und Ort stehen dort als ein Text – getrennte Felder gibt es nicht und wurden nicht erfunden; kein Land). Verwertbar: mindestens 3 Zeichen und ein Buchstabe; „—“, „?“, nur Ziffern, leer → kein Knopf. Kodierung `encodeURIComponent`, mehrfache Leerzeichen zu einem. Keine Karte, keine Google-Maps-Platform, kein API-Schlüssel, keine Standortabfrage, keine neue Datei, keine DB-/RLS-Änderung. Offline öffnet der Link naturgemäss nichts. Prüfstand `navigation-v3-371` (21 Prüfungen, Mutationsproben).
-
-### v3.369 — Neue Massaufnahme: Dachrandblech
-
-Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil erstellen wie beim Freien Profil); dazu Grundriss, Länge pro Stück, Überlappung und ein passender Einhängestreifen (Gesamtlänge, Länge pro Stück).
-**Umsetzung:** Dachrandblech ist eine Variante des Freien Profils, keine Parallelwelt: `js/89-dachrandblech.js` (neu) + kleine Haken in `js/31` (Register je Variante, Hooks für Ausmass/Prüfung/Speicherstand/Laden). Gleiches Modell `fpA`, gleiche Schenkel-Erfassung, Zeichnung, Skizzen-Erkennung, Zuschnitt (Rolle/Tafel) und Ausmass. Neue Art `dachrandblech` (Kategorie Flachdach) in js/01, js/10, js/16 (Anzeige/Speichern/Prüfung/Druck), js/48, js/56, js/60 (Rüstskizzen Profil + Grundriss), js/61, js/63 (Stichwörter), index.html (Auswahl), sw.js. Keine DB-Änderung (measurements.type ist frei).
-**Register:** Grunddaten · Detail · Profil · Grundriss · Stücke · Einhängestreifen · Zuschnitt · Ausmass · Kontrolle. **Detail 1.5** = die Masse der Vorlage (12/18/160/50/30/150/12, Winkel −45/−180/135/−180/−45/−45/180), alle Schenkel editierbar. **Grundriss:** Kanten mit Länge und Ecke (Aussen 90°, Innen 90°, beliebiger Winkel), umlaufend mit Schliess-Prüfung, Zeichnung mit Stössen. **Stücke:** je Kante n = ceil((L−Ü)/(P−Ü)), Materiallänge L+(n−1)·Ü, volle Stücke + Rest oder alle gleich lang; die Stücke SIND die Segmente des Freien Profils (Zuschnitt unverändert). **Einhängestreifen (Vorschlag, alles änderbar):** greift in einen wählbaren Umschlag; Haken = Umschlag − Spiel, Abwicklung = Befestigung + 2 × Haken; Gesamtlänge und Stücke je Kante.
-**Grenzen:** Eckzuschläge/Gehrungen werden nicht abgewickelt (Ecken nur gezählt); der Einhängestreifen erscheint im Ausmass, aber (noch) nicht im Zuschnittplan; die Streifenformel ist ein Vorschlag, noch nicht an einem echten Streifen geprüft. Prüfstand `dachrandblech-v3-369`.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

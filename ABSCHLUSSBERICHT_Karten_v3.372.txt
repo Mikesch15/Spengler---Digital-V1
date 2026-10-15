@@ -1,0 +1,12 @@
+ABSCHLUSSBERICHT v3.372 – Google Maps kostenlos (Route, Orte in der Naehe, Karte/Street View)
+
+UMGESETZT (alles in js/70-ansicht2.js + css/05-ansicht2.css, keine neue Datei, keine DB-Aenderung)
+1. Route planen: Knopf ueber der Projektliste; Auswahlmodus mit Nummern (Reihenfolge = Antipp-Reihenfolge, erstes = Start, letztes = Ziel). Projekte ohne Adresse nicht waehlbar. Ab 2 Projekten; bis 9 Zwischenstopps; ueber 9 wird nicht geoeffnet (Hinweis zum Teilen); ab 4 Zwischenstopps Warnung fuer Smartphones; gleiche Adresse wird gemeldet. URL: /maps/dir/?api=1&origin&destination&waypoints (Trenner | als %7C).
+2. In der Naehe suchen (Projektseite): Metallhandel, Baumarkt, Entsorgung, Kran/Geruest -> /maps/search/?api=1&query=<Begriff> nahe <Adresse>.
+3. Street View: Die offizielle pano-URL braucht Koordinaten (viewpoint) oder eine Panorama-ID; eine Adresse reicht nicht. Koordinaten wuerden Geocoding (kostenpflichtige API) verlangen -> nicht gemacht, nichts erfunden. Umgesetzt ist der ehrliche Fallback: "Adresse auf Karte ansehen" (Such-URL) mit Hinweis, dass Street View dort gewaehlt wird. Getestete Varianten: nur diese Such-URL; die pano-Variante wurde bewusst NICHT gebaut (Mutationsprobe stellt sicher, dass keine pano-URL mit Koordinaten eingebaut wird).
+
+TESTS: karten-v3-372: 32 ok / 0 fehlgeschlagen; navigation-v3-371 weiterhin gruen. 6 Mutationsproben (Limit, Warnung, Reihenfolge, fehlende Adresse, Street-View-Koordinaten, Suche ohne Adresse) werden erkannt. Schnellpruefung/Regression: siehe Nachtrag.
+KOSTENFREIHEIT: Kein API-Endpunkt, kein Schluessel, kein Geocoding/Places/Directions/Embed/Static, keine Standortabfrage, keine neue Abhaengigkeit - im Code per Pruefstand abgesichert (nur die feste Adresse https://www.google.com/maps/ kommt vor). Ob Google seine Verbraucher-URLs dauerhaft unveraendert anbietet, kann nicht zugesichert werden.
+NICHT GETESTET: tatsaechliches Verhalten in Google Maps (aus der Sandbox nicht erreichbar, 403) und auf echten Geraeten; Stopp-Limits je Plattform.
+GRENZEN: Google kann auf Mobilgeraeten weniger Zwischenstopps uebernehmen als im Browser (Warnung ab 4). Adresse ist Freitext (projects.object); "nahe" ist ein Suchwort, keine garantierte Naehe. Street-View-Bilder: Verfuegbarkeit haengt von Google ab.
+LIVE ZU TESTEN: 1) Route ueber 3 Projekte in der Liste planen und in Google Maps pruefen, ob Start/Stopps/Ziel stimmen; 2) dasselbe mit 5-6 Projekten auf dem Handy; 3) Suche "Baumarkt" bei einem Projekt; 4) "Adresse auf Karte ansehen" und dort Street View waehlen.

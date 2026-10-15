@@ -87,6 +87,8 @@ function a2Anwenden(){
 // Bewusst ein Objekt und nur zwei Werte: welche Seite offen ist und was in
 // der Projektsuche steht. Alles andere ist Anzeige aus den Daten der App.
 const a2Zustand={seite:"heute",suche:"",projektId:null,reg:"uebersicht",bereich:null};
+// v3.372: Routenplanung in der Projektliste (Auswahlmodus). ids = Auswahlreihenfolge.
+const a2Route={an:false,ids:[],meldung:""};
 
 // ===========================================================================
 // BEREICHE  (v3.156)
@@ -399,9 +401,69 @@ function a2ZielAdresse(p){
  if(a.length<3||!/[A-Za-z\u00C0-\u024F]/.test(a))return "";
  return a;
 }
+// v3.372: gemeinsamer Baustein fuer alle Google-Maps-Links. Feste Domain, nur die WERTE werden mit encodeURIComponent
+// kodiert (Leerzeichen -> %20, "|" -> %7C). Normale, vom Benutzer ausgeloeste URLs - keine Maps-Platform-API, kein Schluessel.
+function a2MapsUrl(pfad,paare){
+ return "https://www.google.com/maps/"+pfad+"/?"+paare.map(([k,v])=>k+"="+encodeURIComponent(v)).join("&");
+}
 function a2NavigationUrl(p){
  const a=a2ZielAdresse(p);
- return a?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(a):"";
+ return a?a2MapsUrl("dir",[["api","1"],["destination",a]]):"";
+}
+// Orte in der Naehe: Maps-SUCHE "<Suchbegriff> nahe <Projektadresse>". Google liefert die Treffer; die App behauptet
+// weder Distanzen noch Naehe und hat keine eigene Anbieterliste.
+const A2_ORTE=Object.freeze([
+ {k:"metall",label:"Metallhandel",suche:"Metallhandel Spenglerbedarf"},
+ {k:"baustoff",label:"Baumarkt",suche:"Baumarkt Baustoffhandel"},
+ {k:"entsorgung",label:"Entsorgung",suche:"Entsorgungsstelle Recycling"},
+ {k:"verleih",label:"Kran / Gerüst",suche:"Kranvermietung Gerüstverleih"}
+]);
+function a2OrteUrl(p,k){
+ const a=a2ZielAdresse(p),o=A2_ORTE.find(x=>x.k===k);
+ return (a&&o)?a2MapsUrl("search",[["api","1"],["query",o.suche+" nahe "+a]]):"";
+}
+// Street View: Die offizielle Street-View-URL (map_action=pano) verlangt Koordinaten (viewpoint=lat,lng) oder eine Panorama-ID.
+// Eine Adresse allein genuegt dort NICHT, und die App berechnet bewusst keine Koordinaten (keine Geocoding-API, nichts geraten).
+// Deshalb oeffnet "Street View" ehrlich die KARTE zur Adresse; dort waehlt man Street View.
+function a2StreetViewUrl(p){
+ const a=a2ZielAdresse(p);
+ return a?a2MapsUrl("search",[["api","1"],["query",a]]):"";
+}
+// Route aus mehreren Projekten: Reihenfolge = Auswahlreihenfolge (keine Optimierung). Erstes = Start, letztes = Ziel, dazwischen
+// Zwischenstopps. Grenzen: ueber 9 Zwischenstopps wird NICHT geoeffnet; ab 4 Zwischenstopps wird gewarnt, weil Google Maps
+// auf dem Smartphone weniger Stopps uebernehmen kann (nicht live geprueft).
+const A2_ROUTE_MAX_ZWISCHEN=9, A2_ROUTE_WARN_ZWISCHEN=3;
+function a2RouteUrl(projekte){
+ const liste=(projekte||[]).filter(Boolean);
+ const fehlend=liste.filter(p=>!a2ZielAdresse(p)).map(p=>(typeof projektTitel==="function"?projektTitel(p):(p.object||p.name))||("Projekt "+p.id));
+ const gueltig=liste.filter(p=>a2ZielAdresse(p));
+ const r={ok:false,url:"",fehler:"",warnung:"",fehlend,anzahl:gueltig.length,zwischen:Math.max(0,gueltig.length-2),gleich:[]};
+ if(fehlend.length){r.fehler="Für "+(fehlend.length===1?"dieses Projekt":"diese Projekte")+" ist keine verwertbare Adresse gespeichert: "+fehlend.join(", ")+". Bitte aus der Auswahl nehmen oder die Adresse ergänzen.";return r}
+ if(gueltig.length<2){r.fehler="Für eine Route braucht es mindestens zwei Projekte mit Adresse. Für ein einzelnes Ziel gibt es „Navigation starten“ im Projekt.";return r}
+ if(r.zwischen>A2_ROUTE_MAX_ZWISCHEN){r.fehler="Zu viele Stopps: Google Maps nimmt höchstens "+A2_ROUTE_MAX_ZWISCHEN+" Zwischenstopps (also "+(A2_ROUTE_MAX_ZWISCHEN+2)+" Projekte). Bitte die Route in zwei Teile teilen.";return r}
+ // "|" trennt in der URL die Zwischenstopps - in einer Adresse waere es ein falscher Trenner
+ const adr=gueltig.map(p=>a2ZielAdresse(p).replace(/\|/g," "));
+ const paare=[["api","1"],["origin",adr[0]],["destination",adr[adr.length-1]]];
+ if(adr.length>2)paare.push(["waypoints",adr.slice(1,-1).join("|")]);
+ r.url=a2MapsUrl("dir",paare);
+ const seen={};gueltig.forEach((p,i)=>{const k=adr[i].toLowerCase();if(seen[k]!==undefined)r.gleich.push([seen[k]+1,i+1]);else seen[k]=i});
+ const w=[];
+ if(r.zwischen>A2_ROUTE_WARN_ZWISCHEN)w.push("Mit "+r.zwischen+" Zwischenstopps: Auf dem Smartphone übernimmt Google Maps unter Umständen nicht alle Stopps. Bitte die Route dort kurz prüfen.");
+ if(r.gleich.length)w.push("Stopp "+r.gleich.map(g=>g[0]+" und "+g[1]).join("; ")+" haben dieselbe Adresse.");
+ r.warnung=w.join(" ");
+ r.ok=true;
+ return r;
+}
+// v3.372: "In der Naehe" (Maps-Suche) und Karte/Street View - nur mit verwertbarer Adresse, nur normale Links.
+function a2OrteHtml(p){
+ if(!a2ZielAdresse(p))return "";
+ const ext='target="_blank" rel="noopener noreferrer"';
+ return `<div class="a2-orte"><div class="a2-orte-titel">In der Nähe suchen <span class="small">(Google Maps zeigt die Treffer)</span></div>
+  <div class="a2-knopf-reihe a2-orte-reihe">${A2_ORTE.map(o=>
+   `<a class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-ort="${esc(o.k)}" href="${esc(a2OrteUrl(p,o.k))}" ${ext}>${esc(o.label)}</a>`).join("")}</div>
+  <div class="a2-knopf-reihe a2-orte-reihe"><a class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-streetview="karte" href="${esc(a2StreetViewUrl(p))}" ${ext}
+   title="Öffnet die Karte zur Adresse. Dort Street View wählen.">Adresse auf Karte ansehen</a></div>
+  <div class="small">Street View: Das Öffnen direkt in Street View braucht Koordinaten, die die App bewusst nicht ermittelt. Es öffnet die Karte zur Adresse – dort „Street View“ wählen. Ob Bilder vorhanden und aktuell sind, hängt von Google ab.</div></div>`;
 }
 function a2Datum(iso){
  if(!iso)return "";
@@ -1071,6 +1133,7 @@ function a2SeiteProjekte(){
    value="${esc(a2Zustand.suche)}" autocomplete="off" enterkeyhint="search"></div>
   <button type="button" class="a2-suche-filter" data-a2-tu="projektarchiv" aria-label="Archiv und Filter">
    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>
+ <div id="a2RouteBar">${a2RouteBarHtml()}</div>
  <div id="a2ProjListe">${a2ProjListeHtml()}</div>
  <div class="a2-knopf-reihe">
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesprojekt">
@@ -1092,6 +1155,58 @@ function a2ProjListeHtml(){
  return `<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(treffer.length,"Projekt","Projekte"))}</h2></div>`
   +'<div class="a2-liste-zwei">'+treffer.map(a2ProjektZeileHtml).join("")+"</div>";
 }
+// ---- Routenplanung (v3.372) -----------------------------------------------------------------------------
+function a2RouteProjekte(){return a2Route.ids.map(id=>a2Projekt(id)).filter(Boolean)}
+function a2RouteBarHtml(){
+ if(!a2Route.an){
+  return `<div class="a2-route-leiste"><button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-route="an">
+   <i aria-hidden="true">${A2_ICON.navi}</i> Route planen</button></div>`;
+ }
+ const ps=a2RouteProjekte();
+ const r=ps.length?a2RouteUrl(ps):null;
+ const namen=ps.map((p,i)=>`<li><b>${i+1}</b> ${esc((typeof projektTitel==="function"?projektTitel(p):p.object||p.name)||"Projekt")}
+   <button type="button" class="a2-route-weg" data-a2-route-weg="${esc(p.id)}" aria-label="Aus der Route nehmen">✕</button></li>`).join("");
+ return `<div class="a2-route-leiste a2-route-aktiv">
+  <div class="a2-route-kopf"><b>Route planen</b><span class="small">Projekte in der gewünschten Reihenfolge antippen – das erste ist der Start, das letzte das Ziel. Die App ordnet nichts um.</span></div>
+  ${ps.length?`<ol class="a2-route-liste">${namen}</ol>`:'<div class="small">Noch kein Projekt gewählt.</div>'}
+  ${a2Route.meldung?`<div class="a2-hinweis a2-h-warnung">${esc(a2Route.meldung)}</div>`:(r&&r.ok&&r.warnung?`<div class="a2-hinweis">${esc(r.warnung)}</div>`:"")}
+  <div class="a2-knopf-reihe">
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-blau" data-a2-route="oeffnen"${ps.length>=2?"":" disabled"}>Route in Google Maps öffnen</button>
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-route="leeren"${ps.length?"":" disabled"}>Auswahl leeren</button>
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-route="aus">Fertig</button>
+  </div>
+  <div class="small">Mindestens zwei Projekte mit Adresse. Projekte ohne Adresse lassen sich nicht wählen.</div></div>`;
+}
+function a2RouteZeichnen(){
+ const b=$("a2RouteBar");if(b)b.innerHTML=a2RouteBarHtml();
+ const l=$("a2ProjListe");if(l)l.innerHTML=a2ProjListeHtml();
+}
+function a2RouteKlick(was,id){
+ if(was==="an"){a2Route.an=true;a2Route.meldung="";a2RouteZeichnen();return}
+ if(was==="aus"){a2Route.an=false;a2Route.ids=[];a2Route.meldung="";a2RouteZeichnen();return}
+ if(was==="leeren"){a2Route.ids=[];a2Route.meldung="";a2RouteZeichnen();return}
+ if(was==="pick"||was==="weg"){
+  const p=a2Projekt(id);
+  const i=a2Route.ids.findIndex(x=>String(x)===String(id));
+  if(i>=0)a2Route.ids.splice(i,1);
+  else if(was==="pick"){
+   if(!p||!a2ZielAdresse(p)){a2Route.meldung="Dieses Projekt hat keine verwertbare Adresse und kann nicht Teil einer Route sein.";a2RouteZeichnen();return}
+   if(a2Route.ids.length>=A2_ROUTE_MAX_ZWISCHEN+2){a2Route.meldung="Höchstens "+(A2_ROUTE_MAX_ZWISCHEN+2)+" Projekte pro Route (Start, "+A2_ROUTE_MAX_ZWISCHEN+" Zwischenstopps, Ziel).";a2RouteZeichnen();return}
+   a2Route.ids.push(p.id);
+  }
+  a2Route.meldung="";a2RouteZeichnen();return;
+ }
+ if(was==="oeffnen"){
+  const r=a2RouteUrl(a2RouteProjekte());
+  if(!r.ok){a2Route.meldung=r.fehler;a2RouteZeichnen();return}
+  a2Route.meldung="";
+  // synchron im Klick: nur so laesst der Browser das neue Fenster zu
+  const w=window.open(r.url,"_blank");
+  if(w)w.opener=null;
+  else{a2Route.meldung="Der Browser hat das Öffnen blockiert. Bitte Pop-ups für die App erlauben und nochmals tippen.";}
+  a2RouteZeichnen();
+ }
+}
 function a2ProjektZeileHtml(p){
  // v3.342: Stand je Projekt (Anzahl, offen, zu rüsten) aus der einen Abfrage in js/09; vor dem Laden/bei Fehler steht nichts.
  if(typeof ladeProjectMeasTypen==="function")ladeProjectMeasTypen();
@@ -1104,6 +1219,15 @@ function a2ProjektZeileHtml(p){
  // v3.356 (Wunschbild): Karte mit Symbol, Titel, Status als Punkt-Marke und einer Stand-Zeile mit farbigen Punkten. Der Text der Zeile bleibt derselbe Satz (Trenner „ · “).
  const stZeile=teile.length?`<span class="a2-pz-stand a2-pz-teile" aria-label="${esc(stand)}">`+teile.map((t,i)=>
   (i?'<span class="a2-sep"> · </span>':"")+`<span class="a2-pz-t a2-pz-${esc(t.art)}">${esc(t.text)}</span>`).join("")+"</span>":"";
+ // v3.372: im Routenmodus waehlt ein Tipp das Projekt (Nummer = Reihenfolge) statt es zu oeffnen
+ if(a2Route.an){
+  const pos=a2Route.ids.findIndex(x=>String(x)===String(p.id));
+  const hatAdr=!!a2ZielAdresse(p);
+  return `<button type="button" class="a2-zeile a2-zeile-projekt a2-route-zeile${pos>=0?" a2-route-gewaehlt":""}${hatAdr?"":" a2-route-ohne"}" data-a2-route-pick="${esc(p.id)}"${hatAdr||pos>=0?"":" aria-disabled=\"true\""} aria-pressed="${pos>=0?"true":"false"}">
+  <span class="a2-pz-icon a2-route-nr" aria-hidden="true">${pos>=0?pos+1:"○"}</span>
+  <span class="a2-zeile-text"><span class="a2-pz-kopf"><b>${esc(titel)}</b></span>
+   <span class="a2-pz-unter">${esc(hatAdr?(unten||"—"):"Keine Adresse – nicht wählbar")}</span></span></button>`;
+ }
  return `<button type="button" class="a2-zeile a2-zeile-projekt" data-a2-projekt="${esc(p.id)}">
   <span class="a2-pz-icon" aria-hidden="true">${A2_ICON.haus}</span>
   <span class="a2-zeile-text"><span class="a2-pz-kopf"><b>${esc(titel)}</b>
@@ -1367,6 +1491,14 @@ document.addEventListener("click",async e=>{
   return;
  }
 
+ // v3.372: Routenplanung (muss VOR dem Projekt-Handler stehen; im Routenmodus oeffnet ein Tipp kein Projekt)
+ {const rk=e.target.closest("[data-a2-route],[data-a2-route-pick],[data-a2-route-weg]");
+  if(rk&&$("a2Screen")&&$("a2Screen").contains(rk)){
+   if(rk.hasAttribute("data-a2-route"))a2RouteKlick(rk.getAttribute("data-a2-route"));
+   else if(rk.hasAttribute("data-a2-route-pick"))a2RouteKlick("pick",rk.getAttribute("data-a2-route-pick"));
+   else a2RouteKlick("weg",rk.getAttribute("data-a2-route-weg"));
+   return;
+  }}
  const projekt=e.target.closest("[data-a2-projekt]");
  if(projekt){
   await a2ProjektOeffnen(projekt.getAttribute("data-a2-projekt"));
@@ -1912,6 +2044,7 @@ function a2RegUebersicht(p){
       title="Öffnet Google Maps mit der Projektadresse als Ziel"><i aria-hidden="true">${A2_ICON.navi}</i> Navigation starten</a>`:""}
      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
       <i aria-hidden="true">${A2_ICON.stift}</i> Stammdaten bearbeiten</button></div>
+    ${a2OrteHtml(p)}
    </div>
   </div>`;
  const mengen=(typeof kaMengenKarteHtml==="function")?kaMengenKarteHtml():"";

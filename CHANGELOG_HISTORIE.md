@@ -132,6 +132,14 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.369 — Neue Massaufnahme: Dachrandblech
+
+Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil erstellen wie beim Freien Profil); dazu Grundriss, Länge pro Stück, Überlappung und ein passender Einhängestreifen (Gesamtlänge, Länge pro Stück).
+**Umsetzung:** Dachrandblech ist eine Variante des Freien Profils, keine Parallelwelt: `js/89-dachrandblech.js` (neu) + kleine Haken in `js/31` (Register je Variante, Hooks für Ausmass/Prüfung/Speicherstand/Laden). Gleiches Modell `fpA`, gleiche Schenkel-Erfassung, Zeichnung, Skizzen-Erkennung, Zuschnitt (Rolle/Tafel) und Ausmass. Neue Art `dachrandblech` (Kategorie Flachdach) in js/01, js/10, js/16 (Anzeige/Speichern/Prüfung/Druck), js/48, js/56, js/60 (Rüstskizzen Profil + Grundriss), js/61, js/63 (Stichwörter), index.html (Auswahl), sw.js. Keine DB-Änderung (measurements.type ist frei).
+**Register:** Grunddaten · Detail · Profil · Grundriss · Stücke · Einhängestreifen · Zuschnitt · Ausmass · Kontrolle. **Detail 1.5** = die Masse der Vorlage (12/18/160/50/30/150/12, Winkel −45/−180/135/−180/−45/−45/180), alle Schenkel editierbar. **Grundriss:** Kanten mit Länge und Ecke (Aussen 90°, Innen 90°, beliebiger Winkel), umlaufend mit Schliess-Prüfung, Zeichnung mit Stössen. **Stücke:** je Kante n = ceil((L−Ü)/(P−Ü)), Materiallänge L+(n−1)·Ü, volle Stücke + Rest oder alle gleich lang; die Stücke SIND die Segmente des Freien Profils (Zuschnitt unverändert). **Einhängestreifen (Vorschlag, alles änderbar):** greift in einen wählbaren Umschlag; Haken = Umschlag − Spiel, Abwicklung = Befestigung + 2 × Haken; Gesamtlänge und Stücke je Kante.
+**Grenzen:** Eckzuschläge/Gehrungen werden nicht abgewickelt (Ecken nur gezählt); der Einhängestreifen erscheint im Ausmass, aber (noch) nicht im Zuschnittplan; die Streifenformel ist ein Vorschlag, noch nicht an einem echten Streifen geprüft. Prüfstand `dachrandblech-v3-369`.
+
 ### v3.368 — Reiter „Stunden“ mit Symbol
 
 Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Projektseite ein kleines Linien-Symbol (Uhr, `A2_ICON.stunden` in js/70). Nur Darstellung, keine Datenänderung. Prüfstand nachkalkulation-v3-366 um die Symbol-Prüfung erweitert (107).

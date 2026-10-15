@@ -1475,3 +1475,18 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 #a2NkDialog .a2-nk-box{padding:14px;overflow-wrap:anywhere}
 #a2NkDialog .a2-nk-aktionen{display:flex;gap:8px;margin:10px 0 4px}
 #a2NkDialog .a2-nk-vorschau{margin-top:10px}
+
+/* v3.372 Google Maps: Routenplanung in der Projektliste, Orte in der Naehe */
+.a2-route-leiste{margin:0 0 10px}
+.a2-route-aktiv{background:var(--card-bg);border-radius:12px;padding:10px 12px;box-shadow:inset 0 0 0 1px var(--line)}
+.a2-route-kopf{display:flex;flex-direction:column;gap:2px;margin-bottom:6px}
+.a2-route-liste{margin:6px 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px}
+.a2-route-liste li{display:flex;align-items:center;gap:8px;font-size:14px}
+.a2-route-liste li b{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px}
+.a2-route-weg{margin-left:auto;border:0;background:transparent;color:var(--muted);font-size:16px;min-height:32px;min-width:32px}
+.a2-route-zeile.a2-route-gewaehlt{box-shadow:inset 0 0 0 2px var(--blue)}
+.a2-route-zeile .a2-route-nr{font-weight:800;color:var(--blue)}
+.a2-route-ohne{opacity:.5}
+.a2-orte{margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+.a2-orte-titel{font-size:13px;font-weight:700;margin-bottom:2px}
+.a2-orte-reihe{justify-content:flex-start}
