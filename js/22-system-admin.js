@@ -42,10 +42,38 @@ function sysAdminShowListSuccess(msg){
  sysAdminListSuccessTimer=setTimeout(()=>{el.hidden=true},8000);
 }
 
+// v3.378 (Auftrag "Systemadmin von der Firma trennen"): Die Systemadministration gehoert NICHT mehr in die Firmen-App.
+// Der Betreiber meldet sich mit einem eigenen Konto OHNE Firmenprofil an (Einstieg: Adresse mit "?betreiber"). Ein solches
+// Konto hat serverseitig keine Firma (my_company_id() = NULL) und sieht deshalb keine Projekte, Rapporte oder Termine.
+// Wer ein Firmenprofil hat - auch wenn das Konto (noch) in system_admins steht - sieht hier KEINEN Systemadmin-Zugang.
+// Das Ausblenden ist nur Fuehrung; die Absicherung liegt unveraendert in der Datenbank (is_system_admin() in jeder Funktion/Policy).
+function betreiberEinstieg(){
+ try{return new URLSearchParams(location.search).has("betreiber")}catch(e){return false}
+}
+let betreiberModus=false;
+if(betreiberEinstieg()&&$("loginTitel"))$("loginTitel").textContent="Betreiber-Anmeldung";
 async function checkSystemAdmin(){
  const {data,error}=await sb.rpc("is_system_admin");
  isSystemAdmin=!error&&!!data;
- $("navSystemAdmin").hidden=!isSystemAdmin;
+ const reinesBetreiberKonto=isSystemAdmin&&!currentProfile;
+ $("navSystemAdmin").hidden=!reinesBetreiberKonto;
+}
+// Betreiber-Modus: nur die Systemadministration, keine Firmen-App. Es wird nichts aus einer Firma geladen.
+async function betreiberModusStarten(){
+ betreiberModus=true;
+ $("authScreen").hidden=true;
+ $("passwortModal").hidden=true;
+ $("companyLockedScreen").hidden=true;
+ $("appRoot").hidden=false;
+ ["a2Screen","startScreen","reportScreen"].forEach(id=>{const e=$(id);if(e)e.hidden=true});
+ const l=$("betreiberLeiste");if(l)l.hidden=false;
+ await $("navSystemAdmin").onclick();
+}
+function betreiberAbweisen(text){
+ return sb.auth.signOut().then(()=>{
+  $("appRoot").hidden=true;$("authScreen").hidden=false;
+  showLoginErr(text);
+ });
 }
 
 $("navSystemAdmin").onclick=async()=>{
@@ -61,7 +89,16 @@ $("navSystemAdmin").onclick=async()=>{
  // in js/02-feedback.js, nur mit der geschuetzten Betreiber-Abfrage.
  if(typeof renderFeedbackBetreiberListe==="function")await renderFeedbackBetreiberListe();
 };
-$("closeSystemAdmin").onclick=()=>{$("systemAdminModal").hidden=true};
+$("closeSystemAdmin").onclick=()=>{
+ // Im Betreiber-Modus gibt es keine Firmen-App dahinter - "Zurück" meldet ab.
+ if(betreiberModus){$("betreiberAbmelden").click();return}
+ $("systemAdminModal").hidden=true;
+};
+$("betreiberAbmelden").onclick=async()=>{
+ offlineCacheLeeren();
+ await sb.auth.signOut();
+ location.href=location.pathname+"?betreiber";
+};
 
 async function renderSystemAdminList(){
  const box=$("systemAdminCompanyList");

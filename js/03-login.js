@@ -124,6 +124,14 @@ async function afterLogin(){
  // Vorgezogen (früher erst nach dem appRoot-Aufbau geprüft): wird gleich für
  // die Firmenstatus-Prüfung gebraucht, System-Admins sind davon ausgenommen.
  if(typeof checkSystemAdmin==="function")await checkSystemAdmin();
+ // v3.378: Betreiber-Konto (Systemadmin ohne Firmenprofil) -> nur die Systemadministration. Der Einstieg "?betreiber"
+ // nimmt ausschliesslich solche Konten an; ein Firmenkonto wird dort abgewiesen (und umgekehrt hat ein Firmenkonto keinen
+ // Systemadmin-Zugang in der Firmen-App).
+ if(isSystemAdmin&&!profile){await betreiberModusStarten();return}
+ if(typeof betreiberEinstieg==="function"&&betreiberEinstieg()){
+  await betreiberAbweisen("Dieser Zugang ist nur für das Betreiber-Konto. Firmenkonten melden sich ohne „?betreiber“ an.");
+  return;
+ }
  // v3.34: Offerten-Zugriff (feature_access) - wie checkSystemAdmin() rein
  // lesend, blendet nur die (ohnehin per RLS abgesicherten) Cockpit-
  // Elemente ein/aus. Siehe js/63-angebote.js.
