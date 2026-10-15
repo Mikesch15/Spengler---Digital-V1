@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.376 – Zeitmessung
+
+UMGESETZT: js/93-zeitmessung.js, Karte auf Heute (js/70), Kasten im Regierapport (index.html), css/05, sw.js, Hilfetext.
+FUNKTION: Start/Pause/Weiter/Stopp; effektive Zeit (h/min) + auf 15 min gerundete Stunden; Übernahme als Arbeitsposition; Stand in localStorage.
+GRENZEN: nur dieses Gerät; keine Speicherung der Messung in der Datenbank; eine Messung zugleich; Geräteuhr-Änderungen werden nicht erkannt (ausser Zukunft).
+TESTS: zeitmessung-v3-376 30 ok, 5 Mutationsproben erkannt.
+NICHT GETESTET: echtes Handy mit gesperrtem Bildschirm / App im Hintergrund.

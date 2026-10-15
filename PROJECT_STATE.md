@@ -3,11 +3,12 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.375`
+- Aktueller Entwicklungsstand: `v3.376`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
 - v3.375: Terminplanung (Mehr > Termine, Karte auf Heute): Tabelle `termine` (RLS Firma + projects view/edit), Kalenderimport .ics (js/91 Parser, js/92 Oberfläche), Projekt nur vorgeschlagen, Doppelte über `ics_uid`.
+- v3.376: Zeitmessung (js/93): Stoppuhr Start/Pause/Weiter/Stopp, nur localStorage, Rundung auf 15 min, Übernahme als Arbeitsposition im Regierapport; Karte auf Heute. Rapport-Vorschlag aus der Werkstatt folgt als v3.377.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

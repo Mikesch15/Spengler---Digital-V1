@@ -804,6 +804,8 @@ function a2SeiteHeute(){
  if(typeof wetterKarteHtml==="function")html+=wetterKarteHtml();
  // v3.375: die nächsten Termine (js/92)
  if(typeof terKarteHtml==="function")html+=terKarteHtml();
+ // v3.376: Zeitmessung fuer Regiestunden (js/93)
+ if(typeof zmKarteHtml==="function")html+=zmKarteHtml("heute");
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen

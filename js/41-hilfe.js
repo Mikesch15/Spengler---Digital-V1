@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.375.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.376.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1491,7 +1491,15 @@ oft über mehrere Tage; genau dort spart das Tipparbeit.</p>
 fremden Baustellen wären hier nur Beiwerk. Ein frischer Rapport hat deshalb
 noch keine Vorschläge – es gibt dann nichts, was sich wiederholen könnte.<br><br>
 Das Feld bleibt ein <b>freies Feld</b>: ein neuer Text lässt sich wie bisher
-einfach eintippen. Die Liste schlägt vor, sie schreibt nichts fest.</div>`},
+einfach eintippen. Die Liste schlägt vor, sie schreibt nichts fest.</div>
+<h4>⏱ Zeit messen (ab 3.376)</h4>
+<p>Über den Zeilen steht eine <b>Stoppuhr</b>: <b>Start</b>, <b>Pause</b>, <b>Weiter</b>, <b>Stopp</b>. Sie läuft auch weiter, wenn
+die App zu ist oder das Handy gesperrt wird, und gilt nur für dieses Gerät.</p>
+<p>Nach dem Stopp zeigt die App die <b>effektive Zeit</b> (z. B. 1 h 08 min) und die auf die <b>nächste Viertelstunde gerundete</b> Zeit
+(1,25 h). <b>Als Arbeitsposition übernehmen</b> trägt die gerundeten Stunden in eine neue Zeile ein – Beschreibung und Mitarbeiter
+bitte prüfen, gespeichert wird erst mit dem Rapport. Wer will, lässt die effektive Zeit in die Beschreibung schreiben.</p>
+<div class="hin">Unter 8 Minuten ergäbe die Rundung 0 Stunden – dann wird nichts übernommen. Die Stoppuhr ist auch auf der Startseite
+(Karte „Zeit messen“) bedienbar.</div>`},
 
 "rapport-material":{titel:"Material",text:`
 <p>Die EDV-Nr. schlägt aus dem Materialkatalog vor; Bezeichnung, Dimension,
