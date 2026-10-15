@@ -390,6 +390,19 @@ function a2MarkeHtml(klasse){
 function a2Hilfe(schluessel){
  return (typeof hilfeKnopf==="function")?hilfeKnopf(schluessel):"";
 }
+// v3.371 (Stufe 1 Google Maps): Navigationsziel eines Projekts. Quelle ist AUSSCHLIESSLICH projects.object - die einzige
+// gespeicherte Adresse (Strasse, PLZ und Ort stehen dort als ein Text). Keine Karte, keine API, kein Standortzugriff:
+// nur ein Link, der beim bewussten Klick die Adresse als Ziel an Google Maps uebergibt.
+// Verwertbar ist eine Adresse mit mindestens einem Buchstaben und drei Zeichen; "—", "?" oder nur Ziffern ergeben KEINEN Link.
+function a2ZielAdresse(p){
+ const a=String(p&&p.object!=null?p.object:"").replace(/\s+/g," ").trim();
+ if(a.length<3||!/[A-Za-z\u00C0-\u024F]/.test(a))return "";
+ return a;
+}
+function a2NavigationUrl(p){
+ const a=a2ZielAdresse(p);
+ return a?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(a):"";
+}
 function a2Datum(iso){
  if(!iso)return "";
  const d=new Date(iso);
@@ -673,6 +686,7 @@ const A2_ICON={
  name:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h4"/></svg>',
  person:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.6 3-6 7-6s7 2.4 7 6"/></svg>',
  hinweis:'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3z"/><path d="M12 10v4M12 17h.01"/></svg>',
+ navi:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 20 4l-7.5 16-2-6.5z"/></svg>',
  stift:'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>'
 };
 const A2_ZEILE_ICON={"Auftrags-Nr.":"nummer","Auftraggeber":"firma","Adresse":"adresse","Projektname":"name","Zugeteilt an":"person","Hinweise":"hinweis"};
@@ -1894,6 +1908,8 @@ function a2RegUebersicht(p){
    <div class="a2-karte a2-karte-kompakt"><dl class="a2-daten a2-daten-kompakt">${zeilen.map(([k,v])=>
      `<dt><i aria-hidden="true">${A2_ICON[A2_ZEILE_ICON[k]]||""}</i>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
     <div class="a2-knopf-reihe a2-rechts">
+     ${a2NavigationUrl(p)?`<a class="a2-knopf a2-knopf-klein a2-k-blau" data-a2-navi href="${esc(a2NavigationUrl(p))}" target="_blank" rel="noopener noreferrer"
+      title="Öffnet Google Maps mit der Projektadresse als Ziel"><i aria-hidden="true">${A2_ICON.navi}</i> Navigation starten</a>`:""}
      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
       <i aria-hidden="true">${A2_ICON.stift}</i> Stammdaten bearbeiten</button></div>
    </div>

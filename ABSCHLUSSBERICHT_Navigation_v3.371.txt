@@ -1,0 +1,9 @@
+ABSCHLUSSBERICHT v3.371 – Navigation starten (Google Maps, Stufe 1)
+
+GEAENDERT: js/70-ansicht2.js (a2ZielAdresse, a2NavigationUrl, Knopf in der Karte "Projektuebersicht", Symbol A2_ICON.navi), css/05-ansicht2.css (a.a2-knopf ohne Unterstreichung). Keine neue Datei, keine DB-Aenderung.
+ADRESSE: nur projects.object (einzige Adressangabe; PLZ/Ort stehen darin). Keine getrennten Felder, kein Land.
+KNOPF: Projektseite > Uebersicht > Projektuebersicht, neben "Stammdaten bearbeiten". Nur bei verwertbarer Adresse (>= 3 Zeichen, mindestens ein Buchstabe).
+LINK: https://www.google.com/maps/dir/?api=1&destination=<encodeURIComponent>, neuer Tab, noopener noreferrer.
+TESTS: navigation-v3-371: 21 ok / 0 fehlgeschlagen (URL exakt, Sonderzeichen, fehlende Adressen, nur Strasse/Ort, Projektseite, XSS, nur object, Daten unveraendert, kein fetch/Standort, keine Google-Abhaengigkeit). Mutationsproben: Kodierung, neuer Tab, falsches Feld, Buchstabenpruefung werden erkannt. Schnellpruefung/Regression: siehe Nachtrag.
+NICHT GETESTET: echtes Geraet / tatsaechliches Oeffnen von Google Maps (aus der Sandbox nicht erreichbar).
+GRENZEN: Adresse ist ein Freitext; ist sie ungenau, findet Google Maps ggf. einen anderen Ort. Offline oeffnet der Link nichts.

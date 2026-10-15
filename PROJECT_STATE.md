@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.370`
+- Aktueller Entwicklungsstand: `v3.371`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 
@@ -11,16 +11,16 @@
 
 Meldung des Anwenders: „Das ist 1 zu 1 eine Kopie vom Freien Profil.“ **Ursache:** `newMeasurementWithType()` (js/10) zeigt die Art ZUERST (`showMeasTypeSection`) und setzt das Formular danach zurück (`fpaZuruecksetzen`); das Zurücksetzen löschte die Dachrand-Variante, es erschien das Freie Profil. Der Prüfstand v3.369 rief die beiden Schritte in umgekehrter Reihenfolge auf und merkte es nicht. **Korrektur:** `fpaZuruecksetzen()` (js/31) aktiviert die Variante wieder, wenn die gewählte Art `dachrandblech` ist. Prüfstand `dachrandblech-v3-369` ruft jetzt den echten Weg über die Kachel auf (Abschnitt A0, mit Mutationsprobe).
 
+### v3.371 — Projektseite: „Navigation starten“ (Google Maps, Stufe 1)
+
+Auftrag „Google-Maps-Navigation aus einem Projekt öffnen“. Auf der Projektseite (Karte „Projektübersicht“, neben „Stammdaten bearbeiten“, js/70) erscheint bei einem Projekt mit verwertbarer Adresse der Knopf **Navigation starten**: ein Link `https://www.google.com/maps/dir/?api=1&destination=<kodierte Adresse>`, `target="_blank"` mit `rel="noopener noreferrer"`. **Adressquelle ausschliesslich `projects.object`** (die einzige gespeicherte Adresse; Strasse, PLZ und Ort stehen dort als ein Text – getrennte Felder gibt es nicht und wurden nicht erfunden; kein Land). Verwertbar: mindestens 3 Zeichen und ein Buchstabe; „—“, „?“, nur Ziffern, leer → kein Knopf. Kodierung `encodeURIComponent`, mehrfache Leerzeichen zu einem. Keine Karte, keine Google-Maps-Platform, kein API-Schlüssel, keine Standortabfrage, keine neue Datei, keine DB-/RLS-Änderung. Offline öffnet der Link naturgemäss nichts. Prüfstand `navigation-v3-371` (21 Prüfungen, Mutationsproben).
+
 ### v3.369 — Neue Massaufnahme: Dachrandblech
 
 Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil erstellen wie beim Freien Profil); dazu Grundriss, Länge pro Stück, Überlappung und ein passender Einhängestreifen (Gesamtlänge, Länge pro Stück).
 **Umsetzung:** Dachrandblech ist eine Variante des Freien Profils, keine Parallelwelt: `js/89-dachrandblech.js` (neu) + kleine Haken in `js/31` (Register je Variante, Hooks für Ausmass/Prüfung/Speicherstand/Laden). Gleiches Modell `fpA`, gleiche Schenkel-Erfassung, Zeichnung, Skizzen-Erkennung, Zuschnitt (Rolle/Tafel) und Ausmass. Neue Art `dachrandblech` (Kategorie Flachdach) in js/01, js/10, js/16 (Anzeige/Speichern/Prüfung/Druck), js/48, js/56, js/60 (Rüstskizzen Profil + Grundriss), js/61, js/63 (Stichwörter), index.html (Auswahl), sw.js. Keine DB-Änderung (measurements.type ist frei).
 **Register:** Grunddaten · Detail · Profil · Grundriss · Stücke · Einhängestreifen · Zuschnitt · Ausmass · Kontrolle. **Detail 1.5** = die Masse der Vorlage (12/18/160/50/30/150/12, Winkel −45/−180/135/−180/−45/−45/180), alle Schenkel editierbar. **Grundriss:** Kanten mit Länge und Ecke (Aussen 90°, Innen 90°, beliebiger Winkel), umlaufend mit Schliess-Prüfung, Zeichnung mit Stössen. **Stücke:** je Kante n = ceil((L−Ü)/(P−Ü)), Materiallänge L+(n−1)·Ü, volle Stücke + Rest oder alle gleich lang; die Stücke SIND die Segmente des Freien Profils (Zuschnitt unverändert). **Einhängestreifen (Vorschlag, alles änderbar):** greift in einen wählbaren Umschlag; Haken = Umschlag − Spiel, Abwicklung = Befestigung + 2 × Haken; Gesamtlänge und Stücke je Kante.
 **Grenzen:** Eckzuschläge/Gehrungen werden nicht abgewickelt (Ecken nur gezählt); der Einhängestreifen erscheint im Ausmass, aber (noch) nicht im Zuschnittplan; die Streifenformel ist ein Vorschlag, noch nicht an einem echten Streifen geprüft. Prüfstand `dachrandblech-v3-369`.
-
-### v3.368 — Reiter „Stunden“ mit Symbol
-
-Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Projektseite ein kleines Linien-Symbol (Uhr, `A2_ICON.stunden` in js/70). Nur Darstellung, keine Datenänderung. Prüfstand nachkalkulation-v3-366 um die Symbol-Prüfung erweitert (107).
 
 ## DAUERHAFT GÜLTIGE REGELN
 

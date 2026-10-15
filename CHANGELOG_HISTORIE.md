@@ -131,6 +131,11 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.368 — Reiter „Stunden“ mit Symbol
+
+Der Reiter „Stunden“ (Nachkalkulation) hat wie die übrigen Reiter der Projektseite ein kleines Linien-Symbol (Uhr, `A2_ICON.stunden` in js/70). Nur Darstellung, keine Datenänderung. Prüfstand nachkalkulation-v3-366 um die Symbol-Prüfung erweitert (107).
+
 ### v3.367 — Abacus-Import: sichere Projektzuordnung (Nachbesserung)
 
 Auftrag „Nachbesserung Abacus Projektzuordnung“. **Befund bestätigt:** In v3.366 wurde eine Zeile mit abweichender Auftragsnummer nur „unklar“ (Hinweis), blieb aber wählbar und wurde beim Speichern übernommen; ausserdem wählte die Erkennung bei einem Dokument mit A-1001 + unbekannter Nummer das Projekt A-1001 für das ganze Dokument.
