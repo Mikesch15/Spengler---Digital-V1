@@ -11,7 +11,7 @@ Du brauchst dafür **einen Computer** (Windows, Mac oder Linux), kein Handy. Es 
 
 ## Was du am Ende schickst
 
-Drei kleine Textdateien (je nur die ersten ca. 30 Zeilen), als Anhang in den Chat:
+Kleine Textdateien als Anhang in den Chat (Stand: Nr. 1 und 2 sind erledigt):
 
 | Nr. | Name der Datei, die du mir schickst | Woher |
 | --- | --- | --- |
@@ -52,20 +52,26 @@ aus der MeteoSchweiz-Dokumentation und kann sich geändert haben. Dann gehen wir
 
 ---
 
-## Schritt 3 – Auszug aus einer Vorhersage-Datei (`vorhersage.csv`)
+## Schritt 3 (neu, einfacher) – Zwei kleine Dinge für die Vorhersage-Dateien
 
-1. Bleib im selben STAC-Browser. Öffne den **neuesten Eintrag** („Items“, oben in der Liste, mit dem aktuellen Datum und der Uhrzeit).
-2. In diesem Eintrag stehen mehrere Dateien – **eine pro Messgrösse**. Die Messgrössen tragen Kürzel, z. B.:
-   - `jp2000d0` – Wettersymbol pro Tag
-   - `tre200h0` – Temperatur (stündlich)
+Schritt 1 und 2 sind erledigt (`parameter.csv` und `orte.csv` sind angekommen, danke). Für Schritt 3 musst du **nichts im
+Dateibrowser suchen**. Die Vorhersage-Dateien für Tageswerte sind klein (höchstens rund 300 KB), du kannst sie also ganz schicken.
 
-   Lade **zuerst die Datei zum Wettersymbol pro Tag** (`jp2000d0`) herunter. Sie ist am kleinsten.
-3. Kürze sie auf die ersten 30 Zeilen (wie oben beschrieben) und speichere sie als `vorhersage.csv`.
+**3a – Die Dateiliste als Text kopieren**
+1. Öffne im Browser diese Adresse (es erscheint nur Text, das ist richtig):
+   `https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-local-forecasting/items?limit=1`
+2. Alles markieren (Strg+A bzw. Cmd+A), kopieren (Strg+C) und in eine neue Nachricht an Claude einfügen.
+   Wenn der Text sehr lang ist, ist das in Ordnung. Alternativ: Seite speichern (Strg+S) und die Datei als Anhang schicken.
 
-*Wenn du dir nicht sicher bist, welche Datei:* Schreib mir einfach die **Liste der Dateinamen**, die im neuesten Eintrag stehen
-(Kopieren und Einfügen genügt). Dann sage ich dir genau, welche du holen sollst.
+   *Was ich daraus lese:* die Namen der Dateien und ihre Download-Adressen.
 
----
+**3b – Zwei Tagesdateien herunterladen und ganz schicken**
+1. In dem Text aus 3a stehen Adressen (`"href": "https://…"`). Suche die beiden, bei denen im Namen
+   **`jp2000d0`** (Wettersymbol pro Tag) bzw. **`tre200px`** (Höchsttemperatur pro Tag) vorkommt.
+2. Öffne die Adresse im Browser (oder rechtsklick, „Link speichern unter“) und speichere die Datei.
+3. Schick beide Dateien **ganz** als Anhang (sie sind klein).
+
+*Wenn dir das Suchen im Text zu mühsam ist:* Schick mir nur 3a, ich schreibe dir dann die zwei genauen Adressen auf.
 
 ## Schritt 4 – Schicken
 
