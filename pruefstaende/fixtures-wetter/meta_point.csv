@@ -1,0 +1,9 @@
+point_id;point_type_id;station_abbr;postal_code;point_name;point_type_de;point_type_fr;point_type_it;point_type_en;point_height_masl;point_coordinates_lv95_east;point_coordinates_lv95_north;point_coordinates_wgs84_lat;point_coordinates_wgs84_lon
+1;1;ARO;;Arosa;Station;Station;Stazione;Station;1878.0;2771031.0;1184830.0;46.792661;9.679014
+2;1;RAG;;Bad Ragaz;Station;Station;Stazione;Station;497.0;2756911.0;1209351.0;47.016631;9.502594
+100025;2;;1000;Lausanne 25;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;837.0;2542061.0;1156539.0;46.557622;6.683067
+100026;2;;1000;Lausanne 26;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;849.0;2543070.0;1156357.0;46.556072;6.696247
+100027;2;;1000;Lausanne 27;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;766.0;2541994.0;1154826.0;46.542208;6.682408
+100800;2;;1008;Prilly;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;480.0;2536119.0;1154034.0;46.534547;6.605931
+100802;2;;1008;Jouxtens-Mézery;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;524.0;2535439.0;1155791.0;46.550286;6.596822
+306300;2;;3063;Ittigen;Zentrum Postleitzahl;Centre code postal;Centro codice postale;Postal code center;547.0;2603123.0;1202873.0;46.976917;7.479681

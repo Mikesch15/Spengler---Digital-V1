@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.374 – Wetter von MeteoSchweiz
+
+UMGESETZT: Edge Function wetter-meteoschweiz (v1, verify_jwt) + parser.js; Tabelle wetter_cache (Migration v3374, RLS an, keine Policy); js/90-wetter.js auf die Funktion umgestellt; Einstellungsblock vereinfacht (Ort = PLZ der Firmenadresse); Quelle "MeteoSchweiz" auf der Karte.
+FUNKTION: 5 Tage, Piktogramm-Text/Emoji, Tmax/Tmin, Regen ab 1 mm, Gewitter, Frost, Hitze. Zwischenspeicher 3 h (Server) und 30 min (Gerät), Offline-Stand, Neuversuch max. 1x/Minute. Standard AUS.
+GRENZEN: kein Wind (nur stündlich verfügbar, ~30 MB je Datei); Piktogramme 6-16/29-42 nur grob benannt.
+TESTS: wetter-v3-374 34 ok, wetter-meteoschweiz-v3-374 30 ok (echte Beispieldateien).
+NICHT GETESTET: echter Abruf bei MeteoSchweiz und Aufruf der Funktion mit echtem Login (Sandbox erreicht beides nicht); Anzeige auf dem Gerät.
