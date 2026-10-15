@@ -74,8 +74,8 @@ const koepfe=page=>page.evaluate(()=>
 
  // ---- A  Die Gliederung ---------------------------------------------------
  let k=await koepfe(page);
- p(k.join("|")==="Meine Aufgaben|Werkstatt heute|Offene Projekte",
-   "A1 die Rubriken stehen in der Reihenfolge des Prototyps",k);
+ p(k.join("|")==="Termine|Meine Aufgaben|Werkstatt heute|Offene Projekte",
+   "A1 die Rubriken stehen in der Reihenfolge des Prototyps (v3.375: davor die Karte Termine)",k);
  const warnung=await page.evaluate(()=>{
   const w=document.querySelector("#a2Inhalt .a2-h-warnung");
   if(!w)return null;

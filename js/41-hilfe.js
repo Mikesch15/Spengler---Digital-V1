@@ -1615,6 +1615,20 @@ unten erscheint dann <i>„✓ Gespeichert.“</i>. Geht es nicht durch, steht d
 stattdessen der Grund. Bis 3.181 wurde bei diesen Feldern gar nichts
 geschrieben, ohne dass es auffiel.</p>`},
 
+"termine":{titel:"Termine",text:`
+<p>Die Terminplanung zeigt eine <b>Woche</b> (Montag bis Sonntag). Mit <b>‹ ›</b> blättern Sie, mit <b>Heute</b> springen Sie zurück.
+Tippen Sie auf einen Termin, um ihn zu ändern oder zu löschen; <b>+ Neuer Termin</b> legt einen an.</p>
+<p>Ein Termin kann mit einem <b>Projekt</b> und mit <b>Mitarbeitern</b> verknüpft sein – beides ist freiwillig. Mehrtägige Termine
+erscheinen an jedem Tag. Die nächsten Termine stehen auch auf der Startseite.</p>
+<h4>Kalender vom Handy importieren</h4>
+<p>Der Browser darf den Kalender des Handys nicht selbst lesen. Der Weg: im Kalender des Handys einen Termin oder Kalender
+<b>teilen bzw. exportieren</b> (Datei <b>.ics</b>) und hier unter <b>Kalender importieren</b> auswählen.</p>
+<p>Danach sehen Sie eine <b>Vorschau</b>. Gespeichert wird erst bei <b>Importieren</b>. Das Projekt wird nur <b>vorgeschlagen</b> – anhand von
+Adresse (mit Hausnummer), Auftragsnummer oder Projektname – und lässt sich ändern. Vergangene Termine sind nicht vorgewählt; bereits
+importierte werden erkannt und nicht doppelt angelegt.</p>
+<div class="hin"><b>Wiederkehrende Termine</b> werden nicht aufgelöst: übernommen wird nur der erste Termin, die App sagt es in der Vorschau.
+Es gibt keine Erinnerungen und keine laufende Synchronisation – der Import ist eine Momentaufnahme.</div>
+`},
 "abwicklung":{titel:"Abwicklung: Rundrohr und Tablett",text:`
 <p>Der Rechner kennt zwei <b>Bauteile</b>. Oben wird gewählt, welches gerade
 gerechnet wird; Vorschau, Ergebnis, DXF, Schablone und die gespeicherte Liste
