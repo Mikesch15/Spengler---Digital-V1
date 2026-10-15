@@ -209,7 +209,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.372</div>
+<div id="appVersion">Version 3.373</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2450,7 +2450,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.372.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.373.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -2861,6 +2861,19 @@ Ausmass: eigener, unabhängiger Wert je Anschlusstyp, der nur die Ausmass-Länge
 <button type="button" class="gray" id="kopfBildRemove" hidden>✕ Standard-Banner wiederherstellen</button>
 </div></div>
 <div class="bar" style="margin-top:8px"><button id="saveCompanyName" class="green">💾 Speichern</button></div>
+<!-- v3.373: Wetter auf der Startseite (Firmenstandort), Standard aus. Eigener Speichern-Knopf, damit die Firmendaten oben unberuehrt bleiben. -->
+<div class="settings-unterblock" id="wetterBlock" style="margin-top:14px;padding-top:10px;border-top:1px solid var(--line)">
+<label style="font-weight:700">Wetter auf der Startseite</label>
+<label class="rechte-schalter"><input type="checkbox" id="wetterAktivInput"> Wetter für den Firmenstandort anzeigen</label>
+<div class="small" style="color:var(--muted);margin:4px 0">Quelle: Open-Meteo.com, ohne Schlüssel. <b>Hinweis:</b> Der kostenlose Zugang gilt laut Anbieter nur für nicht-kommerzielle Nutzung – für einen Betrieb ist ein bezahlter Zugang nötig. Deshalb ist die Anzeige standardmässig aus. Abgefragt wird nur beim Öffnen der Startseite, nie im Hintergrund.</div>
+<div class="grid"><div class="wide"><label>Ort oder PLZ</label><input id="wetterOrtInput" placeholder="z. B. 3000 Bern"></div></div>
+<div class="bar" style="margin-top:6px"><button type="button" class="gray" id="wetterSuchen">🔍 Ort suchen</button></div>
+<div id="wetterTreffer" class="bar" style="margin-top:6px;flex-wrap:wrap"></div>
+<div class="grid"><div><label>Breitengrad</label><input id="wetterLatInput" inputmode="decimal" placeholder="46.95"></div>
+<div><label>Längengrad</label><input id="wetterLonInput" inputmode="decimal" placeholder="7.45"></div></div>
+<div class="small" id="wetterOrtAnzeige" style="margin:4px 0"></div>
+<div class="bar" style="margin-top:6px"><button type="button" class="green" id="wetterSpeichern">💾 Wetter speichern</button></div>
+</div>
 </div>
 </div>
 
@@ -3147,7 +3160,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.372.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.373.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3622,6 +3635,7 @@ nicht neu installieren.</div>
 <script src="js/87-abacus-parser.js"></script>
 <script src="js/88-nachkalkulation.js"></script>
 <script src="js/89-dachrandblech.js"></script>
+<script src="js/90-wetter.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

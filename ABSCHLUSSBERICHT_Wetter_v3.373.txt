@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.373 – Wetter auf der Startseite
+
+UMGESETZT: js/90-wetter.js (neu), Karte auf "Heute" (js/70), Einstellungsblock "Wetter auf der Startseite" (index.html, Firma), Laden der Einstellungen (js/05), css/05, sw.js. DB: 4 neue Spalten in app_settings (additiv, Migration angewendet), Policies unveraendert.
+FUNKTION: Firmenstandort (Ortssuche oder Koordinaten), 5 Tage, Hinweise (Regen, Wind, Sturmboeen, Gewitter, Frost, Hitze), 30-Minuten-Zwischenspeicher, Offline-Stand, Neuversuch hoechstens 1x/Minute, keine Hintergrundabfrage, keine Geraete-Standortabfrage. Standard AUS.
+LIZENZ-HINWEIS (Entscheidung des Betriebs): Open-Meteo ist im kostenlosen Zugang nur fuer nicht-kommerzielle Nutzung gedacht. Fuer den Betrieb ist ein bezahlter Zugang noetig; der Schluessel muesste dann hinter eine Edge Function (nicht ins Frontend). Alternative: MeteoSchweiz Open-Data. Bis zur Entscheidung bleibt die Funktion ausgeschaltet.
+TESTS: wetter-v3-373: 40 ok / 0 fehlgeschlagen (Standard aus, Antwort lesen, Schwellen, Abfrage-URL, Zwischenspeicher, Offline, Fehlerfaelle, Einstellungen, Ortssuche, keine fremden Adressen). 7 Mutationsproben erkannt. Schnellpruefung/Regression: siehe Nachtrag.
+NICHT GETESTET: echte Abfrage bei Open-Meteo (aus der Sandbox nicht erreichbar); Anzeige auf echtem Geraet.

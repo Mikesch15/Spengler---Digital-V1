@@ -799,6 +799,8 @@ function a2SeiteHeute(){
  const auf=a2Aufgaben();
  let html=a2HeuteHeroHtml();
  html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
+ // v3.373: Wetter am Firmenstandort - nur wenn der Administrator es eingeschaltet hat (js/90)
+ if(typeof wetterKarteHtml==="function")html+=wetterKarteHtml();
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen

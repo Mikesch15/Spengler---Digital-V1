@@ -124,6 +124,7 @@ async function loadAllData(){
   companyAddress=geladen.appSettings.company_address||"";
   logoUrl=geladen.appSettings.logo_url||"";
   kopfBildUrl=geladen.appSettings.kopf_bild_url||"";
+  if(typeof wetterUebernehmen==="function")wetterUebernehmen(geladen.appSettings);
   if(typeof einfMantelFirma!=="undefined")einfMantelFirma=Array.isArray(geladen.appSettings.einfassung_mantel_zuordnung)?geladen.appSettings.einfassung_mantel_zuordnung:[];
   defaultVat=geladen.appSettings.default_vat||"8.1 %";
   offerteVortext=geladen.appSettings.offerte_vortext||"";

@@ -133,6 +133,23 @@ und zwar bewusst (Abschnitt 89.1).
 
 
 
+
+### v3.370 — Dachrandblech: Variante ging beim Öffnen verloren (Korrektur zu v3.369)
+
+Meldung des Anwenders: „Das ist 1 zu 1 eine Kopie vom Freien Profil.“ **Ursache:** `newMeasurementWithType()` (js/10) zeigt die Art ZUERST (`showMeasTypeSection`) und setzt das Formular danach zurück (`fpaZuruecksetzen`); das Zurücksetzen löschte die Dachrand-Variante, es erschien das Freie Profil. Der Prüfstand v3.369 rief die beiden Schritte in umgekehrter Reihenfolge auf und merkte es nicht. **Korrektur:** `fpaZuruecksetzen()` (js/31) aktiviert die Variante wieder, wenn die gewählte Art `dachrandblech` ist. Prüfstand `dachrandblech-v3-369` ruft jetzt den echten Weg über die Kachel auf (Abschnitt A0, mit Mutationsprobe).
+
+### v3.372 — Google Maps kostenlos: Route aus mehreren Projekten, Orte in der Nähe, Karte/Street View
+
+Auftrag „Kostenlose Google-Maps-Erweiterungen“. **Nur normale, vom Benutzer ausgelöste Google-Maps-URLs** (feste Domain `https://www.google.com/maps/`, Parameterwerte mit `encodeURIComponent`); keine Maps-Platform-API, kein Schlüssel, kein Geocoding/Places/Directions/Embed/Static, keine Standortabfrage, keine neue Datei/Abhängigkeit/Tabelle. Alles in `js/70` + `css/05`; Adresse weiter nur `projects.object`.
+1. **Route planen** (Projektliste, Knopf über der Liste, kein zweiter Bildschirm): Auswahlmodus – Tipp wählt das Projekt (Nummer = Reihenfolge), erstes = Start, letztes = Ziel, dazwischen Zwischenstopps, keine Optimierung. Projekte ohne Adresse sind nicht wählbar; Route erst ab 2 Projekten; bis 9 Zwischenstopps (11 Projekte), darüber wird nicht geöffnet (Hinweis: teilen); ab 4 Zwischenstopps Warnung (Smartphone kann weniger Stopps übernehmen – nicht live geprüft); gleiche Adressen werden gemeldet.
+2. **In der Nähe suchen** (Projektseite, Projektübersicht): Metallhandel, Baumarkt/Baustoffhandel, Entsorgung/Recycling, Kran/Gerüst – Maps-Suche „<Begriff> nahe <Adresse>“; keine Distanzangaben.
+3. **Street View:** Die offizielle Street-View-URL (`map_action=pano`) verlangt Koordinaten oder eine Panorama-ID; eine Adresse genügt nicht, Koordinaten würden eine Geocoding-API verlangen. Deshalb öffnet „Adresse auf Karte ansehen“ ehrlich die Karte zur Adresse (Such-URL) mit Hinweis, dort Street View zu wählen. Aus der Sandbox ist Google nicht erreichbar (403) – das tatsächliche Verhalten der URLs ist nicht live geprüft.
+„Navigation starten“ (v3.371) unverändert. Prüfstand `karten-v3-372` (32 Prüfungen, 6 Mutationsproben).
+
+### v3.371 — Projektseite: „Navigation starten“ (Google Maps, Stufe 1)
+
+Auftrag „Google-Maps-Navigation aus einem Projekt öffnen“. Auf der Projektseite (Karte „Projektübersicht“, neben „Stammdaten bearbeiten“, js/70) erscheint bei einem Projekt mit verwertbarer Adresse der Knopf **Navigation starten**: ein Link `https://www.google.com/maps/dir/?api=1&destination=<kodierte Adresse>`, `target="_blank"` mit `rel="noopener noreferrer"`. **Adressquelle ausschliesslich `projects.object`** (die einzige gespeicherte Adresse; Strasse, PLZ und Ort stehen dort als ein Text – getrennte Felder gibt es nicht und wurden nicht erfunden; kein Land). Verwertbar: mindestens 3 Zeichen und ein Buchstabe; „—“, „?“, nur Ziffern, leer → kein Knopf. Kodierung `encodeURIComponent`, mehrfache Leerzeichen zu einem. Keine Karte, keine Google-Maps-Platform, kein API-Schlüssel, keine Standortabfrage, keine neue Datei, keine DB-/RLS-Änderung. Offline öffnet der Link naturgemäss nichts. Prüfstand `navigation-v3-371` (21 Prüfungen, Mutationsproben).
+
 ### v3.369 — Neue Massaufnahme: Dachrandblech
 
 Wunsch: Neue Massaufnahme „Dachrandblech“: Auswahl Detail 1.5 (alle Masse anpassbar) oder anderes Detail (Profil erstellen wie beim Freien Profil); dazu Grundriss, Länge pro Stück, Überlappung und ein passender Einhängestreifen (Gesamtlänge, Länge pro Stück).
