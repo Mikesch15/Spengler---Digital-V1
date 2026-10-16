@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.387.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.388.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1641,7 +1641,7 @@ geschrieben, ohne dass es auffiel.</p>`},
 "termine":{titel:"Termine",text:`
 <p>Die Terminplanung zeigt eine <b>Woche</b> (Montag bis Sonntag). Mit <b>‹ ›</b> blättern Sie, mit <b>Heute</b> springen Sie zurück.
 Tippen Sie auf einen Termin, um ihn zu ändern oder zu löschen; <b>+ Neuer Termin</b> legt einen an.</p>
-<p>Ein Termin kann mit einem <b>Projekt</b> und mit <b>Mitarbeitern</b> verknüpft sein – beides ist freiwillig. Mehrtägige Termine
+<p>Ein Termin kann mit einem <b>Projekt</b> verknüpft und <b>Mitarbeitern zugeteilt</b> werden – beides ist freiwillig. <b>Ohne Zuteilung</b> sehen ihn alle; <b>mit Zuteilung</b> sehen ihn nur die zugeteilten Personen, die Person, die ihn angelegt hat, und die Admins (ab 3.388, in der Datenbank durchgesetzt). Mehrtägige Termine
 erscheinen an jedem Tag. Die nächsten Termine stehen auch auf der Startseite.</p>
 <h4>Kalender vom Handy importieren</h4>
 <p>Der Browser darf den Kalender des Handys nicht selbst lesen. Der Weg: im Kalender des Handys einen Termin oder Kalender
@@ -1654,7 +1654,7 @@ Es gibt keine Erinnerungen und keine laufende Synchronisation – der Import ist
 <h4>📧 Outlook verbinden (ab 3.379)</h4>
 <p>Unter <b>Outlook</b> verbindest du <b>deinen eigenen</b> Outlook-Kalender mit deinem Microsoft-Konto. Danach gleicht der Server die Termine
 <b>etwa alle 5 Minuten selbstständig</b> ab – in beide Richtungen, auch wenn die App zu ist. <b>Jetzt synchronisieren</b> stösst es sofort an.</p>
-<p>Aus Outlook übernommen werden Termine der nächsten 120 Tage (und der letzten 7). Sie sind für alle Mitarbeiter mit Projektrecht sichtbar;
+<p>Aus Outlook übernommen werden Termine der nächsten 120 Tage (und der letzten 7). Sie sind <b>nur für dich</b> sichtbar (dir zugeteilt);
 <b>private</b> Outlook-Termine werden nie übernommen. Mit der Kategorie <b>«Spengler-DIGITAL»</b> in Outlook (oder der Auswahl «nur Kategorie»)
 bestimmst du, was ankommt. Ein Projekt wird nur zugeordnet, wenn Adresse mit Hausnummer oder Auftragsnummer sicher passen – sonst steht
 <b>«Projekt prüfen»</b> beim Termin.</p>

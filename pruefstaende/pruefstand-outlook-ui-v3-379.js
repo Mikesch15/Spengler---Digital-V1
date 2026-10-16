@@ -45,7 +45,7 @@ const INIT=()=>{
  let page=await mk();
  await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
- p(/Outlook-Kalender verbinden \(optional\)/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private Outlook-Termine werden nie übernommen/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen, was passiert (Sichtbarkeit für alle mit Projektrecht, privat nie, „Projekt prüfen“)",t.slice(0,300));
+ p(/Outlook-Kalender verbinden \(optional\)/.test(t)&&/nur für dich.*sichtbar/.test(t)&&/Private Outlook-Termine werden nie übernommen/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen, was passiert (Sichtbarkeit für alle mit Projektrecht, privat nie, „Projekt prüfen“)",t.slice(0,300));
  p(await page.evaluate(()=>document.getElementById("olVerbinden").disabled),"Der Knopf „Mit Outlook verbinden“ ist gesperrt, bis die Einwilligung angehakt ist");
  await page.evaluate(()=>{document.getElementById("olVerbinden").click()});await page.waitForTimeout(100);
  p((await page.evaluate(()=>window.__aufrufe.length))===0,"Ohne Einwilligung geht kein Aufruf an den Server");

@@ -50,7 +50,7 @@ function olHtml(){
   return `<h3>📧 Outlook-Kalender verbinden (optional)</h3>
   <div class="small">Termine zwischen deinem Outlook-Kalender und Spengler-DIGITAL werden <b>automatisch im Hintergrund</b> abgeglichen (etwa alle 5 Minuten) – in beide Richtungen.</div>
   <ul class="small" style="margin:6px 0 6px 18px;padding:0">
-   <li>Termine aus <b>deinem</b> Outlook erscheinen in der Terminliste. Sie sind für <b>alle Mitarbeiter mit Projektrecht</b> sichtbar.</li>
+   <li>Termine aus <b>deinem</b> Outlook erscheinen in der Terminliste. Sie sind <b>nur für dich</b> sichtbar (dir zugeteilt); in der App lässt sich die Zuteilung ändern.</li>
    <li><b>Private</b> Outlook-Termine werden nie übernommen. Mit der Auswahl unten kannst du zusätzlich nur Termine mit der Outlook-Kategorie «Spengler-DIGITAL» übernehmen.</li>
    <li>Ein Projekt wird nur zugeordnet, wenn Adresse oder Auftragsnummer sicher passen; sonst steht «Projekt prüfen» dabei.</li>
    <li>Löschst du einen Termin in der App, den die App nach Outlook geschrieben hat, wird er auch in Outlook gelöscht. Aus Outlook importierte Termine bleiben in Outlook bestehen.</li>

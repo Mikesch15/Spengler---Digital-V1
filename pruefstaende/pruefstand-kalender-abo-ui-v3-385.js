@@ -40,7 +40,7 @@ const INIT=()=>{
  let page=await mk();
  await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
- p(/Arbeitskalender per Link abonnieren/.test(t)&&/nur lesen/.test(t)&&/nichts zurückgeschrieben/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private.*nie übernommen/.test(t)&&/verschlüsselt/.test(t)&&/nie wieder angezeigt/.test(t)&&/importierten Termine entfernt/.test(t),"Vorher steht offen: nur lesen, sichtbar für alle mit Projektrecht, privat nie, Link verschlüsselt und nie wieder sichtbar, Trennen entfernt Termine",t.slice(0,400));
+ p(/Arbeitskalender per Link abonnieren/.test(t)&&/nur lesen/.test(t)&&/nichts zurückgeschrieben/.test(t)&&/nur für dich.*sichtbar/.test(t)&&/Private.*nie übernommen/.test(t)&&/verschlüsselt/.test(t)&&/nie wieder angezeigt/.test(t)&&/importierten Termine entfernt/.test(t),"Vorher steht offen: nur lesen, nur für dich sichtbar, privat nie, Link verschlüsselt und nie wieder sichtbar, Trennen entfernt Termine",t.slice(0,400));
  await page.evaluate(()=>document.getElementById("aboStart").click());await page.waitForTimeout(100);
  p((await page.evaluate(()=>window.__aufrufe.length))===0&&/Link einfügen/.test(await sehe(page)),"Ohne Link geht kein Aufruf an den Server");
  await page.evaluate(()=>{document.getElementById("aboUrl").value="webcal://outlook.office365.com/owa/calendar/GEHEIM123/x/calendar.ics";window.__antwort.start={ok:true,gefunden:12,neu:12,geaendert:0,entfernt:0,fehler:0,hinweise:[]};document.getElementById("aboStart").click()});await page.waitForTimeout(300);

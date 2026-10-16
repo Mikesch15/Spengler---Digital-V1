@@ -35,7 +35,7 @@ function aboHtml(){
   <div class="small">Die Termine deines <b>veröffentlichten Kalenders</b> (z. B. Outlook-Firmenkonto) erscheinen automatisch in der Terminliste – <b>nur lesen</b>, es wird nichts zurückgeschrieben. Ein Abgleich läuft etwa alle 15 Minuten auf dem Server.</div>
   <ul class="small" style="margin:6px 0 6px 18px;padding:0">
    <li>In Outlook: <b>Einstellungen → Kalender → Freigegebene Kalender → Kalender veröffentlichen</b> → «Alle Details anzeigen» → <b>ICS-Link</b> kopieren und hier einfügen.</li>
-   <li>Die Termine sind für <b>alle Mitarbeiter mit Projektrecht</b> sichtbar. <b>Private</b> Termine werden nie übernommen. Serien werden aufgelöst.</li>
+   <li>Die Termine sind <b>nur für dich</b> sichtbar (dir zugeteilt). <b>Private</b> Termine werden nie übernommen. Serien werden aufgelöst.</li>
    <li>Der Link ist wie ein Passwort: Er wird verschlüsselt auf dem Server gespeichert und nie wieder angezeigt. Beim Trennen werden die importierten Termine entfernt.</li>
    <li>Die Änderungen erscheinen mit der Verzögerung, die der Anbieter beim veröffentlichten Kalender hat (oft 15 Minuten bis einige Stunden).</li>
   </ul>

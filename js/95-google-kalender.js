@@ -38,7 +38,7 @@ function gkHtml(){
   return `<h3>📅 Google-Kalender verbinden (optional)</h3>
   <div class="small">Termine zwischen deinem <b>Google-Kalender</b> (z. B. dem auf dem Handy) und Spengler-DIGITAL werden <b>automatisch im Hintergrund</b> abgeglichen (etwa alle 5 Minuten) – in beide Richtungen.</div>
   <ul class="small" style="margin:6px 0 6px 18px;padding:0">
-   <li>Abgeglichen wird der <b>Hauptkalender</b> deines Google-Kontos. Seine Termine erscheinen in der Terminliste und sind für <b>alle Mitarbeiter mit Projektrecht</b> sichtbar.</li>
+   <li>Abgeglichen wird der <b>Hauptkalender</b> deines Google-Kontos. Seine Termine erscheinen in der Terminliste und sind <b>nur für dich</b> sichtbar (dir zugeteilt).</li>
    <li><b>Private</b> Google-Termine (Sichtbarkeit «Privat» oder «Vertraulich») werden nie übernommen. Eine Auswahl nach Kategorien gibt es bei Google nicht.</li>
    <li>Ein Projekt wird nur zugeordnet, wenn Adresse oder Auftragsnummer sicher passen; sonst steht «Projekt prüfen» dabei.</li>
    <li>Löschst du einen Termin in der App, den die App nach Google geschrieben hat, wird er auch in Google gelöscht. Aus Google importierte Termine bleiben in Google bestehen.</li>

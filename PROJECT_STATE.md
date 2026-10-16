@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.387`
+- Aktueller Entwicklungsstand: `v3.388`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -19,6 +19,7 @@
 - v3.385: Kalender-Abo per ICS-Link (nur lesen): Edge Function `kalender-abo` (Cron alle 15 Min + Handtipp), Tabelle `kalender_abos`, Link im Vault (`kalender_abo_url_*`), Termine `quelle='abo'`/`abo_id` (schreibgeschützt per RESTRICTIVE-Policy), Serien-Auflösung in js/91 (`opt.fenster`), nur bekannte Anbieter-Hosts, UI js/96. Einrichtung/Deploy durch Anwender nötig (Anleitung: `ANLEITUNG_Kalender-Abo.md`). Live nicht testbar.
 - v3.386: Schirm Termine: Outlook-/Google-/Abo-Boxen und .ics-Import gesammelt in `<details id="terKalenderDetails">` ganz unten, zugeklappt; `terKalenderOeffnen()` öffnet nach Rückkehr von Outlook/Google.
 - v3.387: Firmen-Modulregister: Tabellen `module_registry`/`company_modules` (nur Systemadmin schreibt via `system_admin_set_firma_modul`), `modul_aktiv()`, 10 RESTRICTIVE-Policies `modul_boundary_*` (angebote/lager/nachkalkulation), Standard = aktiv; `platform_audit_log` (nur Systemadmin liest; Status/Testphase/Module protokolliert). UI: js/22 + `modulErlaubt` (js/05a). NICHT angewendet: `v3387b_firma_loeschen_protokoll.sql` (Protokollzeile beim Firma-Löschen, Umgebung hat abgebrochen).
+- v3.388: Termine: Zuteilung bestimmt Sichtbarkeit. RESTRICTIVE-Policy `termine_zuteilung_sichtbar` (leer = alle; sonst zugeteilte, Ersteller, Admins), Editor «Zuteilen an», 👥 in der Liste; importierte Termine (Outlook/Google/Abo) sind nur für die verbundene Person sichtbar. In Produktion in Rollback-Transaktionen gemessen.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

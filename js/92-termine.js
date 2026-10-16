@@ -71,7 +71,7 @@ function terTerminHtml(t){
  return `<button type="button" class="a2-zeile a2-ter-zeile" data-ter-edit="${esc(t.id)}">
   <span class="a2-ter-zeit">${esc(terZeitText(t))}</span>
   <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":(t.quelle==="google"?"📅 ":(t.quelle==="abo"?"🔒 ":""))}${esc(t.titel)}</b>
-   <span>${esc([pn,t.ort,ma].filter(Boolean).join(" · "))}${t.projekt_pruefen?' <span class="a2-ter-pruefen">Projekt prüfen</span>':""}</span></span>
+   <span>${esc([pn,t.ort,ma?"👥 "+ma:""].filter(Boolean).join(" · "))}${t.projekt_pruefen?' <span class="a2-ter-pruefen">Projekt prüfen</span>':""}</span></span>
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
 function terWocheHtml(){
@@ -139,7 +139,7 @@ function terEditorOeffnen(id){
    <div class="wide"><label class="rechte-schalter"><input type="checkbox" id="terGanztags"${ganz?" checked":""}> Ganztägig</label></div>
    <div class="wide"><label>Ort (optional)</label><input id="terOrt" maxlength="300" value="${esc(t.ort||"")}"></div>
    <div class="wide"><label>Notiz (optional)</label><textarea id="terNotiz" rows="3" maxlength="4000">${esc(t.notiz||"")}</textarea></div>
-   <div class="wide"><label>Mitarbeiter (optional)</label>${terMitarbeiterBoxen(t.mitarbeiter)}</div>
+   <div class="wide"><label>Zuteilen an (optional)</label><div class="small" style="color:var(--muted)">Nichts gewählt = für alle sichtbar. Mit Auswahl sehen den Termin nur die gewählten Personen, du als Ersteller und die Admins.</div>${terMitarbeiterBoxen(t.mitarbeiter)}</div>
   </div>
   <div class="bar" style="margin-top:8px"><button type="button" class="green" id="terSpeichern">💾 Speichern</button>
    <button type="button" class="gray" id="terEditorZu">Abbrechen</button>

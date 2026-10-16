@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.388 – Termine zuteilen, nur Zugeteilte sehen sie
+UMGESETZT: RESTRICTIVE-Policy termine_zuteilung_sichtbar (Produktion, 16.10.2026), Editor "Zuteilen an", Liste mit Namen, angepasste Hinweistexte.
+REGEL: ohne Zuteilung = alle; mit Zuteilung = zugeteilte Personen + Ersteller + Firmen-Admins (damit ein Termin nie unerreichbar wird; die Admin-Ausnahme ist meine Entscheidung und steht so auch im Editor).
+GEMESSEN IN PRODUKTION (Rollback-Transaktionen, keine Daten veraendert): nicht Zugeteilter 0; Ersteller/Zugeteilter sehen ihren Termin; Admin sieht Termin anderer; Admin anderer Firma 0; Termin ohne Zuteilung fuer Zugeteilte sichtbar.
+GETESTET: termine-zuteilung-v3-388 (mit Gegenproben), Nachbar-Pruefstaende.
+FOLGE: Die 14 vorhandenen Outlook-Termine sind nur noch fuer ihre Person (und Admins) sichtbar.
+GRENZEN: Wer Termine nur fuer sich anlegen will, waehlt sich selbst. Zuteilung ist eine Sichtbarkeit, kein Zugriffsschutz fuer Admins.

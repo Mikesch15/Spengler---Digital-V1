@@ -39,7 +39,7 @@ const INIT=()=>{
  let page=await mk();
  await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
- p(/Google-Kalender verbinden \(optional\)/.test(t)&&/Hauptkalender/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private.*nie übernommen/.test(t)&&/nur ein Kalender möglich|nur ein.*Kalender/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen: Hauptkalender, sichtbar für alle mit Projektrecht, privat nie, nur ein Kalender, „Projekt prüfen“",t.slice(0,400));
+ p(/Google-Kalender verbinden \(optional\)/.test(t)&&/Hauptkalender/.test(t)&&/nur für dich.*sichtbar/.test(t)&&/Private.*nie übernommen/.test(t)&&/nur ein Kalender möglich|nur ein.*Kalender/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen: Hauptkalender, nur für dich sichtbar, privat nie, nur ein Kalender, „Projekt prüfen“",t.slice(0,400));
  p(await page.evaluate(()=>document.getElementById("gkVerbinden").disabled),"„Mit Google verbinden“ ist gesperrt, bis die Einwilligung angehakt ist");
  await page.evaluate(()=>document.getElementById("gkVerbinden").click());await page.waitForTimeout(100);
  p((await page.evaluate(()=>window.__aufrufe.length))===0,"Ohne Einwilligung geht kein Aufruf an den Server");
