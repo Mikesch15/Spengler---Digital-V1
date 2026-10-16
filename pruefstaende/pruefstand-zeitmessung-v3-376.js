@@ -238,6 +238,54 @@ console.log("\nD · Anzeige: zuklappbar, Startseite und Regierapport");
  p(/1 fertig/.test(g11),"Zugeklappt zeigt die Kurzzeile, dass noch eine fertige Messung wartet",g11);
  await page.evaluate(()=>{zmListe=[];zmListeSichern();zmVerwerfen()});
 
+ console.log("\nG3 · Zeit für andere Mitarbeiter (v3.381)");
+ await page.evaluate(()=>{
+  zmVerwerfen();zmListe=[];zmListeSichern();window.__confirm=true;window.__alerts.length=0;
+  settings.employees=["Max Muster","Hans Beispiel","Eva Test",'Otto "O" <b>Brien'];
+  settings.rates=[["Spengler","100"],["Lehrling","50"]];rateIds=[1,2];defaultRate="";
+  allProfiles=[{id:"u1",first_name:"Max",last_name:"Muster",rate_id:2},{id:"u2",first_name:"Hans",last_name:"Beispiel",rate_id:1},{id:"u3",first_name:"Eva",last_name:"Test",rate_id:null}];
+  currentProfile={id:"u1",first_name:"Max",last_name:"Muster",role:"admin",rate_id:2};
+  works.length=0;zmZu=false;zmZeichnen();});
+ const f1=await page.evaluate(()=>{const e=document.querySelector('[data-zm-ort="rapport"]');return {n:e.querySelectorAll("[data-zm-ma]").length,an:[...e.querySelectorAll("[data-zm-ma]")].filter(c=>c.checked).map(c=>c.getAttribute("data-zm-ma")),t:e.innerText.replace(/\s+/g," ")}});
+ p(f1.n===4&&f1.an.join()==="Max Muster"&&/Für wen\?/.test(f1.t),"Das Formular bietet alle Mitarbeiter zur Auswahl an; vorgewählt ist die angemeldete Person",f1);
+ const klick=(name,an)=>page.evaluate(([n,an])=>{const c=[...document.querySelectorAll('[data-zm-ort="rapport"] [data-zm-ma]')].find(x=>x.getAttribute("data-zm-ma")===n);c.checked=an;c.dispatchEvent(new Event("change",{bubbles:true}))},[name,an]);
+ await klick("Hans Beispiel",true);await klick("Eva Test",true);
+ const f2=await page.evaluate(()=>({ma:zmEntwurf.ma,beide:[...document.querySelectorAll("[data-zm-ort]")].map(e=>[...e.querySelectorAll("[data-zm-ma]")].filter(c=>c.checked).length)}));
+ p(f2.ma.join()==="Max Muster,Hans Beispiel,Eva Test"&&f2.beide.every(n=>n===3),"Mehrere ankreuzen: die Auswahl gilt für beide Karten (Startseite und Rapport)",f2);
+ await page.evaluate(()=>{zmEntwurf.notiz="Gerüst gestellt";zmEntwurf.beginn="";zmStart("")});await min(45);await page.evaluate(()=>zmStopp());
+ const f3=await page.evaluate(()=>({ma:zmZustand.ma,t:document.querySelector('[data-zm-ort="rapport"]').innerText.replace(/\s+/g," ")}));
+ p(f3.ma.length===3&&/Für: Max Muster, Hans Beispiel, Eva Test/.test(f3.t)&&/je Person 0[.,]75 h/.test(f3.t),"Die fertige Messung zeigt „Für: …“ und die Stunden je Person (0,75 h)",f3.t.slice(0,300));
+ await page.evaluate(()=>{window.__alerts.length=0;document.querySelector('[data-zm-ort="rapport"] [data-zm="uebernehmen"]').click()});await page.waitForTimeout(300);
+ const f4=await page.evaluate(()=>({w:works.map(w=>[w.employee,w.hours,w.rateName,w.desc]),al:window.__alerts.join(" ")}));
+ p(f4.w.length===3&&f4.w.every(x=>x[1]===0.75&&x[3]==="Gerüst gestellt"),"Übernehmen legt je Person eine Zeile an (3 × 0,75 h, gleiche Beschreibung)",f4.w);
+ const ma=Object.fromEntries(f4.w.map(x=>[x[0],x[2]]));
+ p(ma["Max Muster"]==="Lehrling"&&ma["Hans Beispiel"]==="Spengler"&&ma["Eva Test"]==="Spengler","Jede Person bekommt ihre eigene Funktion; wer keine hat, die Standardfunktion – nie die des Anmeldenden",ma);
+ p(/3 Zeilen/.test(f4.al)&&/zusammen 2[.,]25 h/.test(f4.al),"Die Rückmeldung nennt 3 Zeilen und die Summe 2,25 h",f4.al);
+ // Nichts gewählt
+ await page.evaluate(()=>{zmVerwerfen();window.__alerts.length=0});
+ await klick("Max Muster",false);
+ const f5=await page.evaluate(()=>{const a=zmStart(""),b=(zmEntwurf.datum="2026-10-14",zmEntwurf.beginn="08:00",zmEntwurf.ende="09:00",zmHandErfassen());return {a:a.ok,am:a.meldung,b:b.ok,ph:zmZustand.phase}});
+ p(!f5.a&&!f5.b&&/mindestens einen Mitarbeiter/.test(f5.am)&&f5.ph==="aus","Ohne gewählten Mitarbeiter: weder Start noch Handeingabe, mit Hinweis",f5);
+ // Standard ohne Änderung
+ await page.evaluate(()=>{zmVerwerfen();works.length=0;zmEntwurf.notiz="Nur ich";zmStart("")});await min(30);await page.evaluate(()=>zmStopp());
+ await page.evaluate(()=>document.querySelector('[data-zm-ort="rapport"] [data-zm="uebernehmen"]').click());await page.waitForTimeout(250);
+ const f6=await page.evaluate(()=>works.map(w=>[w.employee,w.hours]));
+ p(JSON.stringify(f6)==='[["Max Muster",0.5]]',"Ohne Änderung der Auswahl gilt die Zeit nur für die angemeldete Person (wie bisher)",f6);
+ // Liste: jeder Eintrag hat seine eigene Auswahl
+ await page.evaluate(()=>{zmVerwerfen();zmListe=[];works.length=0});
+ await klick("Hans Beispiel",true);await klick("Max Muster",false);
+ await page.evaluate(()=>{zmEntwurf.notiz="A für Hans";zmStart("")});await min(15);await page.evaluate(()=>zmStopp());
+ await klick("Hans Beispiel",false);await klick("Eva Test",true);
+ await page.evaluate(()=>{zmEntwurf.notiz="B für Eva";zmStart("")});await min(15);await page.evaluate(()=>zmStopp());
+ const f7=await page.evaluate(()=>({akt:zmZustand.ma,liste:zmListe.map(m=>m.notiz+":"+m.ma.join("|"))}));
+ p(f7.akt.join()==="Eva Test"&&f7.liste.join()==="A für Hans:Hans Beispiel","Jede Messung behält ihre eigene Personenauswahl (auch die zurückgestellte)",f7);
+ const f8=await page.evaluate(()=>{zmListe=[{id:"p1",ergebnisMs:900000,notiz:"x",pid:null,mid:null,projekt:"",mass:"",massTitel:"",datum:"",beginn:"",ende:"",pause:0,ma:["Hans Beispiel","  ",null,"Hans Beispiel"]}];zmListeSichern();zmListe=[];zmLaden();return zmListe[0].ma});
+ p(f8.join()==="Hans Beispiel","Gespeicherte Auswahl wird beim Laden bereinigt (Leere/Doppelte entfernt)",f8);
+ // Sonderzeichen im Namen
+ const f9=await page.evaluate(()=>{zmVerwerfen();zmListe=[];zmEntwurf.ma=null;zmZu=false;zmZeichnen();const c=[...document.querySelectorAll('[data-zm-ort="rapport"] [data-zm-ma]')].find(x=>x.getAttribute("data-zm-ma").indexOf("Otto")===0);return {da:!!c,html:document.querySelector('[data-zm-ort="rapport"]').innerHTML.indexOf("<b>Brien")>=0}});
+ p(f9.da&&!f9.html,"Ein Name mit Anführungszeichen/HTML wird sicher dargestellt und bleibt wählbar",f9);
+ await page.evaluate(()=>{zmVerwerfen();zmListe=[];zmListeSichern();works.length=0;settings.employees=[]});
+
  console.log("\nH · Einbindung");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8"),q=fs.readFileSync("js/93-zeitmessung.js","utf8");
  p(/<script src="js\/93-zeitmessung\.js">/.test(idx)&&/js\/93-zeitmessung\.js/.test(sw),"js/93 in index.html UND sw.js");

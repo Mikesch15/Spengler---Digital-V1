@@ -28,10 +28,10 @@ const ZM_RUNDEN_MIN=15;
 const ZM_NOTIF_TAG="zeitmessung";
 const ZM_NOTIF_MS=60*1000;
 // Zustand: phase "aus" | "laeuft" | "pause" | "fertig"; summeMs = bereits gelaufene Zeit; seit = Start des laufenden Abschnitts (ms)
-const ZM_LEER=()=>({phase:"aus",summeMs:0,seit:0,notiz:"",ergebnisMs:0,pid:null,mid:null,projekt:"",mass:"",massTitel:"",datum:"",beginn:"",ende:"",pause:0});
+const ZM_LEER=()=>({phase:"aus",summeMs:0,seit:0,notiz:"",ergebnisMs:0,pid:null,mid:null,projekt:"",mass:"",massTitel:"",datum:"",beginn:"",ende:"",pause:0,ma:[]});
 let zmZustand=ZM_LEER();
 // Eingaben im Formular (bleiben erhalten, wenn die Karte neu gezeichnet wird)
-let zmEntwurf={notiz:"",pid:"",mid:"",beginn:"",ende:"",pause:"",datum:""};
+let zmEntwurf={notiz:"",pid:"",mid:"",beginn:"",ende:"",pause:"",datum:"",ma:null};   // ma: null = ich selbst (Vorgabe), sonst Liste der gewählten Mitarbeiter-Namen
 let zmListe=[];           // weitere fertige Messungen (neueste zuletzt)
 let zmZu=true;            // zugeklappt (Standard)
 let zmMassCache={};       // projectId -> [{id,label}]
@@ -83,6 +83,16 @@ function zmHandDauer(datum,beginn,ende,pauseMin){
  return {ok:true,ms,pause:Math.round(p)};
 }
 
+// ---- Mitarbeiter ("für wen?") ---------------------------------------------------------
+// Namen so, wie sie in den Arbeitszeilen des Rapports stehen (settings.employees). Mehrere sind möglich: je Person entsteht beim Übernehmen
+// eine eigene Zeile mit denselben Stunden und ihrer hinterlegten Funktion.
+function zmNamen(v){return (Array.isArray(v)?v:[]).map(x=>String(x||"").trim().slice(0,100)).filter(Boolean).filter((x,i,a)=>a.indexOf(x)===i).slice(0,30)}
+function zmMitarbeiterListe(){return (typeof settings==="object"&&settings&&Array.isArray(settings.employees))?settings.employees:[]}
+function zmIchName(){return typeof meinMitarbeiterName==="function"?meinMitarbeiterName():""}
+// Wer ist gewählt? null = ich selbst (falls ich in der Liste stehe)
+function zmGewaehlt(){return zmEntwurf.ma===null||zmEntwurf.ma===undefined?(zmIchName()?[zmIchName()]:[]):zmNamen(zmEntwurf.ma)}
+function zmMaPruefen(){return zmMitarbeiterListe().length&&!zmGewaehlt().length?{ok:false,meldung:"Bitte mindestens einen Mitarbeiter wählen, für den die Zeit gilt."}:null}
+
 // ---- Speicher -------------------------------------------------------------
 function zmSichern(){try{localStorage.setItem(ZM_KEY,JSON.stringify(zmZustand))}catch(e){}}
 function zmLaden(){
@@ -94,7 +104,7 @@ function zmLaden(){
    s.ergebnisMs=Math.max(0,Number(r.ergebnisMs)||0);
    s.pid=Number.isFinite(Number(r.pid))&&r.pid!==null?Number(r.pid):null;s.mid=Number.isFinite(Number(r.mid))&&r.mid!==null?Number(r.mid):null;
    s.projekt=String(r.projekt||"").slice(0,200);s.mass=String(r.mass||"").slice(0,200);s.massTitel=String(r.massTitel||"").slice(0,200);
-   s.datum=zmDatumOk(r.datum)?r.datum:"";s.beginn=zmZeitOk(r.beginn)?r.beginn:"";s.ende=zmZeitOk(r.ende)?r.ende:"";s.pause=Math.max(0,Number(r.pause)||0);
+   s.datum=zmDatumOk(r.datum)?r.datum:"";s.beginn=zmZeitOk(r.beginn)?r.beginn:"";s.ende=zmZeitOk(r.ende)?r.ende:"";s.pause=Math.max(0,Number(r.pause)||0);s.ma=zmNamen(r.ma);
    zmZustand=s;
    // eine Uhr, die laut Zeitstempel in der Zukunft gestartet wurde (Geraetezeit verstellt), wird nicht als negative Zeit weitergefuehrt
    if(zmZustand.phase==="laeuft"&&zmZustand.seit>Date.now()+60000)zmZustand.seit=Date.now();
@@ -105,7 +115,7 @@ function zmLaden(){
   const l=JSON.parse(localStorage.getItem(ZM_LISTE_KEY)||"[]");
   zmListe=(Array.isArray(l)?l:[]).filter(x=>x&&Number.isFinite(Number(x.ergebnisMs))&&x.id).slice(-ZM_LISTE_MAX).map(x=>({id:String(x.id),ergebnisMs:Math.max(0,Number(x.ergebnisMs)),notiz:String(x.notiz||"").slice(0,200),
    pid:Number.isFinite(Number(x.pid))&&x.pid!==null?Number(x.pid):null,mid:Number.isFinite(Number(x.mid))&&x.mid!==null?Number(x.mid):null,projekt:String(x.projekt||"").slice(0,200),
-   mass:String(x.mass||"").slice(0,200),massTitel:String(x.massTitel||"").slice(0,200),datum:zmDatumOk(x.datum)?x.datum:"",beginn:zmZeitOk(x.beginn)?x.beginn:"",ende:zmZeitOk(x.ende)?x.ende:"",pause:Math.max(0,Number(x.pause)||0)}));
+   mass:String(x.mass||"").slice(0,200),massTitel:String(x.massTitel||"").slice(0,200),datum:zmDatumOk(x.datum)?x.datum:"",beginn:zmZeitOk(x.beginn)?x.beginn:"",ende:zmZeitOk(x.ende)?x.ende:"",pause:Math.max(0,Number(x.pause)||0),ma:zmNamen(x.ma)}));
  }catch(e){zmListe=[]}
 }
 function zmListeSichern(){try{localStorage.setItem(ZM_LISTE_KEY,JSON.stringify(zmListe))}catch(e){}}
@@ -196,12 +206,13 @@ function zmAuswahlUebernehmen(z){
  z.pid=zmEntwurf.pid?Number(zmEntwurf.pid):null;z.mid=z.pid&&zmEntwurf.mid?Number(zmEntwurf.mid):null;
  z.projekt=z.pid?zmProjektText(z.pid):"";z.mass=z.mid?zmMassText(z.pid,z.mid):"";z.massTitel=z.mid?zmMassText(z.pid,z.mid,true):"";
  z.notiz=String(zmEntwurf.notiz||"").trim().slice(0,200);
+ z.ma=zmGewaehlt();
 }
 // Eine fertige Messung beiseitelegen, damit eine neue starten kann (nichts geht verloren)
 function zmParken(){
  if(zmZustand.phase!=="fertig")return false;
  const z=zmZustand;
- zmListe.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),ergebnisMs:z.ergebnisMs,notiz:z.notiz,pid:z.pid,mid:z.mid,projekt:z.projekt,mass:z.mass,massTitel:z.massTitel,datum:z.datum,beginn:z.beginn,ende:z.ende,pause:z.pause});
+ zmListe.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),ergebnisMs:z.ergebnisMs,notiz:z.notiz,pid:z.pid,mid:z.mid,projekt:z.projekt,mass:z.mass,massTitel:z.massTitel,datum:z.datum,beginn:z.beginn,ende:z.ende,pause:z.pause,ma:zmNamen(z.ma)});
  if(zmListe.length>ZM_LISTE_MAX)zmListe=zmListe.slice(-ZM_LISTE_MAX);
  zmZustand=ZM_LEER();
  zmListeSichern();
@@ -212,6 +223,7 @@ function zmEintragWeg(id){zmListe=zmListe.filter(x=>x.id!==String(id));zmListeSi
 // beginn: "HH:MM" oder leer (= jetzt). Gibt {ok,meldung} zurück.
 function zmStart(beginn){
  if(zmZustand.phase!=="aus"&&zmZustand.phase!=="fertig")return {ok:false,meldung:"Es läuft schon eine Messung."};
+ const fMa=zmMaPruefen();if(fMa)return fMa;
  const jetzt=Date.now();let seit=jetzt;
  const b=String(beginn||"").trim();
  if(b){
@@ -247,6 +259,7 @@ function zmHandErfassen(){
  const e=zmEntwurf,datum=e.datum||zmIso(new Date());
  const r=zmHandDauer(datum,e.beginn,e.ende,e.pause);
  if(!r.ok)return r;
+ const fMa=zmMaPruefen();if(fMa)return fMa;
  zmParken();
  const z=ZM_LEER();z.phase="fertig";z.ergebnisMs=r.ms;z.datum=datum;z.beginn=e.beginn;z.ende=e.ende;z.pause=r.pause;
  zmAuswahlUebernehmen(z);
@@ -255,7 +268,7 @@ function zmHandErfassen(){
 }
 function zmVerwerfen(){
  zmZustand=ZM_LEER();
- zmEntwurf={notiz:"",pid:"",mid:"",beginn:"",ende:"",pause:"",datum:""};
+ zmEntwurf={notiz:"",pid:"",mid:"",beginn:"",ende:"",pause:"",datum:"",ma:null};
  zmSichern();zmTakt();zmZeichnen();zmNotifSchliessen();
 }
 // Fertige Messung als Arbeitsposition in den offenen Regierapport übernehmen. Bei 0 h (unter 7.5 min) wird nichts übernommen.
@@ -265,14 +278,25 @@ function zmUebernehmen(mitEffektiv,id){
  const r=zmRunden(m.ergebnisMs);
  if(r.minuten<=0)return {ok:false,meldung:"Gemessen wurden weniger als 8 Minuten – gerundet wären das 0 Stunden. Bitte die Stunden von Hand eintragen oder die Messung verwerfen."};
  if(typeof works==="undefined"||typeof neueArbeitsposition!=="function"||typeof renderMain!=="function")return {ok:false,meldung:"Der Regierapport ist nicht bereit."};
- const w=neueArbeitsposition();
- w.hours=r.stunden;
- if(m.datum)w.date=m.datum;
+ const namen=zmNamen(m.ma),mein=zmIchName();
+ const ziele=namen.length?namen:[mein];   // ohne Angabe: wie bisher die Vorbelegung (angemeldeter Benutzer)
  const eff=zmText(m.ergebnisMs);
  const basis=[m.notiz,m.massTitel||m.mass].filter(Boolean).join(" – ");
- w.desc=basis+(mitEffektiv?((basis?" ":"")+"(gemessen "+eff+")"):"");
- works.push(w);renderMain();
- const text=eff+" gemessen → "+zmStundenText(r.stunden);
+ const standard=(typeof defaultRate!=="undefined"&&defaultRate&&settings.rates.some(x=>x[0]===defaultRate))?defaultRate:(settings.rates[0]?settings.rates[0][0]:"");
+ ziele.forEach(name=>{
+  const w=neueArbeitsposition();
+  w.hours=r.stunden;
+  if(m.datum)w.date=m.datum;
+  if(name){
+   w.employee=name;
+   const f=typeof profilFunktionVonName==="function"?profilFunktionVonName(name):"";
+   if(f)w.rateName=f;else if(name!==mein)w.rateName=standard;   // eine andere Person bekommt nie die Funktion des Anmeldenden
+  }
+  w.desc=basis+(mitEffektiv?((basis?" ":"")+"(gemessen "+eff+")"):"");
+  works.push(w);
+ });
+ renderMain();
+ const text=eff+" gemessen → "+zmStundenText(r.stunden)+(ziele.length>1?" je Person ("+ziele.length+" Zeilen, zusammen "+zmStundenText(r.stunden*ziele.length)+")":"");
  if(id)zmEintragWeg(id);else zmVerwerfen();
  return {ok:true,meldung:text};
 }
@@ -281,11 +305,12 @@ function zmUebernehmen(mitEffektiv,id){
 function zmErgebnisHtml(z){
  const r=zmRunden(z.ergebnisMs);
  const von=z.beginn&&z.ende?`<div class="small">${esc(z.datum?z.datum.split("-").reverse().join(".")+" · ":"")}${esc(z.beginn)}–${esc(z.ende)}${z.pause?` · Pause ${esc(z.pause)} min`:""}</div>`:"";
- return `${von}<div class="a2-zm-ergebnis"><div><span class="small">Effektiv gemessen</span> <b>${esc(zmText(z.ergebnisMs))}</b></div>
+ const fuer=(Array.isArray(z.ma)&&z.ma.length)?`<div class="small">Für: ${esc(z.ma.join(", "))}${z.ma.length>1?" · je Person "+esc(zmStundenText(r.stunden)):""}</div>`:"";
+ return `${von}${fuer}<div class="a2-zm-ergebnis"><div><span class="small">Effektiv gemessen</span> <b>${esc(zmText(z.ergebnisMs))}</b></div>
   <div><span class="small">Gerundet auf ${ZM_RUNDEN_MIN} min</span> <b>${esc(zmStundenText(r.stunden))}</b> <span class="small">(${esc(zmText(r.minuten*60000))})</span></div></div>`;
 }
 function zmBezugHtml(z){
- return (z.projekt||z.mass)?`<div class="small">${esc([z.projekt,z.mass].filter(Boolean).join(" › "))}</div>`:"";
+return (z.projekt||z.mass)?`<div class="small">${esc([z.projekt,z.mass].filter(Boolean).join(" › "))}</div>`:"";
 }
 function zmFormularHtml(ort){
  const e=zmEntwurf,pid=e.pid;
@@ -298,6 +323,8 @@ function zmFormularHtml(ort){
   <label class="small">Projekt</label>
   <select data-zm-feld="pid" aria-label="Projekt">${zmProjektOptionen(pid)}</select>
   ${pid?`<label class="small">Massaufnahme (optional)</label><select data-zm-feld="mid" data-zm-mass aria-label="Massaufnahme">${zmMassOptionen(pid,e.mid)}</select>`:""}
+  ${zmMitarbeiterListe().length?`<label class="small">Für wen? (mehrere möglich – je Person entsteht eine Zeile)</label>
+  <div class="a2-zm-ma">${zmMitarbeiterListe().map(n=>`<label class="rechte-schalter"><input type="checkbox" data-zm-ma="${esc(n)}"${zmGewaehlt().includes(n)?" checked":""}> ${esc(n)}</label>`).join("")}</div>`:""}
   <div class="a2-zm-zeiten">
    <div><label class="small">Datum</label><input type="date" data-zm-feld="datum" value="${esc(e.datum)}" aria-label="Datum"></div>
    <div><label class="small">Beginn</label><input type="time" data-zm-feld="beginn" value="${esc(e.beginn)}" aria-label="Beginn"></div>
@@ -335,7 +362,7 @@ function zmKarteHtml(ort){
    inhalt+=zmFormularHtml(ort);
   }else{
    const laeuft=z.phase==="laeuft";
-   inhalt=`${zmBezugHtml(z)}${z.notiz?`<div class="small">${esc(z.notiz)}</div>`:""}
+   inhalt=`${zmBezugHtml(z)}${(Array.isArray(z.ma)&&z.ma.length)?`<div class="small">Für: ${esc(z.ma.join(", "))}</div>`:""}${z.notiz?`<div class="small">${esc(z.notiz)}</div>`:""}
    <div class="a2-zm-uhr" data-zm-uhr>${esc(zmUhr(zmGemessenMs()))}</div>
    <div class="small">${laeuft?"läuft":"angehalten"}${z.beginn?" · seit "+esc(z.beginn):""} · bisher ${esc(zmText(zmGemessenMs()))}</div>
    <div class="bar">${laeuft?'<button type="button" class="gray" data-zm="pause">⏸ Pause</button>':'<button type="button" class="green" data-zm="weiter">▶ Weiter</button>'}
@@ -410,6 +437,14 @@ document.addEventListener("click",async e=>{
  }
 });
 function zmFeldAendern(e){
+ if(e.type==="change"&&e.target&&e.target.getAttribute&&e.target.hasAttribute("data-zm-ma")){
+  const n=e.target.getAttribute("data-zm-ma"),akt=zmGewaehlt().slice(),i=akt.indexOf(n);
+  if(e.target.checked&&i<0)akt.push(n);
+  if(!e.target.checked&&i>=0)akt.splice(i,1);
+  zmEntwurf.ma=akt;
+  zmZeichnen();   // beide Karten (Startseite/Rapport) zeigen dieselbe Auswahl
+  return;
+ }
  const f=e.target&&e.target.getAttribute?e.target.getAttribute("data-zm-feld"):null;
  if(!f)return;
  zmEntwurf[f]=e.target.value;

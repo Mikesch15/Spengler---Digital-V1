@@ -1,0 +1,5 @@
+ABSCHLUSSBERICHT v3.381 – Zeitmessung fuer andere Mitarbeiter
+
+UMGESETZT: "Fuer wen?" (mehrere moeglich), je Person eine Arbeitszeile mit eigener Funktion, Auswahl je Messung gemerkt, Hilfetext. Keine DB-Aenderung.
+TESTS: zeitmessung-v3-376 72 ok, Mutationsproben erkannt.
+NICHT GETESTET: echtes Handy; Rechtepruefung beim Speichern des Rapports mit fremden Mitarbeiternamen (bestehendes Verhalten der Arbeitszeilen).
