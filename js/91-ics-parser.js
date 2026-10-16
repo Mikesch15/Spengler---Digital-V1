@@ -97,6 +97,109 @@ function icsDauerMinuten(w){
  const mi=((+m[2]||0)*7*24*60)+((+m[3]||0)*24*60)+((+m[4]||0)*60)+(+m[5]||0);
  return m[1]==="-"?-mi:mi;
 }
+// ---- Wiederholungen auflösen (nur auf Wunsch: opt.fenster={von,bis} "JJJJ-MM-TT"; ohne Fenster bleibt es beim ersten Termin) ----
+// v3.385 (Kalender-Abo): ein abonnierter Arbeitskalender enthält Serien (RRULE). Unterstützt: DAILY/WEEKLY/MONTHLY/YEARLY mit INTERVAL, COUNT, UNTIL,
+// BYDAY (auch 2MO / -1FR), BYMONTHDAY, BYMONTH, EXDATE und geänderte/abgesagte Einzeltermine (RECURRENCE-ID). Alles andere (BYSETPOS, BYWEEKNO, ...)
+// wird NICHT geraten: dann zählt nur der erste Termin, mit Hinweis.
+const ICS_WTAG=["SU","MO","TU","WE","TH","FR","SA"];
+function icsRegelLesen(text){
+ const r={freq:"",interval:1,count:null,until:null,byday:[],bymonthday:[],bymonth:[],ok:true};
+ for(const teil of String(text||"").split(";")){
+  const i=teil.indexOf("=");if(i<1)continue;
+  const k=teil.slice(0,i).toUpperCase(),v=teil.slice(i+1);
+  switch(k){
+   case "FREQ":r.freq=v.toUpperCase();break;
+   case "INTERVAL":r.interval=Math.max(1,parseInt(v,10)||1);break;
+   case "COUNT":r.count=parseInt(v,10)||null;break;
+   case "UNTIL":r.until=v.trim();break;
+   case "WKST":break;
+   case "BYDAY":r.byday=v.split(",").map(x=>{const m=x.trim().toUpperCase().match(/^([+-]?\d{1,2})?(SU|MO|TU|WE|TH|FR|SA)$/);return m?{n:m[1]?parseInt(m[1],10):0,tag:ICS_WTAG.indexOf(m[2])}:null});if(r.byday.includes(null))r.ok=false;break;
+   case "BYMONTHDAY":r.bymonthday=v.split(",").map(x=>parseInt(x,10));if(r.bymonthday.some(n=>!n||n<-31||n>31))r.ok=false;break;
+   case "BYMONTH":r.bymonth=v.split(",").map(x=>parseInt(x,10));if(r.bymonth.some(n=>!(n>=1&&n<=12)))r.ok=false;break;
+   default:r.ok=false;
+  }
+ }
+ if(!["DAILY","WEEKLY","MONTHLY","YEARLY"].includes(r.freq))r.ok=false;
+ if(r.freq==="YEARLY"&&r.byday.some(b=>b.n)&&!r.bymonth.length)r.ok=false;
+ return r;
+}
+const icsTagNr=(y,mo,d)=>Math.floor(Date.UTC(y,mo-1,d)/86400000);
+function icsInstanzKey(uid,datum,zeit){return uid+"|"+datum+(zeit?"T"+zeit:"")}
+// Alle Termine einer Serie im Fenster. Gibt [] zurück, wenn die Regel nicht unterstützt wird (null = nicht unterstützt).
+function icsSerie(e,zone,fenster){
+ const r=icsRegelLesen(e.rruleText);
+ if(!r.ok)return null;
+ const w=String(e.start.wert||"").trim(),par=e.start.params||{};
+ let m=w.match(/^(\d{4})(\d{2})(\d{2})$/),ganz=false,utc=false,y,mo,d,h=0,mi=0;
+ if(m){ganz=true;y=+m[1];mo=+m[2];d=+m[3]}
+ else{m=w.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?(Z?)$/i);if(!m)return null;y=+m[1];mo=+m[2];d=+m[3];h=+m[4];mi=+m[5];utc=!!m[7]}
+ let achse=zone;
+ if(!utc&&!ganz&&par.TZID&&!ICS_ZONE_GLEICH.includes(String(par.TZID).toLowerCase())&&par.TZID!==zone){try{icsZonenFormat(par.TZID);achse=par.TZID}catch(x){achse=zone}}
+ const ms=(yy,mm,dd,hh,mn)=>utc?Date.UTC(yy,mm-1,dd,hh,mn,0):icsWandNachUtc(yy,mm,dd,hh,mn,achse);
+ // Dauer
+ let dauerMs=0,spanTage=1;
+ if(e.ende){
+  const z=icsZeitWert(e.ende.wert,e.ende.params||{},zone),zs=icsZeitWert(e.start.wert,par,zone);
+  if(z&&zs){
+   if(ganz){const [a,b,c]=zs.datum.split("-").map(Number),[a2,b2,c2]=z.datum.split("-").map(Number);spanTage=Math.max(1,icsTagNr(a2,b2,c2)-icsTagNr(a,b,c))}
+   else if(!z.ganztags){
+    const [a,b,c]=zs.datum.split("-").map(Number),[hh,mm]=zs.zeit.split(":").map(Number),[a2,b2,c2]=z.datum.split("-").map(Number),[hh2,mm2]=z.zeit.split(":").map(Number);
+    dauerMs=Math.max(0,icsWandNachUtc(a2,b2,c2,hh2,mm2,zone)-icsWandNachUtc(a,b,c,hh,mm,zone));
+   }
+  }
+ }else if(e.dauer!==null&&e.dauer!==undefined&&e.dauer>=0){if(ganz)spanTage=Math.max(1,Math.ceil(e.dauer/1440));else dauerMs=e.dauer*60000}
+ // Ende der Auflösung
+ const [by,bm,bd]=fenster.bis.split("-").map(Number);
+ const bisNr=icsTagNr(by,bm,bd)+2;
+ let untilMs=null;
+ if(r.until){
+  const u=r.until.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z?))?$/i);
+  if(!u)return null;
+  if(u[4]===undefined)untilMs=icsWandNachUtc(+u[1],+u[2],+u[3],23,59,zone);
+  else untilMs=u[7]?Date.UTC(+u[1],+u[2]-1,+u[3],+u[4],+u[5],0):icsWandNachUtc(+u[1],+u[2],+u[3],+u[4],+u[5],zone);
+ }
+ const startNr=icsTagNr(y,mo,d),startWd=new Date(Date.UTC(y,mo-1,d)).getUTCDay();
+ const wochenStart=startNr-((startWd+6)%7);   // Montag der ersten Woche
+ const aus=[];let n=0;
+ const ex=new Set(e.exKeys||[]);
+ for(let nr=startNr;nr<=bisNr&&nr-startNr<20000;nr++){
+  const dt=new Date(nr*86400000),Y=dt.getUTCFullYear(),M=dt.getUTCMonth()+1,D=dt.getUTCDate(),wd=dt.getUTCDay();
+  const dim=new Date(Date.UTC(Y,M,0)).getUTCDate();
+  let ok=false;
+  const monatTag=()=>{
+   if(r.bymonthday.length)return r.bymonthday.some(b=>b>0?b===D:dim+b+1===D);
+   if(r.byday.length)return r.byday.some(b=>b.tag===wd&&(b.n===0||b.n===Math.ceil(D/7)||b.n===-Math.ceil((dim-D+1)/7)));
+   return D===d;
+  };
+  if(r.freq==="DAILY"){
+   ok=(nr-startNr)%r.interval===0&&(!r.byday.length||r.byday.some(b=>b.tag===wd))&&(!r.bymonthday.length||r.bymonthday.some(b=>b>0?b===D:dim+b+1===D))&&(!r.bymonth.length||r.bymonth.includes(M));
+  }else if(r.freq==="WEEKLY"){
+   const wk=Math.floor((nr-wochenStart)/7);
+   ok=wk%r.interval===0&&(r.byday.length?r.byday.some(b=>b.tag===wd):wd===startWd)&&(!r.bymonth.length||r.bymonth.includes(M));
+  }else if(r.freq==="MONTHLY"){
+   ok=((Y-y)*12+(M-mo))%r.interval===0&&monatTag()&&(!r.bymonth.length||r.bymonth.includes(M));
+  }else{
+   ok=(Y-y)%r.interval===0&&(r.bymonth.length?r.bymonth:[mo]).includes(M)&&monatTag();
+  }
+  if(nr===startNr)ok=true;   // der erste Termin gilt immer
+  if(!ok)continue;
+  const sMs=ms(Y,M,D,h,mi);
+  if(untilMs!==null&&sMs>untilMs)break;
+  n++;if(r.count&&n>r.count)break;
+  let sd,sz,ed,ez;
+  if(ganz){sd=icsDatumText(Y,M,D);sz=null;ed=icsTagPlus(sd,spanTage-1);ez=null}
+  else{
+   const o=icsOrtszeit(sMs,zone),o2=icsOrtszeit(sMs+dauerMs,zone);
+   sd=icsDatumText(o.y,o.mo,o.d);sz=icsZ2(o.h)+":"+icsZ2(o.mi);
+   if(dauerMs>0){ed=icsDatumText(o2.y,o2.mo,o2.d);ez=icsZ2(o2.h)+":"+icsZ2(o2.mi)}else{ed=sd;ez=null}
+  }
+  if(ex.has(icsInstanzKey("",sd,sz)))continue;
+  if(ed<fenster.von||sd>fenster.bis)continue;
+  aus.push({datum:sd,zeit:sz,endDatum:ed,endZeit:ez,ganztags:ganz});
+ }
+ return aus;
+}
+
 function icsHash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h*33)^s.charCodeAt(i))>>>0;return h.toString(36)}
 // Hauptfunktion. Ergebnis: {termine:[...],hinweise:[...],fehler:""}
 function icsLesen(text,opt){
@@ -109,15 +212,30 @@ function icsLesen(text,opt){
  if(!/BEGIN:VCALENDAR/i.test(roh)){aus.fehler="Das ist keine Kalenderdatei (.ics).";return aus}
  const zeilen=icsEntfalten(roh);
  const gesehen=new Set();
+ const fenster=opt.fenster&&opt.fenster.von&&opt.fenster.bis?opt.fenster:null;   // Serien auflösen (Kalender-Abo)
+ const maxT=fenster?(opt.max||3000):ICS_MAX_TERMINE;
+ const ueb=new Set();   // Einzeltermine, die eine Serie ersetzen oder absagen (RECURRENCE-ID)
  let ev=null,anz=0;
  const hinweis=t=>{if(!aus.hinweise.includes(t))aus.hinweise.push(t)};
  const abschliessen=e=>{
   anz++;
-  if(anz>ICS_MAX_TERMINE){if(anz===ICS_MAX_TERMINE+1)hinweis("Es werden höchstens "+ICS_MAX_TERMINE+" Termine gelesen – der Rest wurde ignoriert.");aus.uebersprungen++;return}
+  if(anz>maxT){if(anz===maxT+1)hinweis("Es werden höchstens "+maxT+" Termine gelesen – der Rest wurde ignoriert.");aus.uebersprungen++;return}
+  if(fenster&&e.recId&&e.uid&&e.start){const r0=icsZeitWert(e.recId,e.recParams||e.start.params||{},zone);if(r0)ueb.add(icsInstanzKey(e.uid,r0.datum,r0.zeit))}
   if(e.status==="CANCELLED"){aus.uebersprungen++;hinweis("Abgesagte Termine wurden ausgelassen.");return}
+  if(opt.privatAus&&(e.klasse==="PRIVATE"||e.klasse==="CONFIDENTIAL")){aus.uebersprungen++;hinweis("Private Termine wurden nicht übernommen.");return}
   if(!e.start){aus.uebersprungen++;hinweis("Termine ohne lesbares Datum wurden ausgelassen.");return}
   const s=icsZeitWert(e.start.wert,e.start.params,zone);
   if(!s){aus.uebersprungen++;hinweis("Termine ohne lesbares Datum wurden ausgelassen.");return}
+  if(fenster&&e.rrule&&!e.recId&&e.uid){
+   const serie=icsSerie(e,zone,fenster);
+   if(serie){
+    const titelS=(e.titel||"").replace(/\s+/g," ").trim().slice(0,200)||"(ohne Titel)";
+    for(const x of serie)aus.termine.push({uid:icsInstanzKey(e.uid,x.datum,x.zeit).slice(0,500),_serie:e.uid,_key:icsInstanzKey(e.uid,x.datum,x.zeit),titel:titelS,start_datum:x.datum,ende_datum:x.endDatum,start_zeit:x.zeit,ende_zeit:x.endZeit,ganztags:x.ganztags,
+     ort:(e.ort||"").replace(/\s+/g," ").trim().slice(0,300),notiz:(e.notiz||"").trim().slice(0,4000),wiederkehrend:true});
+    return;
+   }
+   hinweis("Eine Serie mit nicht unterstützter Wiederholungsregel wurde nur mit dem ersten Termin übernommen.");
+  }
   let endDatum=s.datum,endZeit=null,notizHinweis=s.hinweis;
   if(e.ende){
    const z=icsZeitWert(e.ende.wert,e.ende.params,zone);
@@ -145,7 +263,7 @@ function icsLesen(text,opt){
   const key=schluessel.slice(0,500);
   if(gesehen.has(key)){aus.uebersprungen++;hinweis("Doppelte Termine in der Datei wurden nur einmal gelesen.");return}
   gesehen.add(key);
-  if(e.rrule)hinweis("Wiederkehrende Termine: nur der erste Termin wird übernommen, die Wiederholungen nicht.");
+  if(e.rrule&&!fenster)hinweis("Wiederkehrende Termine: nur der erste Termin wird übernommen, die Wiederholungen nicht.");
   aus.termine.push({uid:key,titel,start_datum:s.datum,ende_datum:endDatum,start_zeit:s.zeit,ende_zeit:endZeit,ganztags:s.ganztags,
    ort:(e.ort||"").replace(/\s+/g," ").trim().slice(0,300),notiz:(e.notiz||"").trim().slice(0,4000),wiederkehrend:!!e.rrule});
  };
@@ -165,14 +283,17 @@ function icsLesen(text,opt){
    case "LOCATION":ev.ort=icsEntschuetzen(p.wert);break;
    case "DESCRIPTION":ev.notiz=icsEntschuetzen(p.wert);break;
    case "UID":ev.uid=p.wert.trim();break;
-   case "RECURRENCE-ID":ev.recId=p.wert.trim();break;
+   case "RECURRENCE-ID":ev.recId=p.wert.trim();ev.recParams=p.params;break;
+   case "CLASS":ev.klasse=p.wert.trim().toUpperCase();break;
+   case "EXDATE":for(const t of p.wert.split(",")){const z=icsZeitWert(t.trim(),p.params,zone);if(z)(ev.exKeys=ev.exKeys||[]).push(icsInstanzKey("",z.datum,z.zeit))}break;
    case "STATUS":ev.status=p.wert.trim().toUpperCase();break;
-   case "RRULE":ev.rrule=true;break;
+   case "RRULE":ev.rrule=true;ev.rruleText=p.wert.trim();break;
    case "DTSTART":ev.start={wert:p.wert,params:p.params};break;
    case "DTEND":ev.ende={wert:p.wert,params:p.params};break;
    case "DURATION":ev.dauer=icsDauerMinuten(p.wert.trim());break;
   }
  }
+ if(fenster)aus.termine=aus.termine.filter(t=>!(t._key&&ueb.has(t._key))).map(t=>{if(t._key!==undefined){delete t._key;delete t._serie}return t});
  if(!aus.termine.length&&!aus.fehler)aus.fehler="In der Datei wurde kein lesbarer Termin gefunden.";
  aus.termine.sort((a,b)=>(a.start_datum+(a.start_zeit||"")).localeCompare(b.start_datum+(b.start_zeit||"")));
  return aus;

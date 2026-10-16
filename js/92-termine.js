@@ -68,7 +68,7 @@ function terTerminHtml(t){
  const pn=terProjektName(t.project_id),ma=terMitarbeiterText(t.mitarbeiter);
  return `<button type="button" class="a2-zeile a2-ter-zeile" data-ter-edit="${esc(t.id)}">
   <span class="a2-ter-zeit">${esc(terZeitText(t))}</span>
-  <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":(t.quelle==="google"?"📅 ":"")}${esc(t.titel)}</b>
+  <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":(t.quelle==="google"?"📅 ":(t.quelle==="abo"?"🔒 ":""))}${esc(t.titel)}</b>
    <span>${esc([pn,t.ort,ma].filter(Boolean).join(" · "))}${t.projekt_pruefen?' <span class="a2-ter-pruefen">Projekt prüfen</span>':""}</span></span>
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
@@ -111,6 +111,16 @@ function terEditorOeffnen(id){
  const box=$("terEditor");if(!box)return;
  let t={titel:"",start_datum:terWoche===terMontag(terHeute())?terHeute():terWoche,ende_datum:"",start_zeit:"",ende_zeit:"",ort:"",notiz:"",project_id:null,mitarbeiter:[]};
  if(id){const f=terDaten.find(x=>String(x.id)===String(id));if(!f)return;t=Object.assign({},f)}
+ if(t.quelle==="abo"){   // v3.385: Kalender-Abo = nur lesen (ein Ändern würde beim nächsten Abgleich ohnehin überschrieben)
+  terEditId=null;
+  box.hidden=false;
+  box.innerHTML=`<h3>🔒 ${esc(t.titel)}</h3>
+  <div class="small">Aus deinem abonnierten Kalender – kann hier nicht geändert werden. Änderungen im Original-Kalender erscheinen nach dem nächsten Abgleich.</div>
+  <div>${esc(terZeitText(t))} · ${esc(terLang(t.start_datum))}${t.ende_datum&&t.ende_datum!==t.start_datum?" – "+esc(terLang(t.ende_datum)):""}</div>
+  ${t.ort?`<div class="small">📍 ${esc(t.ort)}</div>`:""}${t.notiz?`<div class="small" style="white-space:pre-wrap">${esc(t.notiz)}</div>`:""}
+  <div class="bar" style="margin-top:8px"><button type="button" class="gray" id="terEditorZu">Schliessen</button></div>`;
+  box.scrollIntoView({block:"nearest"});return;
+ }
  terEditId=id?Number(id):0;
  const ganz=id?!t.start_zeit:false;   // ein neuer Termin beginnt mit Zeiten; ganztaegig waehlt man bewusst
  box.hidden=false;
@@ -261,6 +271,7 @@ async function terImportieren(){
 async function terOeffnen(){
  if(typeof olLaden==="function")olLaden();
  if(typeof gkLaden==="function")gkLaden();
+ if(typeof aboLaden==="function")aboLaden();
  const modal=$("termineModal");if(!modal)return;
  terWoche=terMontag(terHeute());terEditId=null;terImportListe=null;
  if($("terEditor"))$("terEditor").hidden=true;

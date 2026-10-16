@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.385 – Kalender-Abo per ICS-Link (nur lesen)
+
+UMGESETZT: Edge Function kalender-abo (Cron 15 Min + Handtipp), Tabelle kalender_abos, Link im Vault, Termine quelle 'abo'/abo_id (schreibgeschuetzt), Serien-Aufloesung in js/91, Oberflaeche js/96, Hilfe, Anleitung.
+GEMESSEN/GETESTET (nachgebaut, nicht live): kalender-abo-v3-385 59, kalender-abo-ui-v3-385 15; Mutationsproben erkannt (Host-Liste, Loesch-Grenze, Redirect, Export-Sperre, Groessenlimit, Serien-Ersatz, EXDATE, Schreibschutz-Ansicht).
+NICHT GETESTET: echter Abruf eines Outlook-Links, Bereitstellung/Cron (Sandbox erreicht Outlook nicht).
+NOETIG VOM ANWENDER: Kalender veroeffentlichen, Link einfuegen (ANLEITUNG_Kalender-Abo.md).
+GRENZEN: nur lesen; nur bekannte Anbieter-Hosts; Serienregeln BYSETPOS u. a. nicht unterstuetzt (nur erster Termin, mit Hinweis); eine Verbindung je Person.

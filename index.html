@@ -212,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.384</div>
+<div id="appVersion">Version 3.385</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -788,6 +788,8 @@
 <div class="card" id="outlookBox"></div>
 <!-- v3.384: Google-Kalender-Abgleich (js/95-google-kalender.js) -->
 <div class="card" id="googleBox"></div>
+<!-- v3.385: Kalender-Abo per Link (js/96-kalender-abo.js) -->
+<div class="card" id="aboBox"></div>
 <div class="card" id="terImportBox" hidden></div>
 <div class="card" id="terEditor" hidden></div>
 <div id="terListe"></div>
@@ -2480,7 +2482,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.384.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.385.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3185,7 +3187,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.384.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.385.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3666,6 +3668,7 @@ nicht neu installieren.</div>
 <script src="js/93-zeitmessung.js"></script>
 <script src="js/94-outlook.js"></script>
 <script src="js/95-google-kalender.js"></script>
+<script src="js/96-kalender-abo.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

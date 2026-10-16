@@ -113,6 +113,7 @@ export function passtImportModus(ev, modus) {
   return Array.isArray(ev.categories) && ev.categories.some((c) => String(c).toLowerCase() === KATEGORIE_MARKIERT.toLowerCase());
 }
 export function exportberechtigt(t, profilId) {
+  if (t.quelle === "abo") return false;   // v3.385: abonnierte Termine (nur lesen) werden nie in einen Kalender zurueckgeschrieben
   const ma = Array.isArray(t.mitarbeiter) ? t.mitarbeiter : [];
   return ma.includes(profilId) || (ma.length === 0 && t.created_by === profilId);
 }

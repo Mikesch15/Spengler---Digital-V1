@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.384.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.385.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1665,6 +1665,12 @@ Wurde ein Termin auf <b>beiden Seiten</b> geändert, überschreibt die App nicht
 Outlook: etwa alle 5 Minuten auf dem Server, in beide Richtungen, mit Konflikt-Auswahl. Private Google-Termine werden nie übernommen. Pro Person ist nur
 <b>ein</b> Kalender möglich (Outlook <b>oder</b> Google). Beim ersten Verbinden zeigt Google evtl. „Diese App wurde nicht überprüft“ – mit
 <b>Erweitert → Weiter</b> geht es trotzdem; wichtig ist, dass du den Zugriff auf den <b>Kalender</b> erlaubst.</p>
+<h4>🗓️ Arbeitskalender per Link abonnieren (ab 3.385)</h4>
+<p>Unter <b>Kalender-Abo</b> fügst du den <b>ICS-Link</b> eines veröffentlichten Kalenders ein (Outlook: <b>Einstellungen → Kalender → Freigegebene Kalender →
+Kalender veröffentlichen</b>, «Alle Details anzeigen»). Der Server liest ihn etwa alle <b>15 Minuten</b>; die Termine erscheinen mit 🔒 in der Terminliste. Es wird
+<b>nur gelesen</b>: nichts geht in den Kalender zurück, und die Termine lassen sich in der App nicht ändern. Serien werden aufgelöst, private Termine nie übernommen.
+Der Link ist wie ein Passwort – er wird verschlüsselt auf dem Server abgelegt und nie wieder angezeigt. Mit <b>Abo beenden</b> verschwinden die importierten Termine.
+Neue Termine erscheinen mit der Verzögerung, die der Anbieter beim veröffentlichten Kalender hat (oft 15 Minuten bis einige Stunden).</p>
 <div class="hin">Wiederkehrende Outlook-Termine erscheinen als einzelne Termine im genannten Zeitraum. Aufgaben und Fristen werden noch <b>nicht</b>
 abgeglichen. Mit <b>Verbindung trennen</b> hört der Abgleich auf; bereits übernommene Termine bleiben stehen.</div>
 `},

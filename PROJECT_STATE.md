@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.384`
+- Aktueller Entwicklungsstand: `v3.385`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -16,6 +16,7 @@
 - v3.382: Link „Betreiber-Anmeldung“ auf dem Anmeldebildschirm (führt zu `?betreiber`), auf der Betreiber-Seite Link zurück; nirgends in der Firmen-App.
 - v3.383: Outlook-Diagnose (Anzahl gefundener Ereignisse).
 - v3.384: Google-Kalender-Abgleich: gleiche Tabellen/Funktion wie Outlook (`anbieter` google, Adapter `gcal.js`), Edge Function `google-callback`, Server-Secrets `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` vom Anwender nötig (Anleitung: `ANLEITUNG_Google-Kalender_Einrichtung.md`). Fenster der Abfrage +/- 1 Tag, leere Antwort löscht nichts. Edge Functions `outlook-sync` + `google-callback` müssen mit den Repo-Dateien bereitgestellt sein.
+- v3.385: Kalender-Abo per ICS-Link (nur lesen): Edge Function `kalender-abo` (Cron alle 15 Min + Handtipp), Tabelle `kalender_abos`, Link im Vault (`kalender_abo_url_*`), Termine `quelle='abo'`/`abo_id` (schreibgeschützt per RESTRICTIVE-Policy), Serien-Auflösung in js/91 (`opt.fenster`), nur bekannte Anbieter-Hosts, UI js/96. Einrichtung/Deploy durch Anwender nötig (Anleitung: `ANLEITUNG_Kalender-Abo.md`). Live nicht testbar.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
