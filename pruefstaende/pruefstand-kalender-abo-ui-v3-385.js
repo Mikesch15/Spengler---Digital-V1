@@ -38,7 +38,7 @@ const INIT=()=>{
 
  console.log("\nA · Noch kein Abo");
  let page=await mk();
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
  p(/Arbeitskalender per Link abonnieren/.test(t)&&/nur lesen/.test(t)&&/nichts zurückgeschrieben/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private.*nie übernommen/.test(t)&&/verschlüsselt/.test(t)&&/nie wieder angezeigt/.test(t)&&/importierten Termine entfernt/.test(t),"Vorher steht offen: nur lesen, sichtbar für alle mit Projektrecht, privat nie, Link verschlüsselt und nie wieder sichtbar, Trennen entfernt Termine",t.slice(0,400));
  await page.evaluate(()=>document.getElementById("aboStart").click());await page.waitForTimeout(100);
@@ -55,7 +55,7 @@ const INIT=()=>{
  console.log("\nB · Abo besteht");
  page=await mk();
  await page.evaluate(v=>{window.__tab.kalender_abos=v},ABO());
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  t=await sehe(page);
  p(/Kalender-Abo: Arbeitskalender/.test(t)&&/outlook\.office365\.com/.test(t)&&/nur lesen/.test(t)&&/✓ abonniert/.test(t)&&/12 im Zeitraum, 2 neu, 1 geändert, 0 entfernt/.test(t)&&/alle 15 Minuten/.test(t),"Name, Quelle, Status, Zahlen und Rhythmus sind sichtbar",t.slice(0,300));
  p(!(await page.evaluate(()=>!!document.getElementById("aboUrl"))),"Der gespeicherte Link wird nie wieder angezeigt (kein Eingabefeld)");
@@ -74,12 +74,37 @@ const INIT=()=>{
 
  console.log("\nC · Abonnierte Termine sind schreibgeschützt");
  page=await mk();
- await page.evaluate(()=>{const h=terHeute();window.__tab.termine=[{id:5,titel:"Besprechung Büro",start_datum:h,ende_datum:h,start_zeit:"08:00:00",ende_zeit:"09:00:00",ort:"Bern",notiz:"Raum 3",quelle:"abo",mitarbeiter:["u1"],project_id:null}];terOeffnen()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{const h=terHeute();window.__tab.termine=[{id:5,titel:"Besprechung Büro",start_datum:h,ende_datum:h,start_zeit:"08:00:00",ende_zeit:"09:00:00",ort:"Bern",notiz:"Raum 3",quelle:"abo",mitarbeiter:["u1"],project_id:null}];terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(400);
  const liste=await page.evaluate(()=>document.body.innerText);
  p(/🔒/.test(liste)&&/Besprechung Büro/.test(liste),"In der Terminliste sind abonnierte Termine mit 🔒 markiert");
  await page.evaluate(()=>document.querySelector('[data-ter-edit="5"]').click());await page.waitForTimeout(200);
  const ed=await sehe(page,"terEditor");
  p(/kann hier nicht geändert werden/.test(ed)&&/Bern/.test(ed)&&!(await page.evaluate(()=>!!document.getElementById("terSpeichern")||!!document.getElementById("terLoeschen"))),"Antippen zeigt nur die Ansicht – kein Speichern, kein Löschen",ed.slice(0,200));
+ await page.close();
+
+ console.log("\nD · Lage: Anbindungen und Import ganz unten, zugeklappt (v3.386)");
+ page=await mk();
+ await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ const lage=await page.evaluate(()=>{
+  const m=document.getElementById("termineModal"),d=document.getElementById("terKalenderDetails");
+  const pos=(a,b)=>!!(a&&b&&(a.compareDocumentPosition(b)&Node.DOCUMENT_POSITION_FOLLOWING));
+  const ids=["terImport","terDatei","outlookBox","googleBox","aboBox"];
+  return {da:!!d,offen:d&&d.open,inDet:ids.every(i=>d&&d.contains(document.getElementById(i))),
+   nachListe:pos(document.getElementById("terListe"),d),vorZurueck:pos(d,document.getElementById("closeTermine")),
+   nachNeu:pos(document.getElementById("terNeu"),d),kopfOhneImport:!document.querySelector("#termineModal > .modalbox > .card > .bar #terImport"),
+   sichtbarKopf:document.getElementById("terNeu").offsetParent!==null,summe:d&&d.querySelector("summary").innerText,
+   boxSichtbar:document.getElementById("aboBox").checkVisibility()};
+ });
+ p(lage.da&&lage.inDet,"Import-Knopf, Datei-Feld, Outlook-, Google- und Abo-Box liegen alle in einem Bereich",lage);
+ p(lage.offen===false&&lage.boxSichtbar===false,"Der Bereich ist standardmässig zugeklappt (Boxen nicht sichtbar)",lage);
+ p(lage.nachListe&&lage.vorZurueck,"Er steht nach der Terminliste und vor „Zurück“ – also ganz am Ende",lage);
+ p(lage.sichtbarKopf&&lage.kopfOhneImport,"Oben bleibt nur „Neuer Termin“ (kein Import-Knopf mehr im Kopf)",lage);
+ p(/Kalender verbinden/.test(lage.summe)&&/Outlook/.test(lage.summe)&&/Google/.test(lage.summe),"Die Überschrift nennt, was darin steckt",lage.summe);
+ await page.evaluate(()=>document.querySelector("#terKalenderDetails summary").click());await page.waitForTimeout(150);
+ p(await page.evaluate(()=>document.getElementById("aboBox").checkVisibility()&&document.getElementById("terKalenderDetails").open),"Antippen der Überschrift klappt den Bereich auf");
+ await page.evaluate(()=>{document.getElementById("terKalenderDetails").open=false;gkOk=true;history.replaceState(null,"","?google=ok")});
+ await page.evaluate(()=>{window.__antwort.sync={ok:true,gefunden:0,neu:0,geaendert:0,uebersprungen:0,konflikte:0,fehler:0,hinweise:[]};return gkRueckkehr()});await page.waitForTimeout(400);
+ p(await page.evaluate(()=>document.getElementById("terKalenderDetails").open),"Nach der Rückkehr von Google öffnet sich der Bereich von selbst (Meldung bleibt sichtbar)");
  await page.close();
 
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");

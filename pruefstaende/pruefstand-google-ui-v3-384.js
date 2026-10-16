@@ -37,7 +37,7 @@ const INIT=()=>{
 
  console.log("\nA · Nicht verbunden");
  let page=await mk();
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
  p(/Google-Kalender verbinden \(optional\)/.test(t)&&/Hauptkalender/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private.*nie übernommen/.test(t)&&/nur ein Kalender möglich|nur ein.*Kalender/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen: Hauptkalender, sichtbar für alle mit Projektrecht, privat nie, nur ein Kalender, „Projekt prüfen“",t.slice(0,400));
  p(await page.evaluate(()=>document.getElementById("gkVerbinden").disabled),"„Mit Google verbinden“ ist gesperrt, bis die Einwilligung angehakt ist");
@@ -55,7 +55,7 @@ const INIT=()=>{
  console.log("\nB · Verbunden");
  page=await mk();
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v},VERB({letzte_meldung:"Private Outlook-Termine werden nie übernommen."}));
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  t=await sehe(page);
  p(/max@gmail\.com \(Hauptkalender\)/.test(t)&&/✓ verbunden/.test(t)&&/2 neu, 1 geändert, 3 übersprungen/.test(t)&&/etwa alle 5 Minuten/.test(t),"Konto, Status, Zahlen und der Hinweis zum Hintergrundbetrieb sind sichtbar",t.slice(0,300));
  p(!/Kategorie/.test(await sehe(page)),"Keine Kategorie-Auswahl bei Google (gibt es dort nicht)");
@@ -77,7 +77,7 @@ const INIT=()=>{
  page=await mk();
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v;window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true,verbindung_id:1},{id:13,termin_id:9,konflikt:true,verbindung_id:2}];
   window.__tab.termine=[{id:5,titel:"Besprechung <img src=x onerror=window.__xss=1>",start_datum:"2026-10-20",start_zeit:"08:00"},{id:9,titel:"Fremd",start_datum:"2026-10-21",start_zeit:"08:00"}]},VERB({anz_konflikte:1}));
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(400);
  t=await sehe(page);
  p(/1 Konflikt/.test(t)&&!/Fremd/.test(t)&&(await page.evaluate(()=>document.querySelectorAll("#googleBox [data-gk-konflikt]").length))===2,"Nur der eigene Konflikt wird gezeigt (der einer anderen Verbindung nicht), mit zwei Entscheidungsknöpfen",t.slice(0,300));
  p(!(await page.evaluate(()=>window.__xss||0))&&/&lt;img/.test(await page.evaluate(()=>document.getElementById("googleBox").innerHTML)),"Ein Titel mit HTML wird als Text gezeigt");
@@ -104,7 +104,7 @@ const INIT=()=>{
  console.log("\nE · Nur ein Kalender pro Person");
  page=await mk();
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v},VERB({anbieter:"microsoft",ms_konto:"max@firma.ch"}));
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(400);
  const g=await sehe(page,"googleBox"),o=await sehe(page,"outlookBox");
  p(/schon ein Outlook-Kalender verbunden/.test(g)&&!(await page.evaluate(()=>document.getElementById("gkVerbinden")))&&/max@firma\.ch/.test(o)&&/✓ verbunden/.test(o),"Ist Outlook verbunden: Google bietet kein Verbinden an (Hinweis „zuerst trennen“), Outlook zeigt die Verbindung",{g:g.slice(0,200)});
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v;olGeladen=false;gkGeladen=false;return Promise.all([olLaden(),gkLaden()])},VERB());await page.waitForTimeout(300);

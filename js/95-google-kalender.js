@@ -120,6 +120,7 @@ async function gkRueckkehr(){
   :"Die Verbindung mit Google ist nicht zustande gekommen. Bitte erneut versuchen."}
  if(typeof a2BereichStarten==="function"&&typeof terOeffnen==="function")await a2BereichStarten("termineModal","Termine","mehr",()=>terOeffnen());
  else if(typeof terOeffnen==="function")await terOeffnen();
+ if(typeof terKalenderOeffnen==="function")terKalenderOeffnen();
  await gkLaden();
  if(p==="ok")await gkSync();
 }

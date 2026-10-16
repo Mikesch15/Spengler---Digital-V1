@@ -147,12 +147,14 @@ async function olRueckkehr(){
   olOk=true;olMeldung="Outlook ist verbunden. Der erste Abgleich läuft …";
   if(typeof a2BereichStarten==="function"&&typeof terOeffnen==="function")await a2BereichStarten("termineModal","Termine","mehr",()=>terOeffnen());
   else if(typeof terOeffnen==="function")await terOeffnen();
+  if(typeof terKalenderOeffnen==="function")terKalenderOeffnen();
   await olLaden();
   if(modus==="markierte")await olAufruf({aktion:"modus",import_modus:"markierte"});
   await olSync();
  }else{
   olOk=false;olMeldung="Die Verbindung mit Outlook ist nicht zustande gekommen. Bitte erneut versuchen.";
   if(typeof a2BereichStarten==="function"&&typeof terOeffnen==="function")await a2BereichStarten("termineModal","Termine","mehr",()=>terOeffnen());
+  if(typeof terKalenderOeffnen==="function")terKalenderOeffnen();
   await olLaden();
  }
 }

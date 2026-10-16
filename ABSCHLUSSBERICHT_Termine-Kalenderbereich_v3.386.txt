@@ -1,0 +1,5 @@
+ABSCHLUSSBERICHT v3.386 – Termine: Kalender-Anbindungen ganz unten, zugeklappt
+
+UMGESETZT: index.html (details#terKalenderDetails nach der Terminliste, vor "Zurueck"), js/92 terKalenderOeffnen, js/94/95 oeffnen nach Rueckkehr.
+GETESTET: kalender-abo-ui-v3-385 (22, inkl. Lage-Pruefung und Gegenprobe), outlook-ui, google-ui angepasst.
+KEINE Daten-/Server-Aenderung.

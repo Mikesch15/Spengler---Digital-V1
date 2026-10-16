@@ -43,7 +43,7 @@ const INIT=()=>{
 
  console.log("\nA · Nicht verbunden");
  let page=await mk();
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  let t=await sehe(page);
  p(/Outlook-Kalender verbinden \(optional\)/.test(t)&&/alle Mitarbeiter mit Projektrecht/.test(t)&&/Private Outlook-Termine werden nie übernommen/.test(t)&&/Projekt prüfen/.test(t),"Vor dem Verbinden steht offen, was passiert (Sichtbarkeit für alle mit Projektrecht, privat nie, „Projekt prüfen“)",t.slice(0,300));
  p(await page.evaluate(()=>document.getElementById("olVerbinden").disabled),"Der Knopf „Mit Outlook verbinden“ ist gesperrt, bis die Einwilligung angehakt ist");
@@ -63,7 +63,7 @@ const INIT=()=>{
  console.log("\nB · Verbunden: Status, Abgleich, Fehler");
  page=await mk();
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v},VERB({letzte_meldung:"Private Outlook-Termine werden nie übernommen."}));
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(300);
  t=await sehe(page);
  p(/max@beispiel\.ch/.test(t)&&/✓ verbunden/.test(t)&&/letzter erfolgreicher Abgleich/.test(t)&&/2 neu, 1 geändert, 3 übersprungen/.test(t)&&/Private Outlook-Termine/.test(t)&&/etwa alle 5 Minuten/.test(t),"Konto, Status, letzter Abgleich, Zahlen, Hinweis und der Satz zum Hintergrundbetrieb sind sichtbar",t.slice(0,400));
  await page.evaluate(()=>{window.__antwort.sync={ok:true,neu:2,geaendert:1,uebersprungen:0,konflikte:0,fehler:0,gefunden:5,hinweise:[]};document.getElementById("olSync").click()});await page.waitForTimeout(400);
@@ -95,7 +95,7 @@ const INIT=()=>{
  page=await mk();
  await page.evaluate(v=>{window.__tab.outlook_verbindungen=v;window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true,verbindung_id:1},{id:12,termin_id:6,konflikt:false,verbindung_id:1},{id:13,termin_id:9,konflikt:true,verbindung_id:2}];
   window.__tab.termine=[{id:5,titel:"Besprechung <img src=x onerror=window.__xss=1>",start_datum:"2026-10-20",start_zeit:"08:00"}]},VERB({anz_konflikte:1}));
- await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{terOeffnen();document.getElementById("terKalenderDetails").open=true});await page.waitForTimeout(400);
  t=await sehe(page);
  const html=await page.evaluate(()=>document.getElementById("outlookBox").innerHTML);
  p(/1 Konflikt/.test(t)&&/beide Seiten wurden geändert/.test(t)&&/Es wurde nichts überschrieben/.test(t)&&(await page.evaluate(()=>document.querySelectorAll("[data-ol-konflikt]").length))===2,"Ein Konflikt wird mit zwei Entscheidungsknöpfen gezeigt (der nicht konfligierende Eintrag nicht)",t.slice(0,300));

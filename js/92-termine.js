@@ -20,6 +20,8 @@ let terKarte={liste:null,stand:0,laedt:false,versuch:0};
 const TER_KARTE_NEU_MS=60*1000;
 
 // ---- Datum ----------------------------------------------------------------
+// v3.386: Kalender-Anbindungen/Importe stehen zugeklappt ganz unten; nach einer Rueckkehr von Outlook/Google wird der Bereich geoeffnet
+function terKalenderOeffnen(){const d=document.getElementById("terKalenderDetails");if(d)d.open=true}
 function terIso(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function terHeute(){return terIso(new Date())}
 function terPlus(iso,tage){const [y,m,d]=iso.split("-").map(Number);return terIso(new Date(y,m-1,d+tage))}
