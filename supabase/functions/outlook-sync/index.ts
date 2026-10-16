@@ -134,11 +134,11 @@ async function laufFuer(verb: Record<string, any>) {
     if (!(await firmaAktiv(verb.company_id))) throw fehler("firma gesperrt", { code: "keine_berechtigung" });
     const token = await zugriffsToken(verb.profile_id);
     const z = await syncVerbindung({ db: dbAdapter(verb.company_id, verb), graph: graphAdapter(token, verb.kalender_id), verb });
-    const meldung = z.hinweise.join(" ").slice(0, 300) || null;
+    const meldung = (z.hinweise.join(" ") || (z.gefunden === 0 ? "In Outlook wurden von 7 Tagen zurück bis 120 Tage voraus keine Termine gefunden (Standardkalender des verbundenen Kontos)." : "")).slice(0, 300) || null;
     await rest(`outlook_verbindungen?id=eq.${verb.id}`, { method: "PATCH", body: JSON.stringify({
       status: "verbunden", letzter_erfolg: new Date().toISOString(), letzte_meldung: meldung,
       anz_neu: z.neu, anz_geaendert: z.geaendert, anz_uebersprungen: z.uebersprungen, anz_konflikte: z.konflikte }) });
-    return { ok: true, neu: z.neu, geaendert: z.geaendert, uebersprungen: z.uebersprungen, konflikte: z.konflikte, fehler: z.fehler, hinweise: z.hinweise };
+    return { ok: true, neu: z.neu, geaendert: z.geaendert, uebersprungen: z.uebersprungen, konflikte: z.konflikte, fehler: z.fehler, gefunden: z.gefunden, hinweise: z.hinweise, meldung };
   } catch (e) {
     const code = (e as { code?: string }).code, status = (e as { status?: number }).status;
     console.error("outlook lauf", verb.id, code || status || "fehler");

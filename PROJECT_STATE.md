@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.382`
+- Aktueller Entwicklungsstand: `v3.383`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -14,6 +14,7 @@
 - v3.380: Zeitmessung: fertige Messungen bleiben erhalten, wenn eine neue startet/erfasst wird (Liste `sd_zeitmessung_liste`, max. 30, je Eintrag Übernehmen/Verwerfen). Betreiber-Konto bestätigt; Entfernen des alten Systemadmin-Eintrags wartet auf ausdrückliche Bestätigung.
 - v3.381: Zeitmessung „Für wen?“: eine oder mehrere Personen je Messung (`ma`, Namen wie in `settings.employees`); Übernehmen legt je Person eine Arbeitszeile mit deren Funktion an.
 - v3.382: Link „Betreiber-Anmeldung“ auf dem Anmeldebildschirm (führt zu `?betreiber`), auf der Betreiber-Seite Link zurück; nirgends in der Firmen-App.
+- v3.383: Outlook-Diagnose (Anzahl gefundener Ereignisse). ACHTUNG: Die Edge Function `outlook-sync` im Repo (core.js/index.ts, Feld `gefunden`) ist neuer als die bereitgestellte (Deploy wartete auf Freigabe) – erneut mit `mcp__Supabase__deploy_edge_function` veröffentlichen.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

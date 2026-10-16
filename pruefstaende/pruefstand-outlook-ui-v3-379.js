@@ -66,10 +66,10 @@ const INIT=()=>{
  await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(300);
  t=await sehe(page);
  p(/max@beispiel\.ch/.test(t)&&/✓ verbunden/.test(t)&&/letzter erfolgreicher Abgleich/.test(t)&&/2 neu, 1 geändert, 3 übersprungen/.test(t)&&/Private Outlook-Termine/.test(t)&&/etwa alle 5 Minuten/.test(t),"Konto, Status, letzter Abgleich, Zahlen, Hinweis und der Satz zum Hintergrundbetrieb sind sichtbar",t.slice(0,400));
- await page.evaluate(()=>{window.__antwort.sync={ok:true,neu:2,geaendert:1,uebersprungen:0,konflikte:0,fehler:0,hinweise:[]};document.getElementById("olSync").click()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{window.__antwort.sync={ok:true,neu:2,geaendert:1,uebersprungen:0,konflikte:0,fehler:0,gefunden:5,hinweise:[]};document.getElementById("olSync").click()});await page.waitForTimeout(400);
  t=await sehe(page);
  const sy=await page.evaluate(()=>window.__aufrufe.filter(a=>a.body.aktion==="sync").length);
- p(sy===1&&/Abgleich fertig: 2 neu, 1 geändert/.test(t),"„Jetzt synchronisieren“: ein Aufruf, Ergebnis wird angezeigt",t.slice(0,300));
+ p(sy===1&&/Abgleich fertig: 2 neu, 1 geändert/.test(t)&&/In Outlook gefunden: 5 Termin/.test(t),"„Jetzt synchronisieren“: ein Aufruf, Ergebnis wird angezeigt",t.slice(0,300));
  await page.evaluate(()=>{window.__antwort.sync={ok:false,meldung:"Microsoft bremst gerade (zu viele Anfragen). Der nächste Lauf versucht es erneut."};document.getElementById("olSync").click()});await page.waitForTimeout(400);
  t=await sehe(page);
  p(/Microsoft bremst/.test(t)&&/a2-ol-fehler/.test(await page.evaluate(()=>document.getElementById("outlookBox").innerHTML)),"Fehler des Abgleichs werden verständlich und als Fehler gezeigt");

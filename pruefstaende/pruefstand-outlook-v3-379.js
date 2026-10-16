@@ -91,6 +91,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(!g.events.some(e=>/Fremder|Niemandes|Zu spät/.test(e.subject)),"Fremde, niemandem gehörende und weit entfernte Termine bleiben draussen");
  p(!db.termine.some(t=>t.titel==="Zahnarzt")&&!db.termine.some(t=>t.titel==="Weit weg"),"Privater Termin und Termin ausserhalb des Fensters werden nicht übernommen");
 
+ p(z.gefunden===3,"Der Lauf meldet, wie viele Ereignisse Outlook geliefert hat (Diagnose: 3 im Zeitraum)",z.gefunden);
+ const gLeer=neuesGraph([]);const zl=await lauf(neueDb([],PROJ),gLeer);
+ p(zl.gefunden===0,"Ein leerer Outlook-Kalender wird als „0 gefunden“ gemeldet (nicht als Fehler)",zl);
  console.log("\nC · Wiederholter Lauf ändert nichts (Idempotenz, keine Schleife)");
  const sg=g.schreib,sd=db.schreib,n0=db.termine.length,m0=db.map.length;
  z=await lauf(db,g);

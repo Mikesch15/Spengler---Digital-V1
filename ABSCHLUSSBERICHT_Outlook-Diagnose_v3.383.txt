@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.383 – Outlook-Diagnose
+
+BEFUND (gemessen): Verbindung id 1 = verbunden, letzter Lauf ohne Fehler, 0 Ereignisse verarbeitet, 0 uebersprungen, 0 Zuordnungen -> Outlook lieferte im Zeitraum KEINE Ereignisse (private Ereignisse wuerden als "uebersprungen" zaehlen). Die Verbindung selbst (Anmeldung, Token im Vault, Cron, Abgleich) funktioniert.
+URSACHEN (wahrscheinlich): Der verbundene Outlook.com-Kalender hat im Zeitraum keine Termine (Handy-Termine liegen oft in Google/Samsung-Kalender, nicht in Outlook), oder ein anderer Kalender als der Standardkalender.
+FIRMENKONTO: Die Firmen-Organisation (spenglerei-kuenzi.ch) verlangt Administratorzustimmung fuer die App ("nicht ueberprueft"). Ein Administrator muss einmal zustimmen oder die Benutzerzustimmung erlauben.
+OFFEN: Bereitstellung der geaenderten Funktion outlook-sync (Diagnose-Feld) - nicht freigegeben.

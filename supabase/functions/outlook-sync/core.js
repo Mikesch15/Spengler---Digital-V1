@@ -146,13 +146,14 @@ export function projektVorschlag(t, projekte) {
 const istStopp = (e) => !e || e.status === undefined || e.status === 429 || e.status >= 500 || e.code === "netz" || e.code === "anmeldung_abgelaufen" || e.code === "keine_berechtigung";
 
 export async function syncVerbindung({ db, graph, verb, jetzt = new Date() }) {
-  const z = { neu: 0, geaendert: 0, uebersprungen: 0, konflikte: 0, fehler: 0, hinweise: [] };
+  const z = { neu: 0, geaendert: 0, uebersprungen: 0, konflikte: 0, fehler: 0, gefunden: 0, hinweise: [] };
   const hinweis = (t) => { if (!z.hinweise.includes(t)) z.hinweise.push(t); };
   const heute = heuteIso(jetzt);
   const von = addTage(heute, -FENSTER_VOR_TAGE), bis = addTage(heute, FENSTER_NACH_TAGE);
 
   // 1. Outlook lesen - scheitert das, bleibt alles unveraendert
   const events = await graph.ereignisse(von + "T00:00:00", bis + "T23:59:59");
+  z.gefunden = events.length;   // Diagnose: wie viele Ereignisse hat Outlook im Zeitraum geliefert (0 = der Kalender ist dort leer oder ein anderer)
   const map = await db.mapAlle();
   const mapEvent = new Map(map.map((m) => [m.event_id, m]));
   const termineFenster = await db.termineImFenster(von, bis);

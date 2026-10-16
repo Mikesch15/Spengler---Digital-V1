@@ -96,7 +96,7 @@ async function olSync(){
  olMeldung="Abgleich läuft …";olOk=true;olZeichnen();
  const a=await olAufruf({aktion:"sync"});
  if(a.ok&&a.uebersprungen){olMeldung=a.meldung;olOk=true}
- else if(a.ok){olMeldung=`Abgleich fertig: ${a.neu} neu, ${a.geaendert} geändert, ${a.uebersprungen} übersprungen${a.konflikte?`, ${a.konflikte} Konflikt(e)`:""}${a.fehler?`, ${a.fehler} Fehler`:""}.`;olOk=true}
+ else if(a.ok){olMeldung=`Abgleich fertig: ${a.neu} neu, ${a.geaendert} geändert, ${a.uebersprungen} übersprungen${a.konflikte?`, ${a.konflikte} Konflikt(e)`:""}${a.fehler?`, ${a.fehler} Fehler`:""}. In Outlook gefunden: ${Number.isFinite(a.gefunden)?a.gefunden:"–"} Termin(e) im Zeitraum.`;olOk=true}
  else{olMeldung=a.meldung||a.error||"Der Abgleich ist fehlgeschlagen.";olOk=false}
  olGeladen=false;olZeichnen();
  await olLaden();
