@@ -1,0 +1,19 @@
+ABSCHLUSSBERICHT – Outlook-Auftrag, Phasen 2 (Aufgaben) und 3 (Zuverlaessigkeit): Befund und Entscheidung
+Stand: v3.387, 16.10.2026. Grundlage: Auftrag "Outlook-Kalendersynchronisation" (Phase 0/1 sind seit v3.379-v3.384 umgesetzt: Termine beidseitig, Outlook UND Google, Konflikte, Idempotenz, Tenant-Sicherheit, "Jetzt synchronisieren", Statusanzeige, ICS-Import erhalten; dazu seit v3.385 das Kalender-Abo).
+
+PHASE 2 - AUFGABEN: NICHT UMGESETZT, mit Begruendung (der Auftrag verlangt genau diese Pruefung und verbietet erfundene Aufgaben)
+Befund aus dem Code (js/44, js/45):
+- Aufgaben sind KEINE gespeicherten Objekte. Sie werden bei jedem Aufruf aus dem Stand der Massaufnahmen abgeleitet ("naechster Schritt" je Massaufnahme: freigeben, zuweisen, ruesten, montieren ...). Es gibt keine Aufgaben-ID, keinen eigenen Titel und keinen eigenen Status; verschwindet die Bedingung, verschwindet die Aufgabe.
+- Es gibt KEINE Faelligkeit. Die Tabelle aufgaben_termine ist eine persoenliche Wiedervorlage ("diese Aufgabe interessiert mich erst ab Datum", faellig_am je Person+Massaufnahme+Schritt), also kein Termin und keine Frist.
+- Zuweisung steckt in der Massaufnahme (ruester_id/monteur_id), nicht in der Aufgabe.
+Folgerung: Eine Outlook-/To-Do-Aufgabe haette keine stabile Kennung, keinen eigenen Status und keine echte Frist. Jede Abbildung waere erfunden und wuerde Duplikate oder Geisteraufgaben erzeugen. Der Auftrag sagt dazu ausdruecklich: nicht kuenstlich erfinden.
+Was moeglich waere (Datenmodell-Erweiterung noetig, nicht gebaut): eine stabile Aufgabenkennung (z. B. Massaufnahme-ID + Schritt) mit echtem Faelligkeitsdatum je Aufgabe; erst dann ein Microsoft-To-Do-Abgleich (Aufgabe <-> todoTask, Richtung App -> To Do, Status "erledigt" nur als Rueckmeldung). Das ist eine fachliche Entscheidung (Wer setzt Fristen? Pro Massaufnahme oder Projekt?), keine rein technische.
+Was NICHT veraendert wurde: Aufgaben, Workflow, aufgaben_termine.
+
+PHASE 3 - ZUVERLAESSIGKEIT: Stand und bewusste Grenzen
+Schon vorhanden: serverseitiger Hintergrundlauf alle 5 Minuten (pg_cron), Handtipp "Jetzt synchronisieren"; Wiederholversuche mit Wartezeit bei 429/5xx (2 Versuche, Retry-After beachtet); Fehlerstatus je Verbindung mit verstaendlicher Meldung; "Neu verbinden" ohne Datenverlust (Zuordnungen bleiben); Sicherungen gegen Massenloeschung; kein Abgleich, wenn das Lesen scheitert; Laufsperre gegen doppelte Laeufe.
+NICHT gebaut: Webhooks (Change Notifications) und Delta-Abfrage.
+- Webhooks brauchen eine oeffentlich erreichbare Empfangsadresse (neue Edge Function), Validierungs-Handshake, Abonnement je Person mit Erneuerung spaetestens alle ~3 Tage (Kalender-Abos laufen ab) und eine Wiederherstellung nach verpassten Meldungen. Das Polling alle 5 Minuten bleibt ohnehin als Sicherheitsnetz noetig. Ergebnis waere "schneller als 5 Minuten", nicht "zuverlaessiger" - bei dieser Firmengroesse kein Nutzen, der die zusaetzliche Angriffs- und Betriebsflaeche rechtfertigt.
+- Delta-Abfrage spart Datenvolumen bei grossen Kalendern; die Fenster-Abfrage (7 Tage zurueck bis 120 voraus) ist klein genug. Wuerde die Grenzerkennung fuer Loeschungen veraendern (heikel) - ohne messbaren Anlass nicht angefasst.
+Betriebsgrenzen/Kosten: Microsoft Graph-Kalenderzugriff ist kostenlos (Rate-Limits gelten); Supabase Edge Functions/pg_cron liegen im vorhandenen Plan; Google Calendar API kostenlos im Rahmen der Quoten. Das Microsoft-Firmenkonto braucht weiterhin die Zustimmung der Mandanten-Verwaltung (IT-Anbieter) ODER den Weg ueber das Kalender-Abo (v3.385, ohne Zustimmung, nur lesen).
+Empfehlung: Phase 3 als abgeschlossen betrachten, solange kein konkreter Ausfall oder Zeitanspruch belegt ist; bei Bedarf Webhooks als eigenen, kleinen Auftrag.
