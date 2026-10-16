@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.378.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.379.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1645,6 +1645,17 @@ Adresse (mit Hausnummer), Auftragsnummer oder Projektname – und lässt sich ä
 importierte werden erkannt und nicht doppelt angelegt.</p>
 <div class="hin"><b>Wiederkehrende Termine</b> werden nicht aufgelöst: übernommen wird nur der erste Termin, die App sagt es in der Vorschau.
 Es gibt keine Erinnerungen und keine laufende Synchronisation – der Import ist eine Momentaufnahme.</div>
+<h4>📧 Outlook verbinden (ab 3.379)</h4>
+<p>Unter <b>Outlook</b> verbindest du <b>deinen eigenen</b> Outlook-Kalender mit deinem Microsoft-Konto. Danach gleicht der Server die Termine
+<b>etwa alle 5 Minuten selbstständig</b> ab – in beide Richtungen, auch wenn die App zu ist. <b>Jetzt synchronisieren</b> stösst es sofort an.</p>
+<p>Aus Outlook übernommen werden Termine der nächsten 120 Tage (und der letzten 7). Sie sind für alle Mitarbeiter mit Projektrecht sichtbar;
+<b>private</b> Outlook-Termine werden nie übernommen. Mit der Kategorie <b>«Spengler-DIGITAL»</b> in Outlook (oder der Auswahl «nur Kategorie»)
+bestimmst du, was ankommt. Ein Projekt wird nur zugeordnet, wenn Adresse mit Hausnummer oder Auftragsnummer sicher passen – sonst steht
+<b>«Projekt prüfen»</b> beim Termin.</p>
+<p>Nach Outlook gehen Termine, bei denen du als Mitarbeiter eingetragen bist (oder die du ohne Zuteilung selbst angelegt hast).
+Wurde ein Termin auf <b>beiden Seiten</b> geändert, überschreibt die App nichts: du entscheidest unter <b>Konflikte</b>, welcher Stand gilt.</p>
+<div class="hin">Wiederkehrende Outlook-Termine erscheinen als einzelne Termine im genannten Zeitraum. Aufgaben und Fristen werden noch <b>nicht</b>
+abgeglichen. Mit <b>Verbindung trennen</b> hört der Abgleich auf; bereits übernommene Termine bleiben stehen.</div>
 `},
 "abwicklung":{titel:"Abwicklung: Rundrohr und Tablett",text:`
 <p>Der Rechner kennt zwei <b>Bauteile</b>. Oben wird gewählt, welches gerade

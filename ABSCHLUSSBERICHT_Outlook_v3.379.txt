@@ -1,0 +1,9 @@
+ABSCHLUSSBERICHT v3.379 – Outlook-Abgleich (Termine)
+
+UMGESETZT: Migration v3379 (3 Tabellen, Vault-Funktionen, Cron-Geheimnis, termine.quelle/projekt_pruefen, Trigger), Edge Functions outlook-sync + outlook-callback (deployed, verify_jwt aus, eigene Pruefung), pg_cron alle 5 Minuten, js/94-outlook.js, Hilfetext.
+GEMESSEN (live): Cron -> Funktion 200; falsches Cron-Geheimnis 401; ohne Token 401; Callback mit ungueltigem state 400; Vault-Roundtrip (verschluesselt abgelegt, nur service_role darf), RLS: 2 restriktive Tenant-Policies, state-Tabelle ohne Policy.
+GETESTET (Node/Playwright, nachgebaut): 56 + 31 Pruefungen, 15 Mutationsproben.
+NICHT GETESTET: echte Microsoft-Anmeldung/Graph (kein MS_CLIENT_SECRET hinterlegt, Sandbox erreicht Microsoft nicht).
+GRENZEN: nur Termine (keine Aufgaben, kein Webhook -> Verzoegerung bis ca. 5 Minuten); Wiederholungen nur als einzelne Termine im Fenster; Fenster 7 Tage zurueck/120 Tage voraus; Tokens: Widerruf bei Microsoft nicht automatisch beim Trennen (Token wird lokal geloescht).
+NOETIG: Server-Secret MS_CLIENT_SECRET (Dashboard -> Edge Functions -> Secrets); MS_TENANT nur falls die App NICHT fuer "beliebige Verzeichnisse und persoenliche Konten" registriert wurde.
+KOSTEN/LIMITS: Microsoft Entra-App-Registrierung kostenlos; Supabase: 288 Cron-Aufrufe/Tag + Handaufrufe, keine Zusatzkosten bekannt (Plan-Limits nicht abschliessend geprueft).

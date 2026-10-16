@@ -179,6 +179,8 @@ async function afterLogin(){
  if(typeof wsAnzeigeAuffrischen==="function")wsAnzeigeAuffrischen();
  // v3.05 Persoenliche Aufgaben laden - erst hier, aus demselben Grund.
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
+ // v3.379: Rueckkehr von der Microsoft-Anmeldung (?outlook=ok|fehler) - oeffnet die Termine und startet den ersten Abgleich
+ if(typeof olRueckkehr==="function")olRueckkehr();
  // v3.08 Der Knopf zur Firmenadmin-Uebersicht haengt an isAdmin() und damit
  // am geladenen Profil - deshalb ebenfalls erst hier.
  if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();

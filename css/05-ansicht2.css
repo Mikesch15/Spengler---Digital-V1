@@ -1528,3 +1528,7 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 .a2-zm-zeiten input{width:100%}
 .a2-zm-notif{margin-top:4px;color:var(--muted)}
 .a2-zm select{width:100%;margin-bottom:6px}
+/* v3.379 Outlook */
+.a2-ter-pruefen{display:inline-block;background:#fff3bf;color:#7a5b00;border-radius:6px;padding:0 6px;font-size:12px;font-weight:600}
+.a2-ol-konflikt{padding:8px 0;border-top:1px solid var(--line)}
+.a2-ol-ok{color:#2b8a3e}.a2-ol-fehler{color:#c92a2a}

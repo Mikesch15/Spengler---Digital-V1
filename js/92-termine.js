@@ -56,18 +56,20 @@ function terFuerTag(liste,iso){
 // ---- Laden ----------------------------------------------------------------
 async function terLaden(){
  const von=terWoche,bis=terPlus(terWoche,6);
- const {data,error}=await sb.from("termine").select("*")
-  .lte("start_datum",bis).gte("ende_datum",von).order("start_datum").order("start_zeit",{nullsFirst:true}).limit(500);
- if(error){terFehler=dbFehlerText?dbFehlerText(error):"Termine konnten nicht geladen werden.";return false}
- terFehler="";terDaten=Array.isArray(data)?data:[];return true;
+ try{
+  const {data,error}=await sb.from("termine").select("*")
+   .lte("start_datum",bis).gte("ende_datum",von).order("start_datum").order("start_zeit",{nullsFirst:true}).limit(500);
+  if(error){terFehler=dbFehlerText?dbFehlerText(error):"Termine konnten nicht geladen werden.";return false}
+  terFehler="";terDaten=Array.isArray(data)?data:[];return true;
+ }catch(e){terFehler="Termine konnten nicht geladen werden (keine Verbindung?).";return false}
 }
 // ---- Zeichnen -------------------------------------------------------------
 function terTerminHtml(t){
  const pn=terProjektName(t.project_id),ma=terMitarbeiterText(t.mitarbeiter);
  return `<button type="button" class="a2-zeile a2-ter-zeile" data-ter-edit="${esc(t.id)}">
   <span class="a2-ter-zeit">${esc(terZeitText(t))}</span>
-  <span class="a2-zeile-text"><b>${esc(t.titel)}</b>
-   <span>${esc([pn,t.ort,ma].filter(Boolean).join(" · "))}</span></span>
+  <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":""}${esc(t.titel)}</b>
+   <span>${esc([pn,t.ort,ma].filter(Boolean).join(" · "))}${t.projekt_pruefen?' <span class="a2-ter-pruefen">Projekt prüfen</span>':""}</span></span>
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
 function terWocheHtml(){
@@ -116,6 +118,8 @@ function terEditorOeffnen(id){
   <div class="grid">
    <div class="wide"><label>Titel</label><input id="terTitel" maxlength="200" value="${esc(t.titel)}" placeholder="z. B. Besichtigung Dach"></div>
    <div class="wide"><label>Projekt (optional)</label><select id="terProjekt">${terProjektOptionen(t.project_id)}</select></div>
+   ${id&&t.project_id&&typeof a2ProjektOeffnen==="function"?'<div class="wide"><button type="button" class="gray" id="terProjektOeffnen">➜ Projekt öffnen</button></div>':""}
+   ${id&&t.projekt_pruefen?'<div class="wide small">Dieser Termin kam aus Outlook ohne sichere Projektzuordnung. Beim Speichern gilt die Zuordnung (oder „kein Projekt“) als geprüft.</div>':""}
    <div><label>Beginn (Datum)</label><input id="terStartDatum" type="date" value="${esc(t.start_datum)}"></div>
    <div><label>Beginn (Zeit)</label><input id="terStartZeit" type="time" value="${esc(terZeitKurz(t.start_zeit))}"${ganz?" disabled":""}></div>
    <div><label>Ende (Datum)</label><input id="terEndeDatum" type="date" value="${esc(t.ende_datum||t.start_datum)}"></div>
@@ -158,7 +162,7 @@ async function terSpeichern(){
  const knopf=$("terSpeichern");if(knopf)knopf.disabled=true;
  try{
   let res;
-  if(terEditId)res=await sb.from("termine").update(t).eq("id",terEditId).select("id");
+  if(terEditId)res=await sb.from("termine").update({...t,projekt_pruefen:false}).eq("id",terEditId).select("id");
   else res=await sb.from("termine").insert(t).select("id");
   if(res.error){await appAlert("Konnte nicht gespeichert werden: "+(dbFehlerText?dbFehlerText(res.error):res.error.message));return}
   if(!res.data||!res.data.length){await appAlert("Nicht gespeichert – fehlt die nötige Berechtigung?");return}
@@ -255,6 +259,7 @@ async function terImportieren(){
 
 // ---- Öffnen / Schliessen ------------------------------------------------------
 async function terOeffnen(){
+ if(typeof olLaden==="function")olLaden();
  const modal=$("termineModal");if(!modal)return;
  terWoche=terMontag(terHeute());terEditId=null;terImportListe=null;
  if($("terEditor"))$("terEditor").hidden=true;
@@ -307,6 +312,7 @@ document.addEventListener("click",async e=>{
  if(z("#terVor")){terWoche=terPlus(terWoche,7);terZeichnen();await terLaden();terZeichnen();return}
  if(z("#terHeuteKnopf")){terWoche=terMontag(terHeute());terZeichnen();await terLaden();terZeichnen();return}
  const ed=z("[data-ter-edit]");if(ed){terEditorOeffnen(ed.getAttribute("data-ter-edit"));return}
+ if(z("#terProjektOeffnen")){const t=terDaten.find(x=>Number(x.id)===terEditId);if(t&&t.project_id&&typeof a2ProjektOeffnen==="function"){const m=$("termineModal");await a2ProjektOeffnen(t.project_id);if(m)m.hidden=true}return}
  if(z("#terSpeichern")){await terSpeichern();return}
  if(z("#terLoeschen")){await terLoeschen();return}
  if(z("#terEditorZu")){terEditId=null;$("terEditor").hidden=true;return}
