@@ -125,7 +125,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const maps=q.split("\n").filter(z=>/google/i.test(z)&&!/^\s*\/\//.test(z)).join("\n");
  p(!/maps\.googleapis|AIza|[?&]key=|geocode|places\/|directions\/json|staticmap|\/embed|google\.maps\.|<iframe|geolocation/i.test(q),"Kein API-Endpunkt, kein Schlüssel, kein Geocoding/Places/Directions/Embed/Static, keine Standortabfrage im Code");
  p(/"https:\/\/www\.google\.com\/maps\/"/.test(q)&&(maps.match(/google\.com/g)||[]).length===1,"Es gibt genau EINE feste Google-Maps-Adresse im Code (https://www.google.com/maps/), alles andere sind kodierte Parameterwerte",maps);
- p(!/google/i.test(sw)&&!/googleapis|maps\.google|gstatic/i.test(idx),"index.html und sw.js: keine Google-Abhängigkeit, keine neue Datei");
+ // v3.384: Die App-Hülle enthält die EIGENE Datei js/95-google-kalender.js (Kalender-Abgleich, läuft serverseitig) - sie ist keine Maps-Abhängigkeit.
+ p(!/google/i.test(sw.replace("./js/95-google-kalender.js",""))&&!/googleapis|maps\.google|gstatic/i.test(idx),"index.html und sw.js: keine Google-Abhängigkeit, keine neue Datei");
  const netz=await page.evaluate(()=>{window.__f=0;const f=window.fetch;window.fetch=function(){window.__f++;return f.apply(this,arguments)};
   allProjects=[__PR(1,"Teststrasse 1, 3000 Bern"),__PR(2,"Bahnhofstr. 12, 8001 Zürich")];a2Route.an=true;a2Route.ids=[1,2];a2Zustand.seite="projekte";a2Zeichnen();
   a2Zustand.seite="projekt";a2Zustand.projektId=1;a2SeiteProjekt();a2Route.an=false;a2Route.ids=[];return {fetch:window.__f,geo:window.__geo}});
