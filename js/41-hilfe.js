@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.383.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.384.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1660,6 +1660,11 @@ bestimmst du, was ankommt. Ein Projekt wird nur zugeordnet, wenn Adresse mit Hau
 <b>«Projekt prüfen»</b> beim Termin.</p>
 <p>Nach Outlook gehen Termine, bei denen du als Mitarbeiter eingetragen bist (oder die du ohne Zuteilung selbst angelegt hast).
 Wurde ein Termin auf <b>beiden Seiten</b> geändert, überschreibt die App nichts: du entscheidest unter <b>Konflikte</b>, welcher Stand gilt.</p>
+<h4>📅 Google-Kalender verbinden (ab 3.384)</h4>
+<p>Unter <b>Google-Kalender</b> verbindest du den <b>Hauptkalender</b> deines Google-Kontos – etwa den, den dein Handy anzeigt. Der Abgleich läuft genau wie bei
+Outlook: etwa alle 5 Minuten auf dem Server, in beide Richtungen, mit Konflikt-Auswahl. Private Google-Termine werden nie übernommen. Pro Person ist nur
+<b>ein</b> Kalender möglich (Outlook <b>oder</b> Google). Beim ersten Verbinden zeigt Google evtl. „Diese App wurde nicht überprüft“ – mit
+<b>Erweitert → Weiter</b> geht es trotzdem; wichtig ist, dass du den Zugriff auf den <b>Kalender</b> erlaubst.</p>
 <div class="hin">Wiederkehrende Outlook-Termine erscheinen als einzelne Termine im genannten Zeitraum. Aufgaben und Fristen werden noch <b>nicht</b>
 abgeglichen. Mit <b>Verbindung trennen</b> hört der Abgleich auf; bereits übernommene Termine bleiben stehen.</div>
 `},

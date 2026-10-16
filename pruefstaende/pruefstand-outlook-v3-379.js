@@ -186,7 +186,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  g.fehler={schreiben:Object.assign(new Error("x"),{status:503})};
  err=null;try{await lauf(db,g)}catch(e){err=e}
  p(err&&err.status===503,"Fehler 503 beim Schreiben: Abbruch statt falscher Zuordnung");
- p(!/Kalender|Termin|Titel|Subject/i.test(C.fehlerMeldung(Object.assign(new Error("Geheimer Titel"),{status:500}))),"Fehlermeldungen enthalten keine Kalenderinhalte");
+ p(C.fehlerMeldung(Object.assign(new Error("Geheimer Titel Hauptstrasse 12"),{status:500,code:"x",titel:"Geheim"})).indexOf("Geheim")<0&&C.fehlerMeldung(new Error("Geheimer Titel")).indexOf("Geheim")<0,"Fehlermeldungen enthalten keine Kalenderinhalte (Text der Ausnahme wird nie übernommen)");
  // Doppeltes Ereignis in einer Antwort
  g=neuesGraph([evt("D1","Doppelt","2026-10-20T08:00:00","2026-10-20T09:00:00"),evt("D1","Doppelt","2026-10-20T08:00:00","2026-10-20T09:00:00")]);db=neueDb([],PROJ);
  await lauf(db,g);

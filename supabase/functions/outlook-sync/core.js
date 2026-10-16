@@ -152,7 +152,9 @@ export async function syncVerbindung({ db, graph, verb, jetzt = new Date() }) {
   const von = addTage(heute, -FENSTER_VOR_TAGE), bis = addTage(heute, FENSTER_NACH_TAGE);
 
   // 1. Outlook lesen - scheitert das, bleibt alles unveraendert
-  const events = await graph.ereignisse(von + "T00:00:00", bis + "T23:59:59");
+  // Abfragefenster EINEN Tag breiter als das Datumsfenster und ausdruecklich in UTC: so faellt kein Ereignis am Rand durch eine Zeitzonenverschiebung
+  // heraus (sonst haette es wie "in Outlook geloescht" ausgesehen).
+  const events = await graph.ereignisse(addTage(von, -1) + "T00:00:00Z", addTage(bis, 1) + "T23:59:59Z");
   z.gefunden = events.length;   // Diagnose: wie viele Ereignisse hat Outlook im Zeitraum geliefert (0 = der Kalender ist dort leer oder ein anderer)
   const map = await db.mapAlle();
   const mapEvent = new Map(map.map((m) => [m.event_id, m]));
@@ -169,13 +171,13 @@ export async function syncVerbindung({ db, graph, verb, jetzt = new Date() }) {
       gesehen.add(ev.id);
       const m = mapEvent.get(ev.id);
       if (!m) {
-        if (istPrivat(ev)) { z.uebersprungen++; hinweis("Private Outlook-Termine werden nie übernommen."); continue; }
+        if (istPrivat(ev)) { z.uebersprungen++; hinweis("Private Termine werden nie übernommen."); continue; }
         if (!passtImportModus(ev, verb.import_modus)) { z.uebersprungen++; continue; }
         const t = eventZuTermin(ev);
-        if (!t) { z.uebersprungen++; hinweis("Einzelne Outlook-Termine ohne lesbares Datum wurden ausgelassen."); continue; }
+        if (!t) { z.uebersprungen++; hinweis("Einzelne Termine ohne lesbares Datum wurden ausgelassen."); continue; }
         const v = projektVorschlag(t, projekte), sicher = !!(v && v.score >= PROJEKT_SICHER);
         const row = await db.terminAnlegen({ ...t, ort: t.ort || null, notiz: t.notiz || null, project_id: sicher ? v.projectId : null, projekt_pruefen: !sicher,
-          mitarbeiter: [verb.profile_id], created_by: verb.profile_id, quelle: "outlook", ics_uid: null });
+          mitarbeiter: [verb.profile_id], created_by: verb.profile_id, quelle: verb.anbieter === "google" ? "google" : "outlook", ics_uid: null });
         await db.mapSpeichern({ verbindung_id: verb.id, termin_id: row.id, event_id: ev.id, herkunft: "outlook", etag: ev.changeKey, app_hash: hashTermin(row), konflikt: false, ignoriert: false });
         terminById.set(row.id, row);
         mapEvent.set(ev.id, { ignoriert: true });   // dasselbe Ereignis in derselben Liste nie zweimal anlegen
@@ -221,8 +223,9 @@ export async function syncVerbindung({ db, graph, verb, jetzt = new Date() }) {
   const imFenster = map.filter((m) => !m.ignoriert && m.termin_id != null && terminById.has(m.termin_id) && termineFenster.some((t) => t.id === m.termin_id));
   const fehlend = imFenster.filter((m) => !gesehen.has(m.event_id));
   if (fehlend.length) {
-    if (fehlend.length > Math.max(3, Math.ceil(imFenster.length * 0.3))) {
-      hinweis("Auffällig viele Termine fehlen in Outlook (" + fehlend.length + ") – aus Sicherheit wurde nichts gelöscht.");
+    // verdaechtig: sehr viele fehlen, ODER die Antwort ist komplett leer, obwohl mehrere Termine zugeordnet sind (z. B. falscher/leerer Kalender, Teilfehler)
+    if (fehlend.length > Math.max(3, Math.ceil(imFenster.length * 0.3)) || (events.length === 0 && imFenster.length >= 2)) {
+      hinweis("Auffällig viele Termine fehlen im Kalender (" + fehlend.length + ") – aus Sicherheit wurde nichts gelöscht.");
       z.uebersprungen += fehlend.length;
     } else {
       for (const m of fehlend) {
@@ -242,7 +245,7 @@ export async function syncVerbindung({ db, graph, verb, jetzt = new Date() }) {
   const hatMap = new Set(frisch.filter((m) => m.termin_id != null).map((m) => m.termin_id));
   let angelegt = 0;
   for (const t of termineFenster) {
-    if (angelegt >= MAX_NEU_PRO_LAUF) { hinweis("Es werden höchstens " + MAX_NEU_PRO_LAUF + " Termine pro Lauf nach Outlook geschrieben – der Rest folgt beim nächsten Lauf."); break; }
+    if (angelegt >= MAX_NEU_PRO_LAUF) { hinweis("Es werden höchstens " + MAX_NEU_PRO_LAUF + " Termine pro Lauf in den Kalender geschrieben – der Rest folgt beim nächsten Lauf."); break; }
     if (hatMap.has(t.id) || !exportberechtigt(t, verb.profile_id)) continue;
     try {
       const ev = await graph.erstellen(terminZuEvent(t));
@@ -258,14 +261,14 @@ export async function konfliktLoesen({ db, graph, m, wahl }) {
   const termin = m.termin_id != null ? await db.terminHolen(m.termin_id) : null;
   if (!termin) throw Object.assign(new Error("Der Termin existiert nicht mehr."), { code: "weg" });
   const ev = await graph.holen(m.event_id);
-  if (!ev) throw Object.assign(new Error("Das Outlook-Ereignis existiert nicht mehr."), { code: "weg" });
+  if (!ev) throw Object.assign(new Error("Das Kalender-Ereignis existiert nicht mehr."), { code: "weg" });
   if (wahl === "app") {
     const neu = await graph.aendern(m.event_id, terminZuEvent(termin));
     await db.mapAendern(m.id, { etag: neu.changeKey, app_hash: hashTermin(termin), konflikt: false });
     return "app";
   }
   const t = eventZuTermin(ev);
-  if (!t) throw Object.assign(new Error("Der Outlook-Termin ist nicht lesbar."), { code: "format" });
+  if (!t) throw Object.assign(new Error("Der Kalender-Termin ist nicht lesbar."), { code: "format" });
   const row = await db.terminAendern(termin.id, { ...t, ort: t.ort || null, notiz: t.notiz || null });
   if (!row) throw Object.assign(new Error("Nicht gespeichert – fehlt die nötige Berechtigung?"), { code: "keine_berechtigung" });
   await db.mapAendern(m.id, { etag: ev.changeKey, app_hash: hashTermin(row), konflikt: false });
@@ -274,10 +277,10 @@ export async function konfliktLoesen({ db, graph, m, wahl }) {
 
 // Meldung fuer die Person (ohne Inhalte aus dem Kalender)
 export function fehlerMeldung(e) {
-  if (e && e.code === "anmeldung_abgelaufen") return "Die Outlook-Anmeldung ist abgelaufen oder wurde widerrufen. Bitte neu verbinden.";
-  if (e && e.status === 429) return "Microsoft bremst gerade (zu viele Anfragen). Der nächste Lauf versucht es erneut.";
-  if (e && e.status >= 500) return "Microsoft ist vorübergehend nicht erreichbar. Der nächste Lauf versucht es erneut.";
-  if (e && e.code === "netz") return "Keine Verbindung zu Microsoft. Der nächste Lauf versucht es erneut.";
+  if (e && e.code === "anmeldung_abgelaufen") return "Die Kalender-Anmeldung ist abgelaufen oder wurde widerrufen. Bitte neu verbinden.";
+  if (e && e.status === 429) return "Der Kalender-Dienst bremst gerade (zu viele Anfragen). Der nächste Lauf versucht es erneut.";
+  if (e && e.status >= 500) return "Der Kalender-Dienst ist vorübergehend nicht erreichbar. Der nächste Lauf versucht es erneut.";
+  if (e && e.code === "netz") return "Keine Verbindung zum Kalender-Dienst. Der nächste Lauf versucht es erneut.";
   if (e && e.code === "keine_berechtigung") return "Fehlende Berechtigung beim Speichern von Terminen.";
   return "Der Abgleich ist fehlgeschlagen. Der nächste Lauf versucht es erneut.";
 }

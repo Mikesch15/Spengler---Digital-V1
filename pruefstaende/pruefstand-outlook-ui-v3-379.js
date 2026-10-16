@@ -93,7 +93,7 @@ const INIT=()=>{
 
  console.log("\nC · Konflikte");
  page=await mk();
- await page.evaluate(v=>{window.__tab.outlook_verbindungen=v;window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true},{id:12,termin_id:6,konflikt:false}];
+ await page.evaluate(v=>{window.__tab.outlook_verbindungen=v;window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true,verbindung_id:1},{id:12,termin_id:6,konflikt:false,verbindung_id:1},{id:13,termin_id:9,konflikt:true,verbindung_id:2}];
   window.__tab.termine=[{id:5,titel:"Besprechung <img src=x onerror=window.__xss=1>",start_datum:"2026-10-20",start_zeit:"08:00"}]},VERB({anz_konflikte:1}));
  await page.evaluate(()=>{terOeffnen()});await page.waitForTimeout(400);
  t=await sehe(page);
@@ -103,7 +103,7 @@ const INIT=()=>{
  await page.evaluate(()=>{window.__antwort.konflikt={ok:true};document.querySelector('[data-ol-konflikt="11"][data-wahl="app"]').click()});await page.waitForTimeout(400);
  const kf=await page.evaluate(()=>window.__aufrufe.filter(a=>a.body.aktion==="konflikt").map(a=>a.body));
  p(kf.length===1&&kf[0].map_id===11&&kf[0].wahl==="app",'„App-Stand behalten“ schickt {map_id:11, wahl:"app"}',kf);
- await page.evaluate(()=>{window.__antwort.konflikt={ok:false,error:"Das Outlook-Ereignis existiert nicht mehr."};window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true}];document.querySelector('[data-ol-konflikt="11"][data-wahl="outlook"]').click()});await page.waitForTimeout(400);
+ await page.evaluate(()=>{window.__antwort.konflikt={ok:false,error:"Das Outlook-Ereignis existiert nicht mehr."};window.__tab.outlook_termin_map=[{id:11,termin_id:5,konflikt:true,verbindung_id:1}];document.querySelector('[data-ol-konflikt="11"][data-wahl="outlook"]').click()});await page.waitForTimeout(400);
  p(/existiert nicht mehr/.test(await sehe(page)),"Misslingt die Lösung, steht der Grund da");
  await page.close();
 

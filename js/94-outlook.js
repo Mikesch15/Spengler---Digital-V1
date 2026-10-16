@@ -7,7 +7,7 @@
 // Anmeldung), "Jetzt synchronisieren", "Trennen" und die Entscheidung bei Konflikten. Gelesen wird die eigene Verbindung (RLS: nur die eigene Zeile).
 // Die Verbindung ist optional - ohne sie funktioniert die App wie bisher (inkl. .ics-Import).
 // ===========================================================================
-let olVerbindung=null,olKonflikte=[],olGeladen=false,olLaedt=false,olMeldung="",olOk=true,olEinwilligung=false;
+let olVerbindung=null,olAndere="",olKonflikte=[],olGeladen=false,olLaedt=false,olMeldung="",olOk=true,olEinwilligung=false;
 
 function olDatum(iso){
  if(!iso)return "–";
@@ -18,11 +18,14 @@ async function olLaden(){
  if(olLaedt)return;
  olLaedt=true;
  try{
+  // pro Person gibt es genau EINE Kalenderverbindung (Outlook ODER Google, siehe js/95-google-kalender.js)
   const v=await sb.from("outlook_verbindungen").select("*").maybeSingle();
-  olVerbindung=v&&!v.error?v.data:null;
+  const zeile=v&&!v.error?v.data:null;
+  olVerbindung=zeile&&zeile.anbieter!=="google"?zeile:null;
+  olAndere=zeile&&zeile.anbieter==="google"?"Google":"";
   olKonflikte=[];
   if(olVerbindung){
-   const k=await sb.from("outlook_termin_map").select("id,termin_id").eq("konflikt",true);
+   const k=await sb.from("outlook_termin_map").select("id,termin_id").eq("verbindung_id",olVerbindung.id).eq("konflikt",true);
    const ids=(k&&Array.isArray(k.data)?k.data:[]).filter(x=>x.termin_id!=null);
    if(ids.length){
     const t=await sb.from("termine").select("id,titel,start_datum,start_zeit").in("id",ids.map(x=>x.termin_id));
@@ -54,8 +57,8 @@ function olHtml(){
   </ul>
   <label class="small">Welche Outlook-Termine übernehmen?</label>
   <select id="olModusWahl"><option value="alle">Alle (ausser privaten)</option><option value="markierte">Nur Kategorie «Spengler-DIGITAL»</option></select>
-  <label class="rechte-schalter"><input type="checkbox" id="olEinwilligung"${olEinwilligung?" checked":""}> Ich habe das gelesen und will meinen Outlook-Kalender verbinden.</label>
-  <div class="bar"><button type="button" class="green" id="olVerbinden"${olEinwilligung?"":" disabled"}>Mit Outlook verbinden</button></div>
+  ${olAndere?`<div class="small a2-ol-fehler">Es ist schon ein ${esc(olAndere)}-Kalender verbunden. Pro Person ist nur ein Kalender möglich – bitte zuerst dort die Verbindung trennen.</div>`:`<label class="rechte-schalter"><input type="checkbox" id="olEinwilligung"${olEinwilligung?" checked":""}> Ich habe das gelesen und will meinen Outlook-Kalender verbinden.</label>
+  <div class="bar"><button type="button" class="green" id="olVerbinden"${olEinwilligung?"":" disabled"}>Mit Outlook verbinden</button></div>`}
   ${olMeldung?`<div class="small ${olOk?"a2-ol-ok":"a2-ol-fehler"}">${esc(olMeldung)}</div>`:""}`;
  }
  const kon=olKonflikte.length?`<div style="margin-top:8px"><b>${olKonflikte.length} Konflikt${olKonflikte.length===1?"":"e"}</b> – beide Seiten wurden geändert. Es wurde nichts überschrieben, bitte entscheiden:

@@ -181,6 +181,7 @@ async function afterLogin(){
  if(typeof aufgabenNeuLaden==="function")aufgabenNeuLaden();
  // v3.379: Rueckkehr von der Microsoft-Anmeldung (?outlook=ok|fehler) - oeffnet die Termine und startet den ersten Abgleich
  if(typeof olRueckkehr==="function")olRueckkehr();
+ if(typeof gkRueckkehr==="function")gkRueckkehr();
  // v3.08 Der Knopf zur Firmenadmin-Uebersicht haengt an isAdmin() und damit
  // am geladenen Profil - deshalb ebenfalls erst hier.
  if(typeof auKnopfAktualisieren==="function")auKnopfAktualisieren();

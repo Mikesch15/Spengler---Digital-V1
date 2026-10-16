@@ -68,7 +68,7 @@ function terTerminHtml(t){
  const pn=terProjektName(t.project_id),ma=terMitarbeiterText(t.mitarbeiter);
  return `<button type="button" class="a2-zeile a2-ter-zeile" data-ter-edit="${esc(t.id)}">
   <span class="a2-ter-zeit">${esc(terZeitText(t))}</span>
-  <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":""}${esc(t.titel)}</b>
+  <span class="a2-zeile-text"><b>${t.quelle==="outlook"?"📧 ":(t.quelle==="google"?"📅 ":"")}${esc(t.titel)}</b>
    <span>${esc([pn,t.ort,ma].filter(Boolean).join(" · "))}${t.projekt_pruefen?' <span class="a2-ter-pruefen">Projekt prüfen</span>':""}</span></span>
   <span class="a2-zeile-pfeil">›</span></button>`;
 }
@@ -260,6 +260,7 @@ async function terImportieren(){
 // ---- Öffnen / Schliessen ------------------------------------------------------
 async function terOeffnen(){
  if(typeof olLaden==="function")olLaden();
+ if(typeof gkLaden==="function")gkLaden();
  const modal=$("termineModal");if(!modal)return;
  terWoche=terMontag(terHeute());terEditId=null;terImportListe=null;
  if($("terEditor"))$("terEditor").hidden=true;

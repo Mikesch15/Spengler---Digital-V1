@@ -1,0 +1,8 @@
+ABSCHLUSSBERICHT v3.384 – Google-Kalender-Abgleich
+
+UMGESETZT: Adapter gcal.js, outlook-sync fuer beide Anbieter, google-callback, Migrationen (anbieter, google_token_*, Quelle google), Oberflaeche js/95, Hilfetext, Einrichtungsanleitung.
+GEMESSEN/GETESTET (nachgebaut, nicht live): google-kalender-v3-384 41, google-ui-v3-384 27, outlook-Pruefstaende 57+31; Mutationsproben erkannt.
+ZUSAETZLICH BEHOBEN: Abfragefenster UTC und +/- 1 Tag (Randtermine), leere Antwort loescht nichts.
+NICHT GETESTET: echte Google-Anmeldung/-API (Sandbox erreicht Google nicht, keine Zugangsdaten).
+NOETIG VOM ANWENDER: Google-Cloud-Projekt + OAuth-Client, Secrets GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET (siehe ANLEITUNG_Google-Kalender_Einrichtung.md); Bereitstellung der Edge Functions outlook-sync und google-callback (Freigabe).
+GRENZEN: nur Hauptkalender; keine Kategorien; eine Verbindung je Person; Google-App im Status "Testing" liefe nach 7 Tagen ab (daher "In Produktion").
