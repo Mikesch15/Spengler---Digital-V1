@@ -1,0 +1,5 @@
+ABSCHLUSSBERICHT v3.380 – Zeitmessung: mehrere Messungen
+
+UMGESETZT: Liste "Weitere fertige Messungen" (max. 30, localStorage), Parken beim Start/Erfassen, Einzel-Uebernehmen/-Verwerfen, Kurzzeile "+n fertig", Hilfetext. Keine DB-Aenderung.
+TESTS: zeitmessung-v3-376 61 ok, Mutationsproben erkannt.
+NICHT GETESTET: Bedienung auf einem echten Handy.

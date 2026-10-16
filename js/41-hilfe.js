@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.379.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.380.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1502,6 +1502,9 @@ Zeile („läuft 0:42:10“).</p>
 <b>Als Arbeitsposition übernehmen</b> trägt die gerundeten Stunden mit dem Datum der Messung in eine neue Zeile ein
 (Beschreibung = Notiz und Massaufnahme). Gehört die Messung zu einem anderen Projekt als der offene Rapport, fragt die App nach.
 Gespeichert wird erst mit dem Rapport.</p>
+<p><b>Mehrere Messungen:</b> Eine fertige Messung bleibt stehen. Du kannst direkt eine <b>nächste</b> starten oder von Hand erfassen – die
+fertige wandert dann in die Liste <b>«Weitere fertige Messungen»</b> und geht nicht verloren. Jede hat ihr eigenes <b>Übernehmen</b> und
+<b>Verwerfen</b> (bis zu 30 Stück, auf diesem Gerät gespeichert).</p>
 <h4>🔔 Benachrichtigung</h4>
 <p>Beim Start fragt das Handy einmal nach der Erlaubnis. Danach steht, solange eine Zeit läuft, eine Benachrichtigung
 („Zeit läuft seit 07:30 – Stand 08:37: 1 h 07 min“). Antippen öffnet die App.</p>

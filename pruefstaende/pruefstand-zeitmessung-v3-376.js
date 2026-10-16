@@ -195,6 +195,49 @@ console.log("\nD · Anzeige: zuklappbar, Startseite und Regierapport");
  const sw0=fs.readFileSync("sw.js","utf8");
  p(/notificationclick/.test(sw0)&&/openWindow/.test(sw0)&&/focus\(\)/.test(sw0),"Der Service Worker öffnet die App beim Antippen der Benachrichtigung");
 
+ console.log("\nG2 · Mehrere Messungen nacheinander (v3.380)");
+ await page.evaluate(()=>{window.zmNotifSenden=async()=>false;window.zmNotifErlaubnis=async()=>"default";window.zmNotifSchliessen=async()=>{};zmVerwerfen();zmListe=[];zmListeSichern();currentProjectId=null;window.__confirm=true;window.__alerts.length=0});
+ await page.evaluate(()=>{zmEntwurf.notiz="Messung A";zmStart("")});await min(30);await page.evaluate(()=>zmStopp());
+ const g1=await page.evaluate(()=>({ph:zmZustand.phase,ms:zmZustand.ergebnisMs,n:zmListe.length}));
+ p(g1.ph==="fertig"&&g1.ms===30*60000&&g1.n===0,"Messung A fertig (30 min), Liste noch leer",g1);
+ await page.evaluate(()=>{zmEntwurf.notiz="Messung B";zmEntwurf.beginn="";window.__r=zmStart("")});
+ const g2=await page.evaluate(()=>({ok:window.__r.ok,ph:zmZustand.phase,notiz:zmZustand.notiz,liste:zmListe.map(m=>[m.notiz,m.ergebnisMs]),ls:JSON.parse(localStorage.getItem("sd_zeitmessung_liste")||"[]").length}));
+ p(g2.ok&&g2.ph==="laeuft"&&g2.notiz==="Messung B"&&JSON.stringify(g2.liste)===JSON.stringify([["Messung A",30*60000]])&&g2.ls===1,"Eine neue Messung starten, ohne die fertige zu verwerfen: A liegt in der Liste (gespeichert), B läuft",g2);
+ await min(20);await page.evaluate(()=>zmStopp());
+ await page.evaluate(()=>{zmEntwurf.notiz="Messung C von Hand";zmEntwurf.datum="2026-10-14";zmEntwurf.beginn="08:00";zmEntwurf.ende="09:00";zmEntwurf.pause="";window.__r=zmHandErfassen()});
+ const g3=await page.evaluate(()=>({ok:window.__r.ok,ph:zmZustand.phase,ms:zmZustand.ergebnisMs,liste:zmListe.map(m=>m.notiz)}));
+ p(g3.ok&&g3.ph==="fertig"&&g3.ms===60*60000&&g3.liste.join()==="Messung A,Messung B","Auch von Hand erfassen parkt die stehende fertige Messung (B) – jetzt A und B in der Liste, C ist aktuell",g3);
+ // Ungültige Eingaben verlieren nichts
+ const g4=await page.evaluate(()=>{const vor=zmListe.length,ph=zmZustand.phase,ms=zmZustand.ergebnisMs;zmEntwurf.beginn="25:99";const r1=zmStart(zmEntwurf.beginn);zmEntwurf.beginn="10:00";zmEntwurf.ende="09:00";const r2=zmHandErfassen();return {r1:r1.ok,r2:r2.ok,gleich:zmListe.length===vor&&zmZustand.phase===ph&&zmZustand.ergebnisMs===ms}});
+ p(!g4.r1&&!g4.r2&&g4.gleich,"Ungültiger Start/ungültige Handeingabe: die fertige Messung bleibt unverändert stehen, nichts wird beiseitegelegt",g4);
+ // Anzeige im Rapport-Kasten
+ await page.evaluate(()=>{zmZu=false;zmEntwurf={notiz:"",pid:"",mid:"",beginn:"",ende:"",pause:"",datum:""};zmZeichnen()});
+ const g5=await page.evaluate(()=>{const e=document.querySelector('[data-zm-ort="rapport"]');return {t:e.innerText.replace(/\s+/g," "),ue:e.querySelectorAll('[data-zm="uebernehmen"]').length,form:!!e.querySelector('[data-zm="start"]')}});
+ p(/Fertige Messung/.test(g5.t)&&/Nächste Messung/.test(g5.t)&&/Weitere fertige Messungen \(2\)/.test(g5.t)&&g5.ue===3&&g5.form,"Der Kasten zeigt die aktuelle fertige Messung, das Formular für die nächste und die Liste (3 × Übernehmen)",g5);
+ // Parkierte übernehmen
+ const idA=await page.evaluate(()=>zmListe.find(m=>m.notiz==="Messung A").id);
+ const w0=await page.evaluate(()=>works.length);
+ await page.evaluate(id=>{document.querySelector('[data-zm="uebernehmen"][data-zm-id="'+id+'"]').click()},idA);await page.waitForTimeout(250);
+ const g6=await page.evaluate(()=>({n:works.length,w:works.find(x=>x.desc==="Messung A"),liste:zmListe.map(m=>m.notiz),ph:zmZustand.phase,ms:zmZustand.ergebnisMs}));
+ p(g6.n===w0+1&&g6.w&&g6.w.hours===0.5&&g6.liste.join()==="Messung B"&&g6.ph==="fertig"&&g6.ms===60*60000,"Eine Messung aus der Liste übernehmen: nur sie (A: 0,5 h) kommt in den Rapport; B bleibt in der Liste, C bleibt aktuell",g6);
+ // Verwerfen einzelner Eintrag
+ const idB=await page.evaluate(()=>zmListe[0].id);
+ await page.evaluate(id=>{window.__confirm=false;document.querySelector('[data-zm="verwerfen"][data-zm-id="'+id+'"]').click()},idB);await page.waitForTimeout(150);
+ p((await page.evaluate(()=>zmListe.length))===1,"Verwerfen eines Listeneintrags abgebrochen: bleibt");
+ await page.evaluate(id=>{window.__confirm=true;document.querySelector('[data-zm="verwerfen"][data-zm-id="'+id+'"]').click()},idB);await page.waitForTimeout(150);
+ const g7=await page.evaluate(()=>({n:zmListe.length,ph:zmZustand.phase,ls:JSON.parse(localStorage.getItem("sd_zeitmessung_liste")||"[]").length}));
+ p(g7.n===0&&g7.ph==="fertig"&&g7.ls===0,"Verwerfen bestätigt: nur dieser Eintrag weg (auch im Speicher), die aktuelle fertige Messung bleibt",g7);
+ // Neuladen
+ const g8=await page.evaluate(()=>{zmListe=[{id:"x1",ergebnisMs:900000,notiz:"gemerkt",pid:null,mid:null,projekt:"",mass:"",massTitel:"",datum:"",beginn:"",ende:"",pause:0}];zmListeSichern();zmListe=[];zmLaden();return zmListe.map(m=>m.notiz+":"+m.ergebnisMs)});
+ p(g8.join()==="gemerkt:900000","Die Liste überlebt Neuladen");
+ const g9=await page.evaluate(()=>{localStorage.setItem("sd_zeitmessung_liste","{kaputt");zmListe=[];zmLaden();const a=zmListe.length;localStorage.setItem("sd_zeitmessung_liste",JSON.stringify([{id:"y",ergebnisMs:"x"},{ergebnisMs:5},null,{id:"z",ergebnisMs:60000,notiz:"ok"}]));zmLaden();return {a,b:zmListe.map(m=>m.id)}});
+ p(g9.a===0&&g9.b.join()==="z","Kaputter Speicher: leere Liste; unbrauchbare Einträge werden aussortiert",g9);
+ const g10=await page.evaluate(()=>{zmListe=[];for(let i=0;i<35;i++){zmVerwerfen();zmZustand={...ZM_LEER(),phase:"fertig",ergebnisMs:60000*(i+1),notiz:"n"+i};zmParken()}return {n:zmListe.length,erste:zmListe[0].notiz,letzte:zmListe[zmListe.length-1].notiz}});
+ p(g10.n===30&&g10.erste==="n5"&&g10.letzte==="n34","Die Liste hält höchstens 30 Messungen (die ältesten fallen zuerst heraus)",g10);
+ const g11=await page.evaluate(()=>{zmListe=[{id:"k1",ergebnisMs:600000,notiz:"A",pid:null,mid:null,projekt:"",mass:"",massTitel:"",datum:"",beginn:"",ende:"",pause:0}];zmVerwerfen();zmZu=true;return zmKurzHtml().replace(/<[^>]+>/g,"")});
+ p(/1 fertig/.test(g11),"Zugeklappt zeigt die Kurzzeile, dass noch eine fertige Messung wartet",g11);
+ await page.evaluate(()=>{zmListe=[];zmListeSichern();zmVerwerfen()});
+
  console.log("\nH · Einbindung");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8"),q=fs.readFileSync("js/93-zeitmessung.js","utf8");
  p(/<script src="js\/93-zeitmessung\.js">/.test(idx)&&/js\/93-zeitmessung\.js/.test(sw),"js/93 in index.html UND sw.js");
