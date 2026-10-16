@@ -26,3 +26,6 @@ Ein zweites, **reines Betreiber-Konto** (neue E-Mail, ohne `profiles`-Zeile, ohn
 
 ## 5. Empfohlene Reihenfolge
 A. (erledigt) Fix companies-UPDATE.  B. Firmen-Modulregister (`company_modules`, nur Systemadmin schreibt, Firmen lesen eigene) + Prüfung in Oberfläche und per RLS/Funktion.  C. Aktivitätsprotokoll (`platform_audit_log`, nur Systemadmin).  D. Trennung des Betreiber-Kontos (nach Ihrer Kontoanlage).  E. Pakete später.
+
+## Nachtrag 16.10.2026 (v3.387)
+B (Firmen-Modulregister) und C (Plattformprotokoll) sind umgesetzt (siehe `ABSCHLUSSBERICHT_Firmen-Module_v3.387.txt`); D (Betreiber-Konto) ist seit v3.378 umgesetzt. Offen: Protokollzeile beim Firma-Löschen (`v3387b`), Befund 4 (Spalte `role` im eigenen Profil nur für Admins), E (Pakete).

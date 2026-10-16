@@ -66,7 +66,7 @@ async function checkOfferteZugriff(){
   try{
    const {data,error}=await sb.from("feature_access").select("granted")
     .eq("profile_id",currentProfile.id).eq("feature","angebote").maybeSingle();
-   offerteZugriff=!error&&!!data&&!!data.granted;
+   offerteZugriff=!error&&!!data&&!!data.granted&&await modulErlaubt("angebote");
   }catch(e){offerteZugriff=false;}
  }
  if($("cockpitAngeboteCard"))$("cockpitAngeboteCard").hidden=!offerteZugriff;

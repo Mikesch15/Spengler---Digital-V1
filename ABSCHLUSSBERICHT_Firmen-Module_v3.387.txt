@@ -1,0 +1,9 @@
+ABSCHLUSSBERICHT v3.387 – Firmen-Modulregister und Plattformprotokoll
+
+VORHANDEN: system_admins/is_system_admin, companies-Status, Systemadmin-UI (js/22), feature_access je Person, audit_log je Firma.
+NEU: module_registry, company_modules, platform_audit_log, modul_aktiv(), system_admin_firmen_module(), system_admin_set_firma_modul(), 10 RESTRICTIVE-Policies modul_boundary_*, Protokollzeile bei Status/Testphase/Modulfreigabe, UI Module je Firma + Protokoll.
+SERVERSEITIG DURCHGESETZT: RLS-Policy je Tabelle (angebote, offerten, lager_varianten, lagerbestand_bewegungen, lieferanten_artikel/_bewegungen/_einkauf, abacus_abgleich/_importe/_stunden) ueber modul_aktiv(); Systemadmin-Funktionen pruefen is_system_admin() selbst; Benutzer koennen Register/Freigaben/Protokoll nie direkt schreiben.
+ANGEWENDET (Produktion, 16.10.2026): Migration v3387_firmen_module_audit (nach Schema-Pruefung). Messung danach: 10 Policies RESTRICTIVE, Register 3 Zeilen, keine Firmenzeilen (alles Standard aktiv), anon darf modul_aktiv nicht ausfuehren, Benutzer duerfen nicht in company_modules/platform_audit_log schreiben.
+NICHT ANGEWENDET: v3387b_firma_loeschen_protokoll.sql (Umgebung brach das Ueberschreiben der Loeschfunktion ab; auf Freigabe des Betreibers anwendbar).
+GETESTET: firmen-module-v3-387 (28, mit Gegenproben), Schnellpruefung der Nachbarmodule. NICHT getestet: echte Anmeldung als Systemadmin gegen Produktion, Modul-Sperre mit einer realen Zweitfirma (keine Testfirma, keine Experimente an Produktivdaten).
+GRENZEN: nur 3 schaltbare Module; Kernmodule (Projekte, Massaufnahme, Rapport, Ausmass) nicht einzeln schaltbar; keine Pakete/Abos/Zahlung; MFA nicht eingefuehrt; platform_audit_log protokolliert Firma-Loeschen noch nicht (v3387b).

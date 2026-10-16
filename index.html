@@ -212,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.386</div>
+<div id="appVersion">Version 3.387</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -1177,6 +1177,15 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 
+<div class="settings-section" data-section="sysadmin-protokoll">
+<div class="settings-section-head" data-toggle-section="sysadmin-protokoll"><h2>📜 Aktivitätsprotokoll</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Sicherheitsrelevante Änderungen des Betreibers (Firmenstatus, Testphase, Modulfreigaben), neueste zuerst. Nur für Systemadmins sichtbar.</div>
+<div class="bar"><button type="button" id="sysAdminProtokollLaden" class="gray">🔄 Protokoll laden</button></div>
+<div id="sysAdminProtokollListe" class="small"></div>
+</div>
+</div>
+
 <!-- Einladungslinks (v3.103): gezielte, einmal verwendbare Alternative zur
      direkten Registrierung oben - der System-Admin erzeugt einen Link und
      verschickt ihn selbst (per Mail, WhatsApp o. ä.), die eingeladene
@@ -1326,6 +1335,14 @@ wurde. Der Verlauf hält die Korrektur fest.</div>
 </div>
 </div>
 <div class="bar"><button id="sysAdminSaveStatus" class="green">💾 Status speichern</button></div>
+</div>
+</div>
+
+<div class="settings-section" data-section="sysadmin-module">
+<div class="settings-section-head" data-toggle-section="sysadmin-module"><h2>🧩 Module dieser Firma</h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="info">Hier schaltest du Module für <b>diese Firma</b> frei oder aus (v3.387). Ausschalten <b>löscht keine Daten</b>; die Firma kann das Modul dann weder sehen noch über die Datenbank verwenden. Die Freigabe der einzelnen Personen innerhalb der Firma bleibt davon unabhängig. Jede Änderung wird protokolliert.</div>
+<div id="sysAdminModuleListe" class="small">Wird geladen …</div>
 </div>
 </div>
 
@@ -2487,7 +2504,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.386.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.387.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3192,7 +3209,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.386.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.387.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

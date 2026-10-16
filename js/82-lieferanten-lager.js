@@ -77,7 +77,7 @@ async function checkLagerZugriff(){
   try{
    const {data,error}=await sb.from("feature_access").select("granted")
     .eq("profile_id",currentProfile.id).eq("feature","lager").maybeSingle();
-   lagerverwaltungZugriff=!error&&!!data&&!!data.granted;
+   lagerverwaltungZugriff=!error&&!!data&&!!data.granted&&await modulErlaubt("lager");
   }catch(e){lagerverwaltungZugriff=false;}
  }
  if($("navLagerverwaltung"))$("navLagerverwaltung").hidden=!lagerverwaltungZugriff;

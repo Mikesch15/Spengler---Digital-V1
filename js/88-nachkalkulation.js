@@ -39,7 +39,7 @@ async function checkNachkalkulationZugriff(){
   try{
    const {data,error}=await sb.from("feature_access").select("granted")
      .eq("profile_id",currentProfile.id).eq("feature","nachkalkulation").maybeSingle();
-   nkZugriff=!error&&!!data&&!!data.granted;
+   nkZugriff=!error&&!!data&&!!data.granted&&await modulErlaubt("nachkalkulation");
   }catch(e){nkZugriff=false}
  }
  if(!nkZugriff){nk={...nk,projektId:null,stunden:[],importe:[],abgleich:[],geladen:false}}

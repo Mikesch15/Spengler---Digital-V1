@@ -34,6 +34,11 @@ const BEARBEITEN_OPTIONEN=[
 
 let rollenVorgaben=[];   // Inhalt von permission_settings
 let alleOverrides=[];    // Inhalt von permission_overrides
+// v3.387: Firmen-Modulfreigabe (setzt der Systemadmin, Tabelle company_modules, serverseitig per RESTRICTIVE-Policy "modul_boundary_*" erzwungen).
+// Hier nur die Anzeige: gesperrt wird NUR bei einem ausdruecklichen "false" vom Server; Fehler/offline blenden nichts aus (die Datenbank sperrt ohnehin).
+async function modulErlaubt(modul){
+ try{const r=await sb.rpc("modul_aktiv",{p_modul:modul});return !(r&&!r.error&&r.data===false)}catch(e){return true}
+}
 let alleFeatureAccess=[];// v3.34: Inhalt von feature_access (Offerte-Zugriff je Mitarbeiter)
 let meineRechte={};      // { rapport:{sehen:"alle",bearbeiten:"eigene"}, ... , kataloge:true, admin:false }
 

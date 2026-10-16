@@ -263,6 +263,7 @@ function openSystemAdminCompany(id){
  $("sysAdminStatusInput").value=c.subscription_status;
  $("systemAdminModal").hidden=true;
  $("systemAdminCompanyModal").hidden=false;
+ if(typeof sysModuleLaden==="function")sysModuleLaden(id);
 }
 
 $("closeSystemAdminCompany").onclick=async()=>{
@@ -682,3 +683,73 @@ document.addEventListener("click",async e=>{
   b.disabled=false;
  }
 });
+
+// ---- v3.387: Module je Firma + Aktivitätsprotokoll -----------------------------------------------------------
+// Gelesen ueber system_admin_firmen_module() (nur Systemadmin), geschrieben NUR ueber system_admin_set_firma_modul() (SECURITY DEFINER, prueft
+// is_system_admin(), Abhaengigkeiten, schreibt das Protokoll). Die Oberflaeche zeigt eine Aenderung erst, nachdem der Server sie bestaetigt hat.
+const SYS_MODUL_NAMEN={angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation (Abacus)"};
+let sysModuleZeilen=[],sysModuleFirma=null,sysModuleBusy=false;
+function sysModulHinweis(t,fehler){
+ const e=$("sysAdminActionError");if(e)e.textContent=fehler?t:"";
+ if(!fehler&&t&&typeof sysAdminShowSuccess==="function")sysAdminShowSuccess(t);
+}
+async function sysModuleLaden(firmaId){
+ sysModuleFirma=firmaId;
+ const box=$("sysAdminModuleListe");if(!box)return;
+ box.textContent="Wird geladen …";
+ try{
+  const {data,error}=await sb.rpc("system_admin_firmen_module");
+  if(error){box.innerHTML='<span style="color:var(--red)">Module konnten nicht geladen werden: '+esc(error.message||"Fehler")+'</span>';return}
+  sysModuleZeilen=Array.isArray(data)?data:[];
+ }catch(e){box.innerHTML='<span style="color:var(--red)">Module konnten nicht geladen werden (keine Verbindung?).</span>';return}
+ sysModuleZeichnen();
+}
+function sysModuleZeichnen(){
+ const box=$("sysAdminModuleListe");if(!box)return;
+ const z=sysModuleZeilen.filter(x=>x.company_id===sysModuleFirma);
+ if(!z.length){box.textContent="Keine Module gefunden.";return}
+ box.innerHTML=z.map(x=>`<label class="rechte-schalter" style="display:block;margin:6px 0"><input type="checkbox" data-sys-modul="${esc(x.modul)}"${x.aktiv?" checked":""}${sysModuleBusy?" disabled":""}>
+  <b>${esc(SYS_MODUL_NAMEN[x.modul]||x.modul)}</b> ${x.aktiv?'<span style="color:var(--green)">freigeschaltet</span>':'<span style="color:var(--red)">gesperrt</span>'}
+  <span style="color:var(--muted)">${x.ausdruecklich?"· ausdrücklich gesetzt"+(x.geaendert_am?" am "+esc(sysAdminFmtDate(x.geaendert_am)):""):"· Standard"}</span></label>`).join("");
+}
+async function sysModulSchalten(modul,aktiv){
+ if(sysModuleBusy||!sysModuleFirma)return;
+ const name=SYS_MODUL_NAMEN[modul]||modul;
+ const ok=await appConfirm((aktiv?"Das Modul «"+name+"» für diese Firma freischalten?":"Das Modul «"+name+"» für diese Firma SPERREN? Die Daten bleiben erhalten, die Firma kann das Modul aber nicht mehr verwenden."),{ok:aktiv?"Freischalten":"Sperren"});
+ if(!ok){sysModuleZeichnen();return}
+ sysModuleBusy=true;sysModuleZeichnen();
+ try{
+  const {error}=await sb.rpc("system_admin_set_firma_modul",{p_company:sysModuleFirma,p_modul:modul,p_aktiv:aktiv});
+  if(error){sysModuleBusy=false;sysModulHinweis("Modul konnte nicht geändert werden: "+(error.message||"Fehler"),true);await sysModuleLaden(sysModuleFirma);return}
+  sysModulHinweis("Modul «"+name+"» ist jetzt "+(aktiv?"freigeschaltet":"gesperrt")+".",false);
+ }catch(e){sysModuleBusy=false;sysModulHinweis("Modul konnte nicht geändert werden (keine Verbindung?).",true)}
+ sysModuleBusy=false;
+ await sysModuleLaden(sysModuleFirma);
+}
+document.addEventListener("change",e=>{
+ const t=e.target;if(!t||!t.getAttribute)return;
+ const m=t.getAttribute("data-sys-modul");
+ if(m)sysModulSchalten(m,!!t.checked);
+});
+const SYS_AKTION_TEXT={modul_freigabe:"Modul",firma_status:"Firmenstatus",firma_testphase:"Testphase",firma_loeschen:"Firma gelöscht"};
+async function sysProtokollLaden(){
+ const box=$("sysAdminProtokollListe");if(!box)return;
+ box.textContent="Wird geladen …";
+ try{
+  const {data,error}=await sb.from("platform_audit_log").select("*").order("zeitpunkt",{ascending:false}).limit(100);
+  if(error){box.innerHTML='<span style="color:var(--red)">Protokoll konnte nicht geladen werden: '+esc(error.message||"Fehler")+'</span>';return}
+  const L=Array.isArray(data)?data:[];
+  if(!L.length){box.textContent="Noch keine Einträge.";return}
+  const firma=id=>{const c=(sysAdminCompanies||[]).find(x=>x.id===id);return c?c.name:(id?"Firma …"+String(id).slice(-4):"")};
+  box.innerHTML=L.map(x=>{
+   const d=x.detail||{};
+   let was="";
+   if(x.aktion==="modul_freigabe")was=(SYS_MODUL_NAMEN[x.modul]||x.modul)+": "+(d.neu?"freigeschaltet":"gesperrt");
+   else if(x.aktion==="firma_status")was=(SYS_ADMIN_STATUS_LABELS[d.alt]||d.alt||"?")+" → "+(SYS_ADMIN_STATUS_LABELS[d.neu]||d.neu||"?");
+   else if(x.aktion==="firma_testphase")was=(d.tage!=null?d.tage+" Tage":"")+(d.ende?", Ende "+sysAdminFmtDate(d.ende):"");
+   else if(x.aktion==="firma_loeschen")was=(d.name||"")+" (" + (d.benutzer||0) + " Benutzer, " + (d.projekte||0) + " Projekte)";
+   return `<div style="padding:5px 0;border-bottom:1px solid var(--line,#ddd)"><b>${esc(SYS_AKTION_TEXT[x.aktion]||x.aktion)}</b> · ${esc(firma(x.company_id))}<br><span style="color:var(--muted)">${esc(sysAdminFmtDate(x.zeitpunkt))} · ${esc(was)}</span></div>`;
+  }).join("");
+ }catch(e){box.innerHTML='<span style="color:var(--red)">Protokoll konnte nicht geladen werden (keine Verbindung?).</span>'}
+}
+document.addEventListener("click",e=>{const t=e.target&&e.target.closest?e.target:null;if(t&&t.closest("#sysAdminProtokollLaden"))sysProtokollLaden()});
