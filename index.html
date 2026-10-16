@@ -65,6 +65,9 @@
 <button type="button" id="kwZurueck" class="gray" hidden data-kw-zu-abbrechen="1">↩ Zurück</button>
 </div>
 <div class="small" id="loginError" style="color:var(--red)"></div>
+<!-- v3.382: Zugang zur Betreiber-Anmeldung (Systemadministration) - nur HIER vor der Anmeldung, nie in der Firmen-App.
+     Das Betreiber-Konto ist ein eigenes Konto ohne Firma (siehe js/22-system-admin.js). -->
+<div class="small" style="margin-top:12px;color:var(--muted)"><a href="?betreiber" id="loginBetreiberLink">Betreiber-Anmeldung</a><a href="." id="loginFirmaLink" hidden>← Zur normalen Anmeldung</a></div>
 <!-- Mitarbeiter legt weiterhin nur ein Administrator in den Einstellungen an
      (Firma kommt dabei serverseitig aus dessen eigenem Konto, kein Firmen-Code).
      Die Neu-Firmenregistrierung liegt vorerst ausschliesslich im
@@ -209,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.381</div>
+<div id="appVersion">Version 3.382</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2475,7 +2478,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.381.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.382.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3180,7 +3183,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.381.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.382.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.381`
+- Aktueller Entwicklungsstand: `v3.382`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -13,6 +13,7 @@
 - v3.379: Outlook-Abgleich (pro Mitarbeiter): Edge Functions `outlook-sync` (Cron alle 5 Min + Handtipp) und `outlook-callback`, Tabellen `outlook_verbindungen`/`outlook_termin_map`/`outlook_oauth_state`, Tokens im Supabase Vault. Server-Secret `MS_CLIENT_SECRET` muss vom Anwender im Dashboard gesetzt sein. Kein Webhook, keine Aufgaben-Sync (noch offen). Echte Microsoft-Anbindung nicht getestet.
 - v3.380: Zeitmessung: fertige Messungen bleiben erhalten, wenn eine neue startet/erfasst wird (Liste `sd_zeitmessung_liste`, max. 30, je Eintrag Übernehmen/Verwerfen). Betreiber-Konto bestätigt; Entfernen des alten Systemadmin-Eintrags wartet auf ausdrückliche Bestätigung.
 - v3.381: Zeitmessung „Für wen?“: eine oder mehrere Personen je Messung (`ma`, Namen wie in `settings.employees`); Übernehmen legt je Person eine Arbeitszeile mit deren Funktion an.
+- v3.382: Link „Betreiber-Anmeldung“ auf dem Anmeldebildschirm (führt zu `?betreiber`), auf der Betreiber-Seite Link zurück; nirgends in der Firmen-App.
 
 ## DAUERHAFT GÜLTIGE REGELN
 

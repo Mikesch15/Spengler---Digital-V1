@@ -2,6 +2,8 @@
 
 Seit v3.378 ist die Systemadministration **nicht mehr** in der normalen Firmen-App. Sie hat ein eigenes Konto ohne Firma.
 
+**Einfachster Weg (seit v3.382):** Auf dem Anmeldebildschirm unten auf **„Betreiber-Anmeldung“** tippen (dazu zuerst in der Firmen-App abmelden). Alternativ die Adresse direkt öffnen:
+
 **Adresse (Lesezeichen setzen):** deine App-Adresse mit `?betreiber` am Ende, z. B. `https://mikesch15.github.io/Spengler---Digital-V1/?betreiber`
 
 1. Adresse öffnen – Titel „Betreiber-Anmeldung“.

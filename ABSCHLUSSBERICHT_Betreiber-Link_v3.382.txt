@@ -1,0 +1,5 @@
+ABSCHLUSSBERICHT v3.382 – Betreiber-Anmeldung per Link
+
+UMGESETZT: Link auf dem Anmeldebildschirm (index.html), Gegenlink auf der Betreiber-Seite (js/22). Keine DB-Aenderung.
+TESTS: betreiber-v3-378 mit Link-Pruefungen (nicht in der Firmen-App, Rueck-Link).
+OFFEN: Entfernen des alten Systemadmin-Eintrags des Firmenkontos wurde zweimal von der Umgebung abgebrochen und ist NICHT ausgefuehrt (SQL liegt beim Anwender).

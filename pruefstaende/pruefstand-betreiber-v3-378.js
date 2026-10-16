@@ -94,6 +94,13 @@ const INIT=()=>{
  await page.close();
  page=await mk();
  p(await page.evaluate(()=>$("loginTitel").textContent==="Anmelden"),"Ohne „?betreiber“ bleibt der Titel „Anmelden“");
+ const lk=await page.evaluate(()=>{const l=$("loginBetreiberLink"),f=$("loginFirmaLink");return {da:!!l,href:l&&l.getAttribute("href"),sicht:l&&!l.hidden,firmaVersteckt:f&&f.hidden,imApp:!!$("appRoot").querySelector("#loginBetreiberLink"),imLogin:!!$("authScreen").querySelector("#loginBetreiberLink")}});
+ p(lk.da&&lk.href==="?betreiber"&&lk.sicht&&lk.firmaVersteckt&&lk.imLogin&&!lk.imApp,"Normale Anmeldung: Link „Betreiber-Anmeldung“ führt zu ?betreiber – er steht auf dem Anmeldebildschirm, nicht in der Firmen-App",lk);
+ await page.close();
+ const pb=await mk("?betreiber");
+ const lb=await pb.evaluate(()=>({b:$("loginBetreiberLink").hidden,f:!$("loginFirmaLink").hidden,href:$("loginFirmaLink").getAttribute("href")}));
+ p(lb.b&&lb.f&&/index\.html$|\/$/.test(lb.href),"Auf der Betreiber-Seite führt der Link zurück zur normalen Anmeldung (ohne ?betreiber)",lb);
+ await pb.close();
  const q=fs.readFileSync("js/22-system-admin.js","utf8");
  p(!/service_role|SERVICE_ROLE/i.test(q),"Kein Service-Schlüssel im Browser-Code");
  await page.close();

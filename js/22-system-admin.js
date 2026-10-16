@@ -51,7 +51,12 @@ function betreiberEinstieg(){
  try{return new URLSearchParams(location.search).has("betreiber")}catch(e){return false}
 }
 let betreiberModus=false;
-if(betreiberEinstieg()&&$("loginTitel"))$("loginTitel").textContent="Betreiber-Anmeldung";
+if(betreiberEinstieg()&&$("loginTitel")){
+ $("loginTitel").textContent="Betreiber-Anmeldung";
+ // auf der Betreiber-Seite führt der Link zurück zur normalen Anmeldung statt zu sich selbst
+ if($("loginBetreiberLink"))$("loginBetreiberLink").hidden=true;
+ if($("loginFirmaLink")){$("loginFirmaLink").hidden=false;$("loginFirmaLink").setAttribute("href",location.pathname)}
+}
 async function checkSystemAdmin(){
  const {data,error}=await sb.rpc("is_system_admin");
  isSystemAdmin=!error&&!!data;
