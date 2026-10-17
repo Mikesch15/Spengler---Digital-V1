@@ -280,6 +280,7 @@ function leiEingabenAusFeldern(){
 }
 
 function newLeistung(){
+ if(typeof modulPruefen==="function"&&!modulPruefen("leistungen"))return;   // v3.390
  currentLeistungId=null;
  currentLeistungMeta=null;
  leiAusgewaehlteMassaufnahmen=[];
@@ -299,6 +300,7 @@ function newLeistung(){
 }
 
 async function openLeistung(l){
+ if(typeof modulPruefen==="function"&&!modulPruefen("leistungen"))return;   // v3.390
  currentLeistungId=l.id;
  currentLeistungMeta=l;
  if($("leiBezeichnung"))$("leiBezeichnung").value=l.bezeichnung||"";

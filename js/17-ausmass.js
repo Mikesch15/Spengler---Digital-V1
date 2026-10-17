@@ -535,6 +535,7 @@ $("amProjectResults").addEventListener("click",e=>{
 });
 
 function newAusmassWithType(type){
+ if(typeof modulPruefen==="function"&&!modulPruefen("ausmass"))return;   // v3.390
  if(modulGesperrt("am:"+type)){appAlert("Dieses Modul ist noch in Entwicklung und steht vorerst nur Administratoren zur Verfügung.");return}
  sperreFuerEintrag("ausmass",null);
  isDirty=false;
@@ -580,6 +581,7 @@ function updateAmFormTitle(){
  updateVerlaufToggleVisibility($("amVerlaufToggle"),$("amVerlaufBody"),currentAusmassId);
 }
 function openAusmass(a){
+ if(typeof modulPruefen==="function"&&!modulPruefen("ausmass"))return;   // v3.390
  sperreFuerEintrag("ausmass",a&&a.created_by);
  isDirty=false;
  currentAusmassId=a.id;

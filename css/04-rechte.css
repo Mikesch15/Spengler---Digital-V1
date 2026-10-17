@@ -166,3 +166,24 @@ body.recht-einstellungen-ansehen #settingsModal [data-del-rinne-fitting]{display
    diese Regel waere es schmaler als das Auswahlfeld darueber. */
 .mitarbeiter-funktion input{width:100%}
 .mitarbeiter-funktion .small{margin-top:3px;line-height:1.35}
+
+/* ===== v3.390: Module je Firma (vom Systemadmin gesperrt). Klassen setzt modulKlassenSetzen() (js/05a). Die Datenbank sperrt unabhaengig davon. ===== */
+body.modul-aus-regierapport #cockpitRepCard,
+body.modul-aus-regierapport [data-cockpit-goto="rep"],
+body.modul-aus-regierapport [data-cockpit-new="rep"],
+body.modul-aus-regierapport #newReport,
+body.modul-aus-regierapport [data-a2-rep],
+body.modul-aus-regierapport [data-a2-tu="neuerrapport"],
+body.modul-aus-ausmass #cockpitAmCard,
+body.modul-aus-ausmass [data-cockpit-goto="am"],
+body.modul-aus-ausmass [data-cockpit-new="am"],
+body.modul-aus-ausmass #newAusmass,
+body.modul-aus-ausmass [data-a2-am],
+body.modul-aus-ausmass [data-a2-tu="neuesam"],
+body.modul-aus-leistungen #cockpitLeistungenCard,
+body.modul-aus-leistungen #cockpitStandLeistungenZeile,
+body.modul-aus-leistungen [data-cockpit-goto="leistungen"],
+body.modul-aus-leistungen #cockpitNeueLeistung,
+body.modul-aus-leistungen #angMeasLeistungenZeile,
+body.modul-aus-leistungen [data-a2-lei],
+body.modul-aus-leistungen [data-a2-tu="neuelei"]{display:none !important}

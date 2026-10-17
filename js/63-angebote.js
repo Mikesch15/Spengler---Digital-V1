@@ -1450,7 +1450,7 @@ if($("angMeasAnlegen"))$("angMeasAnlegen").onclick=async()=>{
   // v3.320: je Position eine Projekt-Leistung (angelegt oder vorhandene) und Verknuepfung. Scheitert das, bleiben die
   // Massaufnahmen bestehen - es wird ehrlich dazugesagt, nichts zurueckgerollt.
   let leiText="";
-  const leiWunsch=!$("angMeasLeistungen")||$("angMeasLeistungen").checked;
+  const leiWunsch=(typeof modulAn!=="function"||modulAn("leistungen"))&&(!$("angMeasLeistungen")||$("angMeasLeistungen").checked);   // v3.390: Modul Leistungen
   if(leiWunsch&&typeof leiAusOffertePositionen==="function"){
    if(!currentAngebotId){
     leiText="\n\nDie Offerte ist noch nicht gespeichert – deshalb wurden keine Projekt-Leistungen angelegt. Offerte speichern und die Massaufnahmen später über „Leistungen“ zuordnen.";

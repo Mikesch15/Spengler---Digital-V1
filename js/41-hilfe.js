@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.389.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.390.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -2222,7 +2222,7 @@ kommt nicht mehr hinein; ihre Daten bleiben unber\u00fchrt.</p>
 <p>Es gibt hier bewusst <b>keinen</b> Zugriff auf Projekte, Massaufnahmen oder
 Rapporte dieser Firma. Das ist keine Anzeigefrage, sondern in der Datenbank so
 abgesichert.</p>
-<p><b>Module (ab 3.387):</b> Unter «Module dieser Firma» schaltest du Offerten, Lieferanten-Lager und Nachkalkulation f\u00fcr diese Firma frei oder sperrst sie \u2013 die Datenbank setzt das durch. Sperren <b>l\u00f6scht nichts</b>. Die Nachkalkulation braucht die Offerten. Jede \u00c4nderung steht im <b>Aktivit\u00e4tsprotokoll</b> der Firmenverwaltung.</p>`},
+<p><b>Module (ab 3.387):</b> Unter «Module dieser Firma» schaltest du Offerten, Lieferanten-Lager, Nachkalkulation, Termine und Kalender, Ausmass, Regierapport und Leistungen f\u00fcr diese Firma frei oder sperrst sie \u2013 die Datenbank setzt das durch. Sperren <b>l\u00f6scht nichts</b>. Die Nachkalkulation braucht Offerten und Regierapport. Projekte und Massaufnahme (mit Zuschnitt und Werkstatt) sind Kernmodule und immer dabei. Jede \u00c4nderung steht im <b>Aktivit\u00e4tsprotokoll</b> der Firmenverwaltung.</p>`},
 
 "sysadmin-loeschen":{titel:"Firma endg\u00fcltig l\u00f6schen",text:`
 <p>L\u00f6scht die Firma mit <b>allem, was daran h\u00e4ngt</b>: Konten, Projekte,

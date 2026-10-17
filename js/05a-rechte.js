@@ -44,7 +44,21 @@ async function modulLaden(){
   const neu={};
   r.data.forEach(x=>{if(x&&x.modul)neu[x.modul]=x.aktiv!==false});
   firmaModule=neu;
+  modulKlassenSetzen();
  }catch(e){/* offline: bisheriger Stand bleibt */}
+}
+// v3.390: pro gesperrtem Modul eine Klasse am body ("modul-aus-ausmass" ...). css/04-rechte.css blendet damit die festen Einstiege aus;
+// die dynamisch gezeichneten Stellen fragen modulAn() selbst. Die Datenbank sperrt unabhaengig davon (RESTRICTIVE-Policies).
+function modulKlassenSetzen(){
+ Object.keys(firmaModule).forEach(m=>document.body.classList.toggle("modul-aus-"+m,firmaModule[m]===false));
+}
+const MODUL_ANZEIGE={regierapport:"Regierapport und Regieofferte",ausmass:"Ausmass",leistungen:"Leistungen",termine:"Termine und Kalender",angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation"};
+// Wegfuehrung in ein gesperrtes Modul: Hinweis statt halber Bildschirm. true = weiter, false = abgebrochen.
+function modulPruefen(modul){
+ if(modulAn(modul))return true;
+ const t="Das Modul «"+(MODUL_ANZEIGE[modul]||modul)+"» ist für Ihre Firma nicht freigeschaltet.";
+ if(typeof appAlert==="function")appAlert(t);
+ return false;
 }
 // Synchron fuer die Oberflaeche: nur ein ausdruecklich gesperrtes Modul ist aus.
 function modulAn(modul){return firmaModule[modul]!==false}

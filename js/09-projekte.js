@@ -731,6 +731,7 @@ ${vorschau}
 // returnTo (v2.38): wohin fuehrt "Zurueck" aus dem Regierapport?
 // Ohne Angabe wie bisher zurueck in die Rapport-Uebersicht.
 function openReport(r,returnTo){
+ if(typeof modulPruefen==="function"&&!modulPruefen("regierapport"))return;   // v3.390
  reportReturnTo=returnTo||"reportsModal";
  $("backFromReportEdit").hidden=(reportReturnTo!=="projectCockpit");
  sperreFuerEintrag("rapport",r&&r.created_by);

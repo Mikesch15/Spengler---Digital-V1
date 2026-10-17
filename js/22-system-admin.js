@@ -687,7 +687,7 @@ document.addEventListener("click",async e=>{
 // ---- v3.387: Module je Firma + Aktivitätsprotokoll -----------------------------------------------------------
 // Gelesen ueber system_admin_firmen_module() (nur Systemadmin), geschrieben NUR ueber system_admin_set_firma_modul() (SECURITY DEFINER, prueft
 // is_system_admin(), Abhaengigkeiten, schreibt das Protokoll). Die Oberflaeche zeigt eine Aenderung erst, nachdem der Server sie bestaetigt hat.
-const SYS_MODUL_NAMEN={angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation (Abacus)",termine:"Termine und Kalender"};   // Ersatz, falls das Register nichts liefert
+const SYS_MODUL_NAMEN={angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation (Abacus)",termine:"Termine und Kalender",ausmass:"Ausmass",regierapport:"Regierapport und Regieofferte",leistungen:"Leistungen"};   // Ersatz, falls das Register nichts liefert
 let sysModuleZeilen=[],sysModuleFirma=null,sysModuleBusy=false;
 function sysModulHinweis(t,fehler){
  const e=$("sysAdminActionError");if(e)e.textContent=fehler?t:"";

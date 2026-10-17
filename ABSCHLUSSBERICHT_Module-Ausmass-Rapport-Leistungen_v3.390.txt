@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.390 – Ausmass, Regierapport, Leistungen schaltbar
+UMGESETZT: Registerzeilen schaltbar, 5 RESTRICTIVE-Policies (ausmass, ausmass_kandidaten, reports, leistungen, leistung_massaufnahmen), Nachkalkulation haengt zusaetzlich vom Regierapport ab, Oberflaeche (Body-Klassen + CSS, modulAn-Filter in der Projektseite, modulPruefen-Guards), Admin-Oberflaeche/Hilfe/Was-ist-neu.
+PRODUKTION (Migration v3390 angewendet, danach gemessen im Rollback): mit gesperrten drei Modulen sieht ein Firmenkonto 0 Rapporte/Ausmasse/Leistungen, aber weiter Projekte, Massaufnahmen und Regiematerial; Nachkalkulation ist wegen der Abhaengigkeit aus; danach wieder alles beim Alten, keine Firmenzeilen.
+GETESTET: module-ausmass-rapport-leistungen-v3-390 (34, mit Gegenproben), Nachbar-Pruefstaende, volle Regression nach dem Push.
+NICHT GETESTET: Bedienung am Handy, Sperren mit echter Zweitfirma; die Darstellung anderer Stellen (Suche, Zuletzt-Listen, Regiematerial-Menue) bei gesperrtem Modul: sie zeigen schlicht keine Treffer.
+GRENZEN: Projekte und Massaufnahme (inkl. Zuschnitt, Werkstatt, Ruesten/Montage) bleiben Kernmodule. Wer Ausmass sperrt, behaelt das Komplettausmass NICHT (es gehoert zum Modul). Regiematerial wird auch von der Offerte genutzt und bleibt deshalb frei. Pakete/Abos/Zahlung nicht gebaut.

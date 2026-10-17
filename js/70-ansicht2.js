@@ -1788,8 +1788,10 @@ const A2_PROJ_REGISTER=[
  // „Rüstliste“ in der Werkstatt, nur inline statt im Fenster.
  {k:"ruestblatt",name:"Rüstblatt",
   wenn:()=>a2Modul("zuschnitt")||a2Modul("material")},
- {k:"ausmass",   name:"Ausmass"},
- {k:"rapport",   name:"Rapport"},
+ {k:"ausmass",   name:"Ausmass",
+  wenn:()=>typeof modulAn!=="function"||modulAn("ausmass")},   // v3.390: Modul der Firma
+ {k:"rapport",   name:"Rapport",
+  wenn:()=>typeof modulAn!=="function"||modulAn("regierapport")},
  // v3.366: Nachkalkulation (Abacus-Stunden). Nur mit Freischaltung "nachkalkulation" (js/88).
  {k:"stunden",   name:"Stunden",
   wenn:()=>typeof nkAktiv==="function"&&nkAktiv()},
@@ -2064,7 +2066,7 @@ function a2RegUebersicht(p){
  return `${schritt}
   ${hinweis}
   <div class="a2-dash">${kopfKarte}${mengen}</div>
-  ${(typeof kaA2Html==="function")?kaA2Html():""}
+  ${(typeof kaA2Html==="function"&&(typeof modulAn!=="function"||modulAn("ausmass")))?kaA2Html():""}
   <div class="a2-abschnitt a2-abschnitt-leise">
    <div class="a2-abschnitt-kopf"><h2>Ablauf</h2></div>
    <div class="a2-karte a2-karte-leise">${ablauf}</div>
@@ -2074,8 +2076,8 @@ function a2RegUebersicht(p){
    <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
    <div class="a2-zahlen a2-zahlen-leise">
     <div class="a2-zahl a2-z-blau"><b>${a2Mess().length}</b><span>Massaufnahmen</span></div>
-    <div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>
-    <div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>
+    ${(typeof modulAn!=="function"||modulAn("ausmass"))?`<div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>`:""}
+    ${(typeof modulAn!=="function"||modulAn("regierapport"))?`<div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>`:""}
    </div>
    ${a2MengenZeilen()}
   </div>`;
@@ -2407,7 +2409,7 @@ function a2RegAusmass(p){
   <button type="button" class="a2-knopf a2-k-blau a2-k-voll" data-a2-tu="neuesam">
    ＋ Neues Ausmass</button></div>`;
  // v3.342: das Komplettausmass (Übersicht aus den Massaufnahmen, js/85) steht zuoberst - es ist NICHT die Liste der Ausmasse darunter.
- if(typeof kaA2Html==="function")html+=kaA2Html();
+ if(typeof kaA2Html==="function"&&(typeof modulAn!=="function"||modulAn("ausmass")))html+=kaA2Html();
  if(!liste.length)return html+'<div class="a2-leer">Noch kein Ausmass in diesem Projekt.</div>';
  html+=`<div class="a2-abschnitt-kopf"><h2>${esc(a2Anzahl(liste.length,"Ausmass","Ausmasse"))}</h2></div>`;
  return html+'<div class="a2-liste-zwei">'+liste.map(a=>{
@@ -2458,6 +2460,7 @@ function a2RegOfferte(p){
   if(typeof angMengenHtml==="function")html+=angMengenHtml(ang,(typeof angMatListe==="function")?angMatListe():[]);
  }
  const lei=a2Lei();
+ if(typeof modulAn==="function"&&!modulAn("leistungen"))return html;   // v3.390: Modul Leistungen der Firma gesperrt
  html+=a2MehrBlockHtml("🧩 Leistungen",lei.length,
   lei.map(l=>{
    const zusatz=[typeof leiHerkunftText==="function"?leiHerkunftText(l):(l.angebot_position?"Offerte-Pos. "+l.angebot_position:"Zusatzleistung"),
@@ -2645,6 +2648,9 @@ let a2TypWahl=null;
 function a2NeuerEintrag(was){
  const id=a2Zustand.projektId;
  if(!id)return;
+ // v3.390: gesperrtes Modul der Firma -> Hinweis statt halber Maske
+ const modulFuer={am:"ausmass",rep:"regierapport",lei:"leistungen"}[was];
+ if(modulFuer&&typeof modulPruefen==="function"&&!modulPruefen(modulFuer))return;
  if(was==="meas"&&$("measTypeChooserModal")){a2TypWahl="meas";$("measTypeChooserModal").hidden=false;return}
  if(was==="am"&&$("amTypeChooserModal")){a2TypWahl="am";$("amTypeChooserModal").hidden=false;return}
  if(was==="rep"&&typeof cockpitNeuerRapport==="function"){
@@ -2899,6 +2905,7 @@ function a2StationenFuerFirma(){
  return A2_STATIONEN.filter(s=>{
   if(s.k==="offerte")return offerte;
   if(s.k==="freigabe"||s.k==="ruesten"||s.k==="montage")return wf;
+  if(s.k==="ausmass")return typeof modulAn!=="function"||modulAn("ausmass");   // v3.390
   return true;
  });
 }

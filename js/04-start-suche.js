@@ -142,6 +142,7 @@ $("globalSearchResults").addEventListener("click",async e=>{
 $("startFromReportEdit").onclick=()=>{goToStart()};
 $("reportEditSettingsShortcut").onclick=()=>openSettingsTo("protected","rates");
 $("newReport").onclick=()=>{
+ if(typeof modulPruefen==="function"&&!modulPruefen("regierapport"))return;   // v3.390
  sperreFuerEintrag("rapport",null);
  isDirty=false;
  currentProjectId=null;currentReportId=null;
