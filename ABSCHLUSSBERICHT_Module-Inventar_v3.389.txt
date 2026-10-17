@@ -1,0 +1,8 @@
+ABSCHLUSSBERICHT v3.389 – Modulinventar und Modul "Termine"
+FRAGE DES ANWENDERS: War die Modul-Aufteilung nicht Teil eines txt-Auftrags? ANTWORT: Ja (Komplettauftrag Abschnitt 5). v3.387 hatte nur drei Module erfasst; die Darstellung "Produktentscheidung" war zu bequem - der Auftrag verlangt die Ableitung aus Code und Tabellen.
+INVENTAR: schaltbar+abgesichert: angebote, lager, nachkalkulation, termine. Kern (registriert, nicht einzeln schaltbar, immer frei): projekte, massaufnahme, ausmass, regierapport, leistungen.
+DURCHGESETZT: RESTRICTIVE-Policies modul_boundary_* (14 Tabellen); Edge Functions outlook-sync und kalender-abo pruefen das Modul vor jedem Lauf (neu bereitgestellt); Schalter-RPC lehnt Kernmodule ab; Anzeige entfernt "Termine" unter Mehr und auf Heute.
+PRODUKTION (16./17.10.2026): Migration v3389 angewendet. Gemessen in Rollback-Transaktion: Modul termine gesperrt -> 0 Zeilen in termine/outlook_verbindungen/kalender_abos, Projekte weiter sichtbar, Kernmodul frei. Danach 14 Termine, 0 Firmenzeilen (nichts geaendert).
+NICHT ANGEWENDET: DROP der alten Funktion system_admin_firmen_module (Umgebung hat abgebrochen; nicht umgangen, bleibt ungenutzt bestehen); v3387b (Protokollzeile beim Firma-Loeschen).
+GETESTET: module-inventar-v3-389 (32, mit Gegenproben), firmen-module-v3-387 (28), Nachbar-Pruefstaende.
+GRENZEN: Ausmass, Regierapport, Leistungen, Massaufnahme sind NICHT einzeln schaltbar. Ausmass/Leistungen/Regierapport waeren je ein eigener Auftrag (Tabellenzaun + alle Oberflaechenwege: Cockpit-Karten, Register, Start, Aufgaben); Massaufnahme ist der Kern der Anwendung. Pakete/Abos/Zahlung nicht gebaut.

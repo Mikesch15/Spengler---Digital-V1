@@ -1266,7 +1266,7 @@ function a2SeiteMehr(){
   {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"},
   // v3.375: Terminplanung (js/92)
   {id:"termine",gruppe:"arbeiten", zeichen:"📅", text:"Termine",                   unter:"Wochenübersicht, Kalender vom Handy importieren"}
- ];
+ ].filter(e=>e.id!=="termine"||typeof modulAn!=="function"||modulAn("termine"));   // v3.389: Modul "termine" der Firma
  // v3.251: Das Lieferanten-Lager steht NICHT mehr zusaetzlich unter "Mehr".
  // Bis v3.250 war es dort ein eigener Punkt NEBEN der Lagerverwaltung, weil
  // der Lager-Tab zu dieser fuehrte. Die ist abgeschafft, der Tab fuehrt jetzt

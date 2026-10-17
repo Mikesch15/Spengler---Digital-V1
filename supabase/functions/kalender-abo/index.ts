@@ -38,6 +38,11 @@ async function firmaAktiv(firma: string): Promise<boolean> {
   if (!c || c.is_active === false) return false;
   return c.subscription_status === "active" || (c.subscription_status === "trial" && new Date(c.trial_ends_at).getTime() > Date.now());
 }
+// v3.389: Modul "termine" der Firma ausgeschaltet? Dann kein Abgleich (die Service-Rolle wuerde sonst an der Datenbanksperre vorbeischreiben).
+async function termineModulAus(firma: string): Promise<boolean> {
+  const m = (await rest(`company_modules?company_id=eq.${firma}&modul=eq.termine&select=aktiv`))[0];
+  return !!m && m.aktiv === false;
+}
 function dbFuer(abo: { id: number; company_id: string }) {
   const f = `company_id=eq.${abo.company_id}&abo_id=eq.${abo.id}`;
   return {
@@ -56,6 +61,7 @@ async function laufFuer(abo: Record<string, any>) {
   if (!frei || !frei.length) return { ok: true, uebersprungen: true, meldung: "Ein Abgleich läuft gerade oder wurde eben erst ausgeführt." };
   try {
     if (!(await firmaAktiv(abo.company_id))) throw Object.assign(new Error("firma"), { code: "firma" });
+    if (await termineModulAus(abo.company_id)) throw Object.assign(new Error("modul"), { code: "modul_aus" });
     const url = await rpc("kalender_abo_url_holen", { p_abo: abo.id });
     if (!url) throw Object.assign(new Error("kein link"), { code: "link_ungueltig" });
     const p = urlPruefen(url);
@@ -70,7 +76,7 @@ async function laufFuer(abo: Record<string, any>) {
   } catch (e) {
     const code = (e as { code?: string }).code;
     console.error("kalender-abo lauf", abo.id, code || (e as { status?: number }).status || "fehler");
-    const meldung = code === "format" ? "Unter diesem Link liegt keine lesbare Kalenderdatei." : code === "firma" ? "Die Firma ist nicht aktiv." : fehlerText(e);
+    const meldung = code === "format" ? "Unter diesem Link liegt keine lesbare Kalenderdatei." : code === "firma" ? "Die Firma ist nicht aktiv." : code === "modul_aus" ? "Das Modul «Termine und Kalender» ist für diese Firma nicht freigeschaltet." : fehlerText(e);
     const hart = code === "link_ungueltig" || code === "format";
     await rest(`kalender_abos?id=eq.${abo.id}`, { method: "PATCH", body: JSON.stringify({ status: hart ? "fehler" : "verbunden", letzte_meldung: meldung.slice(0, 300) }) }).catch(() => {});
     return { ok: false, meldung, abgelaufen: hart };
@@ -129,6 +135,7 @@ Deno.serve(async (req: Request) => {
       if (g.fehler && !/kein lesbarer Termin/.test(g.fehler)) return antwort(200, { ok: false, error: "Unter diesem Link liegt keine lesbare Kalenderdatei. Bitte den Link aus «Kalender veröffentlichen» (ICS) verwenden." });
     } catch (e) { return antwort(200, { ok: false, error: fehlerText(e) }); }
     if (!(await firmaAktiv(ich.firma))) return antwort(200, { ok: false, error: "Die Firma ist nicht aktiv." });
+    if (await termineModulAus(ich.firma)) return antwort(200, { ok: false, error: "Das Modul «Termine und Kalender» ist für diese Firma nicht freigeschaltet." });
     let abo = await bestehend();
     const name = String(body.name || "").trim().slice(0, 60) || "Arbeitskalender";
     if (abo) abo = (await rest(`kalender_abos?id=eq.${abo.id}`, { method: "PATCH", headers: { Prefer: "return=representation" }, body: JSON.stringify({ name, host: p.host, status: "verbunden", letzter_lauf: null, letzte_meldung: null }) }))[0];

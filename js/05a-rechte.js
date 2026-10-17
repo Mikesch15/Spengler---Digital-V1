@@ -36,6 +36,18 @@ let rollenVorgaben=[];   // Inhalt von permission_settings
 let alleOverrides=[];    // Inhalt von permission_overrides
 // v3.387: Firmen-Modulfreigabe (setzt der Systemadmin, Tabelle company_modules, serverseitig per RESTRICTIVE-Policy "modul_boundary_*" erzwungen).
 // Hier nur die Anzeige: gesperrt wird NUR bei einem ausdruecklichen "false" vom Server; Fehler/offline blenden nichts aus (die Datenbank sperrt ohnehin).
+let firmaModule={};   // modul -> true/false, geladen bei der Anmeldung (modulLaden); was fehlt, gilt als frei
+async function modulLaden(){
+ try{
+  const r=await sb.rpc("meine_module");
+  if(!r||r.error||!Array.isArray(r.data))return;   // Fehler/offline: der letzte bekannte Stand bleibt
+  const neu={};
+  r.data.forEach(x=>{if(x&&x.modul)neu[x.modul]=x.aktiv!==false});
+  firmaModule=neu;
+ }catch(e){/* offline: bisheriger Stand bleibt */}
+}
+// Synchron fuer die Oberflaeche: nur ein ausdruecklich gesperrtes Modul ist aus.
+function modulAn(modul){return firmaModule[modul]!==false}
 async function modulErlaubt(modul){
  try{const r=await sb.rpc("modul_aktiv",{p_modul:modul});return !(r&&!r.error&&r.data===false)}catch(e){return true}
 }

@@ -68,7 +68,7 @@ const INIT=()=>{
  await page.evaluate(z=>{
   sysAdminCompanies=[{id:"c1",name:"Firma Eins",subscription_status:"active",created_at:"2026-01-01T00:00:00Z",trial_days:30,trial_started_at:"2026-01-01T00:00:00Z",trial_ends_at:"2026-02-01T00:00:00Z"}];
   sysAdminUserCounts={};window.__tabelle=z;
-  window.__antwort.system_admin_firmen_module=()=>({data:window.__tabelle,error:null});
+  window.__antwort.system_admin_module_uebersicht=()=>({data:window.__tabelle,error:null});
   window.__antwort.system_admin_set_firma_modul=a=>{window.__tabelle=window.__tabelle.map(x=>x.company_id===a.p_company&&x.modul===a.p_modul?{...x,aktiv:a.p_aktiv,ausdruecklich:true,geaendert_am:"2026-10-16T09:00:00Z"}:x);return {data:a.p_aktiv,error:null}};
   openSystemAdminCompany("c1");
  },ZEILEN());

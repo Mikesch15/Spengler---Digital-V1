@@ -164,6 +164,7 @@ async function afterLogin(){
  $("authScreen").hidden=true;
  $("appRoot").hidden=false;
  await loadAllData();
+ if(typeof modulLaden==="function")await modulLaden();   // v3.389: Firmen-Modulfreigabe fuer die Anzeige
  works=[neueArbeitsposition()];
  mats=[];
  $("date").value=new Date().toISOString().slice(0,10);

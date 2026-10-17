@@ -147,6 +147,11 @@ async function firmaAktiv(firma: string): Promise<boolean> {
   if (!c || c.is_active === false) return false;
   return c.subscription_status === "active" || (c.subscription_status === "trial" && new Date(c.trial_ends_at).getTime() > Date.now());
 }
+// v3.389: Modul "termine" der Firma ausgeschaltet (company_modules)? Dann laeuft kein Abgleich (die Service-Rolle wuerde sonst an der Datenbanksperre vorbeischreiben).
+async function termineModulAus(firma: string): Promise<boolean> {
+  const m = (await rest(`company_modules?company_id=eq.${firma}&modul=eq.termine&select=aktiv`))[0];
+  return !!m && m.aktiv === false;
+}
 async function laufFuer(verb: Record<string, any>) {
   // gleichzeitige Laeufe (Cron + Handtipp) ausschliessen: nur starten, wenn der letzte Lauf > 60 s her ist
   const grenze = new Date(Date.now() - 60000).toISOString();
@@ -155,6 +160,7 @@ async function laufFuer(verb: Record<string, any>) {
   if (!gesperrt || !gesperrt.length) return { ok: true, uebersprungen: true, meldung: "Ein Abgleich läuft gerade oder wurde eben erst ausgeführt." };
   try {
     if (!(await firmaAktiv(verb.company_id))) throw fehler("firma gesperrt", { code: "keine_berechtigung" });
+    if (await termineModulAus(verb.company_id)) throw fehler("modul aus", { code: "modul_aus" });
     const google = verb.anbieter === "google";
     const token = google ? await zugriffsTokenGoogle(verb.profile_id) : await zugriffsToken(verb.profile_id);
     const kal = google ? googleAdapter({ fetchFn: (u: string, i: RequestInit) => fetch(u, { ...i, signal: AbortSignal.timeout(25000) }), token }) : graphAdapter(token, verb.kalender_id);
@@ -168,7 +174,7 @@ async function laufFuer(verb: Record<string, any>) {
     const code = (e as { code?: string }).code, status = (e as { status?: number }).status;
     console.error("kalender lauf", verb.id, code || status || "fehler");
     const abgelaufen = code === "anmeldung_abgelaufen";
-    const meldung = code === "nicht_konfiguriert" ? "Der Kalender-Abgleich ist auf dem Server noch nicht fertig eingerichtet." : fehlerMeldung(e);
+    const meldung = code === "modul_aus" ? "Das Modul «Termine und Kalender» ist für diese Firma nicht freigeschaltet." : code === "nicht_konfiguriert" ? "Der Kalender-Abgleich ist auf dem Server noch nicht fertig eingerichtet." : fehlerMeldung(e);
     await rest(`outlook_verbindungen?id=eq.${verb.id}`, { method: "PATCH", body: JSON.stringify({ status: abgelaufen ? "fehler" : "verbunden", letzte_meldung: meldung.slice(0, 300) }) }).catch(() => {});
     return { ok: false, meldung, abgelaufen };
   }

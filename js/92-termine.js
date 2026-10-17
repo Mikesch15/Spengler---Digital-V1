@@ -290,6 +290,7 @@ function terKarteListe(){
   .sort((a,b)=>(a.start_datum+(a.start_zeit||"")).localeCompare(b.start_datum+(b.start_zeit||""))).slice(0,4);
 }
 function terKarteHtml(){
+ if(typeof modulAn==="function"&&!modulAn("termine"))return "";   // v3.389: Modul der Firma gesperrt
  if(!terKarte.laedt&&Date.now()-terKarte.versuch>TER_KARTE_NEU_MS&&Date.now()-terKarte.stand>TER_KARTE_NEU_MS)terKarteLaden();
  const l=terKarteListe(),heute=terHeute();
  const zeilen=l.length?l.map(t=>`<div class="a2-ter-kz"><b>${esc(t.start_datum<=heute?"Heute":terTagName(t.start_datum)+" "+terKurz(t.start_datum))}</b> ${esc(terZeitText(t))} · ${esc(t.titel)}${terProjektName(t.project_id)?` <span class="small">(${esc(terProjektName(t.project_id))})</span>`:""}</div>`).join("")

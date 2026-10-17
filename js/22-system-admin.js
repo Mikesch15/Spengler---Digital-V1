@@ -687,7 +687,7 @@ document.addEventListener("click",async e=>{
 // ---- v3.387: Module je Firma + Aktivitätsprotokoll -----------------------------------------------------------
 // Gelesen ueber system_admin_firmen_module() (nur Systemadmin), geschrieben NUR ueber system_admin_set_firma_modul() (SECURITY DEFINER, prueft
 // is_system_admin(), Abhaengigkeiten, schreibt das Protokoll). Die Oberflaeche zeigt eine Aenderung erst, nachdem der Server sie bestaetigt hat.
-const SYS_MODUL_NAMEN={angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation (Abacus)"};
+const SYS_MODUL_NAMEN={angebote:"Offerten",lager:"Lieferanten-Lager",nachkalkulation:"Nachkalkulation (Abacus)",termine:"Termine und Kalender"};   // Ersatz, falls das Register nichts liefert
 let sysModuleZeilen=[],sysModuleFirma=null,sysModuleBusy=false;
 function sysModulHinweis(t,fehler){
  const e=$("sysAdminActionError");if(e)e.textContent=fehler?t:"";
@@ -698,7 +698,7 @@ async function sysModuleLaden(firmaId){
  const box=$("sysAdminModuleListe");if(!box)return;
  box.textContent="Wird geladen …";
  try{
-  const {data,error}=await sb.rpc("system_admin_firmen_module");
+  const {data,error}=await sb.rpc("system_admin_module_uebersicht");
   if(error){box.innerHTML='<span style="color:var(--red)">Module konnten nicht geladen werden: '+esc(error.message||"Fehler")+'</span>';return}
   sysModuleZeilen=Array.isArray(data)?data:[];
  }catch(e){box.innerHTML='<span style="color:var(--red)">Module konnten nicht geladen werden (keine Verbindung?).</span>';return}
@@ -708,9 +708,12 @@ function sysModuleZeichnen(){
  const box=$("sysAdminModuleListe");if(!box)return;
  const z=sysModuleZeilen.filter(x=>x.company_id===sysModuleFirma);
  if(!z.length){box.textContent="Keine Module gefunden.";return}
- box.innerHTML=z.map(x=>`<label class="rechte-schalter" style="display:block;margin:6px 0"><input type="checkbox" data-sys-modul="${esc(x.modul)}"${x.aktiv?" checked":""}${sysModuleBusy?" disabled":""}>
-  <b>${esc(SYS_MODUL_NAMEN[x.modul]||x.modul)}</b> ${x.aktiv?'<span style="color:var(--green)">freigeschaltet</span>':'<span style="color:var(--red)">gesperrt</span>'}
-  <span style="color:var(--muted)">${x.ausdruecklich?"· ausdrücklich gesetzt"+(x.geaendert_am?" am "+esc(sysAdminFmtDate(x.geaendert_am)):""):"· Standard"}</span></label>`).join("");
+ const schaltbar=z.filter(x=>x.schaltbar!==false),kern=z.filter(x=>x.schaltbar===false);
+ const nm=x=>x.name||SYS_MODUL_NAMEN[x.modul]||x.modul;
+ box.innerHTML=schaltbar.map(x=>`<label class="rechte-schalter" style="display:block;margin:6px 0"><input type="checkbox" data-sys-modul="${esc(x.modul)}"${x.aktiv?" checked":""}${sysModuleBusy?" disabled":""}>
+  <b>${esc(nm(x))}</b> ${x.aktiv?'<span style="color:var(--green)">freigeschaltet</span>':'<span style="color:var(--red)">gesperrt</span>'}
+  <span style="color:var(--muted)">${x.ausdruecklich?"· ausdrücklich gesetzt"+(x.geaendert_am?" am "+esc(sysAdminFmtDate(x.geaendert_am)):""):"· Standard"}</span>${x.beschreibung?'<div class="small" style="color:var(--muted);margin-left:26px">'+esc(x.beschreibung)+'</div>':""}</label>`).join("")
+  +(kern.length?'<div class="small" style="margin-top:10px;color:var(--muted)"><b>Kernmodule</b> (immer dabei, nicht einzeln schaltbar): '+kern.map(x=>esc(nm(x))).join(" · ")+'</div>':"");
 }
 async function sysModulSchalten(modul,aktiv){
  if(sysModuleBusy||!sysModuleFirma)return;
