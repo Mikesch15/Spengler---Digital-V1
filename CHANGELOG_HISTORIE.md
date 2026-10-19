@@ -34834,3 +34834,7 @@ Ansage des Anwenders («bei allen Arten die Meldung einbauen»). Beim Speichern 
 ### v3.396 — Dachrandblech: Einteilung nach Anzahl ODER Wunschlänge
 
 Ansage des Anwenders: Das Einteilen in gleich lange Stücke ging nur automatisch (die Anzahl je Kante aus v3.393 stand versteckt im Register «Grundriss»). **Jetzt** im Register «Stücke» je Kante: Anzahl Stücke oder Wunschlänge (`kanten[].wunsch`), dazu «Für alle Kanten übernehmen» und ein Hinweis unter dem Feld («→ 5 gleiche Stücke (aus der Wunschlänge), je 2432 mm»). Regel: Anzahl hat Vorrang; bei Wunschlänge die Anzahl, deren Stücklänge (Überlappung: (L+(n−1)·Ü)/n; Schieber: Abstand L/n) der Wunschlänge am nächsten kommt, bei Gleichstand die kleinere Länge. Wunsch ≤ Überlappung gilt als ungültig (automatisch). Warnungen (Stück zu lang / Schieber-Abstand über SIA 271) gelten für die wirksame Anzahl. Das Feld wurde aus der Kantenliste ins Register «Stücke» verschoben. Nur `js/89`; keine Datenbankänderung. Prüfstand `dachrand-teilen-v3-393` jetzt 25 (Mutationen erkannt).
+
+### v3.397 — Korrektur zu v3.396
+
+Die volle Regression von v3.396 war rot (`felder-bleiben-v2-93`): das neue Feld «Wunschlänge für alle Kanten» verlor seinen Wert beim Neuzeichnen. Jetzt im Modell (`dachrand.wunschAlle`, nur Anzeigezustand, wird nicht in den Speicherstand geschrieben) und wieder eingesetzt. Regression danach grün (siehe PROJECT_STATE).

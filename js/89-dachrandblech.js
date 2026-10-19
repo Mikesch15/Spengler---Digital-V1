@@ -620,7 +620,7 @@ ${fpaFeld("oder Wunschlänge (mm)",`<input data-drb-wunsch="${i}" type="number" 
 </div><div class="small" data-drb-hinweis="${i}">${drbEsc(drbEinteilungHinweis(i))}</div></div>`).join("");
  return `<div class="ra-zeile" style="margin-top:8px"><div class="ra-zeile-kopf"><b>Einteilung in gleich lange Stücke</b></div>
 <div class="small">Je Kante entweder die <b>Anzahl</b> der Stücke oder eine <b>Wunschlänge</b> eintragen – bei einer Wunschlänge nimmt die App die Anzahl, die ihr am nächsten kommt, und teilt die Kante in gleich lange Stücke. Die Anzahl hat Vorrang. Leer = automatisch.</div>
-<div class="grid">${fpaFeld("Wunschlänge für alle Kanten (mm)",`<input id="drb_wunschAlle" type="number" inputmode="numeric" step="1" min="1" placeholder="z. B. 2500">`)}
+<div class="grid">${fpaFeld("Wunschlänge für alle Kanten (mm)",`<input id="drb_wunschAlle" type="number" inputmode="numeric" step="1" min="1" placeholder="z. B. 2500" value="${drbWunsch(d.wunschAlle)||""}">`)}
 <div class="fpa-feld"><label>&nbsp;</label><button type="button" class="gray" id="drb_wunschAlleBtn">Für alle Kanten übernehmen</button></div></div>
 ${zeilen}</div>`;
 }
@@ -716,6 +716,7 @@ function drbVerdrahten(wurzel){
   if(d.drbLaenge!==undefined){const k=m.kanten[Number(d.drbLaenge)];if(k)k.laenge=num(t.value)}
   else if(d.drbWinkel!==undefined){const k=m.kanten[Number(d.drbWinkel)];if(k)k.winkel=num(t.value)}
   else if(d.drbTeile!==undefined){const k=m.kanten[Number(d.drbTeile)];if(k)k.teile=drbTeile(t.value)||""}
+  else if(t.id==="drb_wunschAlle")m.wunschAlle=drbWunsch(t.value)||"";
   else if(d.drbWunsch!==undefined){const k=m.kanten[Number(d.drbWunsch)];if(k)k.wunsch=drbWunsch(t.value)||""}
   else if(d.drbP!==undefined)m.stueck.laenge=num(t.value);
   else if(d.drbU!==undefined)m.stueck.ueberlappung=num(t.value);
@@ -755,7 +756,7 @@ function drbVerdrahten(wurzel){
    renderFreiesProfilAufnahme();return;
   }
   if(t.id==="drb_wunschAlleBtn"){
-   const w=drbWunsch(($("drb_wunschAlle")||{}).value);
+   const w=drbWunsch(($("drb_wunschAlle")||{}).value);m.wunschAlle=w||"";
    if(!w){appAlert("Bitte eine Wunschlänge in mm eingeben.");return}
    m.kanten.forEach(k=>{k.wunsch=w;k.teile=""});
    drbSync();renderFreiesProfilAufnahme();return;
