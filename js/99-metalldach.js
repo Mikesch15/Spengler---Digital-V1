@@ -32,6 +32,7 @@ const MD_KONTROLL_TOL=10;    // mm: Abweichung eines Kontrollmasses, ab der gewa
 const mdZ=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const mdHat=v=>v!==""&&v!==null&&v!==undefined&&Number.isFinite(Number(v));
 const mdMm=v=>Math.round(mdZ(v)).toLocaleString("de-CH");
+const mdWinkel=v=>(Math.round(mdZ(v)*10)/10).toFixed(1).replace(".",",")+"°";
 const mdName=i=>String.fromCharCode(65+i);
 const mdEsc=s=>(typeof esc==="function")?esc(s):String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const mdKey=(a,b)=>a<b?a+"-"+b:b+"-"+a;
@@ -144,6 +145,14 @@ function mdKonstruktion(e){
  let f2=0;
  for(let i=0;i<n;i++){const a=P[i],b=P[(i+1)%n];f2+=a.x*b.y-b.x*a.y}
  if(f2<0){P.forEach(p=>{p.y=-p.y});f2=-f2}
+ // Innenwinkel jeder Ecke in Grad (Form ist hier gegen den Uhrzeigersinn; ueberstumpfe Winkel > 180 bei Einbuchtungen)
+ const winkel=P.map((q,i)=>{
+  const nx=P[(i+1)%n],pv=P[(i+n-1)%n];
+  const v1={x:nx.x-q.x,y:nx.y-q.y},v2={x:pv.x-q.x,y:pv.y-q.y};
+  let t=Math.atan2(v1.x*v2.y-v1.y*v2.x,v1.x*v2.x+v1.y*v2.y);
+  if(t<0)t+=2*Math.PI;
+  return t*180/Math.PI;
+ });
  let schneidet=false;
  for(let i=0;i<n&&!schneidet;i++){
   for(let j=i+1;j<n;j++){
@@ -159,7 +168,7 @@ function mdKonstruktion(e){
  const pts=P.map(p=>({x:p.x,y:uhr?-p.y:p.y}));
  let umfang=0;
  seiten.forEach(s=>{umfang+=s});
- return {ok:fehler.length===0,fehler,warn,punkte:pts,kontrolle,gebraucht,flaeche:Math.abs(f2)/2,umfang,n,sigma:uhr?-1:1,seiten};
+ return {ok:fehler.length===0,fehler,warn,punkte:pts,kontrolle,gebraucht,flaeche:Math.abs(f2)/2,umfang,n,sigma:uhr?-1:1,seiten,winkel};
 }
 
 // ---- 2. Scharen -------------------------------------------------------------
@@ -467,6 +476,20 @@ function mdPlanSvg(g,opt){
   const len=k.seiten?k.seiten[i]:Math.hypot(b.x-a.x,b.y-a.y);
   const bez=(g.bezugsseite===i)?" ★":"";
   s+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="${fs}" font-weight="600" fill="#0d4f8b" paint-order="stroke" stroke="#fff" stroke-width="3">${mdMm(len)}${bez}</text>`;
+ }
+ // Innenwinkel in den Ecken
+ if(k.winkel&&k.winkel.length===n){
+  P.forEach((q,i)=>{
+   const nx=P[(i+1)%n],pv=P[(i+n-1)%n];
+   let a1={x:nx.x-q.x,y:nx.y-q.y},a2={x:pv.x-q.x,y:pv.y-q.y};
+   const l1=Math.hypot(a1.x,a1.y)||1,l2=Math.hypot(a2.x,a2.y)||1;
+   let bx=a1.x/l1+a2.x/l2,by=a1.y/l1+a2.y/l2;
+   const bl=Math.hypot(bx,by);
+   if(bl<1e-6){bx=-a1.y/l1;by=a1.x/l1}else{bx/=bl;by/=bl}
+   if(k.winkel[i]>180)  {bx=-bx;by=-by}
+   const tx=Number(X(q.x))+bx*30,ty=Number(Y(q.y))-by*30+4;
+   s+=`<text x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" text-anchor="middle" font-size="11" fill="#7a4b00" paint-order="stroke" stroke="#fff" stroke-width="3">${mdWinkel(k.winkel[i])}</text>`;
+  });
  }
  // Eckpunkte
  P.forEach((p,i)=>{

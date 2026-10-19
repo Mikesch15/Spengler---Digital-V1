@@ -152,6 +152,34 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{const f=(typeof MZ_ZUSCHNITT_REGISTER==="object")?!!MZ_ZUSCHNITT_REGISTER.metalldach:true;return f});
  p(r,"Register-Sprung aus Material & Zuschnitt kennt das Metalldach");
 
+ console.log("\nG · Eckwinkel im Grundriss");
+ r=await ev(()=>{const w=pts=>berechneMetalldach(mk(pts)).konstruktion.winkel.map(x=>Math.round(x*100)/100);
+  return {rechteck:w([[0,0],[6000,0],[6000,4000],[0,4000]]),trapez:w([[0,0],[6000,0],[4000,3000],[1000,3000]]),dreieck:berechneMetalldach({seiten:[3000,4000,5000],diagonalen:[],uhrzeiger:true}).konstruktion.winkel.map(x=>Math.round(x*100)/100),
+   l:w([[0,0],[4000,0],[4000,2000],[2000,2000],[2000,4000],[0,4000]])}});
+ p(r.rechteck.join()==="90,90,90,90","Rechteck: alle vier Ecken 90°",r.rechteck);
+ p(r.trapez.join()==="71.57,56.31,123.69,108.43","Trapez: 71,57° / 56,31° / 123,69° / 108,43°",r.trapez);
+ p(r.dreieck.join()==="90,53.13,36.87"||r.dreieck.map(x=>x.toFixed(2)).sort().join()==="36.87,53.13,90.00","Dreieck 3-4-5: 90° / 53,13° / 36,87°",r.dreieck);
+ p(r.l.filter(x=>x===270).length===1&&r.l.filter(x=>x===90).length===5,"L-Form: fünf rechte Winkel und die Einbuchtung mit 270°",r.l);
+ r=await ev(()=>{const out=[];[[[0,0],[6000,0],[4000,3000],[1000,3000]],[[0,0],[4000,0],[4000,2000],[2000,2000],[2000,4000],[0,4000]],[[0,0],[6000,0],[6000,1000],[2000,1000],[2000,3000],[6000,3000],[6000,4000],[0,4000]]].forEach(pts=>{[true,false].forEach(u=>{const k=berechneMetalldach(mk(pts,{uhrzeiger:u})).konstruktion;out.push(Math.abs(k.winkel.reduce((a,b)=>a+b,0)-(k.n-2)*180)<0.01)})});return out});
+ p(r.every(Boolean),"Winkelsumme = (n−2) · 180° bei Trapez, L- und C-Form, in beiden Umlaufsinnen",r);
+ r=await ev(()=>{mdZuruecksetzen();mdFuellen({seiten:[6000,4000,6000,4000],diagonalen:[{von:0,nach:2,mass:7211.1}],uhrzeiger:true,achsabstand:1000,winkel:90});mdaSetzeSchritt(2);
+  const tab=document.getElementById("md_winkelTab").textContent;const svg=document.getElementById("md_plan").innerHTML;
+  return {tab,n90:(svg.match(/>90,0°</g)||[]).length,sum:/Summe 360,0°/.test(tab)}});
+ p(/A/.test(r.tab)&&/90,0°/.test(r.tab)&&r.sum,"Grundriss-Register zeigt die Tabelle der Eckwinkel mit Summe",r.tab.slice(0,120));
+ p(r.n90===4,"Im Plan steht an jeder Ecke der Innenwinkel (4 × 90,0°)",r.n90);
+ r=await ev(()=>{const g=berechneMetalldach(mk([[0,0],[4000,0],[4000,2000],[2000,2000],[2000,4000],[0,4000]],{uhrzeiger:false}));const svg=mdPlanSvg(g,{});
+  const circ=[...svg.matchAll(/<circle cx="([\d.]+)" cy="([\d.]+)"/g)].map(x=>[Number(x[1]),Number(x[2])]);
+  const txt=(w)=>{const m=svg.match(new RegExp('<text x="([\\d.]+)" y="([\\d.]+)"[^>]*fill="#7a4b00"[^>]*>'+w+'<'));return m?[Number(m[1]),Number(m[2])]:null};
+  const refl=txt("270,0°"),d=circ[3],rechts=txt("90,0°");
+  return {refl,d,links:refl&&refl[0]<d[0]&&refl[1]>d[1]}});
+ p(r.links,"Einbuchtung 270°: die Beschriftung steht innen (links unterhalb der Ecke), nicht in der Aussparung",r);
+ r=await ev(()=>{const f=pts=>{mdZuruecksetzen();const n=pts.length,d=(i,j)=>Math.hypot(pts[i][0]-pts[j][0],pts[i][1]-pts[j][1]);
+   const dg=[];for(let i=0;i<n;i++)for(let j=i+2;j<n;j++){if(i===0&&j===n-1)continue;dg.push({von:i,nach:j,mass:d(i,j)})}
+   mdFuellen({seiten:pts.map((q,i)=>d(i,(i+1)%n)),diagonalen:dg,uhrzeiger:false,achsabstand:1000});mdaSetzeSchritt(2);return document.getElementById("md_winkelTab").textContent};
+  return {l:f([[0,0],[4000,0],[4000,2000],[2000,2000],[2000,4000],[0,4000]]),t:f([[0,0],[6000,0],[4000,3000],[1000,3000]])}});
+ p(/Einbuchtung/.test(r.l)&&/rechter Winkel/.test(r.l)&&/spitz/.test(r.t)&&/stumpf/.test(r.t),"Die Tabelle benennt rechte, spitze, stumpfe Winkel und die Einbuchtung",r);
+ r=await ev(()=>{mdZuruecksetzen();mdFuellen({seiten:[6000,4000,6000,4000],diagonalen:[{von:0,nach:2,mass:7211.1}],uhrzeiger:true,achsabstand:1000});const d=mdDaten();const m={id:1,type:"metalldach",title:"T",data:d};return {ew:d.eckwinkel.join(),druck:/Innenwinkel der Ecken/.test(mdDruckHtml(m,""))&&/A 90,0°/.test(mdDruckHtml(m,""))}});
+ p(r.ew==="90,90,90,90"&&r.druck,"Eckwinkel werden gespeichert und stehen im Ausdruck",r);
  console.log("\nF · Einbindung");
  const src=f=>fs.readFileSync(f,"utf8");
  p(/99-metalldach\.js/.test(src("index.html"))&&/100-metalldach-aufnahme\.js/.test(src("index.html"))&&/99-metalldach\.js/.test(src("sw.js"))&&/100-metalldach-aufnahme\.js/.test(src("sw.js")),"Beide Dateien in index.html und sw.js");

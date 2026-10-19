@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.401 – Metalldach: Eckwinkel
+UMGESETZT: Innenwinkel jeder Ecke (gerechnet aus Seiten und Diagonalen) als Tabelle im Register Grundriss, im Plan an den Ecken, im Ausdruck und im Speicherstand. Einbuchtungen >180 Grad richtig beschriftet.
+NICHT GEAENDERT: Eingaben, Berechnung der Scharen, Datenbank.
+GETESTET: metalldach-v3-398 (62), hilfe, versionen, sw-cache, volle Regression.
+NICHT GETESTET: am Handy.
+HINWEIS: Die Winkel sind abgeleitet (nicht gemessen); ihre Genauigkeit haengt von den Seiten und Diagonalen ab.

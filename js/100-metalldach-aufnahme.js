@@ -195,6 +195,14 @@ function mdaKontrollTabelleHtml(g){
    return `<tr${schlecht?' class="ra-dila-zeile"':""}><td>${mdName(c.von)}–${mdName(c.nach)}</td><td>${mdMm(c.soll)}</td><td>${mdMm(c.ist)}</td><td><b>${c.abw>0?"+":""}${Math.round(c.abw)} mm</b>${schlecht?" ⚠":" ✓"}</td></tr>`;
   }).join("")}</tbody></table></div>`;
 }
+function mdaWinkelTabelleHtml(g){
+ const k=g.konstruktion;
+ if(!k||!k.ok||!k.winkel||!k.winkel.length)return "";
+ const sum=k.winkel.reduce((a,b)=>a+b,0);
+ return `<div class="scroll" style="margin-top:8px"><table class="eb-table ra-tab"><thead><tr><th>Ecke</th><th>Innenwinkel</th><th>Art</th></tr></thead><tbody>${
+  k.winkel.map((w,i)=>`<tr><td>${mdName(i)}</td><td><b>${mdWinkel(w)}</b></td><td class="small">${Math.abs(w-90)<0.05?"rechter Winkel":(w>180?"Einbuchtung (über 180°)":(w<90?"spitz":"stumpf"))}</td></tr>`).join("")}</tbody></table></div>
+<div class="small" style="margin-top:4px">Summe ${mdWinkel(sum)} (bei ${k.n} Ecken ${mdWinkel((k.n-2)*180)}). Die Winkel sind aus den Seiten und Diagonalen gerechnet – zum Nachmessen mit dem Winkelmesser.</div>`;
+}
 function mdaGrundrissHtml(){
  const a=mdA,n=a.seiten.length,g=mdErgebnis();
  const seiten=a.seiten.map((s,i)=>mdaZahlFeld("Seite "+mdName(i)+"–"+mdName((i+1)%n)+" (mm)","md_seite_"+i,s,true,"1",` data-md-seite="${i}"`)).join("");
@@ -220,6 +228,7 @@ ${extra||'<div class="small">Noch keines. Jede zusätzliche Diagonale prüft den
 <div class="bar" style="margin-top:6px"><button type="button" class="gray" id="md_diagPlus">+ Kontrollmass</button></div>
 <div id="md_fehler">${fehler}</div>
 <div id="md_kontrollTab">${mdaKontrollTabelleHtml(g)}</div>
+<div id="md_winkelTab">${mdaWinkelTabelleHtml(g)}</div>
 ${kennz}
 <div id="md_plan" class="eb-diagram-box eb-diagram-scroll" style="margin-top:10px">${mdPlanSvg(g,{diagonalen:a.diagonalen})}</div>`;
 }
@@ -376,6 +385,7 @@ function mdaLive(){
  const f=$("md_fehler");if(f)f.innerHTML=(g.fehler||[]).map(t=>`<div class="ra-fehler">${mdEsc(t)}</div>`).join("");
  const f2=$("md_fehler2");if(f2)f2.innerHTML=(g.fehler||[]).map(t=>`<div class="ra-fehler">${mdEsc(t)}</div>`).join("");
  const kt=$("md_kontrollTab");if(kt)kt.innerHTML=mdaKontrollTabelleHtml(g);
+ const wt=$("md_winkelTab");if(wt)wt.innerHTML=mdaWinkelTabelleHtml(g);
  const st=$("md_scharenTab");if(st)st.innerHTML=mdaScharenTabelleHtml(g);
  const kz=$("md_kennzahlen");
  if(kz){
@@ -485,6 +495,7 @@ function mdDaten(){
   scharen:g.scharenOk?g.bahnen.map(b=>({label:b.label,art:b.art,breite:Math.round(b.breite*10)/10,zuschnittBreite:b.zuschnittBreite,falzLinks:b.falzLinks,falzRechts:b.falzRechts,oberLinks:!!b.oberLinks,oberRechts:!!b.oberRechts,
    stuecke:b.stuecke.map(s=>({laenge:s.laenge,laengeLinks:Math.round(s.laengeLinks),laengeRechts:Math.round(s.laengeRechts),
     untenLinks:Math.round(s.untenLinks),obenLinks:Math.round(s.obenLinks),untenRechts:Math.round(s.untenRechts),obenRechts:Math.round(s.obenRechts)}))})):[],
+  eckwinkel:(g.konstruktion.winkel||[]).map(w=>Math.round(w*100)/100),
   kontrollmasse:(g.konstruktion.kontrolle||[]).map(c=>({von:c.von,nach:c.nach,soll:c.soll,ist:Math.round(c.ist),abw:Math.round(c.abw)})),
   ausmass:mdaAusmassZeilen(),kontrolle:mdaPruefungen(),
   zuschnitt:{auswahl:(a.rollenAuswahl||[]).slice(),breiten:mdaRollenbreiten(),
@@ -542,6 +553,7 @@ function mdDruckHtml(m,kopfHtml){
 <tr>${cell("Material",matName)}${cell("Anzahl Ecken",esc(n))}</tr>
 <tr>${cell("Fläche",mdEsc(((mdZ(d.flaeche)/1e6)).toFixed(2).replace(".",","))+" m²")}${cell("Umfang",mdMm(d.umfang)+" mm")}</tr>
 <tr>${cell("Seiten (mm)",mdEsc(seitenTxt))}${cell("Diagonalen (mm)",mdEsc(diagTxt||"–"))}</tr>
+<tr>${cell("Innenwinkel der Ecken",mdEsc((g.konstruktion.winkel||[]).map((w,i)=>mdName(i)+" "+mdWinkel(w)).join(" · ")||"–"))}<td></td></tr>
 <tr>${cell("Achsabstand",mdMm(d.achsabstand)+" mm")}${cell("Winkel zur Seite "+mdName(mdZ(d.bezugsseite))+"–"+mdName((mdZ(d.bezugsseite)+1)%(n||1)),mdEsc(mdZ(d.winkel))+"°")}</tr>
 <tr>${cell("Scharen / Passbahnen",esc((d.anzahl||0)+" / "+(d.anzahlPassbahnen||0)))}${cell("Zählung der Scharen von",d.start==="rechts"?"rechts":"links")}</tr>
 <tr>${cell("Längenzugabe",mdMm(d.zugabeLaenge)+" mm")}${cell("Falz Untergriff / Obergriff",mdMm(d.falzUnter)+" / "+mdMm(d.falzOber)+" mm")}</tr>
