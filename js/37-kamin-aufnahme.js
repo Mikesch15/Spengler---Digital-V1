@@ -1246,7 +1246,7 @@ function applyKaminSettings(){
 (function kamEinstellungenBinden(){
  if(!$("saveKaminSettings"))return;
  applyKaminSettings();
- $("saveKaminSettings").onclick=()=>{
+ $("saveKaminSettings").onclick=async()=>{
   const zahl=id=>Number($(id).value);
   const w={
    deckung:$("kamsDeckung").value,
@@ -1265,13 +1265,13 @@ function applyKaminSettings(){
      .some(k=>w[k]<0)){appAlert("Diese Werte dürfen nicht negativ sein.");return}
   kamEinstellungenSichern(w);
   applyKaminSettings();
-  appAlert("Gespeichert (gilt nur für dieses Gerät).");
+  await efMelden(KAMIN_EINSTELLUNGEN);
  };
  $("resetKaminSettings").onclick=async ()=>{
   if(!await appConfirm("Alle Werte der Kamineinfassung auf die Standardwerte zurücksetzen?"))return;
   kamEinstellungenSichern(Object.assign({},KAMIN_STANDARD));
   applyKaminSettings();
-  appAlert("Auf Standardwerte zurückgesetzt.");
+  await efMelden(KAMIN_EINSTELLUNGEN,"Auf Standardwerte zurückgesetzt");
  };
 })();
 

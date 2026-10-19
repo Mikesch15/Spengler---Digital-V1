@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.393.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.394.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1620,10 +1620,11 @@ leerer Abschnitt.</p>
 Tablet hat also seine eigenen.</p>
 <p>In den Einstellungen stehen drei Arten von Werten nebeneinander:</p>
 <ul>
-<li><b>Nur dieses Gerät</b> – Anzeige und die Vorgabemasse der einzelnen
-Massaufnahme-Arten.</li>
+<li><b>Nur dieses Gerät</b> – die Anzeige.</li>
 <li><b>Firmenweit</b> – Firma, Mitarbeiter, Stundenansätze, Materialkataloge,
-Rollenbreiten und die Anschlusstypen der Rinne.</li>
+Rollenbreiten, die Anschlusstypen der Rinne und (ab 3.394) die Zuschnitt-Einstellungen der
+Massaufnahme-Arten (Umschläge, Zugaben, Überlappungen). Speichern dürfen sie nur Administratoren;
+bei allen anderen bleibt eine Änderung auf dem Gerät und die App sagt das.</li>
 <li><b>Nur für Administratoren</b> – das Register „Firma“ und das Register
 „Feedback“.</li>
 </ul>

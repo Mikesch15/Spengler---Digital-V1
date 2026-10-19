@@ -1108,7 +1108,7 @@ function applyAnschlussblechSettings() {
   if (!$("saveAnschlussblechSettings")) return;
   applyAnschlussblechSettings();
 
-  $("saveAnschlussblechSettings").onclick = () => {
+  $("saveAnschlussblechSettings").onclick = async () => {
     const zahl = id => Number($(id).value);
     const w = {
       deckung: $("anbsDeckung").value,
@@ -1132,13 +1132,13 @@ function applyAnschlussblechSettings() {
     if (negativ) { appAlert("Diese Werte dürfen nicht negativ sein."); return; }
     anbEinstellungenSichern(w);
     applyAnschlussblechSettings();
-    appAlert("Gespeichert (gilt nur für dieses Gerät).");
+    await efMelden(ANB_EINSTELLUNGEN);
   };
 
   $("resetAnschlussblechSettings").onclick = async () => {
     if (!await appConfirm("Alle Werte des Anschlussblechs auf die Standardwerte zurücksetzen?")) return;
     anbEinstellungenSichern(Object.assign({}, ANSCHLUSSBLECH_STANDARD));
     applyAnschlussblechSettings();
-    appAlert("Auf Standardwerte zurückgesetzt.");
+    await efMelden(ANB_EINSTELLUNGEN,"Auf Standardwerte zurückgesetzt");
   };
 })();

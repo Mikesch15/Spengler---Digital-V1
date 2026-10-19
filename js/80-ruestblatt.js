@@ -251,6 +251,25 @@ function rbMasseHtml(m,bekanntHtml){
 
 // Das Blatt selbst. kopf:true stellt Art, Titel, Material und Stand darueber -
 // auf dem grossen Schirm noetig, in einer Liste steht das schon in der Zeile.
+// v3.394: Stimmt der GESPEICHERTE Zuschnitt noch mit der aktuellen Rechnung ueberein? Rüstblatt und Ausdruck zeigen den Stand beim
+// Speichern; aendern sich danach die Einstellungen (Umschlag, Zugaben ...), rechnet das Formular neu, das Blatt aber nicht. Ohne diese
+// Warnung baut die Werkstatt nach dem alten Mass. Nur fuer Arten, deren Zuschnitt sich aus den gespeicherten Eingaben neu rechnen laesst.
+function rbAbweichungText(m){
+ if(!m||m.type!=="einfassung_rund"||typeof einfaZuschnitte!=="function")return "";
+ const d=m.data||{};
+ if(!Array.isArray(d.zuschnitte)||!d.zuschnitte.length||!Array.isArray(d.einfassungen)||!d.einfassungen.length)return "";
+ let neu;try{neu=einfaZuschnitte(d)}catch(e){return ""}
+ if(!Array.isArray(neu)||!neu.length)return "";
+ const f=l=>l.map(x=>Math.round(Number(x.laenge)||0)+" × "+Math.round(Number(x.breite)||0));
+ const a=f(d.zuschnitte).sort(),b=f(neu).sort();
+ if(a.join("|")===b.join("|"))return "";
+ const uniq=l=>[...new Set(l)].join(", ");
+ return "Gespeichert ist "+uniq(f(d.zuschnitte))+" mm, die aktuelle Rechnung ergibt "+uniq(f(neu))+" mm (Länge × Breite).";
+}
+function rbAbweichungHtml(m){
+ const t=rbAbweichungText(m);
+ return t?`<div class="rb-abweichung" role="alert" style="margin:8px 0;padding:8px 10px;border-radius:8px;border:1px solid var(--red);color:var(--red);font-weight:600">⚠ Zuschnitt veraltet: ${esc(t)} Die Einstellungen haben sich seit dem Speichern geändert. Bitte die Massaufnahme öffnen und neu speichern, bevor nach diesem Blatt geschnitten wird.</div>`:"";
+}
 function rbBlattHtml(m,opt){
  if(!m)return '<div class="small" style="color:var(--muted)">Diese Massaufnahme steht gerade nicht zur Verfügung.</div>';
  const o=opt||{};
@@ -264,6 +283,7 @@ function rbBlattHtml(m,opt){
    +(plan?`<span class="small rb-stand">${esc(rbStandText(stand))}</span>`:"")
    +`</div>`;
  }
+ h+=rbAbweichungHtml(m);
  // v3.292: Ausfuehrungsansicht (Aufgabe "Zu rüsten"/"Zu montieren") - zuerst die Angaben
  // zur Baustelle, dann die Zeichnung; der Monteur braucht die Zuschnittliste nicht.
  if(o.ausfuehrung)h+=rbInfoHtml(m);

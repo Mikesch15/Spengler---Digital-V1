@@ -521,7 +521,7 @@ function applyEinfassungSettings() {
   if (!$("saveEinfassungSettings")) return;
   applyEinfassungSettings();
 
-  $("saveEinfassungSettings").onclick = () => {
+  $("saveEinfassungSettings").onclick = async () => {
     const zahl = id => Number($(id).value);
     const w = {
       deckung: $("einfsDeckung").value,
@@ -546,7 +546,7 @@ function applyEinfassungSettings() {
     if (negativ) { appAlert("Diese Werte dürfen nicht negativ sein."); return; }
     einfEinstellungenSichern(w);
     applyEinfassungSettings();
-    appAlert("Gespeichert (gilt nur für dieses Gerät).");
+    await efMelden(EINF_EINSTELLUNGEN);
   };
 
   // v3.361: Die Zuordnung gilt für die ganze Firma und wird deshalb in den Firmeneinstellungen (Datenbank) gespeichert, nicht auf dem Gerät.
@@ -577,6 +577,6 @@ function applyEinfassungSettings() {
     if (!await appConfirm("Alle Werte der Einfassung Rund auf die Standardwerte zurücksetzen?")) return;
     einfEinstellungenSichern(Object.assign({}, EINFASSUNG_STANDARD));
     applyEinfassungSettings();
-    appAlert("Auf Standardwerte zurückgesetzt.");
+    await efMelden(EINF_EINSTELLUNGEN,"Auf Standardwerte zurückgesetzt");
   };
 })();

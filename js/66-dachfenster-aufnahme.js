@@ -1559,7 +1559,7 @@ function applyDfaSettings(){
 (function dfaEinstellungenBinden(){
  if(!$("saveDfaSettings"))return;
  applyDfaSettings();
- $("saveDfaSettings").onclick=()=>{
+ $("saveDfaSettings").onclick=async()=>{
   const zahl=id=>Number($(id).value);
   const w={
    deckung:$("dfasDeckung").value,
@@ -1586,13 +1586,13 @@ function applyDfaSettings(){
   if(w.breite_unten<=w.breite_oben){appAlert("Breite unten muss grösser sein als Breite oben.");return}
   dfaEinstellungenSichern(w);
   applyDfaSettings();
-  appAlert("Gespeichert (gilt nur für dieses Gerät).");
+  await efMelden(DFA_EINSTELLUNGEN);
  };
  $("resetDfaSettings").onclick=async ()=>{
   if(!await appConfirm("Alle Werte der Dachfenstereinfassung auf die Standardwerte zurücksetzen?"))return;
   dfaEinstellungenSichern(Object.assign({},DFA_STANDARD));
   applyDfaSettings();
-  appAlert("Auf Standardwerte zurückgesetzt.");
+  await efMelden(DFA_EINSTELLUNGEN,"Auf Standardwerte zurückgesetzt");
  };
 })();
 

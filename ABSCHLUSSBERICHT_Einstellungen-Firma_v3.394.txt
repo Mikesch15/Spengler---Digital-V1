@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.394 – Zuschnitt-Einstellungen firmenweit + Warnung
+UMGESETZT: Spalte app_settings.massaufnahme_einstellungen (angewendet 19.10.2026, additiv); js/98: Einstellungen von acht Massaufnahme-Arten werden firmenweit gespeichert und beim Laden uebernommen; ehrliche Meldung je Speichern; Warnung im Ruestblatt (Einfassung rund), wenn der gespeicherte Zuschnitt von der aktuellen Rechnung abweicht; Hilfe, Was-ist-neu.
+NICHT GEAENDERT: gespeicherte Massaufnahmen (kein stilles Neurechnen), RLS (schreiben weiter nur Administrator).
+GETESTET: einstellungen-firma-v3-394 (23, Mutationen erkannt), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: gegen Produktion (Schreiben der Spalte als Administrator) und am Handy.
+GRENZEN: Warnung nur fuer Einfassung rund. Die Einstellungen eines Geraets werden NICHT automatisch hochgeladen: ein Administrator muss je Art einmal «Speichern» druecken (sonst gelten die Standardwerte/lokalen Werte). Nicht-Administratoren koennen weiter lokal aendern, beim naechsten Laden gilt aber der Firmenwert.

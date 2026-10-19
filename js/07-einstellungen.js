@@ -316,7 +316,7 @@ if($("saveWorkflowAktiv")){
    : "✓ Gespeichert – der Arbeitsablauf ist ausgeschaltet. Es wurde nichts gelöscht: der Stand laufender Massaufnahmen bleibt gespeichert.");
  };
 }
-$("saveEinlaufblechSettings").onclick=()=>{
+$("saveEinlaufblechSettings").onclick=async()=>{
  const stossLaenge=Number($("eb_stossLaenge").value);
  const ueberlappung=Number($("eb_ueberlappung").value);
  const gehrungszugabe=Number($("eb_gehrungszugabe").value)||0;
@@ -334,9 +334,9 @@ $("saveEinlaufblechSettings").onclick=()=>{
  if(gavaAbstand<0){appAlert("Der Abstand der Haltebleche darf nicht negativ sein.");return}
  einlaufblechSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe,gava_abstand:gavaAbstand||500};
  localStorage.setItem("sd_einlaufblechSettings",JSON.stringify(einlaufblechSettings));
- appAlert("Gespeichert (gilt nur für dieses Gerät).");
+ await efMelden("sd_einlaufblechSettings");
 };
-$("saveEbkSettings").onclick=()=>{
+$("saveEbkSettings").onclick=async()=>{
  const stossLaenge=Number($("ebks_stossLaenge").value);
  const ueberlappung=Number($("ebks_ueberlappung").value);
  const gehrungszugabe=Number($("ebks_gehrungszugabe").value)||0;
@@ -352,7 +352,7 @@ $("saveEbkSettings").onclick=()=>{
  if(endZugabe<0){appAlert("Endzugabe darf nicht negativ sein.");return}
  einlaufblechKonischSettings={stoss_laenge:stossLaenge,ueberlappung,gehrungszugabe,umschlag_oben:umschlagOben,umschlag_unten:umschlagUnten,rest_schwelle:restSchwelle,end_zugabe:endZugabe};
  localStorage.setItem("sd_einlaufblechKonischSettings",JSON.stringify(einlaufblechKonischSettings));
- appAlert("Gespeichert (gilt nur für dieses Gerät).");
+ await efMelden("sd_einlaufblechKonischSettings");
 };
 
 // Setzt die Werte eines Einlaufblech-Typs auf die Standardwerte zurück.
@@ -370,7 +370,7 @@ async function einlaufblechZuruecksetzen(praefix,speicherSchluessel,zuweisen){
  $(praefix+"endzugabe").value=w.end_zugabe;
  // Nur Einlaufblech gerade hat ein GAVA-Feld - konisch braucht keines.
  if($(praefix+"gavaAbstand"))$(praefix+"gavaAbstand").value=w.gava_abstand??500;
- appAlert("Auf Standardwerte zurückgesetzt.");
+ await efMelden(speicherSchluessel,"Auf Standardwerte zurückgesetzt");
 }
 $("resetEinlaufblechSettings").onclick=async ()=>await einlaufblechZuruecksetzen("eb_","sd_einlaufblechSettings",w=>{einlaufblechSettings=w});
 
@@ -412,8 +412,8 @@ $("resetBlechRollenbreiten").onclick=async()=>{
 };
 $("resetEbkSettings").onclick=async ()=>await einlaufblechZuruecksetzen("ebks_","sd_einlaufblechKonischSettings",w=>{einlaufblechKonischSettings=w});
 
-// ---- Kehle: Zuschnittmasse der Segmente (nur dieses Geraet) ---------------
-$("saveKehleSettings").onclick=()=>{
+// ---- Kehle: Zuschnittmasse der Segmente (firmenweit seit v3.394) ---------------
+$("saveKehleSettings").onclick=async()=>{
  const stossLaenge=Number($("keas_stossLaenge").value);
  const ueberlappung=Number($("keas_ueberlappung").value);
  const restSchwelle=Number($("keas_restSchwelle").value)||0;
@@ -422,7 +422,7 @@ $("saveKehleSettings").onclick=()=>{
  if(restSchwelle<0){appAlert("Restschwelle darf nicht negativ sein.");return}
  kehleSettings={stoss_laenge:stossLaenge,ueberlappung,rest_schwelle:restSchwelle};
  localStorage.setItem("sd_kehleSettings",JSON.stringify(kehleSettings));
- appAlert("Gespeichert (gilt nur für dieses Gerät).");
+ await efMelden("sd_kehleSettings");
 };
 $("resetKehleSettings").onclick=async ()=>{
  if(!await appConfirm("Alle Werte auf die Standardwerte zurücksetzen?"))return;
@@ -431,7 +431,7 @@ $("resetKehleSettings").onclick=async ()=>{
  $("keas_stossLaenge").value=kehleSettings.stoss_laenge;
  $("keas_ueberlappung").value=kehleSettings.ueberlappung;
  $("keas_restSchwelle").value=kehleSettings.rest_schwelle;
- appAlert("Auf Standardwerte zurückgesetzt.");
+ await efMelden("sd_kehleSettings","Auf Standardwerte zurückgesetzt");
 };
 
 // v3.176: Die Auswahlliste der Werkstoffe. Sie kommt aus derselben Quelle

@@ -779,10 +779,10 @@ function applyRinneProfilSettings() {
     renderRinneResult();
     dirty();
   };
-  if ($("rp_profilAlsStandard")) $("rp_profilAlsStandard").onclick = () => {
+  if ($("rp_profilAlsStandard")) $("rp_profilAlsStandard").onclick = async () => {
     rinneProfilEinstellungenSichern({ profil: rinneProfil, ansetz: rinneAnsetz });
     applyRinneProfilSettings();
-    appAlert("Dieses Profil gilt jetzt als Vorgabe für neue Rinnen-Massaufnahmen (nur auf diesem Gerät).\n\nBereits gespeicherte Massaufnahmen behalten ihr eigenes Profil.");
+    await efMelden(RINNE_EINSTELLUNGEN, "Dieses Profil gilt jetzt als Vorgabe für neue Rinnen-Massaufnahmen", "Bereits gespeicherte Massaufnahmen behalten ihr eigenes Profil.");
   };
 
   // --- Stueckliste ---
@@ -858,7 +858,7 @@ function applyRinneProfilSettings() {
   if (!$("saveRinneProfilSettings")) return;
   applyRinneProfilSettings();
 
-  $("saveRinneProfilSettings").onclick = () => {
+  $("saveRinneProfilSettings").onclick = async () => {
     const zahl = id => Number($(id).value);
     const ansetz = {
       dila: zahl("rpsDila"), boden: zahl("rpsBoden"), ablauf: zahl("rpsAblauf"),
@@ -869,7 +869,7 @@ function applyRinneProfilSettings() {
     }
     rinneProfilEinstellungenSichern({ profil: rinneWerte(rinneProfilSettings).profil, ansetz });
     applyRinneProfilSettings();
-    appAlert("Gespeichert (gilt nur für dieses Gerät).\n\nBereits gespeicherte Rinnen-Massaufnahmen behalten ihre bisherigen Werte.");
+    await efMelden(RINNE_EINSTELLUNGEN, "Gespeichert", "Bereits gespeicherte Rinnen-Massaufnahmen behalten ihre bisherigen Werte.");
   };
 
   $("resetRinneProfilSettings").onclick = async () => {
@@ -879,6 +879,6 @@ function applyRinneProfilSettings() {
       ansetz: Object.assign({}, RINNE_ANSETZ_STANDARD)
     });
     applyRinneProfilSettings();
-    appAlert("Auf die Werte der Excel-Vorlage zurückgesetzt.");
+    await efMelden(RINNE_EINSTELLUNGEN, "Auf die Werte der Excel-Vorlage zurückgesetzt");
   };
 })();
