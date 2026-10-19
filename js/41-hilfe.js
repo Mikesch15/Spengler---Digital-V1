@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.391.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.392.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -502,6 +502,9 @@ oder Reservierung eingeschaltet ist (Einstellungen → Allgemein →
 Projektmodule).</p>`},
 
 "workflow":{titel:"Arbeitsstatus",text:`
+<p><b>Zur Bearbeitung freigeben (ab 3.392):</b> Wer nur «eigene» Massaufnahmen bearbeiten darf, kommt nicht an die einer Kollegin. Unter dem Arbeitsstatus gibt es deshalb
+den Kasten <b>«Zur Bearbeitung freigeben»</b>: Die Person, die die Massaufnahme angelegt hat (oder ein Administrator), hakt einzelne Mitarbeiter an. Sie dürfen <b>diese</b>
+Massaufnahme dann ansehen und bearbeiten. Löschen und Weitergeben bleibt bei der ersten Person. Die Freigabe ersetzt kein Recht und ist <b>nicht</b> die Arbeitsfreigabe fürs Rüsten.</p>
 <p>Der Weg einer Massaufnahme in fünf Stationen – die Leiste oben zeigt, wo
 sie gerade steht:</p>
 <ul><li><b>Aufgenommen</b> → <b>Freigegeben</b> → <b>Gerüstet</b> →

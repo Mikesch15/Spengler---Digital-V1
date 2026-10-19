@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.392 – Massaufnahmen zur Bearbeitung an andere Mitarbeiter freigeben
+UMGESETZT: Spalte measurements.bearbeiter, zwei neue permissive Policies (lesen/aendern fuer freigegebene Personen, Rechte werden weiter verlangt), Schutz-Trigger (nur Ersteller/Admin/"alle bearbeiten", gleiche Firma, max. 25), Kasten im Formular, Vermerk in der Projektliste, Verlauf-Label, Hilfe.
+NICHT GEAENDERT: Loeschen, Arbeitsfreigabe (Ruesten/Montage), RESTRICTIVE-Firmengrenze, bestehende Policies.
+PRODUKTION (angewendet 17.10.2026, gemessen im Rollback): nicht freigegebene "nur eigene"-Person aendert 0 Zeilen; freigegebene aendert 1, loescht 0; freigegebene darf die Freigabe nicht aendern; Freigabe an fremde Firma wird abgelehnt; danach keine Freigaben/Testdaten.
+GETESTET: massaufnahme-teilen-v3-392 (28, mit Gegenproben), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: Bedienung am Handy; Anmeldung als echte "nur eigene"-Person gegen Produktion (nur ueber Rollback-Simulation der Rolle).
+GRENZEN: Freigabe je Person und Massaufnahme (keine Gruppen); Zuschnitt-/Rueckmeldungen anderer Tabellen waren nie "nur eigene" und sind unveraendert; Fotos in Storage sind firmenweit freigegeben.

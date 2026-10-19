@@ -64,7 +64,7 @@ const VERLAUF_FIELD_LABELS={
  measurement:{
   title:"Bezeichnung",date:"Datum",note:"Notiz / Masse",
   // v3.05 Arbeitsworkflow (Freigabe, Zuweisung, Ruesten, Montage)
-  workflow_status:"Arbeitsstatus",ruester_id:"Rüsten",monteur_id:"Montage",
+  workflow_status:"Arbeitsstatus",ruester_id:"Rüsten",monteur_id:"Montage",bearbeiter:"Zur Bearbeitung freigegeben",
   freigabe_verfallen:"Freigabe",
   // v2.34: Detail-Diff innerhalb measurements.data (siehe CLAUDE.md
   // Abschnitt 42) - nur die dort als Klasse A eingestuften, flachen,

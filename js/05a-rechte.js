@@ -131,10 +131,14 @@ function istEigenerEintrag(createdBy){
  if(!createdBy)return true; // neuer, noch nicht gespeicherter Eintrag
  return !!(currentProfile&&createdBy===currentProfile.id);
 }
-function darfBearbeiten(bereich,createdBy){
+// v3.392: "bearbeiter" = die zur Bearbeitung freigegebenen Personen (Massaufnahmen, measurements.bearbeiter); sie zaehlen wie der eigene Eintrag.
+function istFreigegebenAn(bearbeiter){
+ return !!(currentProfile&&Array.isArray(bearbeiter)&&bearbeiter.includes(currentProfile.id));
+}
+function darfBearbeiten(bereich,createdBy,bearbeiter){
  const stufe=(meineRechte[bereich]||{}).bearbeiten;
  if(stufe==="alle")return true;
- if(stufe==="eigene")return istEigenerEintrag(createdBy);
+ if(stufe==="eigene")return istEigenerEintrag(createdBy)||istFreigegebenAn(bearbeiter);
  return false;
 }
 
@@ -176,8 +180,8 @@ function applyModuleTest(){
 }
 
 // Sperrt das Formular, wenn der geöffnete Eintrag jemand anderem gehört.
-function sperreFuerEintrag(bereich,createdBy){
- document.body.classList.toggle("recht-"+bereich+"-ansehen",!darfBearbeiten(bereich,createdBy));
+function sperreFuerEintrag(bereich,createdBy,bearbeiter){
+ document.body.classList.toggle("recht-"+bereich+"-ansehen",!darfBearbeiten(bereich,createdBy,bearbeiter));
 }
 
 // ---- Mitarbeiterliste in den Einstellungen ----

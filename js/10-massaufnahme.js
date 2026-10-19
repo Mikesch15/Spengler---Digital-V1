@@ -454,6 +454,7 @@ function newMeasurementWithType(type){
  measWsNeueMarke();
  // v3.05: eine noch nicht gespeicherte Massaufnahme hat keinen Arbeitsstatus.
  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(null);renderMeasWorkflow()}
+ if(typeof mtZeichnen==="function")mtZeichnen(null);   // v3.392
  // v3.15: welche Massaufnahme im Formular offen ist - daran haengt, ob in
  // ihrer Zuschnittansicht abgehakt werden kann. Eine neue hat noch keine.
  if(typeof zeFormularAuf==="function")zeFormularAuf(null);
@@ -659,7 +660,7 @@ function measFelderAusData(m){
 }
 
 function openMeasurement(m){
- sperreFuerEintrag("massaufnahme",m&&m.created_by);
+ sperreFuerEintrag("massaufnahme",m&&m.created_by,m&&m.bearbeiter);   // v3.392: freigegebene Personen zaehlen wie der Ersteller
  isDirty=false;
  currentMeasurementId=m.id;
  measWsNeueMarke();
@@ -701,6 +702,7 @@ function openMeasurement(m){
  if(typeof measMedienSichtbarkeit==="function")measMedienSichtbarkeit(m.type);
  // v3.05 Arbeitsstatus aus der geladenen Zeile - kein zweiter Ladevorgang.
  if(typeof mwStandAusZeile==="function"){mwStandAusZeile(m);renderMeasWorkflow()}
+ if(typeof mtZeichnen==="function")mtZeichnen(m);   // v3.392
  if(typeof zeFormularAuf==="function")zeFormularAuf(m.id);
  if(typeof verNeuLaden==="function")verNeuLaden();   // v3.09 Fassungen
  updateMeasFormTitle();

@@ -2199,7 +2199,7 @@ function a2MessZeileHtml(m,unten,badge){
  return `<div class="a2-rb a2-rb-mz${offen?" ist-offen":""}">
   <button type="button" class="a2-zeile" data-a2-meas="${esc(id)}">
    <span class="a2-zeile-text"><b>${esc(a2MessTitel(m))}</b>
-    <span>${esc(unten||"")}</span></span>
+    <span>${esc((unten||"")+((typeof mtListenText==="function"&&mtListenText(m))?" · "+mtListenText(m):""))}</span></span>
    ${badge?`<span class="a2-badge">${badge}</span>`:""}
    <span class="a2-zeile-pfeil">›</span></button>
   <div class="a2-knopf-reihe">
