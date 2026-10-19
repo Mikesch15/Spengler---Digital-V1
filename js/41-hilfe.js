@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.395.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.396.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1039,7 +1039,7 @@ Abwicklung, weil das breitere Ende Platz braucht.</p>`},
 "drb-stuecke":{titel:"Stücke",text:`
 <p><b>Länge pro Stück</b> ist die Länge eines Blechs. An jedem Stoss liegt die <b>Überlappung</b>; sie kommt zur Materiallänge dazu.
 Jede Kante wird für sich eingeteilt – volle Stücke und ein Rest, oder alle gleich lang.</p>
-<p><b>In gleich lange Stücke teilen (ab 3.393):</b> Bei jeder Kante kannst du eine <b>Anzahl</b> eintragen, z. B. 4 – die Kante wird dann in genau so viele gleich lange Stücke geteilt (bei Überlappung inklusive Überlappung, bei Schieber mit gleichen Schieber-Abständen). Leer = die App teilt automatisch. Wird ein Stück dadurch länger als erlaubt, erscheint eine Warnung.</p>
+<p><b>In gleich lange Stücke teilen (ab 3.393, hier im Register «Stücke»):</b> Bei jeder Kante trägst du entweder die <b>Anzahl</b> der Stücke ein, z. B. 4, oder eine <b>Wunschlänge</b> (ab 3.396). Bei einer Wunschlänge wählt die App die Anzahl, deren Stücklänge der Wunschlänge am nächsten kommt, und teilt die Kante in gleich lange Stücke – unter dem Feld steht, was daraus wird. Die Anzahl hat Vorrang. «Für alle Kanten übernehmen» setzt eine Wunschlänge überall. Bei Überlappung gilt die Stücklänge inklusive Überlappung, bei Schieber der Schieber-Abstand. Leer = die App teilt automatisch. Wird ein Stück dadurch länger als erlaubt, erscheint eine Warnung.</p>
 <p>Aus diesen Stücken rechnen Zuschnitt und Ausmass.</p>
 <h4>Stossart «Schieber» (ab 3.391)</h4>
 <p>Statt der Überlappung kannst du die Stösse als <b>Schieber</b> (Dehnungselemente) ausführen – wie bei der Mauerabdeckung. Die App setzt die Schieber nach <b>SIA 271</b>

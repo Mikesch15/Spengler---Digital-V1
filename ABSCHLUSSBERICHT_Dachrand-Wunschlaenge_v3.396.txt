@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.396 – Dachrandblech: Anzahl oder Wunschlaenge
+UMGESETZT: Register "Stuecke": je Kante Anzahl Stuecke ODER Wunschlaenge; Wunschlaenge -> naechstliegende Anzahl gleicher Stuecke; "Fuer alle Kanten uebernehmen"; Hinweis unter dem Feld; gilt fuer Ueberlappung und Schieber. Feld aus dem Grundriss-Register hierher verschoben.
+NICHT GEAENDERT: automatische Einteilung (leer), Datenbank, alte Massaufnahmen.
+GETESTET: dachrand-teilen-v3-393 (25, Mutationen erkannt), dachrandblech-v3-369, dachrand-schieber-v3-391, volle Regression.
+NICHT GETESTET: Bedienung am Handy.
+ANNAHMEN: "naechst moegliche Laenge" = Anzahl, deren gleiche Stuecklaenge der Wunschlaenge am naechsten liegt (kann auch kuerzer oder laenger sein); Gleichstand -> kuerzere Laenge. Beim Schieber zaehlt der Abstand zwischen den Schiebern, nicht die Blechlaenge mit Zugabe.
