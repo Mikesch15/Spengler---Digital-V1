@@ -64,3 +64,47 @@ async function efMelden(key,text,zusatz){
  appAlert(efMeldeText(text,r)+(zusatz?"\n\n"+zusatz:""));
  return r;
 }
+
+// ---------------------------------------------------------------------------
+// v3.395: Einstellungs-Stand der Massaufnahme. Beim Speichern wird festgehalten, mit welchen Zuschnitt-Einstellungen gerechnet wurde
+// (data._einst, nur einfache Werte). Das Ruestblatt vergleicht ihn mit den heutigen und warnt bei Abweichung - fuer ALLE Arten,
+// deren Zuschnitt an Einstellungen haengt. Aeltere Massaufnahmen haben keinen Stand: dort gibt es keine Warnung, bis sie neu gespeichert sind.
+// ---------------------------------------------------------------------------
+const EFIRMA_STAND_QUELLEN={
+ einlaufblech_gerade:()=>einlaufblechSettings,
+ einlaufblech_konisch:()=>einlaufblechKonischSettings,
+ kehle:()=>kehleSettings,
+ anschlussblech:()=>anschlussblechSettings,
+ einfassung_rund:()=>einfassungSettings,
+ kamineinfassung:()=>kaminSettings,
+ dachfenstereinfassung:()=>dfaSettings,
+ mauerabdeckung:()=>({boden_mass:madBodenMass,schieber_mass:madSchieberMass,boden_ausmass_mass:madBodenAusmassMass}),
+ dachrandblech:()=>({schieber_mass:madSchieberMass}),
+ lukarne:()=>({achsabstand:lukAchsabstand,hilfsriss:lukHilfsriss,zugabe_breite:lukZugabeBreite,zugabe_laenge:lukZugabeLaenge}),
+ rinne_halbrund:()=>({dila_mass:rinneDilaMass,dila_ausmass_mass:rinneDilaAusmassMass})
+};
+function efStandAktuell(type){
+ const q=EFIRMA_STAND_QUELLEN[type];
+ if(!q)return null;
+ let w;try{w=q()}catch(e){return null}
+ if(!w||typeof w!=="object")return null;
+ const out={};
+ Object.keys(w).forEach(k=>{const v=w[k];if(typeof v==="number"?Number.isFinite(v):typeof v==="string")out[k]=v});
+ return Object.keys(out).length?out:null;
+}
+// Liste der geaenderten Werte: [{feld, alt, neu}]
+function efStandUnterschiede(alt,neu){
+ if(!alt||typeof alt!=="object"||!neu)return [];
+ const r=[];
+ Object.keys(neu).forEach(k=>{
+  if(!(k in alt))return;   // neues Feld seit dem Speichern: kein Vergleich moeglich
+  const a=alt[k],n=neu[k];
+  if(typeof a==="number"&&typeof n==="number"?a!==n:String(a)!==String(n))r.push({feld:k,alt:a,neu:n});
+ });
+ return r;
+}
+// data fuer den Speicher-Payload: die Eingaben plus der Einstellungs-Stand (die Eingaben selbst bleiben unveraendert)
+function efMitStand(type,data){
+ const d=data||{},s=efStandAktuell(type);
+ return s?{...d,_einst:s}:d;
+}

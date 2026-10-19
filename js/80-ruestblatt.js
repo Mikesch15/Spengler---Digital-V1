@@ -254,21 +254,38 @@ function rbMasseHtml(m,bekanntHtml){
 // v3.394: Stimmt der GESPEICHERTE Zuschnitt noch mit der aktuellen Rechnung ueberein? Rüstblatt und Ausdruck zeigen den Stand beim
 // Speichern; aendern sich danach die Einstellungen (Umschlag, Zugaben ...), rechnet das Formular neu, das Blatt aber nicht. Ohne diese
 // Warnung baut die Werkstatt nach dem alten Mass. Nur fuer Arten, deren Zuschnitt sich aus den gespeicherten Eingaben neu rechnen laesst.
-function rbAbweichungText(m){
- if(!m||m.type!=="einfassung_rund"||typeof einfaZuschnitte!=="function")return "";
+function rbAbweichung(m){
+ if(!m)return null;
  const d=m.data||{};
- if(!Array.isArray(d.zuschnitte)||!d.zuschnitte.length||!Array.isArray(d.einfassungen)||!d.einfassungen.length)return "";
- let neu;try{neu=einfaZuschnitte(d)}catch(e){return ""}
- if(!Array.isArray(neu)||!neu.length)return "";
- const f=l=>l.map(x=>Math.round(Number(x.laenge)||0)+" × "+Math.round(Number(x.breite)||0));
- const a=f(d.zuschnitte).sort(),b=f(neu).sort();
- if(a.join("|")===b.join("|"))return "";
- const uniq=l=>[...new Set(l)].join(", ");
- return "Gespeichert ist "+uniq(f(d.zuschnitte))+" mm, die aktuelle Rechnung ergibt "+uniq(f(neu))+" mm (Länge × Breite).";
+ // 1) Einfassung rund: der Zuschnitt laesst sich aus den gespeicherten Eingaben neu rechnen - das ist der sichere Beleg.
+ if(m.type==="einfassung_rund"&&typeof einfaZuschnitte==="function"&&Array.isArray(d.zuschnitte)&&d.zuschnitte.length&&Array.isArray(d.einfassungen)&&d.einfassungen.length){
+  let neu=null;try{neu=einfaZuschnitte(d)}catch(e){neu=null}
+  if(Array.isArray(neu)&&neu.length){
+   const f=l=>l.map(x=>Math.round(Number(x.laenge)||0)+" × "+Math.round(Number(x.breite)||0));
+   const a=f(d.zuschnitte).sort(),b=f(neu).sort();
+   if(a.join("|")!==b.join("|")){
+    const uniq=l=>[...new Set(l)].join(", ");
+    return {sicher:true,text:"Gespeichert ist "+uniq(f(d.zuschnitte))+" mm, die aktuelle Rechnung ergibt "+uniq(f(neu))+" mm (Länge × Breite)."};
+   }
+   return null;
+  }
+ }
+ // 2) alle Arten: die Einstellungen, mit denen gespeichert wurde, mit den heutigen vergleichen
+ if(d._einst&&typeof efStandAktuell==="function"&&typeof efStandUnterschiede==="function"){
+  const u=efStandUnterschiede(d._einst,efStandAktuell(m.type));
+  if(u.length)return {sicher:false,text:"Geändert seit dem Speichern: "+u.map(x=>String(x.feld).replace(/_/g," ")+" "+x.alt+" → "+x.neu).join(", ")+"."};
+ }
+ return null;
 }
+function rbAbweichungText(m){const a=rbAbweichung(m);return a?a.text:""}
 function rbAbweichungHtml(m){
- const t=rbAbweichungText(m);
- return t?`<div class="rb-abweichung" role="alert" style="margin:8px 0;padding:8px 10px;border-radius:8px;border:1px solid var(--red);color:var(--red);font-weight:600">⚠ Zuschnitt veraltet: ${esc(t)} Die Einstellungen haben sich seit dem Speichern geändert. Bitte die Massaufnahme öffnen und neu speichern, bevor nach diesem Blatt geschnitten wird.</div>`:"";
+ const a=rbAbweichung(m);
+ if(!a)return "";
+ const kopf=a.sicher?"Zuschnitt veraltet":"Zuschnitt möglicherweise veraltet";
+ const rat=a.sicher
+  ?"Die Einstellungen haben sich seit dem Speichern geändert. Bitte die Massaufnahme öffnen und neu speichern, bevor nach diesem Blatt geschnitten wird."
+  :"Die Einstellungen, mit denen gerechnet wurde, gelten nicht mehr. Bitte die Massaufnahme öffnen und neu speichern, dann stimmt das Blatt wieder.";
+ return `<div class="rb-abweichung" role="alert" style="margin:8px 0;padding:8px 10px;border-radius:8px;border:1px solid var(--red);color:var(--red);font-weight:600">⚠ ${kopf}: ${esc(a.text)} ${rat}</div>`;
 }
 function rbBlattHtml(m,opt){
  if(!m)return '<div class="small" style="color:var(--muted)">Diese Massaufnahme steht gerade nicht zur Verfügung.</div>';

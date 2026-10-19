@@ -1,4 +1,4 @@
-// v3.394: Zuschnitt-Einstellungen der Massaufnahme-Arten gelten firmenweit; Rüstblatt warnt bei veraltetem Zuschnitt.
+// v3.394/v3.395: Zuschnitt-Einstellungen der Massaufnahme-Arten gelten firmenweit; Rüstblatt warnt bei veraltetem Zuschnitt.
 const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
 const {chromePfad}=require(__dirname+"/chrome-pfad.js");
 const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
@@ -24,6 +24,7 @@ const INIT=()=>{
  const ev=(f,...a)=>page.evaluate(f,...a);
  await ev(()=>{window.__al=[];window.appAlert=async t=>{window.__al.push(String(t))};appSettingsId=1});
 
+ const src=f=>fs.readFileSync(f,"utf8");
  console.log("\nA · Firmenwerte ersetzen die Geräte-Werte beim Laden");
  let r=await ev(()=>{localStorage.setItem("sd_einfassungRundSettings",JSON.stringify({umschlag_hinten:20}));
   efUebernehmen({sd_einfassungRundSettings:{umschlag:10,umschlag_hinten:25,umschlag_seitlich:20,mass_seitlich:90},sd_dfaSettings:"kaputt",unbekannt:{x:1}});
@@ -80,8 +81,34 @@ const INIT=()=>{
   return rbBlattHtml(m,{kopf:true}).includes("rb-abweichung")});
  p(r,"Das Blatt (rbBlattHtml) zeigt die Warnung tatsächlich");
 
+
+ console.log("\nF · v3.395: Einstellungs-Stand bei ALLEN Arten");
+ const ARTEN=["einlaufblech_gerade","einlaufblech_konisch","kehle","anschlussblech","einfassung_rund","kamineinfassung","dachfenstereinfassung","mauerabdeckung","dachrandblech","lukarne","rinne_halbrund"];
+ r=await ev((arten)=>arten.map(t=>{const s=efStandAktuell(t);return [t,!!s&&Object.keys(s).length>0&&Object.values(s).every(v=>typeof v==="number"||typeof v==="string")]}),ARTEN);
+ p(r.every(x=>x[1]),"Für alle 11 Arten gibt es einen Einstellungs-Stand aus einfachen Werten",r.filter(x=>!x[1]));
+ r=await ev((arten)=>arten.map(t=>{
+   const snap=efStandAktuell(t);const m=(e)=>({type:t,data:{_einst:e}});
+   const k=Object.keys(snap)[0];const geaendert={...snap,[k]:typeof snap[k]==="number"?snap[k]+1:snap[k]+"x"};
+   return [t,rbAbweichungText(m(snap)),rbAbweichungText(m(geaendert)),k]}),ARTEN);
+ p(r.every(x=>x[1]===""),"Unveränderte Einstellungen: bei keiner Art eine Warnung",r.filter(x=>x[1]!==""));
+ p(r.every(x=>x[2]&&x[2].includes(String(x[3]).replace(/_/g," "))&&x[2].includes("→")),"Geänderte Einstellung: bei jeder Art eine Warnung, die den Wert nennt",r.filter(x=>!x[2]));
+ r=await ev(()=>({keiner:rbAbweichungText({type:"kehle",data:{}}),skizze:rbAbweichungText({type:"skizze_foto",data:{_einst:{a:1}}}),
+   neuesFeld:rbAbweichungText({type:"kehle",data:{_einst:{stoss_laenge:kehleSettings.stoss_laenge}}}),
+   html:rbAbweichungHtml({type:"kehle",data:{_einst:{...efStandAktuell("kehle"),ueberlappung:efStandAktuell("kehle").ueberlappung+9}}})}));
+ p(r.keiner===""&&r.skizze===""&&r.neuesFeld==="","Ohne Stand (ältere Massaufnahme), Art ohne Einstellungen, neues Feld: keine falsche Warnung",r);
+ p(/möglicherweise veraltet/.test(r.html)&&/neu speichern/.test(r.html),"Hinweisfall sagt «möglicherweise veraltet» und was zu tun ist",r.html);
+ r=await ev(()=>{einfassungSettings={...einfassungSettings,umschlag:10,umschlag_hinten:10,umschlag_seitlich:20,mass_seitlich:90};
+  const e={a:110,b:340,c:60,anzahl:1,winkel:0,durchmesser:28};const d={einfassungen:[e],deckung:"schiebeziegel",lattenabstand:350};
+  const zs=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite}));
+  const snap={...efStandAktuell("einfassung_rund"),umschlag_hinten:99};
+  return rbAbweichungText({type:"einfassung_rund",data:{...d,zuschnitte:zs,_einst:snap}})});
+ p(r==="","Einfassung rund: Neurechnung ist massgebend – gleicher Zuschnitt trotz anderer Einstellungen = keine Warnung",r);
+ r=await ev(()=>{const x=efMitStand("kehle",{a:1,b:[2]});const y=efMitStand("skizze_foto",{a:1});const z=efMitStand("kehle",null);
+  return {x,y:JSON.stringify(y),z:Object.keys(z)}});
+ p(r.x.a===1&&r.x.b[0]===2&&r.x._einst&&r.x._einst.stoss_laenge!==undefined,"efMitStand: Eingaben bleiben, Stand kommt dazu",r.x);
+ p(r.y==='{"a":1}'&&r.z.join()==="_einst","Art ohne Einstellungen: Daten unverändert; leere Daten ergeben nur den Stand",r);
+ p((src("js/16-massaufnahme-formular.js").match(/efMitStand\(type,form\.data\)/g)||[]).length===2,"Online- und Offline-Speichern halten den Stand fest (js/16)");
  console.log("\nE · Alle Speicherstellen melden firmenweit");
- const src=f=>fs.readFileSync(f,"utf8");
  const alle=["js/07-einstellungen.js","js/20-anschlussblech.js","js/21-einfassung-rund.js","js/26-rinne.js","js/37-kamin-aufnahme.js","js/66-dachfenster-aufnahme.js"].map(src).join("\n");
  p(!/Gespeichert \(gilt nur für dieses Gerät\)\.\\n/.test(alle)&&(alle.match(/Gespeichert \(gilt nur für dieses Gerät\)/g)||[]).length===1,"Nur die reine Anzeige-Einstellung (js/07) sagt noch «nur für dieses Gerät»",(alle.match(/gilt nur für dieses Gerät/g)||[]).length);
  p((alle.match(/await efMelden\(/g)||[]).length===16,"Alle 16 Speichern- und Zurücksetzen-Stellen rufen efMelden auf",(alle.match(/await efMelden\(/g)||[]).length);

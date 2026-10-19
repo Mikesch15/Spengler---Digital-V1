@@ -475,7 +475,7 @@ $("saveMeasurement").onclick=async()=>{
    payload:{project_id:measSelectedProjectId||null,type,title,
      note:$("measNote").value,
      date:$("measDate").value||new Date().toISOString().slice(0,10),
-     data:form.data||{},
+     data:(typeof efMitStand==="function")?efMitStand(type,form.data):(form.data||{}),
      // v3.16: auch offline mitgeben - sonst waere die Materialliste nach
      // der Uebertragung weg.
      rapport_material:form.rapport_material||[],
@@ -549,7 +549,7 @@ $("saveMeasurement").onclick=async()=>{
    photo_paths:photoUrls,
    sketch_path:sketchUrls[0]||null,
    sketch_paths:sketchUrls,
-   data:form.data||{},
+   data:(typeof efMitStand==="function")?efMitStand(type,form.data):(form.data||{}),   // v3.395: Einstellungs-Stand fuers Ruestblatt
    // v3.16: Material fuer den Regierapport. Der Speicher-Payload wird hier
    // ausdruecklich aufgebaut - ohne diese Zeile ginge die Liste beim
    // Speichern verloren, obwohl sie im Formular steht.

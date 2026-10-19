@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.395 – Warnung bei veraltetem Zuschnitt fuer alle Arten
+UMGESETZT: Beim Speichern wird der Einstellungs-Stand (data._einst) festgehalten; das Ruestblatt warnt, wenn er vom heutigen abweicht (11 Arten). Einfassung rund: Neurechnung bleibt massgebend.
+NICHT GEAENDERT: Datenbankschema, gespeicherte Massaufnahmen (kein stilles Neurechnen), Berechnungen.
+GETESTET: einstellungen-firma-v3-394 (32, Mutationen erkannt), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy; gegen Produktion.
+GRENZEN: Aeltere Massaufnahmen haben keinen Stand -> keine Warnung bis zum naechsten Speichern. Keine Warnung fuer Skizze/Foto, Freies Profil, Rinne (Profil) - dort haengt der Zuschnitt nicht an diesen Einstellungen. Die Warnung zeigt eine Aenderung der Einstellung, nicht zwingend eine geaenderte Zuschnittmasse (ausser Einfassung rund).
