@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.404
+UMGESETZT: Bleilappen: immer zwei gerade (links/rechts), Rest konisch. Einfassung rund: Abwicklung des Mantelrohrs (Rechner js/77) als eigener Zuschnitt je Einfassung im Zuschnittplan, in der Blechflaeche, im Speicherstand, Ausdruck und im Ausmass.
+NICHT GEAENDERT: Tablett-Zuschnitte und ihre Nummern, Bleilappen-Anzahl, Datenbank.
+GETESTET: bleilappen-zuschnitt-v3-402 (37), einfassung-mantelrohr-v3-404 (13), einfassung-app-v2-96 (nachgefuehrt), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy; mit echten Aufmassen; Vergleich der Mantelrohr-Zahlen mit dem echten Blech in der Werkstatt.
+ANNAHMEN (bitte bestaetigen): Mantelrohr-Zuschnitt: Laenge = Zuschnittbreite um das Rohr inkl. Falz (z. B. 358), Breite = groesste Hoehe (z. B. 342); Rohrhoehe 300 und Schweifbord 12 gelten, wenn sie in den Einstellungen nicht gesetzt sind (Standard des Abwicklungsrechners); Blechstaerke aus der Massaufnahme.
+HINWEIS: Bei bestehenden Einfassung-rund-Massaufnahmen aendern sich Zuschnittplan und Ausmass erst beim erneuten Speichern.

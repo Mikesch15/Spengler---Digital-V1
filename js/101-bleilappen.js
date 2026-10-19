@@ -4,7 +4,7 @@
 //
 // Nach «Spenglerarbeiten» (Seiten-/Ortbleche mit Bleilappen, Darstellung 7.3.28): der Zuschnitt der Bleilappen richtet sich nach
 // dem Deckmaterial. Walzblei ist 1 mm dick, die Bleirolle ist immer 420 mm breit. Im Zuschnitt steht nur die ANZAHL der Lappen mit
-// ihren Massen; der vorderste Bleilappen ist immer gerade (nicht konisch), alle weiteren sind konisch.
+// ihren Massen; die beiden äussersten Bleilappen (links und rechts) sind immer gerade (nicht konisch), alle weiteren sind konisch.
 //
 //   Falzziegel (auch Schiebe- und Muldenziegel)  gerade 130 × 420, konisch 130/170 × 420
 //   Biberschwanz Doppeldach                      gerade 90 × 210,  konisch 90/120 × 210
@@ -47,16 +47,16 @@ function blBerechne(familie,anzahl,opt){
  const o=opt||blOpt;
  const r={familie,name:BL_NAMEN[familie],anzahl:n,gerade:null,konisch:null,hinweis:"Walzblei 1 mm, Rolle 420 mm breit."};
  if(familie==="falzziegel"){
-  r.gerade={n:1,mass:"130 × 420",mm2:130*420};
-  if(n>1)r.konisch={n:n-1,mass:"130 / 170 × 420",mm2:150*420};
+  r.gerade={n:Math.min(2,n),mass:"130 × 420",mm2:130*420};
+  if(n>2)r.konisch={n:n-2,mass:"130 / 170 × 420",mm2:150*420};
   r.hinweis+=" Die konischen Lappen paarweise gegengleich schneiden (170 / 130 im Wechsel) – so bleibt kein Verschnitt.";
  }else if(familie==="biber_doppel"){
-  r.gerade={n:1,mass:"90 × 210",mm2:90*210};
-  if(n>1)r.konisch={n:n-1,mass:"90 / 120 × 210",mm2:105*210};
+  r.gerade={n:Math.min(2,n),mass:"90 × 210",mm2:90*210};
+  if(n>2)r.konisch={n:n-2,mass:"90 / 120 × 210",mm2:105*210};
   r.hinweis+=" Aus einer Platte 420 × 420: zwei Reihen zu 210, die konischen Lappen gegengleich.";
  }else if(familie==="biber_einfach"){
-  r.gerade={n:1,mass:"300 × 90",mm2:300*90};
-  if(n>1)r.konisch={n:n-1,mass:"300 × 90 / 120",mm2:300*105};
+  r.gerade={n:Math.min(2,n),mass:"300 × 90",mm2:300*90};
+  if(n>2)r.konisch={n:n-2,mass:"300 × 90 / 120",mm2:300*105};
   r.hinweis+=" Die konischen Lappen gegengleich aus einer Platte 300 × 420 schneiden.";
  }else{
   const pl=BL_PLATTEN.find(x=>x.k===o.platte)||BL_PLATTEN[0];
@@ -93,7 +93,7 @@ const BL_ARTEN=["einfassung_rund","kamineinfassung","dachfenstereinfassung","ans
 
 function blZeilenHtml(b){
  const z=[];
- if(b.gerade)z.push(`<tr><td><b>${b.gerade.n} ×</b></td><td><b>${mdEscBl(b.gerade.mass)} mm</b></td><td>${b.konisch||b.familie==="faserzement"?(b.familie==="faserzement"?"rechteckig":"gerade (vorderster)"):"gerade"}</td></tr>`);
+ if(b.gerade)z.push(`<tr><td><b>${b.gerade.n} ×</b></td><td><b>${mdEscBl(b.gerade.mass)} mm</b></td><td>${b.familie==="faserzement"?"rechteckig":(b.gerade.n>=2?"gerade (links und rechts)":"gerade")}</td></tr>`);
  if(b.konisch)z.push(`<tr><td><b>${b.konisch.n} ×</b></td><td><b>${mdEscBl(b.konisch.mass)} mm</b></td><td>konisch</td></tr>`);
  return z.join("");
 }
@@ -111,7 +111,7 @@ function blKarteHtml(art){
  const platten=fam==="faserzement"?`<div class="grid" style="margin:8px 0"><div><label>Plattenmass der Eindeckung</label><select data-bl-platte>${BL_PLATTEN.map(p=>`<option value="${p.k}"${p.k===blOpt.platte?" selected":""}>${mdEscBl(p.name)}</option>`).join("")}</select></div>
 ${blOpt.platte==="frei"?`<div><label>Lappenbreite (mm)</label><input data-bl-breite type="number" inputmode="numeric" step="1" value="${mdEscBl(blOpt.breite)}"></div>`:""}</div>`:"";
  return `<div class="card" id="bl_karte"><h2>Bleilappen</h2>
-<div class="info">${mdEscBl(b.name)} – <b>${b.anzahl} Bleilappen</b>. Der vorderste Bleilappen ist gerade, die übrigen sind konisch.</div>
+<div class="info">${mdEscBl(b.name)} – <b>${b.anzahl} Bleilappen</b>. Links und rechts ist der äusserste Bleilappen gerade, die übrigen sind konisch.</div>
 ${biberWahl}${platten}
 <div class="scroll"><table class="eb-table ra-tab"><thead><tr><th>Anzahl</th><th>Zuschnitt (B × L)</th><th>Form</th></tr></thead><tbody>${blZeilenHtml(b)}</tbody></table></div>
 <div class="small" style="margin-top:6px"><b>Fläche der Bleilappen: ${blQm(b.flaeche_m2)} m²</b> (gerade voll, konische mit dem Mittelmass)</div>

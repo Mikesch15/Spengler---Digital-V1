@@ -227,6 +227,26 @@ function einfaAbwicklungVorgabe(i,bauteil){
 // drei 330er Streifen nebeneinander liegen. Gespeicherte Plaene bleiben, wie sie waren.
 // Die Stueckzahl vervielfacht ihn - zwei gleiche Rohre ergeben zwei gleiche
 // Zuschnitte und in der Liste eine Zeile mit "2 x".
+// v3.404: Die Abwicklung des MANTELROHRS (das runde Rohr ueber dem Tablett, Rechner js/77) ist ein eigener Zuschnitt: Laenge =
+// Zuschnittbreite um den Rohrumfang inkl. Falz, Breite = groesste Hoehe. Rohrhoehe und Schweifbord kommen aus den Einstellungen der
+// Einfassung rund (0 = nicht gesetzt -> Standard des Rechners), die Blechstaerke aus der Massaufnahme (gespeichert: q.staerkeMm).
+const einfaRohrCache=new Map();
+function einfaRohrAbwicklung(e,quelle){
+ if(typeof abwRechne!=="function"||typeof einfaAbwVorgabe!=="function"||!e)return null;
+ const q=quelle||einfA;
+ const st=(q&&q.staerkeMm!==undefined&&q.staerkeMm!==null&&q.staerkeMm!=="")?q.staerkeMm:((typeof measStaerkeGet==="function")?measStaerkeGet():null);
+ const v=einfaAbwVorgabe(e,"rohr",{staerke:st,nr:1});
+ if(!v||!(v.werte.D>0))return null;
+ const key=JSON.stringify(v.werte);
+ let r=einfaRohrCache.get(key);
+ if(r===undefined){
+  r=abwRechne(v.werte);
+  if(einfaRohrCache.size>200)einfaRohrCache.clear();
+  einfaRohrCache.set(key,r);
+ }
+ if(!r||!r.ok)return {ok:false,fehler:(r&&r.fehler)||[],fehlt:v.fehlt,werte:v.werte};
+ return {ok:true,laenge:Math.round(r.breite),breite:Math.round(r.hoeheMax),umfang:r.L,hoehe:Math.round(r.hoeheMax),fehlt:v.fehlt,werte:r.eingaben,warnungen:r.warnungen||[]};
+}
 function einfaZuschnitte(quelle){
  const q=quelle||einfA;
  const z=[];
@@ -247,6 +267,16 @@ function einfaZuschnitte(quelle){
      // steckt bereits in der Laenge. Die Bezeichnung ist eine reine
      // Beschriftung und darf die Gruppe nicht zerlegen.
      merkmal:"", hinweis:bez||("Ø "+einfaMm(e.durchmesser))});
+ });
+ // Mantelrohr-Abwicklung: nach allen Tabletts angehaengt, damit die Nummern bestehender Zuschnitte gleich bleiben
+ einfaListe(q).forEach((e,i)=>{
+  if(!einfaBerechne(e,q))return;
+  const ra=einfaRohrAbwicklung(e,q);
+  if(!ra||!ra.ok)return;
+  const n=einfaAnzahl(e),bez=(e.bez||"").trim();
+  for(let k=0;k<n;k++)
+   z.push({nr:z.length+1,name:"Mantelrohr "+(i+1),laenge:ra.laenge,breite:ra.breite,durchmesser:einfaZahl(e.durchmesser),bleilappen:null,rohr:true,
+    merkmal:"Mantelrohr",hinweis:"Mantelrohr Ø "+einfaMm(e.durchmesser)+(bez?" · "+bez:"")});
  });
  return z;
 }
@@ -366,6 +396,9 @@ function einfaAusmassZeilen(quelle){
   dazu("Einfassung "+(i+1)+" · "+bez,n,"Stk",
     "Zuschnitt "+einfaMm(erg.abwicklung)+" × "+einfaMm(erg.breiteGesamt)+" mm"
     +(einfaLeerWert(e.standrohr)?"":" · Mantelrohr Ø "+einfaMm(e.durchmesser)+" (Standrohr Ø "+einfaMm(e.standrohr)+", Info)"));
+  const ra=einfaRohrAbwicklung(e,q);
+  if(ra&&ra.ok)dazu("Mantelrohr "+(i+1)+" · "+bez,n,"Stk",
+    "Abwicklung "+einfaMm(ra.laenge)+" × "+einfaMm(ra.breite)+" mm (Umfang "+einfaMm(ra.umfang)+" + Falz, Höhe "+einfaMm(ra.hoehe)+"; Rohrhöhe "+einfaMm(ra.werte.H)+", Schweifbord "+einfaMm(ra.werte.b)+")");
  });
  const fl=einfaFlaecheM2(q);
  if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Breite");
@@ -392,6 +425,11 @@ function einfaPruefungen(){
  if(!liste.length)m.push({art:"fehler",text:"Es ist noch keine Einfassung erfasst."});
  liste.forEach((e,i)=>{
   const nr="Einfassung "+(i+1)+": ";
+  if(einfaZahl(e.durchmesser)>0&&typeof einfaRohrAbwicklung==="function"){
+   const ra=einfaRohrAbwicklung(e,q);
+   if(ra&&!ra.ok&&ra.fehler&&ra.fehler.length)m.push({art:"warnung",text:nr+"Mantelrohr-Abwicklung nicht berechenbar: "+ra.fehler.join(" ")});
+   else if(ra&&ra.ok&&ra.fehlt&&ra.fehlt.length)m.push({art:"warnung",text:nr+"Mantelrohr-Abwicklung mit Standardwerten gerechnet (nicht gesetzt: "+ra.fehlt.join(", ")+"). Rohrhöhe und Schweifbord stehen in den Einstellungen der Einfassung rund."});
+  }
   if(!(einfaZahl(e.durchmesser)>0))
    m.push({art:"fehler",text:nr+"Der Mantelrohr-Durchmesser fehlt."});
   if(!(einfaZahl(e.a)>0))
@@ -876,6 +914,7 @@ function einfaDaten(){
   }),
   zuschnitte:einfaZuschnitte(),
   bleilappenGesamt:einfaBleilappenGesamt(),
+  staerkeMm:(typeof measStaerkeGet==="function")?measStaerkeGet():null,   // v3.404: fuer die Mantelrohr-Abwicklung
   flaeche_m2:Number(einfaFlaecheM2().toFixed(3)),
   ausmass:einfaAusmassZeilen(),
   // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen

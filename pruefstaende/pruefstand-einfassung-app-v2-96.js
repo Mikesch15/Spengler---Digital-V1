@@ -382,8 +382,11 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  await setz(page,FALL);
 
  console.log("\nE · Zuschnitte und Stueckliste (von Hand nachgerechnet)");
- const zu=await page.evaluate(()=>einfaZuschnitte().map(x=>({nr:x.nr,l:x.laenge,b:x.breite,h:x.hinweis})));
+ const zuAlle=await page.evaluate(()=>einfaZuschnitte().map(x=>({nr:x.nr,l:x.laenge,b:x.breite,h:x.hinweis,rohr:!!x.rohr})));
+ const zu=zuAlle.filter(x=>!x.rohr);
  p(zu.length===3,"drei Zuschnitte (1x Ø110, 2x Ø160)",zu.length);
+ // v3.404: dazu kommt je Einfassung die Abwicklung des Mantelrohrs (nach den Tabletts, Nummern 4-6)
+ p(zuAlle.length===6&&zuAlle.slice(3).every(x=>x.rohr&&x.nr>=4),"v3.404: dazu drei Mantelrohr-Zuschnitte (Nr. 4–6), die Nummern der Tabletts bleiben",zuAlle);
  // Indexzugriffe abgesichert: ein abgebrochener Pruefstand sieht aus wie
  // "keine Fehler" - eine Gegenprobe muss fehlschlagen, nicht abstuerzen.
  const z0=zu[0]||{}, z1=zu[1]||{}, z2=zu[2]||{};
@@ -393,14 +396,14 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(z1.l===290&&z1.b===400&&z2.l===290&&z2.b===400,"die beiden Ø160: Länge 290 (Abwicklung) × Breite 400 (Einfassung)",zu);
  p(z1.h==="Küche"&&z2.h==="Küche","die Bezeichnung reist als Hinweis mit",z1);
  const flaeche=await page.evaluate(()=>Number(einfaFlaecheM2().toFixed(4)));
- const soll=Number((((z0.l||0)*(z0.b||0)+(z1.l||0)*(z1.b||0)+(z2.l||0)*(z2.b||0))/1e6).toFixed(4));
+ const soll=Number((zuAlle.reduce((a,x)=>a+(x.l||0)*(x.b||0),0)/1e6).toFixed(4));
  p(Math.abs(flaeche-soll)<1e-6,"Blechflaeche = Summe(Laenge x Breite)",{flaeche,soll});
  // v3.303: Der Zuschnittplan liest dieselbe Ausrichtung: die STREIFENBREITE (quer zur Rolle) ist die Breite der
  // gesamten Einfassung, die Abschnittlaenge (laengs) die Abwicklung - nicht umgekehrt.
  const rpl=await page.evaluate(()=>{const q=einfaRollenPlan();return {breiten:(q.gruppen||[]).map(g=>g.breite).sort((a,b)=>a-b),
    laengen:(q.gruppen||[]).map(g=>g.abschnittLaenge).sort((a,b)=>a-b)}});
- p(JSON.stringify(rpl.breiten)===JSON.stringify([350,400])&&JSON.stringify(rpl.laengen)===JSON.stringify([260,290]),
-   "Zuschnittplan: Streifenbreiten 350/400 (Einfassung), Abschnittlängen 260/290 (Abwicklung)",rpl);
+ p(rpl.breiten.includes(350)&&rpl.breiten.includes(400)&&rpl.laengen.includes(260)&&rpl.laengen.includes(290)&&rpl.breiten.length===4,
+   "Zuschnittplan: Streifenbreiten 350/400 (Einfassung) und die zwei des Mantelrohrs, Abschnittlängen 260/290 (Abwicklung) und die des Mantelrohrs",rpl);
  const bl=await page.evaluate(()=>einfaBleilappenGesamt());
  // Mit der Regel aus v3.70 (a+b, abgerundet, verdoppelt, mindestens 1)
  // liefert jede der drei Einfassungen 1 Lappen: 1 + 2*1 = 3.
@@ -415,7 +418,7 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
     netto:Number(plan.netto.toFixed(4)),
     moeglich:plan.moeglich.map(m=>m.breite)};
  });
- p(rp.gruppen.length===2,"zwei Streifenbreiten (zwei Abwicklungen)",rp.gruppen);
+ p(rp.gruppen.length===4,"vier Streifenbreiten (zwei Tabletts, zwei Mantelrohre)",rp.gruppen);
  p(rp.bestes!==null,"eine Rollenbreite passt",rp);
  // Der Plan muss WIRKLICH aus der gemeinsamen Packrechnung kommen.
  // v3.83: bei jeAbschnitt>=2 uebernimmt die ebenso gemeinsame
@@ -497,7 +500,7 @@ const FALL={material:"2",deckung:"biber_einfach",lattenabstand:330,rollenAuswahl
  p(Array.isArray(sp.d.einfassungen)&&sp.d.einfassungen.length===2,"beide Einfassungen gespeichert",
    (sp.d.einfassungen||[]).length);
  p(sp.d.einfassungen[1].anzahl===2&&sp.d.einfassungen[1].bez==="Küche","Stueckzahl und Bezeichnung gespeichert",sp.d.einfassungen[1]);
- p(Array.isArray(sp.d.zuschnitte)&&sp.d.zuschnitte.length===3,"Zuschnitte gespeichert",(sp.d.zuschnitte||[]).length);
+ p(Array.isArray(sp.d.zuschnitte)&&sp.d.zuschnitte.length===6,"Zuschnitte gespeichert",(sp.d.zuschnitte||[]).length);
  // 3 statt 6: dieselbe Regel aus v3.70 (a+b, abgerundet, verdoppelt,
  // mindestens 1) - 1 + 2*1 = 3, siehe oben.
  p(sp.d.bleilappenGesamt===3&&typeof sp.d.flaeche_m2==="number","Bleilappen und Flaeche gespeichert",sp.d);

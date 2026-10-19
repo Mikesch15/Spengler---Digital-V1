@@ -262,10 +262,10 @@ function rbAbweichung(m){
   let neu=null;try{neu=einfaZuschnitte(d)}catch(e){neu=null}
   if(Array.isArray(neu)&&neu.length){
    const f=l=>l.map(x=>Math.round(Number(x.laenge)||0)+" × "+Math.round(Number(x.breite)||0));
-   const a=f(d.zuschnitte).sort(),b=f(neu).sort();
+   const a=f(d.zuschnitte.filter(x=>!x.rohr)).sort(),b=f(neu.filter(x=>!x.rohr)).sort();
    if(a.join("|")!==b.join("|")){
     const uniq=l=>[...new Set(l)].join(", ");
-    return {sicher:true,text:"Gespeichert ist "+uniq(f(d.zuschnitte))+" mm, die aktuelle Rechnung ergibt "+uniq(f(neu))+" mm (Länge × Breite)."};
+    return {sicher:true,text:"Gespeichert ist "+uniq(f(d.zuschnitte.filter(x=>!x.rohr)))+" mm, die aktuelle Rechnung ergibt "+uniq(f(neu.filter(x=>!x.rohr)))+" mm (Länge × Breite)."};
    }
    return null;
   }
