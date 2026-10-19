@@ -582,6 +582,7 @@ function kamaAusmassZeilen(){
  const bl=kamaBleilappen();
  if(bl.gesamt!==null)
   zeile("Bleilappen",String(bl.gesamt),"Stk.",bl.manuell?"von Hand gesetzt (berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":"je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
+ {const f=(typeof blFlaecheZeile==="function")?blFlaecheZeile("kamineinfassung"):null;if(f)zeile("Bleilappen Fläche",f.menge,"m²",f.herkunft)}
  const Ll=kamaKaminLaenge("l"), Lr=kamaKaminLaenge("r");
  const bcFormel=kamaBuchstabe("b")+" + "+kamaBuchstabe("c")+" − Überlappung";
  if(Ll>0)zeile("Kaminlänge längs Dach"+(kamA.getrennt?" links":""),kamaMm(Ll),"mm",bcFormel);

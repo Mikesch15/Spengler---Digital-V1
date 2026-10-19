@@ -22,14 +22,14 @@ const BL_PLATTEN=[
  {k:"720x400",name:"720 × 400 mm",b:105,h:420},
  {k:"frei",name:"andere Plattenmasse (Lappenbreite von Hand)",b:0,h:105}
 ];
-let blOpt={platte:"600x400",breite:""};
+let blOpt={platte:"600x400",breite:"",biber:"einfach"};
 const blMm=v=>Math.round(Number(v)||0).toLocaleString("de-CH");
 
 // Deckmaterial -> Familie. Einfassungen/Kamin/Dachfenster: EINF_DECKUNGEN; Ortbleche: ANB_DECKUNGEN.
-function blFamilie(art,deckung){
+function blFamilie(art,deckung,opt){
  if(art==="anschlussblech"){
   if(deckung==="pfanne"||deckung==="falzziegel")return "falzziegel";
-  if(deckung==="biber")return "biber_einfach";       // Anschlussblech kennt nur «Biberschwanz»: Einfachdach angenommen
+  if(deckung==="biber")return (opt||blOpt).biber==="doppel"?"biber_doppel":"biber_einfach";   // Anschlussblech kennt nur «Biberschwanz»: Wahl in der Karte
   if(deckung==="schiefer"||deckung==="faserzement")return "faserzement";
   return null;
  }
@@ -47,25 +47,27 @@ function blBerechne(familie,anzahl,opt){
  const o=opt||blOpt;
  const r={familie,name:BL_NAMEN[familie],anzahl:n,gerade:null,konisch:null,hinweis:"Walzblei 1 mm, Rolle 420 mm breit."};
  if(familie==="falzziegel"){
-  r.gerade={n:1,mass:"130 × 420"};
-  if(n>1)r.konisch={n:n-1,mass:"130 / 170 × 420"};
+  r.gerade={n:1,mass:"130 × 420",mm2:130*420};
+  if(n>1)r.konisch={n:n-1,mass:"130 / 170 × 420",mm2:150*420};
   r.hinweis+=" Die konischen Lappen paarweise gegengleich schneiden (170 / 130 im Wechsel) – so bleibt kein Verschnitt.";
  }else if(familie==="biber_doppel"){
-  r.gerade={n:1,mass:"90 × 210"};
-  if(n>1)r.konisch={n:n-1,mass:"90 / 120 × 210"};
+  r.gerade={n:1,mass:"90 × 210",mm2:90*210};
+  if(n>1)r.konisch={n:n-1,mass:"90 / 120 × 210",mm2:105*210};
   r.hinweis+=" Aus einer Platte 420 × 420: zwei Reihen zu 210, die konischen Lappen gegengleich.";
  }else if(familie==="biber_einfach"){
-  r.gerade={n:1,mass:"300 × 90"};
-  if(n>1)r.konisch={n:n-1,mass:"300 × 90 / 120"};
+  r.gerade={n:1,mass:"300 × 90",mm2:300*90};
+  if(n>1)r.konisch={n:n-1,mass:"300 × 90 / 120",mm2:300*105};
   r.hinweis+=" Die konischen Lappen gegengleich aus einer Platte 300 × 420 schneiden.";
  }else{
   const pl=BL_PLATTEN.find(x=>x.k===o.platte)||BL_PLATTEN[0];
   const b=pl.k==="frei"?(Number(o.breite)||0):pl.b;
   r.platte=pl.k;
-  r.gerade={n,mass:b>0?blMm(b)+" × "+blMm(pl.h):"Lappenbreite fehlt"};
+  r.gerade={n,mass:b>0?blMm(b)+" × "+blMm(pl.h):"Lappenbreite fehlt",mm2:b>0?b*pl.h:0};
   r.hinweis+=" Rechteckige Lappen, Platte "+pl.name+".";
  }
  r.hinweis+=" Auf die Fliessrichtung des Bleis achten.";
+ // Fläche: gerade Lappen voll, konische mit dem Mittelmass (Mittel aus schmal und breit)
+ r.flaeche_m2=((r.gerade?r.gerade.n*r.gerade.mm2:0)+(r.konisch?r.konisch.n*r.konisch.mm2:0))/1e6;
  return r;
 }
 
@@ -85,7 +87,7 @@ function blLive(art){
 function blAktuell(art){
  const q=blLive(art);
  if(!q||q.anzahl===null||q.anzahl===undefined)return null;
- return blBerechne(blFamilie(art,q.deckung),q.anzahl);
+ return blBerechne(blFamilie(art,q.deckung,blOpt),q.anzahl);
 }
 const BL_ARTEN=["einfassung_rund","kamineinfassung","dachfenstereinfassung","anschlussblech"];
 
@@ -101,17 +103,26 @@ const mdEscBl=s=>(typeof esc==="function")?esc(s):String(s);
 function blKarteHtml(art){
  const q=blLive(art);
  if(!q||q.anzahl===null||q.anzahl===undefined)return "";
- const fam=blFamilie(art,q.deckung);
+ const fam=blFamilie(art,q.deckung,blOpt);
  if(!fam)return `<div class="card"><h2>Bleilappen</h2><div class="small">Für dieses Deckmaterial gibt es keinen Bleilappen-Zuschnitt.</div></div>`;
  const b=blBerechne(fam,q.anzahl);
  if(!b)return "";
+ const biberWahl=(art==="anschlussblech"&&q.deckung==="biber")?`<div class="grid" style="margin:8px 0"><div><label>Biberschwanz</label><select data-bl-biber><option value="einfach"${blOpt.biber!=="doppel"?" selected":""}>Einfachdach</option><option value="doppel"${blOpt.biber==="doppel"?" selected":""}>Doppeldach</option></select></div></div>`:"";
  const platten=fam==="faserzement"?`<div class="grid" style="margin:8px 0"><div><label>Plattenmass der Eindeckung</label><select data-bl-platte>${BL_PLATTEN.map(p=>`<option value="${p.k}"${p.k===blOpt.platte?" selected":""}>${mdEscBl(p.name)}</option>`).join("")}</select></div>
 ${blOpt.platte==="frei"?`<div><label>Lappenbreite (mm)</label><input data-bl-breite type="number" inputmode="numeric" step="1" value="${mdEscBl(blOpt.breite)}"></div>`:""}</div>`:"";
  return `<div class="card" id="bl_karte"><h2>Bleilappen</h2>
 <div class="info">${mdEscBl(b.name)} – <b>${b.anzahl} Bleilappen</b>. Der vorderste Bleilappen ist gerade, die übrigen sind konisch.</div>
-${platten}
+${biberWahl}${platten}
 <div class="scroll"><table class="eb-table ra-tab"><thead><tr><th>Anzahl</th><th>Zuschnitt (B × L)</th><th>Form</th></tr></thead><tbody>${blZeilenHtml(b)}</tbody></table></div>
+<div class="small" style="margin-top:6px"><b>Fläche der Bleilappen: ${blQm(b.flaeche_m2)} m²</b> (gerade voll, konische mit dem Mittelmass)</div>
 <div class="small" style="margin-top:6px">${mdEscBl(b.hinweis)}</div></div>`;
+}
+const blQm=v=>(Number(v)||0).toFixed(2).replace(".",",");
+// Position fuers Ausmass: Flaeche der Bleilappen in m²
+function blFlaecheZeile(art){
+ const b=blAktuell(art);
+ if(!b||!(b.flaeche_m2>0))return null;
+ return {menge:blQm(b.flaeche_m2),herkunft:"Anzahl × Lappenfläche, "+b.name+" (konische mit Mittelmass)"};
 }
 
 // Speicherstand: wird an die Daten der vier Arten gehaengt
@@ -119,11 +130,12 @@ function blMitZuschnitt(art,data){
  if(BL_ARTEN.indexOf(art)<0)return data;
  const b=blAktuell(art);
  if(!b)return data;
- return {...(data||{}),bleilappenZuschnitt:{...b,breiteFrei:blOpt.platte==="frei"?(Number(blOpt.breite)||0):undefined}};
+ return {...(data||{}),bleilappenZuschnitt:{...b,biber:blOpt.biber,breiteFrei:blOpt.platte==="frei"?(Number(blOpt.breite)||0):undefined}};
 }
 function blFuellen(d){
  const z=d&&d.bleilappenZuschnitt;
- blOpt={platte:"600x400",breite:""};
+blOpt={platte:"600x400",breite:"",biber:"einfach"};
+ if(z&&z.biber==="doppel")blOpt.biber="doppel";
  if(z&&z.platte&&BL_PLATTEN.some(p=>p.k===z.platte)){blOpt.platte=z.platte;if(z.platte==="frei"&&z.breiteFrei)blOpt.breite=z.breiteFrei}
 }
 // Ausdruck und Ruestblatt: nur das, was beim Speichern abgelegt wurde
@@ -131,7 +143,7 @@ function blDruckHtml(b){
  if(!b||!b.anzahl)return "";
  return `<div class="eb-section-head">Bleilappen</div>
 <table class="eb-cutlist"><thead><tr><th>Anzahl</th><th>Zuschnitt (B &#215; L)</th><th>Form</th></tr></thead><tbody>${blZeilenHtml(b)}</tbody></table>
-<div class="note" style="font-size:8pt;color:#68737d">${mdEscBl(b.name)} · ${b.anzahl} Bleilappen insgesamt. ${mdEscBl(b.hinweis)}</div>`;
+<div class="note" style="font-size:8pt;color:#68737d">${mdEscBl(b.name)} · ${b.anzahl} Bleilappen insgesamt, Fläche ${blQm(b.flaeche_m2)} m². ${mdEscBl(b.hinweis)}</div>`;
 }
 function blRuestHtml(m){
  const b=m&&m.data&&m.data.bleilappenZuschnitt;
@@ -148,6 +160,7 @@ document.addEventListener("change",e=>{
  let geaendert=false;
  if(t.dataset.blPlatte!==undefined){blOpt.platte=BL_PLATTEN.some(p=>p.k===t.value)?t.value:"600x400";geaendert=true}
  else if(t.dataset.blBreite!==undefined){blOpt.breite=t.value===""?"":Number(t.value);geaendert=true}
+ else if(t.dataset.blBiber!==undefined){blOpt.biber=t.value==="doppel"?"doppel":"einfach";geaendert=true}
  if(!geaendert)return;
  const mt=$("measType");
  const fn=mt?(mt.value==="dachfenstereinfassung"?"renderDfaAufnahme":((typeof MEAS_FORM_RENDER==="object")?MEAS_FORM_RENDER[mt.value]:null)):null;

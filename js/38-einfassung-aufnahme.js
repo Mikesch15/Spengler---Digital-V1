@@ -371,6 +371,7 @@ function einfaAusmassZeilen(quelle){
  if(fl>0)dazu("Blechfläche Zuschnitt",einfaQm(fl),"m²","Länge × Breite");
  const bl=einfaBleilappenGesamt(q);
  if(bl!==null&&bl>0)dazu("Bleilappen",bl,"Stk",einfaBleilappenManuell(q)!==null?"von Hand gesetzt (berechnet: "+(einfaBleilappenBerechnet(q)===null?"–":einfaBleilappenBerechnet(q))+")":"Umfang ÷ Lattenabstand, aufgerundet",true);
+ {const f=(typeof blFlaecheZeile==="function")?blFlaecheZeile("einfassung_rund"):null;if(f)dazu("Bleilappen Fläche",f.menge,"m²",f.herkunft)}
  return z;
 }
 function einfaMaterialTabelle(){

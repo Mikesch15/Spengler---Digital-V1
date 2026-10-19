@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.403
+UMGESETZT: Bleilappen: Auswahl Einfach-/Doppeldach bei Ortblechen mit Biberschwanz; Ausmass-Position "Bleilappen Flaeche" (m²) in vier Arten. Metalldach: Randfalze mit Pfeil, Untergriff vorbelegt, auch an Spitzen gezeichnet.
+NICHT GEAENDERT: Anzahl der Bleilappen, Bleilappen "Stk." im Ausmass, Datenbank.
+GETESTET: bleilappen-zuschnitt-v3-402 (37), metalldach-v3-398 (62), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy; mit echten Aufmassen.
+ANNAHME: Die Flaeche zaehlt konische Lappen mit dem Mittelmass (Mittel aus schmal und breit); sie ist die Lappenflaeche, keine Platten-/Rollenflaeche mit Verschnitt.

@@ -180,6 +180,7 @@ function anbaAusmassZeilen(){
  if(knicke)zeile("Knicke im Verlauf",String(knicke),"Stk.","erfasste Knicke");
  if(erg.anzahlBleilappen!==null&&erg.anzahlBleilappen!==undefined)
   zeile("Bleilappen",String(erg.anzahlBleilappen),"Stk.",erg.bleilappenManuell?"von Hand gesetzt (berechnet: "+erg.bleilappenBerechnet+")":"Länge ÷ Lattenabstand",true);
+ {const f=(typeof blFlaecheZeile==="function")?blFlaecheZeile("anschlussblech"):null;if(f)zeile("Bleilappen Fläche",f.menge,"m²",f.herkunft)}
  const letztes=(erg.stuecke||[])[(erg.stuecke||[]).length-1];
  if(letztes&&letztes.gehrung)
   zeile("Endstück mit Firstgehrung","1","Stk.","Zuschlag aus den Einstellungen");

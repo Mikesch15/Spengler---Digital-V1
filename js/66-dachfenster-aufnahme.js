@@ -839,6 +839,7 @@ function dfaAusmassZeilen(){
  const bl=dfaBleilappen();
  if(bl.gesamt!==null)
   zeile("Bleilappen",String(bl.gesamt),"Stk.",bl.manuell?"von Hand gesetzt (berechnet: "+(bl.berechnet===null?"–":bl.berechnet)+")":"je Seitenteil abgerundet aus Länge ÷ Lattenabstand",true);
+ {const f=(typeof blFlaecheZeile==="function")?blFlaecheZeile("dachfenstereinfassung"):null;if(f)zeile("Bleilappen Fläche",f.menge,"m²",f.herkunft)}
  const Ll=dfaLaenge("l"), Lr=dfaLaenge("r");
  const bcFormel=dfaBuchstabe("b")+" + "+dfaBuchstabe("c")+" − Überlappung";
  if(Ll>0)zeile("Länge Seitenteil"+(dfaA.getrennt?" links":""),dfaMm(Ll),"mm",bcFormel);

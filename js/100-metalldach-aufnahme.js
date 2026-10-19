@@ -287,7 +287,7 @@ function mdaFalzTabelleHtml(g){
 }
 function mdaFalzHtml(){
  const a=mdA,g=mdErgebnis();
- return `<div class="info">Jede Bahn hat <b>zwei Falze</b> (linke und rechte Kante, Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an: der gebogene Pfeil im Plan steht quer zum Falz und zeigt zur Seite, auf die der Falz gelegt wird. Benachbarte Bahnen teilen sich einen Falz – ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Mit der Schnellwahl setzt du alle Falze auf einmal, danach kannst du jeden einzeln umschalten.</div>
+ return `<div class="info">Jede Bahn hat <b>zwei Falze</b> (linke und rechte Kante, Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an: der gebogene Pfeil im Plan steht quer zum Falz und zeigt zur Seite, auf die der Falz gelegt wird. Benachbarte Bahnen teilen sich einen Falz – ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Die beiden <b>äussersten Falze</b> (Rand der ersten und der letzten Bahn) haben ebenfalls einen Pfeil und sind mit <b>Untergriff</b> vorbelegt (Pfeil zeigt in die Randbahn hinein). Mit der Schnellwahl setzt du alle Falze auf einmal, danach kannst du jeden einzeln umschalten.</div>
 <div class="grid">
 ${mdaFeld("Schnellwahl",mdaSelect("md_falzModus",MD_FALZ_MODI,a.falzModus))}
 ${mdaZahlFeld("Längenzugabe Zuschnitt (mm)","md_zugabeLaenge",a.zugabeLaenge,true)}

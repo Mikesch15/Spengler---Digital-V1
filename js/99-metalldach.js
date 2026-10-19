@@ -259,6 +259,8 @@ function mdFalzRichtungen(e,bahnen,W){
    }
   }
  }
+ // Die beiden aeussersten Falze (Rand der ersten und der letzten Bahn): normalerweise Untergriff, der Pfeil zeigt in die Randbahn hinein
+ out[0]=phys("+");out[nJ-1]=phys("-");
  const ein=(e&&e.falzEinzel)||{};
  Object.keys(ein).forEach(k=>{
   const j=Number(k);
@@ -442,9 +444,22 @@ function mdPlanSvg(g,opt){
    let best=null;
    const kand=(bh,seite)=>{if(bh)bh.stuecke.forEach(st=>{const ed=seite==="r"?st.rechts:st.links;const len=ed.hi-ed.lo;if(!best||len>best.len)best={len,T:(ed.lo+ed.hi)/2}})};
    kand(g.bahnen[j-1],"r");kand(g.bahnen[j],"l");
-   if(!best||best.len<1)continue;
+   let sOff=sPos;
+   if(!best||best.len<1){
+    // Randfalz an einer Spitze (die Kante hat dort die Laenge 0): Pfeil leicht innerhalb der Randbahn setzen
+    const rb=j===0?g.bahnen[0]:(j===nJ-1?g.bahnen[nJ-2]:null);
+    if(!rb)continue;
+    const st=rb.stuecke.reduce((m2,x)=>(!m2||x.flaeche>m2.flaeche)?x:m2,null);
+    if(!st||!st.trapeze.length)continue;
+    const tr=j===0?st.trapeze[0]:st.trapeze[st.trapeze.length-1];
+    const f=j===0?0.3:0.7;
+    sOff=tr.x0+(tr.x1-tr.x0)*f;
+    const lo=tr.lo0+(tr.lo1-tr.lo0)*f,hi=tr.hi0+(tr.hi1-tr.hi0)*f;
+    if(!(hi-lo>1))continue;
+    best={len:hi-lo,T:(lo+hi)/2};
+   }
    const dSc=((g.falze[j]==="rechts")===(g.start==="links"))?"+":"-";
-   const P0=g.toXY(sPos,best.T),P1=g.toXY(sPos+500,best.T),P2=g.toXY(sPos,best.T+500);
+   const P0=g.toXY(sOff,best.T),P1=g.toXY(sOff+500,best.T),P2=g.toXY(sOff,best.T+500);
    const cx=Number(X(P0.x)),cy=Number(Y(P0.y));
    let ax=Number(X(P1.x))-cx,ay=Number(Y(P1.y))-cy;const al=Math.hypot(ax,ay)||1;ax/=al;ay/=al;
    let ux=Number(X(P2.x))-cx,uy=Number(Y(P2.y))-cy;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;

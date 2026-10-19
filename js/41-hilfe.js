@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.402.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.403.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1112,7 +1112,7 @@ tatsächlich rechnet.</p>`},
 <p><b>Passbahn:</b> Mit «+ Passbahn» fügst du an der gewünschten Stelle («nach Schar Nr. …») eine Passbahn ein. Ohne feste Breite ist sie der Rest, sodass alle anderen Scharen volle Breite haben. Mehrere Passbahnen teilen sich den Rest gleichmässig. Ohne Passbahn nimmt die letzte Schar die Restbreite. Hat die Fläche eine Aussparung, kann eine Bahn aus mehreren Teilen bestehen.</p>`},
 "md-falz":{titel:"Falz (Metalldach)",text:`
 <p>Jede Bahn hat <b>zwei Falze</b>: an der linken und an der rechten Kante (Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an. Im Plan steht dafür ein <b>gebogener Pfeil quer zum Falz</b>, also an der Bahn ausgerichtet, auch bei schräg laufenden Scharen. Er zeigt zur Seite, auf die der Falz gelegt wird.</p>
-<p>Benachbarte Bahnen teilen sich einen Falz: Ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Die <b>Schnellwahl</b> setzt alle Falze auf einmal (alle links oder rechts, von der Passbahn weg, zur Passbahn hin, von der Mitte weg); danach lässt sich jeder Falz einzeln umschalten.</p>
+<p>Benachbarte Bahnen teilen sich einen Falz: Ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Die <b>Schnellwahl</b> setzt alle Falze auf einmal (alle links oder rechts, von der Passbahn weg, zur Passbahn hin, von der Mitte weg); danach lässt sich jeder Falz einzeln umschalten. Die beiden äussersten Falze am Rand haben auch einen Pfeil und sind normalerweise Untergriff (Pfeil zeigt in die Randbahn hinein).</p>
 <p>Zuschnittbreite = Deckbreite + Zugabe am linken Falz + Zugabe am rechten Falz (Obergriff oder Untergriff). Zuschnittlänge = längste Länge der Bahn + Längenzugabe. Die Zugaben gibst du für jede Aufnahme selbst ein (0, wenn keine).</p>`},
 "luk-scharen":{titel:"Scharen",text:`
 <p>Alle Werte kommen aus der Rechnung – hier ist nichts von Hand einzugeben.</p>

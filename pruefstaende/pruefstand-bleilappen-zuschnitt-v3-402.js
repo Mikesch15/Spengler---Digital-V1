@@ -75,6 +75,41 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{blFuellen({bleilappenZuschnitt:{platte:"720x400"}});const a=blOpt.platte;blFuellen({bleilappenZuschnitt:{platte:"frei",breiteFrei:240}});const b=[blOpt.platte,blOpt.breite];blFuellen(null);return {a,b,c:blOpt.platte}});
  p(r.a==="720x400"&&r.b.join()==="frei,240"&&r.c==="600x400","Laden/Zurücksetzen: Plattenmass kommt aus dem Speicherstand, sonst Standard",r);
 
+ console.log("\nF · Biberschwanz-Wahl bei den Ortblechen, Fläche, Ausmass-Position");
+ r=await ev(()=>{blFuellen(null);anbEingabenAusFeldern=()=>({art:"bleilappen",deckung:"biber"});berechneAnschlussblech=()=>({anzahlBleilappen:4});
+  const s=h=>{const d=document.createElement("div");d.innerHTML=h;return d.textContent.replace(/\s+/g," ")};
+  const ein=s(blKarteHtml("anschlussblech")),selE=blKarteHtml("anschlussblech").includes("data-bl-biber");
+  let n=0;window.renderAnschlussblechAufnahme=()=>{n++};$("measType").value="anschlussblech";
+  const sel=document.createElement("select");sel.dataset.blBiber="";sel.innerHTML='<option value="doppel" selected>x</option>';document.body.appendChild(sel);sel.dispatchEvent(new Event("change",{bubbles:true}));
+  const dop=s(blKarteHtml("anschlussblech"));
+  const gespeichert=blMitZuschnitt("anschlussblech",{}).bleilappenZuschnitt;blFuellen({bleilappenZuschnitt:gespeichert});const zurueck=blOpt.biber;
+  anbEingabenAusFeldern=()=>({art:"bleilappen",deckung:"pfanne"});const ohneWahl=blKarteHtml("anschlussblech").includes("data-bl-biber");
+  return {ein,selE,dop,n,fam:gespeichert.familie,zurueck,ohneWahl}});
+ p(r.selE&&/300 × 90/.test(r.ein)&&/Einfachdach/.test(r.ein),"Ortblech mit Biberschwanz: Auswahl Einfach-/Doppeldach, zuerst Einfachdach",r.ein);
+ p(/90 × 210/.test(r.dop)&&r.n===1&&r.fam==="biber_doppel","Doppeldach gewählt: Lappen 90 × 210, Register neu gezeichnet, im Speicherstand vermerkt",r);
+ p(r.zurueck==="doppel"&&!r.ohneWahl,"Die Wahl wird beim Laden wiederhergestellt; bei Pfannenziegel gibt es keine Biber-Auswahl",r);
+ r=await ev(()=>{blFuellen(null);const f=blBerechne("falzziegel",6),g=blBerechne("biber_doppel",4),h=blBerechne("biber_einfach",3),k=blBerechne("faserzement",8,{platte:"600x400"}),m=blBerechne("faserzement",4,{platte:"720x400"});
+  return {f:f.flaeche_m2,g:g.flaeche_m2,h:h.flaeche_m2,k:k.flaeche_m2,m:m.flaeche_m2,e1:blBerechne("falzziegel",1).flaeche_m2}});
+ p(Math.abs(r.f-(54600+5*63000)/1e6)<1e-9&&Math.abs(r.g-(18900+3*22050)/1e6)<1e-9&&Math.abs(r.h-(27000+2*31500)/1e6)<1e-9,"Fläche: gerade voll, konische mit Mittelmass (Falzziegel 0,37 m², Doppeldach 0,09 m², Einfachdach 0,09 m²)",r);
+ p(Math.abs(r.k-8*31500/1e6)<1e-9&&Math.abs(r.m-4*105*420/1e6)<1e-9&&Math.abs(r.e1-54600/1e6)<1e-9,"Faserzement 600 × 400: 8 × 300 × 105 = 0,25 m²; 720 × 400: 4 × 105 × 420 = 0,18 m²; ein Lappen = nur der gerade",r);
+ r=await ev(()=>{blFuellen(null);kamA.deckung="schiebeziegel";kamaBleilappen=()=>({gesamt:6,manuell:false,berechnet:6});kamaZuschnitte=()=>[{name:"Seitenteil",laenge:500,breite:300,seite:"links"}];dfaZuschnitte=()=>[{name:"Seitenteil",laenge:500,breite:300,seite:"links"}];
+  const z=blFlaecheZeile("kamineinfassung");const soll=((54600+5*63000)/1e6).toFixed(2).replace(".",",");
+  let kz=[];try{kz=kamaAusmassZeilen()}catch(e){kz=[{err:e.message}]}
+  const k=kz.find(x=>x.bezeichnung==="Bleilappen Fläche");
+  const kl=kz.find(x=>x.bezeichnung==="Bleilappen");
+  dfaA.deckung="eternit";dfaBleilappen=()=>({gesamt:8,manuell:false,berechnet:8});let dz=[];try{dz=dfaAusmassZeilen()}catch(e){dz=[{err:e.message}]}
+  einfA.deckung="biber_doppel";einfaBleilappenGesamt=()=>4;let ez=[];try{ez=einfaAusmassZeilen()}catch(e){ez=[{err:e.message}]}
+  anbEingabenAusFeldern=()=>({art:"bleilappen",deckung:"falzziegel"});
+  return {z,soll,k:k&&{m:k.menge,e:k.einheit,t:k.teil},kl:!!kl,d:dz.find(x=>x.bezeichnung==="Bleilappen Fläche"),e:ez.find(x=>x.bezeichnung==="Bleilappen Fläche"),dErr:dz[0]&&dz[0].err,eErr:ez[0]&&ez[0].err}});
+ p(r.z&&r.z.menge===r.soll&&/Anzahl × Lappenfläche/.test(r.z.herkunft),"Ausmass-Zeile: Fläche der Bleilappen in m² (0,37 für 6 Falzziegel-Lappen)",r.z);
+ p(r.k&&r.k.m===r.soll&&r.k.e==="m²"&&r.k.t===false&&r.kl,"Kamineinfassung: die Position «Bleilappen Fläche» steht im Ausmass neben «Bleilappen»; sie wird nicht beschafft (teil = false)",r);
+ p(r.d&&r.d.einheit==="m²"&&r.d.menge==="0,25","Dachfenstereinfassung (Eternit, 8 Lappen): 0,25 m²",[r.d,r.dErr]);
+ p(r.e&&r.e.einheit==="m²"&&r.e.menge==="0,09","Einfassung rund (Biberschwanz Doppeldach, 4 Lappen): 0,09 m²",[r.e,r.eErr]);
+ r=await ev(()=>{blFuellen(null);anbEingabenAusFeldern=()=>({art:"bleilappen",deckung:"falzziegel"});berechneAnschlussblech=()=>({anzahlBleilappen:5});anbaEingaben=()=>({segmente:[{laenge:1000}]});anbaErgebnis=()=>({stuecke:[1],teile:[],laenge:1000,abwicklung:100,flaeche:0.1,anzahlBleilappen:5,bleilappenManuell:false,bleilappenBerechnet:5});anbaFlaecheM2=()=>0.1;anbaTitelText=()=>"T";let z=[];try{z=anbaAusmassZeilen()}catch(e){z=[{err:e.message}]}
+  const f=z.find(x=>x.bezeichnung==="Bleilappen Fläche");return {f,err:z[0]&&z[0].err}});
+ p(r.f&&r.f.menge==="0,31"&&r.f.einheit==="m²"&&r.f.teil===false,"Ortblech (Pfannenziegel, 5 Lappen): Position «Bleilappen Fläche» 0,31 m²",r);
+ r=await ev(()=>{kamaBleilappen=()=>({gesamt:null});return blFlaecheZeile("kamineinfassung")});
+ p(r===null,"Ohne Bleilappen keine Position");
  console.log("\nE · Einbindung");
  const src=f=>fs.readFileSync(f,"utf8");
  p(/101-bleilappen\.js/.test(src("index.html"))&&/101-bleilappen\.js/.test(src("sw.js")),"Datei in index.html und sw.js");
