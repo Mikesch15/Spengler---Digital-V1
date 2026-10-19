@@ -65,7 +65,7 @@ const INIT=()=>{
   einfassungSettings={...einfassungSettings,umschlag:10,umschlag_hinten:10,umschlag_seitlich:20,mass_seitlich:90};
   const e={a:110,b:340,c:60,bez:"Nr.1",anzahl:3,winkel:0,standrohr:20,durchmesser:28};
   const d={einfassungen:[e],deckung:"schiebeziegel",lattenabstand:350};
-  const gut=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite}));
+  const gut=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite,rohr:x.rohr}));
   const m=(zs)=>({type:"einfassung_rund",data:{...d,zuschnitte:zs}});
   const alt=gut.map(x=>({...x,laenge:x.laenge-5}));
   return {gut:rbAbweichungText(m(gut)),alt:rbAbweichungText(m(alt)),html:rbAbweichungHtml(m(alt)),l:gut[0].laenge,
@@ -76,7 +76,7 @@ const INIT=()=>{
  p(/Zuschnitt veraltet/.test(r.html)&&/neu speichern/.test(r.html),"Die Warnung sagt, was zu tun ist",r.html);
  p(r.altformat===""&&r.ohne===""&&r.fremd==="","Altes Datenformat, fehlender Zuschnitt, andere Art: keine falsche Warnung",r);
  r=await ev(()=>{const e={a:110,b:340,c:60,anzahl:1,winkel:0,durchmesser:28};const d={einfassungen:[e],deckung:"schiebeziegel",lattenabstand:350};
-  const zs=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite}));
+  const zs=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite,rohr:x.rohr}));
   const m={id:5,type:"einfassung_rund",title:"T",data:{...d,zuschnitte:zs.map(x=>({...x,laenge:x.laenge-5}))}};
   return rbBlattHtml(m,{kopf:true}).includes("rb-abweichung")});
  p(r,"Das Blatt (rbBlattHtml) zeigt die Warnung tatsächlich");
@@ -99,7 +99,7 @@ const INIT=()=>{
  p(/möglicherweise veraltet/.test(r.html)&&/neu speichern/.test(r.html),"Hinweisfall sagt «möglicherweise veraltet» und was zu tun ist",r.html);
  r=await ev(()=>{einfassungSettings={...einfassungSettings,umschlag:10,umschlag_hinten:10,umschlag_seitlich:20,mass_seitlich:90};
   const e={a:110,b:340,c:60,anzahl:1,winkel:0,durchmesser:28};const d={einfassungen:[e],deckung:"schiebeziegel",lattenabstand:350};
-  const zs=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite}));
+  const zs=einfaZuschnitte(d).map(x=>({laenge:x.laenge,breite:x.breite,rohr:x.rohr}));
   const snap={...efStandAktuell("einfassung_rund"),umschlag_hinten:99};
   return rbAbweichungText({type:"einfassung_rund",data:{...d,zuschnitte:zs,_einst:snap}})});
  p(r==="","Einfassung rund: Neurechnung ist massgebend – gleicher Zuschnitt trotz anderer Einstellungen = keine Warnung",r);
