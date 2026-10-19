@@ -231,6 +231,7 @@ ${mdaZahlFeld("Breite (mm, leer = Restbreite)","md_pbreite_"+i,p.breite,false,"1
 </div><div class="bar"><button type="button" class="red" data-md-pweg="${i}">✕ Passbahn entfernen</button></div></div>`).join("");
  return z||'<div class="small">Keine Passbahn – die letzte Schar nimmt die Restbreite.</div>';
 }
+const mdaFalzText=(dir,ober)=>(dir==="links"?"← links":"→ rechts")+" · "+(ober?"Ober":"Unter");
 function mdaScharenTabelleHtml(g){
  if(!g.scharenOk)return `<div class="ra-warnung">Bitte zuerst den Grundriss und den Achsabstand erfassen.</div>`;
  const hr=g.hilfsriss;
@@ -238,9 +239,9 @@ function mdaScharenTabelleHtml(g){
 <td>${mdEsc(b.label)}${b.art==="passbahn"?' <span class="small">Pass</span>':(b.art==="rest"?' <span class="small">Rest</span>':"")}${b.stuecke.length>1?` <span class="small">Teil ${j+1}</span>`:""}</td>
 <td>${mdMm(b.breite)}</td><td>${mdMm(s.untenLinks)}</td><td>${mdMm(s.obenLinks)}</td><td>${mdMm(s.laengeLinks)}</td>
 <td>${mdMm(s.untenRechts)}</td><td>${mdMm(s.obenRechts)}</td><td>${mdMm(s.laengeRechts)}</td>
-<td><b>${mdMm(s.laenge)} × ${mdMm(b.zuschnittBreite)}</b></td><td>${b.falz==="links"?"◀ links":"▶ rechts"}</td></tr>`).join("")).join("");
+<td><b>${mdMm(s.laenge)} × ${mdMm(b.zuschnittBreite)}</b></td><td>${mdaFalzText(b.falzLinks,b.oberLinks)}</td><td>${mdaFalzText(b.falzRechts,b.oberRechts)}</td></tr>`).join("")).join("");
  return `<div class="scroll"><table class="eb-table" style="table-layout:auto;min-width:700px"><thead>
-<tr><th rowspan="2">Bahn</th><th rowspan="2">Breite</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt<br>L × B</th><th rowspan="2">Obergriff</th></tr>
+<tr><th rowspan="2">Bahn</th><th rowspan="2">Breite</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt<br>L × B</th><th rowspan="2">Falz links</th><th rowspan="2">Falz rechts</th></tr>
 <tr><th>↓ ab HR</th><th>↑ ab HR</th><th>Länge</th><th>↓ ab HR</th><th>↑ ab HR</th><th>Länge</th></tr></thead><tbody>${zeilen}</tbody></table></div>
 <div class="small" style="margin-top:6px">Links und rechts mit Blick Richtung First. ↓/↑ = Mass ab dem Hilfsriss (HR, ${mdMm(hr)} mm über dem tiefsten Punkt) nach unten bzw. oben. Länge = ganze Kante der Bahn.</div>`;
 }
@@ -266,22 +267,26 @@ ${kennz}
 <div id="md_plan" class="eb-diagram-box eb-diagram-scroll" style="margin-top:10px">${mdPlanSvg(g,{diagonalen:a.diagonalen})}</div>
 <div id="md_scharenTab" style="margin-top:10px">${mdaScharenTabelleHtml(g)}</div>`;
 }
+function mdaFalzTabelleHtml(g){
+ if(!g.scharenOk)return `<div class="ra-warnung">Bitte zuerst Grundriss und Scharen erfassen.</div>`;
+ const opt=[["links","← nach links"],["rechts","→ nach rechts"]];
+ return `<div class="scroll"><table class="eb-table ra-tab"><thead><tr><th>Bahn</th><th>Breite</th><th>Falz links</th><th>Falz rechts</th><th>Zuschnitt B</th></tr></thead><tbody>${
+  g.bahnen.map(b=>`<tr><td>${mdEsc(b.label)}${b.art==="passbahn"?' <span class="small">Pass</span>':""}</td><td>${mdMm(b.breite)}</td>
+<td>${mdaSelect("md_falzj_"+b.index,opt,b.falzLinks,` data-md-falzj="${b.index}"`)}<div class="small">${b.oberLinks?"Obergriff":"Untergriff"}</div></td>
+<td>${mdaSelect("md_falzj_"+(b.index+1),opt,b.falzRechts,` data-md-falzj="${b.index+1}"`)}<div class="small">${b.oberRechts?"Obergriff":"Untergriff"}</div></td>
+<td><b>${mdMm(b.zuschnittBreite)}</b></td></tr>`).join("")}</tbody></table></div>`;
+}
 function mdaFalzHtml(){
  const a=mdA,g=mdErgebnis();
- let tab="";
- if(g.scharenOk){
-  tab=`<div class="scroll"><table class="eb-table ra-tab"><thead><tr><th>Bahn</th><th>Breite</th><th>Obergriff (Falzrichtung)</th></tr></thead><tbody>${
-   g.bahnen.map(b=>`<tr><td>${mdEsc(b.label)}${b.art==="passbahn"?' <span class="small">Pass</span>':""}</td><td>${mdMm(b.breite)}</td><td>${mdaSelect("md_falz_"+b.index,[["links","◀ links"],["rechts","▶ rechts"]],b.falz,` data-md-falz="${b.index}"`)}</td></tr>`).join("")}</tbody></table></div>`;
- }else tab=`<div class="ra-warnung">Bitte zuerst Grundriss und Scharen erfassen.</div>`;
- return `<div class="info">Die <b>Falzrichtung</b> sagt, an welcher Kante die Schar den <b>Obergriff</b> hat: bei «rechts» liegt der Obergriff an der rechten Kante (Blick Richtung First) und greift über den Untergriff der nächsten Bahn. Mit der Schnellwahl setzt du alle Bahnen auf einmal, danach kannst du jede einzeln umschalten.</div>
+ return `<div class="info">Jede Bahn hat <b>zwei Falze</b> (linke und rechte Kante, Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an: der gebogene Pfeil im Plan steht quer zum Falz und zeigt zur Seite, auf die der Falz gelegt wird. Benachbarte Bahnen teilen sich einen Falz – ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Mit der Schnellwahl setzt du alle Falze auf einmal, danach kannst du jeden einzeln umschalten.</div>
 <div class="grid">
 ${mdaFeld("Schnellwahl",mdaSelect("md_falzModus",MD_FALZ_MODI,a.falzModus))}
 ${mdaZahlFeld("Längenzugabe Zuschnitt (mm)","md_zugabeLaenge",a.zugabeLaenge,true)}
 ${mdaZahlFeld("Falzzugabe Untergriff (mm)","md_falzUnter",a.falzUnter,true)}
 ${mdaZahlFeld("Falzzugabe Obergriff (mm)","md_falzOber",a.falzOber,true)}
 </div>
-<div class="small" style="margin:4px 0 8px">Zuschnittbreite = Deckbreite der Bahn + Untergriff + Obergriff. Zuschnittlänge = längste Länge der Bahn + Längenzugabe.</div>
-<div id="md_falzTab">${tab}</div>
+<div class="small" style="margin:4px 0 8px">Zuschnittbreite = Deckbreite + Zugabe am linken Falz + Zugabe am rechten Falz (je nach Ober-/Untergriff). Zuschnittlänge = längste Länge der Bahn + Längenzugabe.</div>
+<div id="md_falzTab">${mdaFalzTabelleHtml(g)}</div>
 <div id="md_plan" class="eb-diagram-box eb-diagram-scroll" style="margin-top:10px">${mdPlanSvg(g,{diagonalen:a.diagonalen})}</div>`;
 }
 function mdaAusmassHtml(){
@@ -379,7 +384,7 @@ function mdaLive(){
  }
  const ft=$("md_falzTab");
  if(ft&&mdSchritt===4){
-  g.bahnen.forEach(b=>{const s=$("md_falz_"+b.index);if(s)s.value=b.falz});
+  ft.innerHTML=mdaFalzTabelleHtml(g);
  }
  const pr=mdaPruefungen(),fehler=pr.filter(x=>x.art==="fehler").length;
  const knopf=document.querySelector('#md_register [data-md-schritt="'+MD_KONTROLLE+'"]');
@@ -416,7 +421,7 @@ function mdaVerdrahten(){
   if(t.id==="md_bezug"){mdA.bezugsseite=Number(t.value)||0;mdaLive();return}
   if(t.id==="md_start"){mdA.start=t.value==="rechts"?"rechts":"links";mdA.falzEinzel={};mdaLive();return}
   if(t.id==="md_falzModus"){mdA.falzModus=t.value;mdA.falzEinzel={};renderMetalldachAufnahme();return}
-  if(d.mdFalz!==undefined){mdA.falzEinzel[String(Number(d.mdFalz))]=t.value==="links"?"links":"rechts";mdaLive();return}
+  if(d.mdFalzj!==undefined){mdA.falzEinzel[String(Number(d.mdFalzj))]=t.value==="links"?"links":"rechts";mdaLive();return}
   if(d.mdDvon!==undefined){const x=mdA.diagonalen[Number(d.mdDvon)];if(x)x.von=Number(t.value);mdaLive();return}
   if(d.mdDnach!==undefined){const x=mdA.diagonalen[Number(d.mdDnach)];if(x)x.nach=Number(t.value);mdaLive();return}
  });
@@ -477,7 +482,7 @@ function mdDaten(){
   umfang:g.konstruktion.umfang||0,
   punkte:(g.konstruktion.punkte||[]).map(p=>({x:Math.round(p.x*10)/10,y:Math.round(p.y*10)/10})),
   anzahl:g.anzahl||0,anzahlPassbahnen:g.anzahlPassbahnen||0,
-  scharen:g.scharenOk?g.bahnen.map(b=>({label:b.label,art:b.art,breite:Math.round(b.breite*10)/10,zuschnittBreite:b.zuschnittBreite,falz:b.falz,
+  scharen:g.scharenOk?g.bahnen.map(b=>({label:b.label,art:b.art,breite:Math.round(b.breite*10)/10,zuschnittBreite:b.zuschnittBreite,falzLinks:b.falzLinks,falzRechts:b.falzRechts,oberLinks:!!b.oberLinks,oberRechts:!!b.oberRechts,
    stuecke:b.stuecke.map(s=>({laenge:s.laenge,laengeLinks:Math.round(s.laengeLinks),laengeRechts:Math.round(s.laengeRechts),
     untenLinks:Math.round(s.untenLinks),obenLinks:Math.round(s.obenLinks),untenRechts:Math.round(s.untenRechts),obenRechts:Math.round(s.obenRechts)}))})):[],
   kontrollmasse:(g.konstruktion.kontrolle||[]).map(c=>({von:c.von,nach:c.nach,soll:c.soll,ist:Math.round(c.ist),abw:Math.round(c.abw)})),
@@ -529,7 +534,7 @@ function mdDruckHtml(m,kopfHtml){
  const sc=Array.isArray(d.scharen)?d.scharen:[];
  const zeilen=sc.map(b=>b.stuecke.map((s,j)=>`<tr><td>${mdEsc(b.label)}${b.art==="passbahn"?" (Pass)":""}${b.stuecke.length>1?" T"+(j+1):""}</td><td>${mdMm(b.breite)}</td>
 <td>${mdMm(s.untenLinks)}</td><td>${mdMm(s.obenLinks)}</td><td>${mdMm(s.laengeLinks)}</td><td>${mdMm(s.untenRechts)}</td><td>${mdMm(s.obenRechts)}</td><td>${mdMm(s.laengeRechts)}</td>
-<td><b>${mdMm(s.laenge)} &#215; ${mdMm(b.zuschnittBreite)}</b></td><td>${b.falz==="links"?"links":"rechts"}</td></tr>`).join("")).join("");
+<td><b>${mdMm(s.laenge)} &#215; ${mdMm(b.zuschnittBreite)}</b></td><td>${mdaFalzText(b.falzLinks,b.oberLinks)}</td><td>${mdaFalzText(b.falzRechts,b.oberRechts)}</td></tr>`).join("")).join("");
  const kontr=(d.kontrollmasse||[]).map(c=>`<tr><td>${mdName(c.von)}–${mdName(c.nach)}</td><td>${mdMm(c.soll)}</td><td>${mdMm(c.ist)}</td><td>${c.abw>0?"+":""}${mdZ(c.abw)} mm</td></tr>`).join("");
  return `${kopfHtml}
 <div class="eb-section-head">Angaben</div>
@@ -546,9 +551,9 @@ function mdDruckHtml(m,kopfHtml){
 ${kontr?`<div class="eb-section-head">Kontrollmasse</div><table class="eb-cutlist"><thead><tr><th>Mass</th><th>Gemessen</th><th>Aus Grundriss</th><th>Abweichung</th></tr></thead><tbody>${kontr}</tbody></table>`:""}
 <div class="eb-section-head">Bahnen</div>
 <table class="eb-cutlist">
-<thead><tr><th rowspan="2">Bahn</th><th rowspan="2">Breite</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt L &#215; B</th><th rowspan="2">Obergriff</th></tr><tr><th>&#8595; ab HR</th><th>&#8593; ab HR</th><th>L&#228;nge</th><th>&#8595; ab HR</th><th>&#8593; ab HR</th><th>L&#228;nge</th></tr></thead>
+<thead><tr><th rowspan="2">Bahn</th><th rowspan="2">Breite</th><th colspan="3">Linke Kante</th><th colspan="3">Rechte Kante</th><th rowspan="2">Zuschnitt L &#215; B</th><th rowspan="2">Falz links</th><th rowspan="2">Falz rechts</th></tr><tr><th>&#8595; ab HR</th><th>&#8593; ab HR</th><th>L&#228;nge</th><th>&#8595; ab HR</th><th>&#8593; ab HR</th><th>L&#228;nge</th></tr></thead>
 <tbody>${zeilen}</tbody></table>
-<div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm, links/rechts mit Blick Richtung First. &#8595; / &#8593; = Mass ab Hilfsriss (HR) nach unten bzw. oben. Obergriff = Seite, auf der die Bahn den Obergriff des Falzes hat.</div>
+<div class="note" style="font-size:8pt;color:#68737d">Alle Masse in mm, links/rechts mit Blick Richtung First. &#8595; / &#8593; = Mass ab Hilfsriss (HR) nach unten bzw. oben. Falz = Richtung, in die der Falz gelegt wird (Pfeil quer zum Falz); die Bahn, von der der Pfeil wegzeigt, hat den Obergriff.</div>
 ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Ausmass</div>
 <table class="eb-cutlist"><thead><tr><th>Pos.</th><th>Bezeichnung</th><th>Menge</th><th>Einheit</th></tr></thead>
 <tbody>${d.ausmass.map(z=>`<tr><td>${mdEsc(z.pos)}</td><td>${mdEsc(z.bezeichnung)}</td><td>${mdEsc(z.menge)}</td><td>${mdEsc(z.einheit)}</td></tr>`).join("")}</tbody></table>`:""}

@@ -21,7 +21,7 @@
 //   achsabstand     Deckbreite einer Schar
 //   passbahnen[]    {nach,breite}: nach = nach der wievielten ganzen Schar (0 = ganz links);
 //                   breite leer = Restbreite, auf alle solchen Passbahnen gleichmaessig verteilt
-//   falzModus, falzEinzel   Falzrichtung je Bahn (links/rechts)
+//   falzModus, falzEinzel   Falzrichtung je Falz (Bahnen+1 Falze, Index in Zaehlrichtung; links/rechts quer zum Falz)
 //   zugabeLaenge, falzUnter, falzOber, hilfsriss
 // ===========================================================================
 
@@ -221,38 +221,41 @@ function mdSchnittStreifen(Q,a,b){
  return stuecke;
 }
 
-// Falzrichtung je Bahn ("links"/"rechts", Blick Richtung First): Modus + Einzelwahl
+// Falzrichtung je FALZ (nicht je Bahn): eine Bahn hat zwei Falze (linke und rechte Kante), benachbarte Bahnen teilen sich einen.
+// Falz j liegt an der linken Kante von Bahn j und an der rechten von Bahn j-1; es gibt Bahnen+1 Falze.
+// Richtung "links"/"rechts" (Blick Richtung First) = quer zum Falz, der Pfeil zeigt zur Seite, auf die der Falz gelegt wird.
+// Der Obergriff liegt an der Bahn, von der der Pfeil wegzeigt.
 function mdFalzRichtungen(e,bahnen,W){
  const start=e&&e.start==="rechts"?"rechts":"links";
  const modus=(e&&e.falzModus)||"alle_rechts";
+ const nJ=bahnen.length+1;
+ const pos=j=>j===0?bahnen[0].S0:bahnen[j-1].S1;
  const phys=dSc=>start==="links"?(dSc==="-"?"links":"rechts"):(dSc==="-"?"rechts":"links");
- const out=bahnen.map(()=>"rechts");
+ const out=new Array(nJ).fill("rechts");
  const pIdx=[];bahnen.forEach((b,i)=>{if(b.art==="passbahn")pIdx.push(i)});
  let hinweis="";
- if(modus==="alle_links")bahnen.forEach((b,i)=>{out[i]="links"});
- else if(modus==="alle_rechts")bahnen.forEach((b,i)=>{out[i]="rechts"});
- else if(modus==="von_mitte_weg")bahnen.forEach((b,i)=>{out[i]=phys(((b.S0+b.S1)/2)<W/2?"-":"+")});
+ if(modus==="alle_links")out.fill("links");
+ else if(modus==="alle_rechts")out.fill("rechts");
+ else if(modus==="von_mitte_weg")for(let j=0;j<nJ;j++)out[j]=phys(pos(j)<W/2-1e-6?"-":"+");
  else if(modus==="von_passbahn_weg"||modus==="zur_passbahn_hin"){
-  if(!pIdx.length){hinweis="Es gibt keine Passbahn – alle Falze zeigen nach rechts.";}
+  if(!pIdx.length)hinweis="Es gibt keine Passbahn – alle Falze zeigen nach rechts.";
   else{
    const weg=modus==="von_passbahn_weg";
-   bahnen.forEach((b,i)=>{
-    const c=(b.S0+b.S1)/2;
+   for(let j=0;j<nJ;j++){
+    const c=pos(j);
     let best=pIdx[0],bd=Infinity;
     pIdx.forEach(p=>{const d=Math.abs((bahnen[p].S0+bahnen[p].S1)/2-c);if(d<bd){bd=d;best=p}});
-    if(i===best)return;
-    const links=i<best;               // diese Bahn liegt links (kleineres S) der Passbahn
-    out[i]=phys(weg?(links?"-":"+"):(links?"+":"-"));
-   });
-   pIdx.forEach(p=>{out[p]=p>0?out[p-1]:(bahnen.length>1?out[1]:"rechts")});
+    const links=c<(bahnen[best].S0+bahnen[best].S1)/2;      // der Falz liegt links der Passbahn
+    out[j]=phys(weg?(links?"-":"+"):(links?"+":"-"));
+   }
   }
  }
  const ein=(e&&e.falzEinzel)||{};
  Object.keys(ein).forEach(k=>{
-  const i=Number(k);
-  if(Number.isInteger(i)&&i>=0&&i<out.length&&(ein[k]==="links"||ein[k]==="rechts"))out[i]=ein[k];
+  const j=Number(k);
+  if(Number.isInteger(j)&&j>=0&&j<nJ&&(ein[k]==="links"||ein[k]==="rechts"))out[j]=ein[k];
  });
- return {richtungen:out,hinweis};
+ return {richtungen:out,hinweis,start};
 }
 
 // ---- Gesamtrechnung ----------------------------------------------------------
@@ -343,11 +346,17 @@ function berechneMetalldach(e){
    untenLinks:hr-st.links.lo,obenLinks:st.links.hi-hr,
    untenRechts:hr-st.rechts.lo,obenRechts:st.rechts.hi-hr
   }));
-  return {index:i,art:s.art,label,S0,S1,breite:S1-S0,stuecke,
-   zuschnittBreite:Math.round((S1-S0)+fU+fO)};
+  return {index:i,art:s.art,label,S0,S1,breite:S1-S0,stuecke};
  });
  const fr=mdFalzRichtungen(e,bahnen,W);
- bahnen.forEach((bh,i)=>{bh.falz=fr.richtungen[i]});
+ g.falze=fr.richtungen;
+ const dSc=ph=>(ph==="rechts")===(fr.start==="links")?"+":"-";
+ bahnen.forEach((bh,i)=>{
+  bh.falzLinks=fr.richtungen[i];bh.falzRechts=fr.richtungen[i+1];
+  // Der Obergriff liegt an der Bahn, von der der Falzpfeil wegzeigt
+  bh.oberLinks=dSc(bh.falzLinks)==="-";bh.oberRechts=dSc(bh.falzRechts)==="+";
+  bh.zuschnittBreite=Math.round(bh.breite+(bh.oberLinks?fO:fU)+(bh.oberRechts?fO:fU));
+ });
  g.falzHinweis=fr.hinweis;
  g.bahnen=bahnen;
  g.scharenOk=true;
@@ -415,11 +424,29 @@ function mdPlanSvg(g,opt){
    const st=b.stuecke.reduce((m,x)=>(!m||x.flaeche>m.flaeche)?x:m,null);
    if(!st)return;
    const c=g.toXY((st.x0+st.x1)/2,(st.tLo+st.tHi)/2);
-   const pfeil=b.falz==="links"?"◀":"▶";
-   const rot=b.falz==="links"?"#1b6e3a":"#1b6e3a";
    s+=`<text x="${X(c.x)}" y="${Y(c.y)}" text-anchor="middle" font-size="${b.art==="passbahn"?11:12}" font-weight="700" fill="#1f2d3a" paint-order="stroke" stroke="#fff" stroke-width="3">${mdEsc(b.label)}</text>`;
-   s+=`<text x="${X(c.x)}" y="${(Number(Y(c.y))+13).toFixed(1)}" text-anchor="middle" font-size="10" fill="${rot}" paint-order="stroke" stroke="#fff" stroke-width="2.5">${pfeil}</text>`;
   });
+  // Falzrichtung: je Falz ein gebogener Pfeil quer zum Falz (ausgerichtet an der Bahn), der Pfeil zeigt zur Seite, auf die der Falz gelegt wird
+  const nJ=g.bahnen.length+1;
+  for(let j=0;j<nJ;j++){
+   const sPos=j===0?g.bahnen[0].S0:g.bahnen[j-1].S1;
+   let best=null;
+   const kand=(bh,seite)=>{if(bh)bh.stuecke.forEach(st=>{const ed=seite==="r"?st.rechts:st.links;const len=ed.hi-ed.lo;if(!best||len>best.len)best={len,T:(ed.lo+ed.hi)/2}})};
+   kand(g.bahnen[j-1],"r");kand(g.bahnen[j],"l");
+   if(!best||best.len<1)continue;
+   const dSc=((g.falze[j]==="rechts")===(g.start==="links"))?"+":"-";
+   const P0=g.toXY(sPos,best.T),P1=g.toXY(sPos+500,best.T),P2=g.toXY(sPos,best.T+500);
+   const cx=Number(X(P0.x)),cy=Number(Y(P0.y));
+   let ax=Number(X(P1.x))-cx,ay=Number(Y(P1.y))-cy;const al=Math.hypot(ax,ay)||1;ax/=al;ay/=al;
+   let ux=Number(X(P2.x))-cx,uy=Number(Y(P2.y))-cy;const ul=Math.hypot(ux,uy)||1;ux/=ul;uy/=ul;
+   const sg=dSc==="+"?1:-1,h=13;
+   const x0=cx-ax*h*sg,y0=cy-ay*h*sg,x1=cx+ax*h*sg,y1=cy+ay*h*sg,qx=cx+ux*8,qy=cy+uy*8;
+   let tx=x1-qx,ty=y1-qy;const tl=Math.hypot(tx,ty)||1;tx/=tl;ty/=tl;
+   const kopf=w=>{const c2=Math.cos(w),s2=Math.sin(w);return (x1-(tx*c2-ty*s2)*6).toFixed(1)+","+(y1-(tx*s2+ty*c2)*6).toFixed(1)};
+   const pfad=`M${x0.toFixed(1)},${y0.toFixed(1)} Q${qx.toFixed(1)},${qy.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+   const spitze=`${kopf(0.55)} ${x1.toFixed(1)},${y1.toFixed(1)} ${kopf(-0.55)}`;
+   s+=`<g data-md-falz="${j}" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="${pfad}" stroke="#fff" stroke-width="4.5"/><polyline points="${spitze}" stroke="#fff" stroke-width="4.5"/><path d="${pfad}" stroke="#1b6e3a" stroke-width="1.8"/><polyline points="${spitze}" stroke="#1b6e3a" stroke-width="1.8"/></g>`;
+  }
  }
  // Diagonalen (nur erfasste)
  const dm=mdDiagMap(o.diagonalen,n);
@@ -455,6 +482,6 @@ function mdPlanSvg(g,opt){
   s+=`<line x1="${ax.toFixed(1)}" y1="${ay.toFixed(1)}" x2="${(ax+ex).toFixed(1)}" y2="${(ay+ey).toFixed(1)}" stroke="#1b6e3a" stroke-width="2" marker-end="url(#mdPfeil)"/>`;
   s+=`<text x="${(ax-6).toFixed(1)}" y="${(ay+(ey>=0?10:0)).toFixed(1)}" text-anchor="end" font-size="10" font-weight="700" fill="#1b6e3a">First</text>`;
  }
- s+=`<text x="${W-8}" y="${H-7}" text-anchor="end" font-size="10" fill="#8b969e">Metalldach · Grundriss in wahrer Grösse${g.scharenOk?" · ★ Bezugsseite · rot gestrichelt Hilfsriss · ▶ ◀ Falzrichtung":""}</text></svg>`;
+ s+=`<text x="${W-8}" y="${H-7}" text-anchor="end" font-size="10" fill="#8b969e">Metalldach · Grundriss in wahrer Grösse${g.scharenOk?" · ★ Bezugsseite · rot gestrichelt Hilfsriss · gebogener Pfeil = Falzrichtung":""}</text></svg>`;
  return s;
 }

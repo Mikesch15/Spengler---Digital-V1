@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.400 – Metalldach: Falzrichtung je Falz
+UMGESETZT: Falzrichtung je Falz (jede Bahn zwei, Nachbarn teilen sich einen); Pfeile als gebogener Strich mit offener Spitze quer zum Falz, an der Bahn ausgerichtet; Obergriff = Bahn, von der der Pfeil wegzeigt; Zuschnittbreite folgt daraus; Schnellwahl je Falz; Register Falz, Tabelle, Ausdruck angepasst.
+NICHT GEAENDERT: Grundriss, Scharen, Passbahn, Zuschnitt-Bausteine, Datenbank.
+GETESTET: metalldach-v3-398 (52), hilfe, versionen, sw-cache, ruestblatt, volle Regression; Plan als Bild geprueft.
+NICHT GETESTET: am Handy, mit echtem Aufmass.
+ANNAHME (bitte bestaetigen): Der Pfeil zeigt zur Seite, auf die der Falz gelegt wird (quer zum Falz); Obergriff liegt an der Bahn, von der er wegzeigt. Die aeusseren Falze (linker Rand der ersten, rechter Rand der letzten Bahn) haben ebenfalls eine Richtung: zeigt der Pfeil nach aussen, hat die Randbahn dort den Obergriff.
+HINWEIS: falzEinzel hat ein neues Format (Index je Falz). Einzelwahlen aus v3.398/3.399 werden anders gelesen.
