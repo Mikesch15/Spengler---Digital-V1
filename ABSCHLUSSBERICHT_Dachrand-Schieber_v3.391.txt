@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.391 – Dachrandblech mit Schieber und Eckschieber (Gehrung)
+VORGABE (Rueckfrage beantwortet): Schieber wie Mauerabdeckung; Eckschieber = Schieber in der Ecke mit Gehrung, mit eigenem Abzugswert.
+UMGESETZT: js/89 - Stossart "schieber" (SIA 271 ueber dieselben Funktionen wie die Mauerabdeckung), Schieber-Zugabe, Eckschieber je Ecke mit Abzug, Zeichnung, Kontrolle, Ausmass, Druck, Ruestskizze, Hilfe, Was-ist-neu.
+OHNE AENDERUNG: bestehende Dachrandbleche (Ueberlappung), Datenbank, Mauerabdeckung.
+GETESTET: dachrand-schieber-v3-391 (31, mit Gegenproben/Mutationen), dachrandblech-v3-369 und Nachbar-Pruefstaende, volle Regression nach dem Push.
+NICHT GETESTET: Bedienung am Handy; ein Vergleich mit einer echten Betriebsrechnung (Zahlen stammen aus den hinterlegten SIA-Werten des Werkstoffs).
+ANNAHMEN: Zugabe und Abzug gelten je Stueckende; ein Eckschieber-Abzug gilt fuer BEIDE Stuecke an der Ecke; der Einhaengestreifen bleibt bei "Laenge pro Stueck"; ohne Eingabe ist der Abzug 0 mm.

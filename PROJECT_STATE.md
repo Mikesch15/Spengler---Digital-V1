@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.390`
+- Aktueller Entwicklungsstand: `v3.391`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -22,6 +22,7 @@
 - v3.388: Termine: Zuteilung bestimmt Sichtbarkeit. RESTRICTIVE-Policy `termine_zuteilung_sichtbar` (leer = alle; sonst zugeteilte, Ersteller, Admins), Editor «Zuteilen an», 👥 in der Liste; importierte Termine (Outlook/Google/Abo) sind nur für die verbundene Person sichtbar. In Produktion in Rollback-Transaktionen gemessen.
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
+- v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
 
 ## DAUERHAFT GÜLTIGE REGELN
 
