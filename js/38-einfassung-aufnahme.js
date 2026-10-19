@@ -598,7 +598,7 @@ function einfaZuschnittHtml(){
  const plan=einfaZuschnittPlan();
  const wahl=(typeof zuAuswahlHtml==="function")
    ?zuAuswahlHtml(einfA.rollenAuswahl,"data-einfa-rolle",plan.art):"";
- return wahl+((typeof zuschnittHtml==="function")?zuschnittHtml(plan):"");
+ return wahl+((typeof zuschnittHtml==="function")?zuschnittHtml(plan):"")+((typeof blKarteHtml==="function")?blKarteHtml("einfassung_rund"):"");
 }
 function einfaAusmassHtml(){
  const z=einfaAusmassZeilen();

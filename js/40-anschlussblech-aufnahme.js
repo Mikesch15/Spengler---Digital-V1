@@ -346,7 +346,8 @@ function renderAnschlussblechAufnahme(){
   const azp=anbaZuschnittPlan();
   if(z)z.innerHTML=anbaKarte(zuTitel(5,azp.art),
     ((typeof zuAuswahlHtml==="function")?zuAuswahlHtml(anbaRollenAuswahl,"data-anba-rolle",azp.art):"")
-    +((typeof zuschnittHtml==="function")?zuschnittHtml(azp):""));
+    +((typeof zuschnittHtml==="function")?zuschnittHtml(azp):"")
+    +((typeof blKarteHtml==="function")?blKarteHtml("anschlussblech"):""));
  }
  if(anbaSchritt===6){
   const z=$("anba_seite6");

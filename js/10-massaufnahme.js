@@ -545,6 +545,8 @@ function newMeasurementWithType(type){
  if(typeof keaZuruecksetzen==="function")keaZuruecksetzen();
  if(typeof lukaZuruecksetzen==="function")lukaZuruecksetzen();
  if(typeof kamaZuruecksetzen==="function")kamaZuruecksetzen();
+ if(typeof mdZuruecksetzen==="function")mdZuruecksetzen();   // v3.402: Metalldach war hier vergessen worden
+ if(typeof blFuellen==="function")blFuellen(null);
  if(typeof dfaZuruecksetzen==="function")dfaZuruecksetzen();
  rinneFormularZuruecksetzen();
  if(typeof rpaZuruecksetzen==="function")rpaZuruecksetzen();
@@ -653,6 +655,7 @@ function measFelderAusData(m){
  if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);
  if(typeof kamaFuellen==="function")kamaFuellen(m.type==="kamineinfassung"?d:null);
  if(typeof mdFuellen==="function")mdFuellen(m.type==="metalldach"?d:null);
+ if(typeof blFuellen==="function")blFuellen(d);
  if(typeof dfaFuellen==="function")dfaFuellen(m.type==="dachfenstereinfassung"?d:null);
  rinneFormularFuellen(m.type==="rinne"?d:null);
  if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);

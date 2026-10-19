@@ -310,6 +310,7 @@ function rbBlattHtml(m,opt){
  // v3.296: was Zeichnung oder Zuschnittliste schon zeigen, steht nicht noch einmal in den Angaben.
  h+=rbMasseHtml(m,skizzen+" "+(o.ausfuehrung==="montieren"?"":liste));   // der Monteur sieht die Zuschnittliste nicht
  if(o.ausfuehrung==="montieren")return h+"</div>";
+ h+=(typeof blRuestHtml==="function")?blRuestHtml(m):"";   // v3.402: Bleilappen
  h+=plan
   ? liste
   : '<div class="small" style="color:var(--muted)">Für diese Massaufnahme ist kein Zuschnitt gespeichert.</div>';

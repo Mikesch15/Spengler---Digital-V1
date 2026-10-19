@@ -1061,7 +1061,7 @@ function kamaKopfInhalt(){
   // es keine Rollenbreite zu waehlen (zuAuswahlHtml, js/33).
   const kzp=kamaZuschnittPlan();
   return kamaKarte(zuTitel(5,kzp.art),
-   zuAuswahlHtml(kamA.rollenAuswahl,"data-kam-rolle",kzp.art)+zuschnittHtml(kzp));
+   zuAuswahlHtml(kamA.rollenAuswahl,"data-kam-rolle",kzp.art)+zuschnittHtml(kzp)+((typeof blKarteHtml==="function")?blKarteHtml("kamineinfassung"):""));
  }
  if(kamSchritt===6)return kamaKarte("6 · Ausmass und Material",kamaAusmassHtml());
  return kamaKarte("7 · Kontrolle",kamaKontrolleHtml());

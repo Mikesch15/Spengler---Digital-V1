@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.402 – Bleilappen-Zuschnitt
+UMGESETZT: Je Deckmaterial Anzahl gerade/konische Bleilappen mit Zuschnittmassen (Falzziegel inkl. Schiebe/Mulden, Biberschwanz Einfach/Doppel, Faserzementschiefer inkl. Eternit/Naturschiefer mit Plattenmass), vorderster Lappen immer gerade; Karte im Register Zuschnitt (Einfassung rund, Kamin, Dachfenster, Ortbleche), Speicherstand, Ausdruck, Ruestblatt. Fehler behoben: Metalldach wurde bei neuer Massaufnahme nicht zurueckgesetzt.
+NICHT GEAENDERT: Anzahl-Berechnung der Bleilappen, Ausmass (Bleilappen als Teil), Datenbank.
+GETESTET: bleilappen-zuschnitt-v3-402 (26, Mutationen erkannt), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy; mit echten Aufmassen.
+ANNAHMEN (bitte bestaetigen): Biberschwanz-Masse als Breite x Hoehe gelesen (Einfachdach: gerade 300 x 90, konisch 300 x 90/120; Doppeldach: gerade 90 x 210, konisch 90/120 x 210); Ortbleche kennen nur "Biberschwanz" -> Einfachdach angenommen; Faserzement: alle Lappen rechteckig, Breite je Plattenmass.
+GRENZEN: Nur Anzahl und Masse, keine Rollenlaenge/Verschnittrechnung. Bleilappen anderer Arten (z. B. Kehle) gibt es in der App nicht.

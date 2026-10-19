@@ -1354,7 +1354,7 @@ function dfaKopfInhalt(){
  if(dfaSchritt===5){
   const kzp=dfaZuschnittPlan();
   return dfaKarte(zuTitel(5,kzp.art),
-   zuAuswahlHtml(dfaA.rollenAuswahl,"data-dfa-rolle",kzp.art)+zuschnittHtml(kzp));
+   zuAuswahlHtml(dfaA.rollenAuswahl,"data-dfa-rolle",kzp.art)+zuschnittHtml(kzp)+((typeof blKarteHtml==="function")?blKarteHtml("dachfenstereinfassung"):""));
  }
  if(dfaSchritt===6)return dfaKarte("6 · Ausmass und Material",dfaAusmassHtml());
  return dfaKarte("7 · Kontrolle",dfaKontrolleHtml());
