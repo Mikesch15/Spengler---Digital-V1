@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.393 – Dachrandblech: Kante in gleich lange Stuecke teilen
+UMGESETZT: Feld "In gleich lange Stuecke teilen" je Kante (kanten[].teile). Ueberlappung: n gleiche Stuecke inkl. Ueberlappung. Schieber: n-1 Schieber in gleichen Abstaenden. Warnungen bei zu langem Stueck bzw. Abstand ueber SIA-271-Maximum. Hilfe, Was-ist-neu.
+NICHT GEAENDERT: automatische Einteilung (leer), Datenbank, alte Massaufnahmen (laden mit leerem Feld).
+GETESTET: dachrand-teilen-v3-393 (11, 3 Mutationen erkannt), dachrandblech-v3-369, dachrand-schieber-v3-391, volle Regression.
+NICHT GETESTET: Bedienung am Handy.
+ANNAHME: "gleich lange Stuecke" = Anzahl je Kante; bei Schieber sind die Abstaende gleich, die Stuecke wegen der Zugabe an den Enden unterschiedlich lang (aussen 3030, innen 3060).

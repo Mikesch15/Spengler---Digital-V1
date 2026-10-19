@@ -58,7 +58,7 @@ function drbAusData(d){
  a.detail=d.detail==="eigen"?"eigen":"1.5";
  a._geprueft=true;   // das gespeicherte Detail gilt - nicht aus dem Profil erraten
  a.kanten=Array.isArray(d.kanten)?d.kanten.map(k=>({laenge:k.laenge===undefined?"":k.laenge,
-   ecke:["aussen","innen","winkel","ende"].includes(k.ecke)?k.ecke:"aussen",winkel:k.winkel===undefined?90:k.winkel,eckschieber:!!k.eckschieber})):[];
+   ecke:["aussen","innen","winkel","ende"].includes(k.ecke)?k.ecke:"aussen",winkel:k.winkel===undefined?90:k.winkel,eckschieber:!!k.eckschieber,teile:drbTeile(k.teile)||""})):[];
  a.stoss=d.stoss==="schieber"?"schieber":"ueberlappung";
  if(d.schieber&&typeof d.schieber==="object")a.schieber={zugabe:d.schieber.zugabe===undefined?"":d.schieber.zugabe,abzug:d.schieber.abzug===undefined?"":d.schieber.abzug};
  a.geschlossen=!!d.geschlossen;
@@ -101,6 +101,8 @@ function drbGrundriss(kanten,geschlossen){
 
 // ---- Stücke (rein) ------------------------------------------------------------
 // P = Länge pro Stück, U = Überlappung. Gibt je Kante die Stücke mit ihrer Lage zurück.
+// v3.393: Kante in n gleich lange Stuecke teilen (k.teile, leer = automatisch nach Stuecklaenge bzw. SIA)
+function drbTeile(v){const n=Math.floor(Number(v));return Number.isFinite(n)&&n>=1&&n<=200?n:0}
 function drbStueckeBerechnen(kanten,P,U,gleich){
  P=drbZ(P);U=drbZ(U);
  if(!(P>0))return {ok:false,fehler:"Länge pro Stück fehlt.",stuecke:[],materialLaenge:0,gesamtlaenge:0};
@@ -112,7 +114,12 @@ function drbStueckeBerechnen(kanten,P,U,gleich){
   if(!(L>0))return;
   gesamt+=L;
   let laengen;
-  if(L<=P)laengen=[Math.round(L)];
+  const nT=drbTeile(k.teile);
+  if(nT){
+   const M=L+(nT-1)*U,e=Math.round(M/nT);
+   laengen=Array(nT).fill(e);
+   laengen[nT-1]=Math.round(M)-e*(nT-1);
+  }else if(L<=P)laengen=[Math.round(L)];
   else{
    const n=Math.ceil((L-U)/(P-U)-1e-9);
    const M=L+(n-1)*U;
@@ -177,7 +184,9 @@ function drbStueckeSchieber(d,material){
   if(startTyp==="eckschieber")eck.add(i>0?i-1:letzte);
   if(endTyp==="eckschieber")eck.add(i);
   const links=startTyp==="ecke"?tab.abEcke:tab.maxAbstand,rechts=endTyp==="ecke"?tab.abEcke:tab.maxAbstand;
-  const rel=(typeof calcDilaPositionsInStretch==="function")?calcDilaPositionsInStretch(L,links,rechts,tab.maxAbstand):[];
+  const nT=drbTeile(kanten[i].teile);
+  const rel=nT?Array.from({length:nT-1},(_,j)=>L*(j+1)/nT)
+   :((typeof calcDilaPositionsInStretch==="function")?calcDilaPositionsInStretch(L,links,rechts,tab.maxAbstand):[]);
   const pt=[0,...rel,L];
   schieber+=rel.length;
   for(let j=0;j<pt.length-1;j++){
@@ -361,6 +370,15 @@ function drbPruefungen(){
  const s=drbStueckeFuer(d,fpA.material);
  if(!s.ok)m.push({art:"fehler",text:s.fehler});
  else if(d.kanten.length&&!s.stuecke.length)m.push({art:"warnung",text:"Keine Stücke: alle Kantenlängen sind leer."});
+ if(s.ok){
+  const tab=drbSiaTabelle(fpA.material),P=drbZ(d.stueck.laenge);
+  d.kanten.forEach((k,i)=>{
+   const n=drbTeile(k.teile),L=drbZ(k.laenge);
+   if(!n||!(L>0))return;
+   if(d.stoss==="schieber"){if(L/n>tab.maxAbstand+1e-6)m.push({art:"warnung",text:"Kante "+(i+1)+": bei "+n+" gleichen Stücken ist der Schieber-Abstand "+Math.round(L/n)+" mm – mehr als die "+drbMm(tab.maxAbstand)+" mm nach SIA 271."})}
+   else if(P>0&&Math.round(L/n)>P)m.push({art:"warnung",text:"Kante "+(i+1)+": bei "+n+" gleichen Stücken ist ein Stück "+Math.round(L/n)+" mm lang – länger als die Länge pro Stück ("+drbMm(P)+" mm)."});
+  });
+ }
  if(s.ok&&d.stoss==="schieber"){
   const w=drbSchieberWerte(d);
   if(!fpA.material)m.push({art:"warnung",text:"Schieber: Kein Werkstoff gewählt – die Schieber-Abstände sind mit «"+s.tabelle.label+"» gerechnet (Register „Grunddaten“)."});
@@ -413,7 +431,7 @@ function drbAusmassZeilen(){
 function drbDaten(){
  const d=fpA.dachrand,r=drbErgebnis();
  return {
-  detail:d.detail,kanten:d.kanten.map(k=>({laenge:k.laenge,ecke:k.ecke,winkel:k.winkel,eckschieber:!!k.eckschieber})),geschlossen:!!d.geschlossen,
+  detail:d.detail,kanten:d.kanten.map(k=>({laenge:k.laenge,ecke:k.ecke,winkel:k.winkel,eckschieber:!!k.eckschieber,teile:drbTeile(k.teile)||""})),geschlossen:!!d.geschlossen,
   stoss:d.stoss==="schieber"?"schieber":"ueberlappung",schieber:{zugabe:d.schieber?d.schieber.zugabe:"",abzug:d.schieber?d.schieber.abzug:""},
   stueck:{...d.stueck},
   streifen:{aktiv:!!d.streifen.aktiv,umschlag:d.streifen.umschlag,befestigung:d.streifen.befestigung,spiel:d.streifen.spiel,
@@ -492,6 +510,7 @@ function drbKantenHtml(){
 <button type="button" class="red ra-weg" data-drb-kante-weg="${i}" title="Kante löschen">✕</button></div>
 <div class="grid">
 ${fpaFeld("Länge (mm)",`<input data-drb-laenge="${i}" type="number" data-pflicht="1" inputmode="numeric" step="1" value="${drbHat(k.laenge)?drbEsc(k.laenge):""}">`)}
+${fpaFeld("In gleich lange Stücke teilen (Anzahl, leer = automatisch)",`<input data-drb-teile="${i}" type="number" inputmode="numeric" step="1" min="1" placeholder="auto" value="${drbTeile(k.teile)||""}">`)}
 ${gilt?fpaFeld("Ecke danach",`<select data-drb-ecke="${i}">${opt}</select>`):fpaFeld("Ecke danach",`<div class="small">Ende des Dachrands</div>`)}
 ${gilt&&k.ecke==="winkel"?fpaFeld("Drehung (°, + = nach rechts)",`<input data-drb-winkel="${i}" type="number" inputmode="numeric" step="1" value="${drbHat(k.winkel)?drbEsc(k.winkel):""}">`):""}
 </div>
@@ -651,6 +670,7 @@ function drbVerdrahten(wurzel){
   const t=e.target,d=t.dataset||{},m=fpA.dachrand;
   if(d.drbLaenge!==undefined){const k=m.kanten[Number(d.drbLaenge)];if(k)k.laenge=num(t.value)}
   else if(d.drbWinkel!==undefined){const k=m.kanten[Number(d.drbWinkel)];if(k)k.winkel=num(t.value)}
+  else if(d.drbTeile!==undefined){const k=m.kanten[Number(d.drbTeile)];if(k)k.teile=drbTeile(t.value)||""}
   else if(d.drbP!==undefined)m.stueck.laenge=num(t.value);
   else if(d.drbU!==undefined)m.stueck.ueberlappung=num(t.value);
   else if(d.drbSz!==undefined){m.schieber=m.schieber||{zugabe:"",abzug:""};m.schieber.zugabe=num(t.value)}
