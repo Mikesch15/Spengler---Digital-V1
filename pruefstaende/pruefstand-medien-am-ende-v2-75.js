@@ -46,6 +46,7 @@ const REGISTER_ARTEN=[
  {typ:"mauerabdeckung",      setz:"madaSetzeSchritt", knopf:"#mada_weiter"},
  {typ:"kehle",               setz:"keaSetzeSchritt",  knopf:"#kea_weiter"},
  {typ:"lukarne",             setz:"lukaSetzeSchritt", knopf:"#luka_weiter"},
+ {typ:"metalldach",          setz:"mdaSetzeSchritt",  knopf:"#md_weiter"},
  {typ:"kamineinfassung",     setz:"kamaSetzeSchritt", knopf:"#kam_weiter"},
  {typ:"einfassung_rund",     setz:"einfaSetzeSchritt",knopf:"#einfa_weiter"},
  {typ:"rinne",               setz:"rpaSetzeSchritt",  knopf:"#rpa_weiter"},

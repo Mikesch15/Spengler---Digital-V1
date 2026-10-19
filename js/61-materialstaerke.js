@@ -56,7 +56,8 @@ const MEAS_MATERIAL_FELDER=[
  // dachfenstereinfassung kennt nur material und keine materialdicke" - das
  // Staerkefeld wurde schlicht nie angehaengt. Gespeichert und geladen wird
  // die Staerke zentral (js/16, js/10), an dieser einen Zeile hing alles.
- "#dfa_material"     // Dachfenstereinfassung (js/66)
+ "#dfa_material",    // Dachfenstereinfassung (js/66)
+ "#md_material"      // Metalldach (js/100)
 ];
 
 // Nicht jede Art schneidet aus Rolle oder Tafel:
