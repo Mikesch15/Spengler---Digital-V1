@@ -1,4 +1,4 @@
--- v3.387b (NICHT angewendet - die Umgebung hat das Ueberschreiben der Loesch-Funktion nicht ausgefuehrt): eine Protokollzeile in system_admin_delete_company_data.
+-- v3.387b (NICHT angewendet - die Umgebung hat das Ueberschreiben der Loesch-Funktion auch am 19.10.2026 trotz Freigabe des Betreibers abgebrochen; manuell im SQL-Editor ausfuehren): eine Protokollzeile in system_admin_delete_company_data.
 -- Nur die Zeile 'perform public.platform_log(firma_loeschen ...)' ist neu; alles andere ist der unveraenderte Stand der Funktion (geprueft am 16.10.2026).
 -- Anwenden nur nach ausdruecklicher Freigabe durch den Betreiber.
 
