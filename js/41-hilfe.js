@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.397.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.398.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1102,6 +1102,17 @@ Schräge, Fläche und die Anzahl Scharen.</p>
 <b>Hilfsriss</b>, kürzt die App ihn und sagt, mit welchem Mass sie
 tatsächlich rechnet.</p>`},
 
+"md-grundriss":{titel:"Grundriss (Metalldach)",text:`
+<p>Die Ecken heissen <b>A, B, C …</b> in der Reihenfolge, in der du um die Dachfläche gehst. Erfasst werden die <b>Seitenlängen</b> (A–B, B–C … und die letzte zurück zu A) in wahrer Grösse auf dem Dach.</p>
+<p>Damit die Form feststeht, braucht die App für jede Ecke ab C <b>mindestens eine Diagonale</b> zu einer früheren Ecke (vorgegeben sind A–C, A–D …; sie liegen innerhalb der Fläche). Jede <b>weitere Diagonale</b> ist ein <b>Kontrollmass</b>: die App vergleicht sie mit dem berechneten Grundriss und zeigt die Abweichung. Ab 10 mm Abweichung erscheint eine Warnung – dann Seiten oder Diagonalen noch einmal messen.</p>
+<p>Es sind beliebige Formen möglich (Dreieck, Trapez, L-Form, Vieleck bis 20 Ecken). Kreuzen sich die Seiten oder geht ein Dreieck nicht auf, steht ein Fehler da. «Umlaufsinn» sagt, ob A, B, C von oben gesehen im Uhrzeigersinn liegen.</p>`},
+"md-scharen":{titel:"Scharen (Metalldach)",text:`
+<p>Die Scharen laufen unter dem <b>Winkel</b> zur <b>Bezugsseite</b> (meist die Traufe). 90° heisst senkrecht dazu, andere Winkel ergeben schräg verlegte Scharen. Der <b>Achsabstand</b> ist die Deckbreite einer Schar; gezählt wird von links oder rechts (Blick Richtung First).</p>
+<p>Der <b>Hilfsriss</b> ist eine Reisslinie parallel zur Bezugsseite, die um das angegebene Mass über dem tiefsten Punkt liegt. Die Tabelle zeigt für jede Kante jeder Bahn das Mass ab Hilfsriss nach unten (↓) und oben (↑).</p>
+<p><b>Passbahn:</b> Mit «+ Passbahn» fügst du an der gewünschten Stelle («nach Schar Nr. …») eine Passbahn ein. Ohne feste Breite ist sie der Rest, sodass alle anderen Scharen volle Breite haben. Mehrere Passbahnen teilen sich den Rest gleichmässig. Ohne Passbahn nimmt die letzte Schar die Restbreite. Hat die Fläche eine Aussparung, kann eine Bahn aus mehreren Teilen bestehen.</p>`},
+"md-falz":{titel:"Falz (Metalldach)",text:`
+<p>Die <b>Falzrichtung</b> bestimmt je Bahn, an welcher Kante (links oder rechts, Blick Richtung First) der <b>Obergriff</b> liegt. Mit der <b>Schnellwahl</b> setzt du alle Bahnen auf einmal: alle nach links oder rechts, von der Passbahn weg, zur Passbahn hin oder von der Mitte weg. Danach lässt sich jede Bahn einzeln umschalten.</p>
+<p>Zuschnittbreite = Deckbreite + Falzzugabe Untergriff + Falzzugabe Obergriff. Zuschnittlänge = längste Länge der Bahn + Längenzugabe. Die Zugaben gibst du für jede Aufnahme selbst ein (0, wenn keine).</p>`},
 "luk-scharen":{titel:"Scharen",text:`
 <p>Alle Werte kommen aus der Rechnung – hier ist nichts von Hand einzugeben.</p>
 <p>Die letzte Schar ist die <b>Restbreite</b> und deshalb meist schmaler als

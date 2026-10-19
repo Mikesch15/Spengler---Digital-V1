@@ -115,6 +115,7 @@ Massaufnahme-Arten:
 - Dachfenstereinfassung
 - Kehle
 - Rinne (Profil)
+- Metalldach
 
 Jede Art hat ihr eigenes Fachmodul unter `js/`, wird aber über das
 zentrale Massaufnahme-Formular (`js/16-massaufnahme-formular.js`)

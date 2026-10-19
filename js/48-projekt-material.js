@@ -194,6 +194,7 @@ const PMAT_TEIL_RUECKFALL={
  dachrandblech:        ()=>false,
  kehle:                ()=>false,
  lukarne:              ()=>false,
+ metalldach:           ()=>false,
  rinne:                ()=>false,
  // Skizze/Foto rechnet gar nichts und hat kein Ausmass.
  skizze_foto:          ()=>false

@@ -652,6 +652,7 @@ function measFelderAusData(m){
  kehleFormularFuellen(m.type==="kehle"?d:null);
  if(typeof keaFuellen==="function")keaFuellen(m.type==="kehle"?d:null);
  if(typeof kamaFuellen==="function")kamaFuellen(m.type==="kamineinfassung"?d:null);
+ if(typeof mdFuellen==="function")mdFuellen(m.type==="metalldach"?d:null);
  if(typeof dfaFuellen==="function")dfaFuellen(m.type==="dachfenstereinfassung"?d:null);
  rinneFormularFuellen(m.type==="rinne"?d:null);
  if(typeof rpaFuellen==="function")rpaFuellen(m.type==="rinne"?d:null);

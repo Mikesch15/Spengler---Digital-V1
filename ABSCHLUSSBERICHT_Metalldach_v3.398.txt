@@ -1,0 +1,7 @@
+ABSCHLUSSBERICHT v3.398 – Neue Massaufnahme «Metalldach»
+UMGESETZT: Grundriss beliebiger Form aus Seiten + Diagonalen (Kontrollmasse mit Abweichungsanzeige), Scharen unter freiem Winkel zu einer Bezugsseite, Hilfsriss, Passbahn(en) an waehlbarer Stelle (Rest oder feste Breite), Falzrichtung je Bahn mit Schnellwahl, Zuschnitt/Rollenplan ueber die gemeinsamen Bausteine, Ausmass, Kontrolle, Plan, Ausdruck, Ruestskizze, Hilfe.
+NICHT GEAENDERT: bestehende Arten, Datenbank (measurements.data ist jsonb).
+GETESTET: metalldach-v3-398 (44, Mutationen erkannt; Flaechen aller Stuecke = Dachflaeche bei vielen Winkeln/Formen), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy; mit echten Aufmassen; Offerten-/Werkstattablauf mit einer echten Metalldach-Massaufnahme.
+ANNAHMEN (bitte bestaetigen): Masse sind wahre Laengen auf der Dachflaeche; Obergriff-Seite = Falzrichtung; Zuschnittbreite = Deckbreite + Untergriff + Obergriff, Zuschnittlaenge = laengste Bahnlaenge + Laengenzugabe; Hilfsriss = Linie parallel zur Bezugsseite im angegebenen Abstand ueber dem tiefsten Punkt.
+GRENZEN: Jede Ecke ab C braucht eine Diagonale zu einer frueheren Ecke (bei Einbuchtungen A passend waehlen). Keine Dachneigungs-Abwicklung. Keine Falzgeometrie ueber Richtung/Zugabe hinaus. Bahn mit Aussparung wird in mehrere Zuschnitte geteilt.

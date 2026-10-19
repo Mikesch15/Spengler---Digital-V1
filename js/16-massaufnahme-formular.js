@@ -40,6 +40,7 @@ function showMeasTypeSection(type){
  $("measTypeFreiesProfil").hidden=(type!=="freies_profil"&&type!=="dachrandblech");
  $("measTypeMauerabdeckung").hidden=(type!=="mauerabdeckung");
  $("measTypeLukarne").hidden=(type!=="lukarne");
+ $("measTypeMetalldach").hidden=(type!=="metalldach");
  $("measTypeAnschlussblech").hidden=(type!=="anschlussblech");
  $("measTypeEinfassungRund").hidden=(type!=="einfassung_rund");
  $("measTypeKamin").hidden=(type!=="kamineinfassung");
@@ -58,6 +59,7 @@ function showMeasTypeSection(type){
   if(typeof renderFreiesProfilAufnahme==="function")renderFreiesProfilAufnahme();}
  if(type==="mauerabdeckung"){renderMadResult();if(typeof renderMauerabdeckungAufnahme==="function")renderMauerabdeckungAufnahme();}
  if(type==="lukarne"&&typeof renderLukarneAufnahme==="function")renderLukarneAufnahme();
+ if(type==="metalldach"&&typeof renderMetalldachAufnahme==="function")renderMetalldachAufnahme();
  if(type==="anschlussblech"){renderAnbResult();
   if(typeof renderAnschlussblechAufnahme==="function")renderAnschlussblechAufnahme();}
  if(type==="einfassung_rund"){renderEinfResult();
@@ -107,6 +109,7 @@ const MEAS_MEDIEN_LETZTES_REGISTER={
  mauerabdeckung:      ()=>madaSchritt >=MADA_REGISTER.length,
  kehle:               ()=>keaSchritt  >=KEA_REGISTER.length,
  lukarne:             ()=>lukaSchritt >=LUKA_REGISTER.length,
+ metalldach:          ()=>mdSchritt   >=MD_REGISTER.length,
  kamineinfassung:     ()=>kamSchritt  >=KAM_REGISTER.length,
  dachfenstereinfassung:()=>dfaSchritt >=DFA_REGISTER.length,
  einfassung_rund:     ()=>einfaSchritt>=EINFA_REGISTER.length,
@@ -303,6 +306,10 @@ function buildMeasurementFromForm(){
    material:$("einf_material").value
   }};
  }
+ if(type==="metalldach"){
+  // Neues Modul (v3.398): alle Werte kommen aus js/100
+  return {...base,...measMedienAusFormular(),data:(typeof mdDaten==="function")?mdDaten():{}};
+ }
  if(type==="kamineinfassung"){
   // Neues Modul (v2.90): alle Werte kommen aus js/37, es gibt kein altes
   // Formular, auf das zurueckgefallen werden muesste.
@@ -426,6 +433,10 @@ $("saveMeasurement").onclick=async()=>{
    if(!(Number(e.durchmesser)>0)){appAlert("Bitte den Rohrdurchmesser eingeben.");return}
    if(!(Number(e.a)>0)||!(Number(e.c)>0)){appAlert("Bitte mindestens die Masse a und c eingeben.");return}
   }
+ }
+ if(type==="metalldach"&&typeof mdaPruefungen==="function"){
+  const f=mdaPruefungen().filter(x=>x.art==="fehler");
+  if(f.length){appAlert(f.map(x=>x.text).join("\n"));return}
  }
  if(type==="kamineinfassung"){
   // Die Kontrolle des Moduls ist die eine Wahrheit - was dort ein Fehler
@@ -1581,6 +1592,8 @@ ${(Array.isArray(d.ausmass)&&d.ausmass.length)?`<div class="eb-section-head">Aus
 ${zuDruckHtml(d.zuschnitt,0,"St\u00fcck")}
 ${m.note?`<div class="eb-section-head">Notiz</div>
 <div class="note">${esc(m.note)}</div>`:""}`;
+ }else if(m.type==="metalldach"){
+  bodyHtml=mdDruckHtml(m,kopfHtml);
  }else if(m.type==="kamineinfassung"){
   // Gedruckt wird ausschliesslich, was beim Speichern abgelegt wurde - ein
   // einmal gedrucktes Blatt bleibt dadurch gleich, auch wenn spaeter eine

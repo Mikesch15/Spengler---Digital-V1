@@ -328,6 +328,7 @@ const MEAS_FORM_RENDER={
  dachrandblech:"renderFreiesProfilAufnahme",
  mauerabdeckung:"renderMauerabdeckungAufnahme",
  lukarne:"renderLukarneAufnahme",
+ metalldach:"renderMetalldachAufnahme",
  anschlussblech:"renderAnschlussblechAufnahme",
  einfassung_rund:"renderEinfassungAufnahme",
  kamineinfassung:"renderKaminAufnahme",

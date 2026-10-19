@@ -95,6 +95,12 @@ const RS_SKIZZEN={
   if(dr&&typeof drbGrundrissSvg==="function"&&Array.isArray(dr.kanten)&&dr.kanten.length)
    rsEintrag(liste,"Grundriss",()=>drbGrundrissSvg(dr.kanten,!!dr.geschlossen,typeof drbSvgOptionenAusDaten==="function"?drbSvgOptionenAusDaten(dr):{stueckLaenge:dr.stueck&&dr.stueck.laenge,ueberlappung:dr.stueck&&dr.stueck.ueberlappung,gleich:dr.stueck&&dr.stueck.gleich}));
  },
+ metalldach(d,liste){
+  if(typeof mdPlanSvg!=="function"||typeof berechneMetalldach!=="function")return;
+  const g=berechneMetalldach(d);
+  if(!g.konstruktion||!g.konstruktion.punkte||g.konstruktion.punkte.length<3)return;
+  rsEintrag(liste,"Plan",()=>mdPlanSvg(g,{diagonalen:d.diagonalen}));
+ },
  lukarne(d,liste){
   if(typeof lukPlanSvg!=="function"||typeof berechneLukarne!=="function")return;
   const g=berechneLukarne({hoehe:d.hoehe,laengeOben:d.laengeOben,winkel:d.winkel,
