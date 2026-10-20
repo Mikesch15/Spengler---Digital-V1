@@ -34878,3 +34878,7 @@ Ansage des Anwenders. `rbDruckenAufnahmen` (js/80; wird vom einzelnen Rüstblatt
 ### v3.407 — Rüstblatt/Rüstliste: gruppierte Liste bei einem Streifen je Abschnitt
 
 Ansage des Anwenders (Foto der Massaufnahme: «34 × 2'247 × 349 mm» mit Nummern; die Rüstliste hatte zu viele Einzelpositionen). `zuHerkunftNoetig` (js/33): Die Aufteilung Abschnitt → Streifen → Stück im Rüstblatt gilt nur noch, wenn Stücke nebeneinander auf der Rolle liegen (eine Gruppe mit mehr als einem Streifen und `jeAbschnitt` ≠ 1). Bei genau einem Streifen je Abschnitt steht die gruppierte Liste wie in der Massaufnahme (Kopf «Rollenblech …», Zeile je Grösse mit allen Nummern, Fuss «n × … mm ab Rolle · 1 Streifen je Abschnitt»). Ältere Pläne ohne `jeAbschnitt` behalten die bisherige Aufteilung (Rückfall). Betrifft das einzelne Rüstblatt, das Projekt-Rüstblatt und die Rüstliste. Prüfstand `ruestblatt-liste-gruppiert-v3-407` (9, Mutationen erkannt).
+
+### v3.408 — Rüstblatt drucken: Mindestgrösse 80 %
+
+Ansage des Anwenders (wie klein das Blatt höchstens verkleinert werden darf, damit es lesbar bleibt). Bisher verkleinerte der Druck zu hohe Seiten bis 55 % (8-pt-Zuschnittliste → 4,4 pt, 6,2-pt-Beschriftung → 3,4 pt). Neu `RB_DRUCK_MIN_ZOOM = 0.8` und `rbDruckSeitenEinpassen` (js/80): proportional bis höchstens 80 % (6,4 pt bzw. 5 pt), danach läuft der Rest auf die nächste Seite. Prüfstand `ruestblatt-druck-verkleinern-v3-408` (7, Mutationen erkannt). Zusammen mit v3.406 (Schnittbild abwählbar) und v3.407 (gruppierte Liste) wird ein Blatt seltener zu hoch.

@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.408 – Ruestblatt drucken: Mindestgroesse
+UMGESETZT: Zu hohe Seiten werden beim Druck nur bis 80 % verkleinert (vorher 55 %), der Rest laeuft auf die naechste Seite.
+NICHT GEAENDERT: Inhalt, Bildschirmansicht.
+GETESTET: ruestblatt-druck-verkleinern-v3-408 (7), Ruestblatt-Pruefstaende, volle Regression.
+NICHT GETESTET: echter Ausdruck am Geraet (Lesbarkeit der Schrift ist aus den Punktgroessen gerechnet, nicht am Papier beurteilt).
+ANNAHME: 80 % als Untergrenze (8 pt -> 6,4 pt); wer es anders will, aendert RB_DRUCK_MIN_ZOOM.

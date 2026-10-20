@@ -490,6 +490,22 @@ async function rbDokumentHtml(ms,opt){
  const foot=(typeof pdfFooterHtml==="function")?pdfFooterHtml(alleGleich?erste:null):"";
  return `<!doctype html><html><head><meta charset="utf-8"><base href="${esc(document.baseURI)}"><title>Rüstblatt</title><style>${typeof PDF_LAYOUT_CSS!=="undefined"?PDF_LAYOUT_CSS:""}${RB_DRUCK_CSS}</style></head><body>${seitenMitHaken}${foot}</body></html>`;
 }
+// v3.408: Wie weit ein Rüstblatt beim Drucken verkleinert werden darf, damit es lesbar bleibt. Bis v3.407 galt 55 % - da wird die
+// 8-pt-Schrift der Zuschnittliste zu 4,4 pt und die 6,2-pt-Beschriftung zu 3,4 pt. Bei 80 % bleiben 6,4 pt bzw. 5 pt; was darüber
+// hinaus nicht auf eine Seite passt, läuft auf die nächste Seite (kein weiteres Verkleinern).
+const RB_DRUCK_MIN_ZOOM=0.8;
+function rbDruckSeitenEinpassen(doc){
+ const verfuegbar=Math.round((297-14-17-14)*96/25.4);
+ const out=[];
+ doc.querySelectorAll(".rb-druck-seite").forEach(sei=>{
+  const h=sei.getBoundingClientRect().height;
+  if(h>verfuegbar){
+   const z=Math.max(RB_DRUCK_MIN_ZOOM,Math.floor(verfuegbar/h*97)/100);
+   sei.style.zoom=String(z);out.push(z);
+  }else out.push(1);
+ });
+ return out;
+}
 async function rbDruckenAufnahmen(liste,opt){
  let ms=(liste||[]).filter(Boolean);
  if(!ms.length){appAlert("Es gibt nichts zu drucken.");return}
@@ -516,14 +532,8 @@ async function rbDruckenAufnahmen(liste,opt){
   if(!w)return;
   // Zeichnung auf ihren Inhalt zuschneiden (js/60) - geht nur im gerenderten Dokument.
   try{ if(typeof rsZuschneiden==="function")rsZuschneiden(w.document.body) }catch(e){}
-  // Alles auf eine Seite, wenn moeglich: zu hohe Seiten werden verkleinert (nicht unter 55 %), danach laeuft es notfalls auf die naechste Seite.
-  try{
-   const verfuegbar=Math.round((297-14-17-14)*96/25.4);
-   w.document.querySelectorAll(".rb-druck-seite").forEach(sei=>{
-    const h=sei.getBoundingClientRect().height;
-    if(h>verfuegbar){ sei.style.zoom=String(Math.max(0.55,Math.floor(verfuegbar/h*97)/100)) }
-   });
-  }catch(e){}
+  // Alles auf eine Seite, wenn moeglich: zu hohe Seiten werden verkleinert (nicht unter RB_DRUCK_MIN_ZOOM), danach laeuft es notfalls auf die naechste Seite.
+  try{ rbDruckSeitenEinpassen(w.document) }catch(e){}
   setTimeout(()=>{
    try{ w.focus(); w.addEventListener("afterprint",()=>setTimeout(weg,500)); w.print() }
    catch(e){ weg();appAlert("Das Drucken ist hier nicht möglich.") }
