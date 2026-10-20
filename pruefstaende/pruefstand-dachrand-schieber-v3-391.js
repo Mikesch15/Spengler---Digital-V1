@@ -81,7 +81,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{fpA.dachrand.stoss="schieber";drbSync();const z=drbAusmassZeilen().map(x=>x.bezeichnung+"="+x.menge);return z});
  p(r.some(x=>/^Schieber=/.test(x))&&r.some(x=>/^Eckschieber \(Gehrung\)=1/.test(x))&&r.some(x=>/inkl\. Zugaben\/Abzüge/.test(x)),"Das Ausmass führt Schieber und Eckschieber auf und nennt Zugaben/Abzüge",r);
  r=await ev(()=>{fpA.dachrand.schieber={zugabe:"",abzug:""};drbSync();return drbPruefungen().map(x=>x.text)});
- p(r.some(x=>/Eckschieber gewählt, aber der Abzug ist 0 mm/.test(x))&&r.some(x=>/Kein Werkstoff gewählt/.test(x)),"Die Kontrolle warnt: Eckschieber ohne Abzug und fehlender Werkstoff",r);
+ p(r.some(x=>/Eckschieber gewählt, aber das Mass ist 0 mm/.test(x))&&r.some(x=>/Kein Werkstoff gewählt/.test(x)),"Die Kontrolle warnt: Eckschieber ohne Abzug und fehlender Werkstoff",r);
  r=await ev(()=>{fpA.dachrand.stoss="schieber";return drbStueckeHtml().replace(/\s+/g," ")});
  p(/data-drb-stoss/.test(r)&&/Schieber \(wie Mauerabdeckung\)/.test(r)&&/data-drb-sz/.test(r)&&/data-drb-sa/.test(r)&&/data-drb-eck="0"/.test(r)&&!/data-drb-u\b/.test(r),"Register «Stücke» bei Schieber: Stossart, Zugabe, Abzug und Eckschieber-Haken je Ecke – ohne Überlappungsfeld",r.slice(0,300));
  p(!/data-drb-eck="1"/.test(r),"Die letzte Kante (Ende) bietet keinen Eckschieber an");
@@ -97,8 +97,21 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   const a2=fpA.dachrand.kanten[0].eckschieber;
   const sz=mk('<input data-drb-sz>');sz.value="45";sz.dispatchEvent(new Event("input",{bubbles:true}));
   const sa=mk('<input data-drb-sa>');sa.value="12";sa.dispatchEvent(new Event("input",{bubbles:true}));
+  const sm=mk('<select data-drb-sm><option value="abzug">a</option><option value="zugabe">z</option></select>');sm.value="zugabe";sm.dispatchEvent(new Event("change",{bubbles:true}));
   return {a1,a2,sch:fpA.dachrand.schieber}});
- p(r.a1==="schieber"&&r.a2===true&&r.sch.zugabe===45&&r.sch.abzug===12,"Bedienung: Stossart, Eckschieber-Haken, Zugabe und Abzug landen im Modell",r);
+ p(r.a1==="schieber"&&r.a2===true&&r.sch.zugabe===45&&r.sch.abzug===12&&r.sch.eckModus==="zugabe","Bedienung: Stossart, Eckschieber-Haken, Zugabe, Eckschieber-Mass und seine Wahl Zugabe/Abzug landen im Modell",r);
+ console.log("\nZ · v3.405: Eckschieber mit Zugabe ODER Abzug");
+ r=await ev(()=>{madSchieberMass=30;const mk=m=>D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20,eckModus:m}});return {ab:L(drbStueckeFuer(mk("abzug"),null)),zu:L(drbStueckeFuer(mk("zugabe"),null)),std:L(drbStueckeFuer(D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20}}),null))}});
+ p(r.ab==="0:4030 0:4010 1:3010 1:3030","Abzug (wie bisher): beide Stücke an der Ecke 20 mm kürzer",r.ab);
+ p(r.zu==="0:4030 0:4050 1:3050 1:3030","Zugabe: beide Stücke an der Ecke 20 mm länger",r.zu);
+ p(r.std===r.ab,"Ohne Angabe (ältere Massaufnahmen) gilt weiter der Abzug",r.std);
+ r=await ev(()=>{fpA.dachrand=drbAusData({stoss:"schieber",schieber:{zugabe:30,abzug:20,eckModus:"zugabe"},kanten:[{laenge:8000,ecke:"aussen",winkel:90,eckschieber:true},{laenge:6000,ecke:"ende"}]});
+  const d=drbDaten();const html=drbStueckeHtml();const alt=drbAusData({stoss:"schieber",kanten:[{laenge:1000,ecke:"ende"}]});
+  return {m:d.schieber.eckModus,e:d.ergebnis.schieber.eckModus,sel:/data-drb-sm/.test(html)&&/Zugabe Eckschieber je Stückende/.test(html),alt:alt.schieber.eckModus}});
+ p(r.m==="zugabe"&&r.e==="zugabe"&&r.sel&&r.alt==="abzug","Wahl wird gespeichert und geladen; Auswahlfeld und Beschriftung folgen; alte Daten = Abzug",r);
+ r=await ev(()=>{fpA.dachrand=drbAusData({stoss:"schieber",kanten:[{laenge:8000,ecke:"aussen",winkel:90,eckschieber:true},{laenge:6000,ecke:"ende"}],schieber:{zugabe:30,abzug:0}});
+  const m=drbPruefungen().map(x=>x.text).join("|");fpA.dachrand.schieber.eckModus="zugabe";const m2=drbPruefungen().map(x=>x.text).join("|");return {m,m2}});
+ p(/gekürzt/.test(r.m)&&/verlängert/.test(r.m2),"Warnung bei Mass 0 nennt je nach Wahl «gekürzt» oder «verlängert»",r);
  p(!page.__f.length,"Keine Skriptfehler",page.__f);
 
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");

@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.405 – Dachrandblech: Eckschieber mit Zugabe oder Abzug
+UMGESETZT: Wahl Abzug/Zugabe fuer das Eckschieber-Mass (schieber.eckModus), im Register Stuecke, in Warnung, Ausmass, Ausdruck, Speicherstand. Aeltere Daten = Abzug.
+NICHT GEAENDERT: Schieber-Zugabe, Einteilung, Datenbank.
+GETESTET: dachrand-schieber-v3-391 (37), Nachbar-Pruefstaende, volle Regression.
+NICHT GETESTET: am Handy.
+GRENZE: Die Wahl gilt fuer alle Eckschieber einer Aufnahme gemeinsam, nicht je Ecke.

@@ -48,7 +48,7 @@ const drbM=v=>(drbZ(v)/1000).toLocaleString("de-CH",{minimumFractionDigits:2,max
 
 function drbLeer(){
  return {detail:"1.5",kanten:[],geschlossen:false,
-  stoss:"ueberlappung",schieber:{zugabe:"",abzug:""},   // v3.391: Stossart "schieber" wie bei der Mauerabdeckung; Abzug = nur fuer Eckschieber
+  stoss:"ueberlappung",schieber:{zugabe:"",abzug:"",eckModus:"abzug"},   // v3.391: Stossart "schieber" wie bei der Mauerabdeckung; Abzug = nur fuer Eckschieber
   stueck:{laenge:DRB_STANDARD.stueckLaenge,ueberlappung:DRB_STANDARD.ueberlappung,gleich:false},
   streifen:{aktiv:true,umschlag:"",befestigung:DRB_STANDARD.befestigung,spiel:DRB_STANDARD.spiel,abwicklung:"",laenge:""}};
 }
@@ -60,7 +60,7 @@ function drbAusData(d){
  a.kanten=Array.isArray(d.kanten)?d.kanten.map(k=>({laenge:k.laenge===undefined?"":k.laenge,
    ecke:["aussen","innen","winkel","ende"].includes(k.ecke)?k.ecke:"aussen",winkel:k.winkel===undefined?90:k.winkel,eckschieber:!!k.eckschieber,teile:drbTeile(k.teile)||"",wunsch:drbWunsch(k.wunsch)||""})):[];
  a.stoss=d.stoss==="schieber"?"schieber":"ueberlappung";
- if(d.schieber&&typeof d.schieber==="object")a.schieber={zugabe:d.schieber.zugabe===undefined?"":d.schieber.zugabe,abzug:d.schieber.abzug===undefined?"":d.schieber.abzug};
+ if(d.schieber&&typeof d.schieber==="object")a.schieber={zugabe:d.schieber.zugabe===undefined?"":d.schieber.zugabe,abzug:d.schieber.abzug===undefined?"":d.schieber.abzug,eckModus:d.schieber.eckModus==="zugabe"?"zugabe":"abzug"};
  a.geschlossen=!!d.geschlossen;
  if(d.stueck)a.stueck={laenge:d.stueck.laenge===undefined?DRB_STANDARD.stueckLaenge:d.stueck.laenge,
    ueberlappung:d.stueck.ueberlappung===undefined?DRB_STANDARD.ueberlappung:d.stueck.ueberlappung,gleich:!!d.stueck.gleich};
@@ -183,12 +183,12 @@ function drbEckTyp(kanten,j){
 function drbSchieberWerte(d){
  const sch=d&&d.schieber||{};
  const std=(typeof madSchieberMass!=="undefined"&&Number.isFinite(Number(madSchieberMass)))?Number(madSchieberMass):0;
- return {zugabe:drbHat(sch.zugabe)?drbZ(sch.zugabe):std,zugabeStandard:!drbHat(sch.zugabe),abzug:drbHat(sch.abzug)?drbZ(sch.abzug):0};
+ return {zugabe:drbHat(sch.zugabe)?drbZ(sch.zugabe):std,zugabeStandard:!drbHat(sch.zugabe),abzug:drbHat(sch.abzug)?drbZ(sch.abzug):0,eckModus:sch.eckModus==="zugabe"?"zugabe":"abzug"};   // v3.405: das Eckschieber-Mass wirkt als Abzug (kuerzer) ODER als Zugabe (laenger)
 }
 function drbStueckeSchieber(d,material){
  const kanten=d.kanten||[],tab=drbSiaTabelle(material),w=drbSchieberWerte(d);
- const leer={ok:true,fehler:"",stuecke:[],materialLaenge:0,gesamtlaenge:0,modus:"schieber",ueberlappung:0,stueckLaenge:0,schieberAnzahl:0,eckschieber:[],tabelle:tab,zugabe:w.zugabe,abzug:w.abzug};
- if(w.zugabe<0||w.abzug<0)return {...leer,ok:false,fehler:"Schieber-Zugabe und Abzug dürfen nicht negativ sein."};
+ const leer={ok:true,fehler:"",stuecke:[],materialLaenge:0,gesamtlaenge:0,modus:"schieber",ueberlappung:0,stueckLaenge:0,schieberAnzahl:0,eckschieber:[],tabelle:tab,zugabe:w.zugabe,abzug:w.abzug,eckModus:w.eckModus};
+ if(w.zugabe<0||w.abzug<0)return {...leer,ok:false,fehler:"Schieber-Zugabe und das Eckschieber-Mass dürfen nicht negativ sein (Zugabe oder Abzug wählt man extra)."};
  const out=[];let gesamt=0,material_=0,schieber=0;
  const eck=new Set();
  const letzte=kanten.length-1;
@@ -209,7 +209,7 @@ function drbStueckeSchieber(d,material){
   for(let j=0;j<pt.length-1;j++){
    const abstand=pt[j+1]-pt[j];
    const tl=j===0?startTyp:"schieber",tr=j===pt.length-2?endTyp:"schieber";
-   const zug=t=>t==="schieber"?w.zugabe:(t==="eckschieber"?-w.abzug:0);
+   const zug=t=>t==="schieber"?w.zugabe:(t==="eckschieber"?(w.eckModus==="zugabe"?w.abzug:-w.abzug):0);
    const laenge=Math.round(abstand+zug(tl)+zug(tr));
    if(!(laenge>0))return {...leer,ok:false,fehler:"Kante "+(i+1)+": der Abzug des Eckschiebers ist zu gross – das Stück würde "+laenge+" mm lang."};
    out.push({kante:i,nrInKante:j+1,laenge,von:Math.round(pt[j]),bis:Math.round(pt[j+1]),links:tl,rechts:tr});
@@ -399,7 +399,7 @@ function drbPruefungen(){
  if(s.ok&&d.stoss==="schieber"){
   const w=drbSchieberWerte(d);
   if(!fpA.material)m.push({art:"warnung",text:"Schieber: Kein Werkstoff gewählt – die Schieber-Abstände sind mit «"+s.tabelle.label+"» gerechnet (Register „Grunddaten“)."});
-  if(s.eckschieber.length&&!(w.abzug>0))m.push({art:"warnung",text:"Eckschieber gewählt, aber der Abzug ist 0 mm – die Stücke an den Ecken werden nicht gekürzt."});
+  if(s.eckschieber.length&&!(w.abzug>0))m.push({art:"warnung",text:"Eckschieber gewählt, aber das Mass ist 0 mm – die Stücke an den Ecken werden weder "+(w.eckModus==="zugabe"?"verlängert":"gekürzt")+"."});
   if(!(w.zugabe>0)&&s.schieberAnzahl>0)m.push({art:"warnung",text:"Die Schieber-Zugabe ist 0 mm – die Stücke am Schieber bekommen keine Zugabe."});
  }
  if(d.streifen&&d.streifen.aktiv){
@@ -425,7 +425,7 @@ function drbAusmassZeilen(){
   const w=drbSchieberWerte(d);
   zeile("Stücke",s.stuecke.length,"Stk.","Schieber nach SIA 271 ("+s.tabelle.label+"), Zugabe "+drbMm(w.zugabe)+" mm");
   zeile("Schieber",s.schieberAnzahl,"Stk.","SIA 271: höchstens "+drbMm(s.tabelle.maxAbstand)+" mm, ab Ecke "+drbMm(s.tabelle.abEcke)+" mm");
-  if(s.eckschieber.length)zeile("Eckschieber (Gehrung)",s.eckschieber.length,"Stk.","Abzug "+drbMm(w.abzug)+" mm je Stückende");
+  if(s.eckschieber.length)zeile("Eckschieber (Gehrung)",s.eckschieber.length,"Stk.",(w.eckModus==="zugabe"?"Zugabe ":"Abzug ")+drbMm(w.abzug)+" mm je Stückende");
  }else zeile("Stücke",s.stuecke.length,"Stk.","Länge pro Stück "+drbMm(d.stueck.laenge)+" mm, Überlappung "+drbMm(d.stueck.ueberlappung)+" mm");
  drbGruppen(s.stuecke).forEach(x=>zeile("Stück "+drbMm(x.laenge)+" mm",x.anzahl,"Stk.","Stückliste"));
  zeile(d.stoss==="schieber"?"Materiallänge inkl. Zugaben/Abzüge":"Materiallänge inkl. Überlappung",fpaMeter(s.materialLaenge),"m",d.stoss==="schieber"?"Gesamtlänge + Schieber-Zugaben − Eckschieber-Abzüge":"Gesamtlänge + Überlappungen");
@@ -449,7 +449,7 @@ function drbDaten(){
  const d=fpA.dachrand,r=drbErgebnis();
  return {
   detail:d.detail,kanten:d.kanten.map(k=>({laenge:k.laenge,ecke:k.ecke,winkel:k.winkel,eckschieber:!!k.eckschieber,teile:drbTeile(k.teile)||"",wunsch:drbWunsch(k.wunsch)||""})),geschlossen:!!d.geschlossen,
-  stoss:d.stoss==="schieber"?"schieber":"ueberlappung",schieber:{zugabe:d.schieber?d.schieber.zugabe:"",abzug:d.schieber?d.schieber.abzug:""},
+  stoss:d.stoss==="schieber"?"schieber":"ueberlappung",schieber:{zugabe:d.schieber?d.schieber.zugabe:"",abzug:d.schieber?d.schieber.abzug:"",eckModus:d.schieber&&d.schieber.eckModus==="zugabe"?"zugabe":"abzug"},
   stueck:{...d.stueck},
   streifen:{aktiv:!!d.streifen.aktiv,umschlag:d.streifen.umschlag,befestigung:d.streifen.befestigung,spiel:d.streifen.spiel,
             abwicklung:d.streifen.abwicklung,laenge:d.streifen.laenge},
@@ -457,7 +457,7 @@ function drbDaten(){
    gesamtlaenge:r.grundriss.gesamtlaenge,aussenecken:r.grundriss.aussenecken,inneneck:r.grundriss.inneneck,andere:r.grundriss.andere,
    schliesst:r.grundriss.schliesst,
    stuecke:r.stuecke.ok?r.stuecke.stuecke.map(s=>({kante:s.kante,nr:s.nr,laenge:s.laenge,nrInKante:s.nrInKante,von:s.von})):[],
-   schieber:(r.stuecke.ok&&d.stoss==="schieber")?{anzahl:r.stuecke.schieberAnzahl,zugabe:r.stuecke.zugabe,abzug:r.stuecke.abzug,
+   schieber:(r.stuecke.ok&&d.stoss==="schieber")?{anzahl:r.stuecke.schieberAnzahl,zugabe:r.stuecke.zugabe,abzug:r.stuecke.abzug,eckModus:r.stuecke.eckModus,
      material:r.stuecke.tabelle.label,maxAbstand:r.stuecke.tabelle.maxAbstand,abEcke:r.stuecke.tabelle.abEcke}:null,
    eckschieber:(r.stuecke.ok&&d.stoss==="schieber")?r.stuecke.eckschieber:[],
    materialLaenge:r.stuecke.ok?r.stuecke.materialLaenge:0,
@@ -646,11 +646,12 @@ ${drbMm(tab.maxAbstand)} mm zwischen zwei Schiebern, ab einer Ecke ${drbMm(tab.a
 jedes Stückende am Schieber bekommt die <b>Schieber-Zugabe</b>.${fpA.material?"":" <b>Kein Werkstoff gewählt</b> – bitte im Register „Grunddaten“ wählen."}</div>
 <div class="grid">
 ${fpaFeld("Schieber-Zugabe je Stückende (mm)"+(w.zugabeStandard?" – Standard":""),`<input data-drb-sz type="number" inputmode="numeric" step="1" placeholder="${drbEsc(w.zugabe)}" value="${drbHat(d.schieber&&d.schieber.zugabe)?drbEsc(d.schieber.zugabe):""}">`)}
-${fpaFeld("Abzug Eckschieber je Stückende (mm)",`<input data-drb-sa type="number" inputmode="numeric" step="1" placeholder="0" value="${drbHat(d.schieber&&d.schieber.abzug)?drbEsc(d.schieber.abzug):""}">`)}
+${fpaFeld("Eckschieber: Abzug oder Zugabe",`<select data-drb-sm><option value="abzug"${w.eckModus!=="zugabe"?" selected":""}>Abzug (Stücke kürzer)</option><option value="zugabe"${w.eckModus==="zugabe"?" selected":""}>Zugabe (Stücke länger)</option></select>`)}
+${fpaFeld((w.eckModus==="zugabe"?"Zugabe":"Abzug")+" Eckschieber je Stückende (mm)",`<input data-drb-sa type="number" inputmode="numeric" step="1" placeholder="0" value="${drbHat(d.schieber&&d.schieber.abzug)?drbEsc(d.schieber.abzug):""}">`)}
 </div>
-<div class="small">Leer = Standard aus den Einstellungen der Mauerabdeckung (Zugabe) bzw. 0 mm (Abzug).</div>
+<div class="small">Leer = Standard aus den Einstellungen der Mauerabdeckung (Schieber-Zugabe) bzw. 0 mm (Eckschieber).</div>
 <div class="ra-zeile" style="margin-top:8px"><div class="ra-zeile-kopf"><b>Eckschieber (Gehrung)</b></div>
-<div class="small">Der Schieber sitzt genau in der Ecke, beide Stücke gehen auf Gehrung. Die Ecke gilt dann nicht mehr als Fixpunkt (voller Abstand zum nächsten Schieber), und beide Stücke werden um den <b>Abzug Eckschieber</b> kürzer.</div>
+<div class="small">Der Schieber sitzt genau in der Ecke, beide Stücke gehen auf Gehrung. Die Ecke gilt dann nicht mehr als Fixpunkt (voller Abstand zum nächsten Schieber), und beide Stücke werden um das <b>Eckschieber-Mass</b> kürzer (Abzug) oder länger (Zugabe) – je nach Wahl oben.</div>
 <div id="drb_eckListe">${drbEckschieberListeHtml()}</div></div>
 <div class="small" style="margin-top:8px">Länge pro Stück für den Einhängestreifen: <b>${drbMm(d.stueck.laenge)} mm</b> (Register „Einhängestreifen“).</div>
 ${drbEinteilungHtml()}
@@ -721,7 +722,7 @@ function drbVerdrahten(wurzel){
   else if(d.drbP!==undefined)m.stueck.laenge=num(t.value);
   else if(d.drbU!==undefined)m.stueck.ueberlappung=num(t.value);
   else if(d.drbSz!==undefined){m.schieber=m.schieber||{zugabe:"",abzug:""};m.schieber.zugabe=num(t.value)}
-  else if(d.drbSa!==undefined){m.schieber=m.schieber||{zugabe:"",abzug:""};m.schieber.abzug=num(t.value)}
+  else if(d.drbSa!==undefined){m.schieber=m.schieber||{zugabe:"",abzug:"",eckModus:"abzug"};m.schieber.abzug=num(t.value)}
   else if(d.drbS!==undefined&&["befestigung","spiel","abwicklung","laenge"].includes(d.drbS))m.streifen[d.drbS]=num(t.value);
   else return;
   drbLive();
@@ -730,6 +731,7 @@ function drbVerdrahten(wurzel){
   if(fpaZeichnet||!fpA.dachrand||!fpaIstDachrand())return;
   const t=e.target,d=t.dataset||{},m=fpA.dachrand;
   if(d.drbEcke!==undefined){const k=m.kanten[Number(d.drbEcke)];if(k){k.ecke=t.value;if(k.ecke==="winkel"&&!drbHat(k.winkel))k.winkel=90}drbSync();renderFreiesProfilAufnahme();return}
+  if(d.drbSm!==undefined){m.schieber=m.schieber||{zugabe:"",abzug:""};m.schieber.eckModus=t.value==="zugabe"?"zugabe":"abzug";drbSync();renderFreiesProfilAufnahme();return}
   if(d.drbStoss!==undefined){m.stoss=t.value==="schieber"?"schieber":"ueberlappung";drbSync();renderFreiesProfilAufnahme();return}
   if(d.drbEck!==undefined){const k=m.kanten[Number(d.drbEck)];if(k)k.eckschieber=!!t.checked;drbSync();renderFreiesProfilAufnahme();return}
   if(t.id==="drb_geschlossen"){m.geschlossen=!!t.checked;drbSync();renderFreiesProfilAufnahme();return}
@@ -787,7 +789,7 @@ function drbDruckHtml(d,cell){
  let h=`<div class="eb-section-head">Dachrand</div>
 <table class="eb-info-table"><tr>${cell("Detail",esc(dr.detail==="1.5"?"Detail 1.5":"Eigenes Profil"))}${cell("Gesamtlänge",esc(drbM(er.gesamtlaenge))+" m")}</tr>
 ${dr.stoss==="schieber"&&er.schieber?`<tr>${cell("Stossart","Schieber (SIA 271, "+esc(er.schieber.material)+")")}${cell("Schieber",esc(er.schieber.anzahl)+" Stk., Zugabe "+esc(drbMm(er.schieber.zugabe))+" mm")}</tr>
-<tr>${cell("Eckschieber (Gehrung)",esc((er.eckschieber||[]).length)+" Stk.")}${cell("Abzug Eckschieber",esc(drbMm(er.schieber.abzug))+" mm")}</tr>`
+<tr>${cell("Eckschieber (Gehrung)",esc((er.eckschieber||[]).length)+" Stk.")}${cell(er.schieber.eckModus==="zugabe"?"Zugabe Eckschieber":"Abzug Eckschieber",esc(drbMm(er.schieber.abzug))+" mm")}</tr>`
  :`<tr>${cell("Länge pro Stück",esc(drbMm(dr.stueck&&dr.stueck.laenge))+" mm")}${cell("Überlappung",esc(drbMm(dr.stueck&&dr.stueck.ueberlappung))+" mm")}</tr>`}
 <tr>${cell("Aussenecken",esc(er.aussenecken||0))}${cell("Inneneck",esc(er.inneneck||0))}</tr></table>`;
  if(svg)h+=`<div class="eb-section-head">Grundriss</div><div class="eb-diagram">${svg}</div>`;
