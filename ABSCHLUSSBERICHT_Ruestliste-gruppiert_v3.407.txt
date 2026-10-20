@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.407 – Ruestblatt/Ruestliste gruppiert
+UMGESETZT: Bei einem Streifen je Abschnitt zeigt das Ruestblatt (und die Ruestliste) die gruppierte Liste wie in der Massaufnahme statt einer Position je Abschnitt; nebeneinanderliegende Stuecke behalten die Aufteilung nach Abschnitt/Streifen; aeltere Plaene ohne Angabe unveraendert.
+NICHT GEAENDERT: Berechnung des Zuschnitts, Massaufnahme-Ansicht, Schnittbild.
+GETESTET: ruestblatt-liste-gruppiert-v3-407 (9), Ruestblatt-Pruefstaende, volle Regression.
+NICHT GETESTET: mit der echten Massaufnahme des Anwenders; Druck am Geraet.
+HINWEIS: Das Schnittbild bleibt im Blatt (beim Drucken waehlbar, v3.406).

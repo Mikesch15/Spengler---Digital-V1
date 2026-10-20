@@ -590,7 +590,14 @@ function zuRollenbandHtml(p,farbeVon){
 function zuHerkunftNoetig(p){
  if(!p)return false;
  if(p.art==="stange")return (p.stangen||[]).length>=2;
- return (p.gruppen||[]).reduce((a,g)=>a+(g.streifen||[]).length,0)>=2;
+ if((p.gruppen||[]).reduce((a,g)=>a+(g.streifen||[]).length,0)<2)return false;
+ // v3.407: Die Aufteilung in Abschnitte und Streifen braucht nur, wer Stuecke NEBENEINANDER auf der Rolle hat (mehr als ein Streifen
+ // je Abschnitt). Liegt je Abschnitt genau ein Streifen, sagt die gruppierte Liste (34 × 2'247 × 349 mm, Nummern) dasselbe viel
+ // kompakter - so wie in der Massaufnahme - statt einer Zeile je Abschnitt.
+ return (p.gruppen||[]).some(g=>{
+  const st=g.streifen||[], je=Math.round(zuZahl(g.jeAbschnitt));
+  return st.length>1&&!(je===1);     // unbekannt (alte Plaene) gilt wie nebeneinander: dann bleibt es bei der bisherigen Aufteilung
+ });
 }
 function zuGruppenZeileHtml(g,einheit,p){
  const nummern=g.stuecke.map(x=>x.nr).filter(x=>x!==undefined&&x!==null);

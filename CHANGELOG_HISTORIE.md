@@ -34874,3 +34874,7 @@ Ansage des Anwenders («blitzumsetzung»). `schieber.eckModus` ("abzug" Standard
 ### v3.406 — Rüstblatt: Rolleneinteilung beim Drucken wählbar
 
 Ansage des Anwenders. `rbDruckenAufnahmen` (js/80; wird vom einzelnen Rüstblatt, vom Projekt-Rüstblatt und von der Rüstliste js/58 genutzt) fragt nach dem Aufbau des Druckdokuments, wenn es ein Schnittbild enthält (`.zu-bilder`): «Die grafische Rolleneinteilung … auch mitdrucken?» – «Mit Rolleneinteilung» / «Ohne». Bei «Ohne» blendet das Druckdokument die Schnittbilder aus (`.zu-bilder{display:none}`), die Zuschnittliste bleibt. Ohne Schnittbild im Blatt keine Frage. Bildschirmansicht unverändert. Prüfstand `ruestblatt-druck-schnittbild-v3-406` (8, Mutationen erkannt).
+
+### v3.407 — Rüstblatt/Rüstliste: gruppierte Liste bei einem Streifen je Abschnitt
+
+Ansage des Anwenders (Foto der Massaufnahme: «34 × 2'247 × 349 mm» mit Nummern; die Rüstliste hatte zu viele Einzelpositionen). `zuHerkunftNoetig` (js/33): Die Aufteilung Abschnitt → Streifen → Stück im Rüstblatt gilt nur noch, wenn Stücke nebeneinander auf der Rolle liegen (eine Gruppe mit mehr als einem Streifen und `jeAbschnitt` ≠ 1). Bei genau einem Streifen je Abschnitt steht die gruppierte Liste wie in der Massaufnahme (Kopf «Rollenblech …», Zeile je Grösse mit allen Nummern, Fuss «n × … mm ab Rolle · 1 Streifen je Abschnitt»). Ältere Pläne ohne `jeAbschnitt` behalten die bisherige Aufteilung (Rückfall). Betrifft das einzelne Rüstblatt, das Projekt-Rüstblatt und die Rüstliste. Prüfstand `ruestblatt-liste-gruppiert-v3-407` (9, Mutationen erkannt).
