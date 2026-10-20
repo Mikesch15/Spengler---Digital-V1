@@ -499,6 +499,13 @@ async function rbDruckenAufnahmen(liste,opt){
  if(typeof zeLaden==="function"){try{await zeLaden(ms.map(m=>m.id),true)}catch(e){}}   // v3.336: Abhak-Stand frisch
  let html;
  try{ html=await rbDokumentHtml(ms,(opt&&typeof opt.gemeinsamFn==="function")?{gemeinsam:opt.gemeinsamFn(ms)}:undefined) }catch(err){ appAlert("Das Rüstblatt konnte nicht aufgebaut werden: "+((err&&err.message)||err));return }
+ // v3.406: Enthaelt das Blatt die grafische Rolleneinteilung (Schnittbild), wird beim Drucken gefragt, ob sie mitgedruckt werden soll.
+ if(/class="zu-bilder"/.test(html)){
+  const mit=(typeof appConfirm==="function")
+   ?await appConfirm("Die grafische Rolleneinteilung (Schnittbild: wo welches Stück auf der Rolle liegt) auch mitdrucken?",{ok:"Mit Rolleneinteilung",abbrechen:"Ohne"})
+   :true;
+  if(!mit)html=html.replace("</head>","<style>.zu-bilder{display:none !important}</style></head>");
+ }
  const alt=document.getElementById("rbDruckRahmen");if(alt)alt.remove();
  const fr=document.createElement("iframe");
  fr.id="rbDruckRahmen";fr.setAttribute("aria-hidden","true");

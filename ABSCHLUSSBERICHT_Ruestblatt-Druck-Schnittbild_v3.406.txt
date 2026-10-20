@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.406 – Rüstblatt: Rolleneinteilung beim Drucken wählbar
+UMGESETZT: Vor dem Drucken Frage Mit/Ohne grafische Rolleneinteilung (Schnittbild), gilt fuer Einzel-Ruestblatt, Projekt-Ruestblatt und Ruestliste. Bei Ohne wird das Schnittbild im Druck ausgeblendet.
+NICHT GEAENDERT: Bildschirmansicht, Zuschnittliste, Daten.
+GETESTET: ruestblatt-druck-schnittbild-v3-406 (8), Ruestblatt-Pruefstaende, volle Regression.
+NICHT GETESTET: echter Druck auf Handy/Drucker.
+GRENZE: Die Wahl wird bei jedem Druck neu gefragt (nicht gemerkt); Abbrechen des Dialogs zaehlt als Ohne.

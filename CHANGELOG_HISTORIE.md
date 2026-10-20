@@ -34870,3 +34870,7 @@ Ansage des Anwenders: (1) «Beim Bleilappenzuschnitt stimmt etwas nicht: es gibt
 ### v3.405 — Dachrandblech: Eckschieber mit Zugabe oder Abzug
 
 Ansage des Anwenders («blitzumsetzung»). `schieber.eckModus` ("abzug" Standard | "zugabe"): das Eckschieber-Mass wirkt je Stückende an der Ecke als Abzug (−) oder Zugabe (+); Auswahlfeld im Register «Stücke» (Schieber), Beschriftung, Warnung, Ausmass, Ausdruck und Speicherstand folgen; ältere Daten ohne Angabe = Abzug (unverändert). Eine globale Wahl für alle Eckschieber der Aufnahme (nicht je Ecke). Prüfstand `dachrand-schieber-v3-391` jetzt 37 (Mutationen erkannt).
+
+### v3.406 — Rüstblatt: Rolleneinteilung beim Drucken wählbar
+
+Ansage des Anwenders. `rbDruckenAufnahmen` (js/80; wird vom einzelnen Rüstblatt, vom Projekt-Rüstblatt und von der Rüstliste js/58 genutzt) fragt nach dem Aufbau des Druckdokuments, wenn es ein Schnittbild enthält (`.zu-bilder`): «Die grafische Rolleneinteilung … auch mitdrucken?» – «Mit Rolleneinteilung» / «Ohne». Bei «Ohne» blendet das Druckdokument die Schnittbilder aus (`.zu-bilder{display:none}`), die Zuschnittliste bleibt. Ohne Schnittbild im Blatt keine Frage. Bildschirmansicht unverändert. Prüfstand `ruestblatt-druck-schnittbild-v3-406` (8, Mutationen erkannt).
