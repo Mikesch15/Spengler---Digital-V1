@@ -224,8 +224,8 @@ function buildMeasurementFromForm(){
  }
  if(type==="mauerabdeckung"){
   const material=$("mad_material").value;
-  const {boundaries,gesamtlaenge}=computeMadBoundaries(madSegments);
-  const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass,madGehrungMass);
+  const {boundaries,gesamtlaenge}=computeMadBoundaries(madSegments,madGeschlossen);
+  const stueckliste=berechneMadStueckliste(madSegments,madSchieber,boundaries,madBodenMass,madSchieberMass,madGehrungMass,madGeschlossen);
   // Dieselben zehn Felder wie bisher, dazu die abgeleiteten Werte (Flaeche,
   // Ausmass, Zuschnitt aus Rollenblech). Eine aeltere Aufnahme oeffnet
   // unveraendert.
@@ -1183,7 +1183,7 @@ ${m.note?`<div class="eb-section-head">Notiz</div>
   const tab=madMaterialTabelle(d.material);
   const stuecke=(Array.isArray(d.stueckliste)&&d.stueckliste.length)
    ? d.stueckliste
-   : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass,d.gehrungMass??madGehrungMass);
+   : berechneMadStueckliste(segs,d.schieber||[],d.boundaries||[],d.bodenMass??madBodenMass,d.schieberMass??madSchieberMass,d.gehrungMass??madGehrungMass,!!d.geschlossen);
   bodyHtml=`${kopfHtml}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">

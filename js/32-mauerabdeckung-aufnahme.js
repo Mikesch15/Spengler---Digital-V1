@@ -55,7 +55,7 @@ function madaLeer(){
  // eingetragen werden muss. MADA_PROFIL_VORGABE bleibt fuer madaAusData()
  // (alte, gespeicherte Aufnahmen ohne eigenes Profil) unveraendert.
  // rollenAuswahl: leer = das ganze Blechlager der Firma.
- return {material:"",segmente:[],schieberManuell:false,schieber:[],
+ return {material:"",segmente:[],geschlossen:false,wunschAlle:"",schieberManuell:false,schieber:[],
          profil:{breite:"",gefaelle:"",hoeheLinks:"",hoeheRechts:"",
                  umschlagLinks:"",umschlagRechts:"",biegeLinks:"",biegeRechts:"",
                  saum:"",windexponiert:false},
@@ -71,7 +71,7 @@ const MADA_STUMMEL=[
  ["mad_biegeLinks","biegeLinks"],["mad_biegeRechts","biegeRechts"],
  ["mad_saum","saum"]
 ];
-function madaVerlaufDaten(){return calcMadSchieber(madA.segmente||[],madA.material)}
+function madaVerlaufDaten(){return calcMadSchieber(madA.segmente||[],madA.material,!!madA.geschlossen)}
 // Von Hand gesetzte Schieber schlagen die gerechneten - wie bisher ueber das
 // Kaestchen "Schieber von Hand setzen".
 function madaSchieberAktiv(){
@@ -80,6 +80,7 @@ function madaSchieberAktiv(){
 function madaBruecke(){
  const a=madA, p=a.profil||{};
  madSegments=a.segmente;
+ madGeschlossen=!!a.geschlossen;
  madSchieber=madaSchieberAktiv();
  const setz=(id,v)=>{const f=$(id); if(f)f.value=(v===""||v===null||v===undefined)?"":String(v)};
  setz("mad_material",a.material);
@@ -97,11 +98,13 @@ function madaMaterialTabelle(){return madMaterialTabelle(madA.material)}
 function madaStueckliste(){
  const {boundaries}=madaVerlaufDaten();
  return berechneMadStueckliste(madA.segmente||[],madaSchieberAktiv(),boundaries,
-   madBodenMass,madSchieberMass,madGehrungMass);
+   madBodenMass,madSchieberMass,madGehrungMass,!!madA.geschlossen);
 }
-function madaGesamtlaenge(){return computeMadBoundaries(madA.segmente||[]).gesamtlaenge}
+function madaGesamtlaenge(){return computeMadBoundaries(madA.segmente||[],!!madA.geschlossen).gesamtlaenge}
 function madaEndenMitBoden(){
  const s=madA.segmente||[];
+ // v3.409: umlaufend gibt es keinen Boden
+ if(madA.geschlossen)return {anfang:false,ende:false};
  return {anfang:!!(s[0]&&s[0].bodenLinks),ende:!!(s[s.length-1]&&s[s.length-1].bodenRechts)};
 }
 function madaGrundriss(){
@@ -109,7 +112,7 @@ function madaGrundriss(){
  if(!s.length)return '<div class="small" style="color:var(--muted);text-align:center;padding:16px">Noch kein Segment erfasst.</div>';
  const {boundaries}=madaVerlaufDaten();
  return generateRinneGrundriss(s,madaSchieberAktiv().map(x=>({posAbStart:x.posAbStart})),
-   boundaries,madaEndenMitBoden());
+   boundaries,madaEndenMitBoden(),!!madA.geschlossen);
 }
 function madaMaterialText(){
  const m=findMeasurementMaterial(madA.material);
@@ -117,7 +120,8 @@ function madaMaterialText(){
 }
 function madaEcken(){
  const s=madA.segmente||[];
- return s.slice(0,Math.max(0,s.length-1)).filter(x=>madaZahl(x.winkel)!==0).length;
+ // umlaufend zaehlt auch die Schlussecke (Winkel des letzten Segments)
+ return s.slice(0,Math.max(0,s.length-(madA.geschlossen?0:1))).filter(x=>madaZahl(x.winkel)!==0).length;
 }
 function madaBoeden(){const e=madaEndenMitBoden();return (e.anfang?1:0)+(e.ende?1:0)}
 // Blechflaeche = Gesamtlaenge x Abwicklung. Die Abwicklung kommt aus
@@ -145,6 +149,24 @@ function madaBodenAufraeumen(){
   if(i!==0)x.bodenLinks=false;
   if(i!==s.length-1)x.bodenRechts=false;
  });
+}
+// v3.409: Schluss des umlaufenden Grundrisses - Luecke zwischen Ende und Start
+// und Summe der Richtungsaenderungen (muss 360 Grad sein), wie beim Dachrand.
+function madaSchluss(){
+ const s=madA.segmente||[];
+ let x=0,y=0,h=0,summe=0;
+ s.forEach(g=>{const r=h*Math.PI/180,L=madaZahl(g.laenge);x+=Math.cos(r)*L;y+=Math.sin(r)*L;h+=madaZahl(g.winkel);summe+=madaZahl(g.winkel)});
+ const luecke=Math.round(Math.hypot(x,y));
+ return {luecke,winkelSumme:summe,schliesst:luecke<=5&&Math.abs(Math.abs(summe)-360)<0.5};
+}
+// Hinweis zur Einteilung eines Segments (wie drbEinteilungHinweis)
+function madaTeileHinweis(sg){
+ const L=madaZahl(sg.laenge);
+ if(!(L>0))return "";
+ const n=madAnzahlSeg(sg);
+ if(!n)return "automatisch nach SIA 271";
+ const wie=madTeile(sg.teile)?"":" (aus der Wunschlänge)";
+ return "→ "+n+" gleiche Stücke"+wie+", Abstand "+madaMm(L/n)+" mm";
 }
 function madaSchieberNeu(){
  if(!madA.schieberManuell)madA.schieber=madaVerlaufDaten().schieber;
@@ -273,7 +295,7 @@ function madaPruefungen(){
   // Das letzte Segment hat keinen Winkel mehr (Feld ist deaktiviert) - nur
   // bei allen anderen ist er ein Pflichtmass.
   const letztes=i===seg.length-1;
-  if(!letztes){
+  if(!letztes||madA.geschlossen){
    if(s.winkel===""||s.winkel===null||s.winkel===undefined)
     fehlt("Segment "+(i+1)+": der Winkel zum nächsten Segment fehlt.");
    else{
@@ -287,7 +309,21 @@ function madaPruefungen(){
  if(seg.length&&L<=0)fehlt("Die Gesamtlänge ist 0 mm.");
 
  const e=madaEndenMitBoden();
- if(seg.length&&!e.anfang&&!e.ende)
+ if(madA.geschlossen&&seg.length){
+  const sc=madaSchluss();
+  if(!sc.schliesst){
+   if(Math.abs(Math.abs(sc.winkelSumme)-360)>=0.5)warn("Umlaufender Grundriss: die Ecken ergeben "+Math.round(sc.winkelSumme)+"° statt 360°.");
+   else warn("Der Grundriss schliesst nicht: Abstand zwischen Ende und Start "+sc.luecke+" mm. Bitte Längen prüfen.");
+  }
+ }
+ {
+  const tab=madaMaterialTabelle();
+  seg.forEach((sg,i)=>{
+   const n=madAnzahlSeg(sg), Ls=madaZahl(sg.laenge);
+   if(n&&Ls/n>tab.maxAbstand)warn("Segment "+(i+1)+": "+n+" Stücke ergeben "+madaMm(Ls/n)+" mm Abstand – mehr als die "+madaMm(tab.maxAbstand)+" mm nach SIA 271.");
+  });
+ }
+ if(seg.length&&!madA.geschlossen&&!e.anfang&&!e.ende)
   warn("Kein Boden gesetzt – beide Enden gelten als offen. Ist das gewollt?");
 
  const sch=madaSchieberAktiv();
@@ -420,12 +456,16 @@ function madaSegmentKarte(s,i,anzahl){
 </div>
 <div class="grid">
 ${madaFeld("Länge (mm)",`<input type="number" inputmode="numeric" step="1" data-mada-laenge="${i}" value="${s.laenge===""||s.laenge===null||s.laenge===undefined?"":madaZahl(s.laenge)}" data-pflicht="1">`)}
-${madaFeld(letzte?"Winkel – am letzten Segment folgt nichts mehr":"Ecke zum nächsten Segment (°)",
+${madaFeld(letzte&&!madA.geschlossen?"Winkel – am letzten Segment folgt nichts mehr":(letzte?"Schlussecke zum ersten Segment (°)":"Ecke zum nächsten Segment (°)"),
  `<div style="display:flex;gap:6px;align-items:stretch">
-<input type="number" inputmode="numeric" step="1" data-mada-winkel="${i}" value="${s.winkel===""||s.winkel===null||s.winkel===undefined?"":madaZahl(s.winkel)}"${letzte?" disabled":' data-pflicht="1"'} style="flex:1 1 auto;min-width:0">
-<button type="button" class="gray" data-mada-flip="${i}" title="Winkel umkehren"${letzte?" disabled":""} style="flex:0 0 auto;padding:0 12px">🔄</button></div>`)}
+<input type="number" inputmode="numeric" step="1" data-mada-winkel="${i}" value="${s.winkel===""||s.winkel===null||s.winkel===undefined?"":madaZahl(s.winkel)}"${letzte&&!madA.geschlossen?" disabled":' data-pflicht="1"'} style="flex:1 1 auto;min-width:0">
+<button type="button" class="gray" data-mada-flip="${i}" title="Winkel umkehren"${letzte&&!madA.geschlossen?" disabled":""} style="flex:0 0 auto;padding:0 12px">🔄</button></div>`)}
 </div>
-${i===0||letzte?`<div style="display:flex;flex-wrap:wrap;gap:6px 20px">
+<div class="grid">
+${madaFeld("Anzahl gleiche Stücke",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="auto" data-mada-teile="${i}" value="${madTeile(s.teile)||""}">`)}
+${madaFeld("oder Wunschlänge (mm)",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="auto" data-mada-wunsch="${i}" value="${madWunsch(s.wunsch)||""}">`)}
+</div><div class="small" data-mada-hinweis="${i}">${esc(madaTeileHinweis(s))}</div>
+${!madA.geschlossen&&(i===0||letzte)?`<div style="display:flex;flex-wrap:wrap;gap:6px 20px">
 ${i===0?`<label class="ra-schalter"><input type="checkbox" data-mada-boden-l="${i}"${s.bodenLinks?" checked":""}> Boden am Anfang</label>`:""}
 ${letzte?`<label class="ra-schalter"><input type="checkbox" data-mada-boden-r="${i}"${s.bodenRechts?" checked":""}> Boden am Ende</label>`:""}
 </div>`:""}
@@ -435,9 +475,17 @@ function madaVerlaufHtml(){
  const s=madA.segmente;
  const karten=s.length?s.map((x,i)=>madaSegmentKarte(x,i,s.length)).join("")
   :'<div class="small" style="color:var(--muted);text-align:center;padding:14px">Noch kein Segment. Mit „＋ Segment hinzufügen“ beginnen.</div>';
+ const sc=madA.geschlossen&&s.length?madaSchluss():null;
+ const schlussHinweis=sc&&!sc.schliesst
+  ?`<div class="ra-warnung">${Math.abs(Math.abs(sc.winkelSumme)-360)>=0.5?"Die Ecken ergeben "+Math.round(sc.winkelSumme)+"° statt 360°.":"Der Grundriss schliesst nicht: Abstand zwischen Ende und Start "+sc.luecke+" mm."} Bitte Längen und Winkel prüfen.</div>`:"";
  return `<div class="info">START → Segment → Ecke → Segment → Ecke → Segment → ENDE.
 Der Winkel eines Segments ist die Richtungsänderung zum <b>nächsten</b> Segment
-(90° = normale Ecke, 🔄 kehrt sie um). Das letzte Segment hat keinen Winkel mehr.</div>
+(90° = normale Ecke, 🔄 kehrt sie um). ${madA.geschlossen?"Umlaufend: das letzte Segment hat die Schlussecke zurück zum ersten.":"Das letzte Segment hat keinen Winkel mehr."}</div>
+<label class="ra-schalter" style="margin:8px 0"><input type="checkbox" id="mada_geschlossen"${madA.geschlossen?" checked":""}> Umlaufend (der Grundriss schliesst wieder am Start)</label>
+${schlussHinweis}
+<div class="grid">${madaFeld("Wunschlänge für alle Segmente (mm)",`<input id="mada_wunschAlle" type="number" inputmode="numeric" step="1" min="1" placeholder="z. B. 2500" value="${madWunsch(madA.wunschAlle)||""}">`)}
+<div class="fpa-feld"><label>&nbsp;</label><button type="button" class="gray" id="mada_wunschAlleBtn">Für alle Segmente übernehmen</button></div></div>
+<div class="small">Je Segment entweder die <b>Anzahl</b> gleich langer Stücke oder eine <b>Wunschlänge</b> eintragen – bei einer Wunschlänge nimmt die App die Anzahl, die ihr am nächsten kommt. Die Anzahl hat Vorrang. Leer = Schieber automatisch nach SIA 271.</div>
 ${karten}
 <div class="bar"><button type="button" class="gray" id="mada_segPlus" style="min-height:46px;font-weight:700">＋ Segment hinzufügen</button></div>
 ${madaKennzahlen()}
@@ -466,8 +514,8 @@ function madaBodenSchieberHtml(){
 ganzen Verlaufs. Er wirkt wie ein Fixpunkt: ab dort gilt der halbe Abstand –
 genau wie an einer Ecke.</div>
 <div style="display:flex;flex-wrap:wrap;gap:6px 20px">
-<label class="ra-schalter"><input type="checkbox" id="mada_bodenL"${e.anfang?" checked":""}${s.length?"":" disabled"}> Boden am Anfang</label>
-<label class="ra-schalter"><input type="checkbox" id="mada_bodenR"${e.ende?" checked":""}${s.length?"":" disabled"}> Boden am Ende</label>
+${madA.geschlossen?'<div class="small">Umlaufender Grundriss: kein Boden – Start und Ende sind dieselbe Ecke.</div>':`<label class="ra-schalter"><input type="checkbox" id="mada_bodenL"${e.anfang?" checked":""}${s.length?"":" disabled"}> Boden am Anfang</label>
+<label class="ra-schalter"><input type="checkbox" id="mada_bodenR"${e.ende?" checked":""}${s.length?"":" disabled"}> Boden am Ende</label>`}
 </div>
 ${boundaries.length?`<h3 style="margin-top:14px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Grenzpunkte</h3>
 <div class="scroll"><table class="eb-table ra-tab">
@@ -697,6 +745,12 @@ function madaAbschluss(){
 }
 
 // ---- Bedienung -------------------------------------------------------------
+function madaTeileHinweiseNeu(){
+ document.querySelectorAll("[data-mada-hinweis]").forEach(el=>{
+  const sg=madA.segmente[Number(el.dataset.madaHinweis)];
+  if(sg)el.textContent=madaTeileHinweis(sg);
+ });
+}
 function madaVerdrahten(){
  const wurzel=$("measTypeMauerabdeckung");
  if(!wurzel||wurzel.dataset.madaVerdrahtet)return;
@@ -715,6 +769,17 @@ function madaVerdrahten(){
    if(s){s.winkel=t.value===""?"":madaZahl(t.value);madaSchieberNeu();madaLive()}
    return;
   }
+  if(d.madaTeile!==undefined){
+   const s=a.segmente[Number(d.madaTeile)];
+   if(s){s.teile=madTeile(t.value)||"";madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   return;
+  }
+  if(d.madaWunsch!==undefined){
+   const s=a.segmente[Number(d.madaWunsch)];
+   if(s){s.wunsch=madWunsch(t.value)||"";madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   return;
+  }
+  if(t.id==="mada_wunschAlle"){a.wunschAlle=madWunsch(t.value)||"";return}
   if(d.madaProfil!==undefined){
    // Leeres Feld bleibt leer, damit die Vorgabe aus dem Gefaelle greifen kann.
    a.profil[d.madaProfil]=t.value===""?"":madaZahl(t.value);
@@ -734,6 +799,7 @@ function madaVerdrahten(){
   {const w=zuRollenKlick(e.target,"data-mada-rolle");
    if(w!==null){madA.rollenAuswahl=w; renderMauerabdeckungAufnahme(); return}}
   if(t.id==="mada_material"){a.material=t.value;madaSchieberNeu();renderMauerabdeckungAufnahme();return}
+  if(t.id==="mada_geschlossen"){a.geschlossen=!!t.checked;madaBodenAufraeumen();madaSchieberNeu();renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_wind"){a.profil.windexponiert=t.checked;renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_manuell"){
    a.schieberManuell=t.checked;
@@ -785,6 +851,12 @@ function madaVerdrahten(){
    }
    return;
   }
+  if(t.id==="mada_wunschAlleBtn"){
+   const w=madWunsch(($("mada_wunschAlle")||{}).value);
+   if(!w){appAlert("Bitte eine Wunschlänge in mm eingeben.");return}
+   a.wunschAlle=w; a.segmente.forEach(sg=>{sg.wunsch=w;sg.teile=""});
+   madaSchieberNeu(); renderMauerabdeckungAufnahme(); return;
+  }
   if(t.id==="mada_segPlus"){madaSegmentAnhaengen();renderMauerabdeckungAufnahme();return}
   if(d.madaWeg!==undefined){
    if(await appConfirm("Segment "+(Number(d.madaWeg)+1)+" wirklich löschen?")){
@@ -830,6 +902,8 @@ function madaAusData(d){
  const rq=(d.rollen&&d.rollen.auswahl);
  a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.segmente=Array.isArray(d.segments)?d.segments.map(s=>({...s})):[];
+ a.geschlossen=!!d.geschlossen;
+ a.wunschAlle=madWunsch(d.wunschAlle)||"";
  // Eine gespeicherte Aufnahme bringt ihre Schieber mit - die duerfen nicht
  // ueberschrieben werden, genau wie bisher ueber "Schieber von Hand".
  a.schieber=Array.isArray(d.schieber)?d.schieber.map(s=>({...s})):[];
@@ -867,6 +941,8 @@ function madaFuellen(d){
 function madaZusatzDaten(){
  const plan=madaRollenPlan();
  return {
+  geschlossen:!!madA.geschlossen,
+  wunschAlle:madWunsch(madA.wunschAlle)||"",
   flaeche_m2:Number(madaFlaecheM2().toFixed(3)),
   ausmass:madaAusmassZeilen(),
   // Der Kontrollstand wird MITGESPEICHERT, damit ihn der Ausdruck zeigen

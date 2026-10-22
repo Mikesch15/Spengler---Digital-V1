@@ -82,7 +82,7 @@ const RS_SKIZZEN={
    rsEintrag(liste,"Profil (Querschnitt)",()=>madProfilSvgAus(d.profil));
   if(typeof generateRinneGrundriss==="function")
    rsEintrag(liste,"Grundriss",()=>generateRinneGrundriss(segs,d.schieber||[],d.boundaries||[],
-     {anfang:!!(segs[0]&&segs[0].bodenLinks),ende:!!(segs[segs.length-1]&&segs[segs.length-1].bodenRechts)}));
+     d.geschlossen?{}:{anfang:!!(segs[0]&&segs[0].bodenLinks),ende:!!(segs[segs.length-1]&&segs[segs.length-1].bodenRechts)},!!d.geschlossen));
  },
  freies_profil(d,liste){
   if(typeof generateProfilDiagramSvg==="function")

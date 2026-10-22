@@ -231,7 +231,7 @@ $("rinne_dilasBody").addEventListener("click",e=>{
  renderRinneDilasList();
  updateRinneDiagramAndSummary();
 });
-function generateRinneGrundriss(segments,dilas,boundaries,enden){
+function generateRinneGrundriss(segments,dilas,boundaries,enden,geschlossen){
  dilas=dilas||[];
  boundaries=boundaries||[];
  // enden: {anfang:true,ende:true} – setzt bei der Mauerabdeckung ein
@@ -281,6 +281,16 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden){
   const p2x=shaftEndX+ux*headWidth,p2y=shaftEndY+uy*headWidth;
   const p3x=shaftEndX-ux*headWidth,p3y=shaftEndY-uy*headWidth;
   arrows+=`<polygon points="${mx.toFixed(1)},${my.toFixed(1)} ${p2x.toFixed(1)},${p2y.toFixed(1)} ${p3x.toFixed(1)},${p3y.toFixed(1)}" fill="#b42318"/>`;
+ }
+ // v3.409: umlaufender Grundriss - schliesst das letzte Segment nicht am Start,
+ // zeigt eine rote gestrichelte Linie die Luecke; einen Boden gibt es dann nicht.
+ if(geschlossen){
+  enden={};
+  const pe=pts[pts.length-1],p0=pts[0];
+  if(Math.hypot(pe.x-p0.x,pe.y-p0.y)>5){
+   const [ex,ey]=toSvg(pe),[sx,sy]=toSvg(p0);
+   lines+=`<line x1="${ex.toFixed(1)}" y1="${ey.toFixed(1)}" x2="${sx.toFixed(1)}" y2="${sy.toFixed(1)}" stroke="#b42318" stroke-width="2" stroke-dasharray="5 4"/>`;
+  }
  }
  let boeden="";
  const bodenZeichen=(punkt,nachbar,text)=>{

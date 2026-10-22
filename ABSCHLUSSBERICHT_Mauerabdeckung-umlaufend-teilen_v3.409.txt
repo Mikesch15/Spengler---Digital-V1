@@ -1,0 +1,6 @@
+ABSCHLUSSBERICHT v3.409 - Mauerabdeckung: umlaufender Grundriss und gleiche Stuecke
+
+Auftrag: Grundriss kann geschlossen sein; Laengen in gleichmaessige Stuecke teilen (Anzahl oder Wunschlaenge), identisch zum Dachrandblech.
+
+Umgesetzt: Schalter "Umlaufend" (Schlussecke, kein Boden, Schluss-Pruefung Luecke/360 Grad, rote Luecke im Grundriss); je Segment Anzahl oder Wunschlaenge (Anzahl hat Vorrang, naechstpassende Anzahl, bei Gleichstand kleinere Laenge), "Fuer alle Segmente uebernehmen", Hinweis je Segment, Warnung ueber SIA-Maximum. Gehrungszugabe der Schlussecke auf erstem und letztem Stueck. Speichern/Laden/Ruestskizze; alte Aufnahmen unveraendert.
+Nicht live getestet (Sandbox ohne Zugriff auf Produktion); Pruefstand mauerabdeckung-teilen-geschlossen-v3-409 (26 ok).

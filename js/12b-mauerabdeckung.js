@@ -25,18 +25,44 @@ function madMaterialTabelle(material){
 
 let madSegments=[];   // {laenge,winkel,bodenLinks,bodenRechts}
 let madSchieber=[];   // {posAbStart}
+// v3.409: umlaufender Grundriss (letztes Segment schliesst am Start). Wird von
+// madaBruecke() gesetzt; die Funktionen unten bekommen den Wert als Parameter.
+let madGeschlossen=false;
+
+// v3.409: Segment in n gleich lange Stuecke teilen - Anzahl ODER Wunschlaenge,
+// gleiche Regel wie beim Dachrandblech (drbAnzahlWunsch): die Anzahl, deren
+// Stuecklaenge der Wunschlaenge am naechsten kommt; bei Gleichstand die kleinere.
+function madTeile(v){const n=Math.floor(Number(v));return Number.isFinite(n)&&n>=1&&n<=200?n:0}
+function madWunsch(v){const w=Number(v);return Number.isFinite(w)&&w>0?w:0}
+function madAnzahlWunsch(L,W){
+ if(!(L>0)||!(W>0))return 0;
+ const n0=Math.max(1,Math.ceil(L/W-1e-9));
+ let best=n0;
+ if(n0>1&&Math.abs(L/(n0-1)-W)<Math.abs(L/n0-W)-1e-9)best=n0-1;
+ return Math.min(200,best);
+}
+// Wirksame Anzahl eines Segments: Anzahl hat Vorrang, dann Wunschlaenge, sonst 0 (= SIA 271 automatisch)
+function madAnzahlSeg(s){
+ const n=madTeile(s&&s.teile);
+ if(n)return n;
+ return madAnzahlWunsch(Number(s&&s.laenge)||0,madWunsch(s&&s.wunsch));
+}
 
 // ---- Grenzpunkte: Ecken bekommen die halbierte Regel ----
-function computeMadBoundaries(segments){
+function computeMadBoundaries(segments,geschlossen){
  if(!segments.length)return{boundaries:[],gesamtlaenge:0};
  let cum=0;
- const boundaries=[{pos:0,typ:segments[0].bodenLinks?"ecke":"ende",name:segments[0].bodenLinks?"Boden":"Start"}];
+ // Umlaufend: Start und Ende sind dieselbe Ecke (Winkel des letzten Segments), kein Boden.
+ const wZu=Number(segments[segments.length-1].winkel)||0;
+ const zuGrenze=wZu!==0?{typ:"ecke",name:`Ecke ${wZu}°`}:{typ:"gerade",name:"Segmentgrenze"};
+ const boundaries=[geschlossen?{pos:0,...zuGrenze}:{pos:0,typ:segments[0].bodenLinks?"ecke":"ende",name:segments[0].bodenLinks?"Boden":"Start"}];
  for(let i=0;i<segments.length;i++){
   cum+=Number(segments[i].laenge)||0;
   const istLetzte=i===segments.length-1;
   if(istLetzte){
    // Ein Boden wirkt wie ein Fixpunkt: ab dort gilt der halbe Abstand.
-   boundaries.push({pos:cum,typ:segments[i].bodenRechts?"ecke":"ende",name:segments[i].bodenRechts?"Boden":"Ende"});
+   if(geschlossen)boundaries.push({pos:cum,...zuGrenze});
+   else boundaries.push({pos:cum,typ:segments[i].bodenRechts?"ecke":"ende",name:segments[i].bodenRechts?"Boden":"Ende"});
   }else{
    const winkel=Number(segments[i].winkel)||0;
    if(winkel!==0)boundaries.push({pos:cum,typ:"ecke",name:`Ecke ${winkel}°`});
@@ -47,10 +73,10 @@ function computeMadBoundaries(segments){
 }
 
 // ---- Schieber automatisch setzen ----
-function calcMadSchieber(segments,material){
+function calcMadSchieber(segments,material,geschlossen){
  const tab=madMaterialTabelle(material);
  if(!segments.length)return{schieber:[],tabelle:tab,boundaries:[],gesamtlaenge:0};
- const {boundaries,gesamtlaenge}=computeMadBoundaries(segments);
+ const {boundaries,gesamtlaenge}=computeMadBoundaries(segments,geschlossen);
  const schieber=[];
  for(let i=0;i<boundaries.length-1;i++){
   const left=boundaries[i],right=boundaries[i+1];
@@ -58,7 +84,10 @@ function calcMadSchieber(segments,material){
   const leftMax =left.typ==="ecke" ?tab.abEcke:tab.maxAbstand;
   const rightMax=right.typ==="ecke"?tab.abEcke:tab.maxAbstand;
   // gleiche Verteilungslogik wie bei der Rinne
-  const relPositions=calcDilaPositionsInStretch(L,leftMax,rightMax,tab.maxAbstand);
+  // v3.409: eingetragene Anzahl/Wunschlaenge teilt das Segment in n gleiche Teile
+  const nT=madAnzahlSeg(segments[i]);
+  const relPositions=nT?Array.from({length:nT-1},(_,j)=>L*(j+1)/nT)
+   :calcDilaPositionsInStretch(L,leftMax,rightMax,tab.maxAbstand);
   relPositions.forEach(rp=>schieber.push({posAbStart:left.pos+rp}));
  }
  return{schieber,tabelle:tab,boundaries,gesamtlaenge};
@@ -69,11 +98,11 @@ function calcMadSchieber(segments,material){
 // dazwischen im Verlauf) - bisher bekam eine Ecke gar keine Zugabe, obwohl
 // dort ein Gehrschnitt anfaellt. Wie Boden/Schieber je Seite, nur eben an
 // jeder inneren Ecke statt an den Aussenenden oder an einem Schieber.
-function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberMass,gehrungMass){
+function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberMass,gehrungMass,geschlossen){
  const segGrenzen=[0];
  let acc=0;
  (segments||[]).forEach(s=>{acc+=Number(s.laenge)||0;segGrenzen.push(acc)});
- const bm=Number(bodenMass)||0, sm=Number(schieberMass)||0, gm=Number(gehrungMass)||0;
+ const bm=geschlossen?0:(Number(bodenMass)||0), sm=Number(schieberMass)||0, gm=Number(gehrungMass)||0;
  // Boden zählt nur an den beiden Aussenenden des ganzen Verlaufs
  const bodenLinksSeite=[],bodenRechtsSeite=[];
  // Gehrung zählt nur an einer INNEREN Grenze mit Winkel != 0 - direkt aus dem
@@ -86,6 +115,8 @@ function berechneMadStueckliste(segments,schieber,boundaries,bodenMass,schieberM
   bodenLinksSeite[i] =(i===segGrenzen.length-1&&segments[i-1]&&segments[i-1].bodenRechts)?bm:0;
   bodenRechtsSeite[i]=(i===0&&segments[0]&&segments[0].bodenLinks)?bm:0;
   gehrungAnGrenze[i]=(i>0&&i<segGrenzen.length-1&&segments[i-1]&&Number(segments[i-1].winkel)!==0)?gm:0;
+  // umlaufend: die Schlussecke (Winkel des letzten Segments) liegt am Anfang und am Ende
+  if(geschlossen&&(i===0||i===segGrenzen.length-1)&&segments.length&&Number(segments[segments.length-1].winkel)!==0)gehrungAnGrenze[i]=gm;
  });
  const punkte=[];
  segGrenzen.forEach((pos,i)=>{
