@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.411.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.412.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1044,7 +1044,7 @@ Jede Kante wird für sich eingeteilt – volle Stücke und ein Rest, oder alle g
 <h4>Stossart «Schieber» (ab 3.391)</h4>
 <p>Statt der Überlappung kannst du die Stösse als <b>Schieber</b> (Dehnungselemente) ausführen – wie bei der Mauerabdeckung. Die App setzt die Schieber nach <b>SIA 271</b>
 für den gewählten Werkstoff (je Werkstoff ein grösster Abstand zwischen zwei Schiebern, ab einer Ecke der halbe Abstand), jede Kante für sich. Jedes Stückende am Schieber bekommt die
-<b>Schieber-Zugabe</b> (Standard aus den Einstellungen der Mauerabdeckung, hier überschreibbar).</p>
+<b>Schieber-Zugabe</b> (gehört zur Massaufnahme, 0 mm wenn nichts eingetragen).</p>
 <p><b>Eckschieber (Gehrung):</b> An jeder Ecke kannst du einen Eckschieber wählen. Er sitzt genau in der Ecke, beide Stücke gehen auf Gehrung. Die Ecke gilt dann nicht mehr als Fixpunkt,
 und beide Stücke werden um den eigenen <b>Abzug Eckschieber</b> kürzer (nicht die Gehrungszugabe). Leer = 0 mm. Der Einhängestreifen rechnet weiter mit der Länge pro Stück.</p>`},
 

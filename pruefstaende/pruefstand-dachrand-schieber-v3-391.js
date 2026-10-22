@@ -28,14 +28,14 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r===undefined,"Alte gespeicherte Daten ohne «stoss» rechnen wie bisher (Überlappung)");
 
  console.log("\nB · Schieber nach SIA 271 (Titanzink: 5.00 m, ab Ecke 2.50 m)");
- r=await ev(()=>{madSchieberMass=30;const d=D([K(12000,"ende")]);const x=drbStueckeFuer(d,null);return {l:x.stuecke.map(s=>s.laenge),n:x.schieberAnzahl,mat:x.materialLaenge,ok:x.ok}});
+ r=await ev(()=>{const d=D([K(12000,"ende")],{schieber:{zugabe:30,abzug:""}});const x=drbStueckeFuer(d,null);return {l:x.stuecke.map(s=>s.laenge),n:x.schieberAnzahl,mat:x.materialLaenge,ok:x.ok}});
  p(r.ok&&r.n===2&&r.l.join(",")==="4030,4060,4030","12 m ohne Ecke: 2 Schieber, 3 Stücke, Zugabe 30 mm je Stückende am Schieber (4030 + 4060 + 4030)",r);
  p(r.mat===12000+4*30,"Material = Länge + 4 Schieber-Stückenden × 30 mm",r.mat);
  r=await ev(()=>{const d=D([K(12000,"ende")],{schieber:{zugabe:50,abzug:""}});const x=drbStueckeFuer(d,null);return x.stuecke.map(s=>s.laenge).join(",")});
- p(r==="4050,4100,4050","Die Zugabe in der Massaufnahme überschreibt den Standard der Einstellungen (50 statt 30)",r);
- r=await ev(()=>{madSchieberMass=30;const d=D([K(4000,"ende")]);return drbStueckeFuer(d,null).stuecke.map(s=>s.laenge+":"+s.von+"-"+s.bis).join(" ")});
+ p(r==="4050,4100,4050","Die Zugabe in der Massaufnahme gilt (50)",r);
+ r=await ev(()=>{const d=D([K(4000,"ende")],{schieber:{zugabe:30,abzug:""}});return drbStueckeFuer(d,null).stuecke.map(s=>s.laenge+":"+s.von+"-"+s.bis).join(" ")});
  p(r==="4000:0-4000","Eine Kante unter 5 m braucht keinen Schieber: ein Stück ohne Zugabe",r);
- r=await ev(()=>{const d=D([K(8000,"aussen"),K(6000,"ende")]);return L(drbStueckeFuer(d,null))});
+ r=await ev(()=>{const d=D([K(8000,"aussen"),K(6000,"ende")],{schieber:{zugabe:30,abzug:""}});return L(drbStueckeFuer(d,null))});
  p(r==="0:2780 0:2810 0:2530 1:2530 1:3530","Mit Ecke gilt ab Ecke der halbe Abstand (2.50 m) – Zugaben nur am Schieber, nicht an der Ecke",r);
 
  console.log("\nC · Eckschieber (Gehrung) mit eigenem Abzug");
@@ -101,7 +101,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   return {a1,a2,sch:fpA.dachrand.schieber}});
  p(r.a1==="schieber"&&r.a2===true&&r.sch.zugabe===45&&r.sch.abzug===12&&r.sch.eckModus==="zugabe","Bedienung: Stossart, Eckschieber-Haken, Zugabe, Eckschieber-Mass und seine Wahl Zugabe/Abzug landen im Modell",r);
  console.log("\nZ · v3.405: Eckschieber mit Zugabe ODER Abzug");
- r=await ev(()=>{madSchieberMass=30;const mk=m=>D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20,eckModus:m}});return {ab:L(drbStueckeFuer(mk("abzug"),null)),zu:L(drbStueckeFuer(mk("zugabe"),null)),std:L(drbStueckeFuer(D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20}}),null))}});
+ r=await ev(()=>{const mk=m=>D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20,eckModus:m}});return {ab:L(drbStueckeFuer(mk("abzug"),null)),zu:L(drbStueckeFuer(mk("zugabe"),null)),std:L(drbStueckeFuer(D([K(8000,"aussen",true),K(6000,"ende")],{schieber:{zugabe:30,abzug:20}}),null))}});
  p(r.ab==="0:4030 0:4010 1:3010 1:3030","Abzug (wie bisher): beide Stücke an der Ecke 20 mm kürzer",r.ab);
  p(r.zu==="0:4030 0:4050 1:3050 1:3030","Zugabe: beide Stücke an der Ecke 20 mm länger",r.zu);
  p(r.std===r.ab,"Ohne Angabe (ältere Massaufnahmen) gilt weiter der Abzug",r.std);

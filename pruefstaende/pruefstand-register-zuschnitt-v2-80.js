@@ -83,7 +83,7 @@ const auf=async(page,a)=>{
    {id:3,name:"Kupfer",legacy_key:"kupfer",max_abstand_mm:6000,ab_fixpunkt_mm:3000},
    {id:6,name:"Stahl, verzinkt",legacy_key:"stahl_verzinkt",max_abstand_mm:8000,ab_fixpunkt_mm:4000}];
   blechRollenbreiten=[];
-  madBodenMass=0; madSchieberMass=10;
+  madBodenMass=0; madSchieberMass=10;{const _l=madaLeer;madaLeer=function(){const a=_l();a.schieberEingabe=10;return a}}   // v3.412: Schieber-Zugabe gehoert zur Massaufnahme
   rinneDilaMass=-165;
   rinneNormlaengen={"6|200":[6000],"6|250":[6000],"6|330":[6000]};
   rinneFittingTypes=[

@@ -60,7 +60,7 @@ function drbAusData(d){
  a.kanten=Array.isArray(d.kanten)?d.kanten.map(k=>({laenge:k.laenge===undefined?"":k.laenge,
    ecke:["aussen","innen","winkel","ende"].includes(k.ecke)?k.ecke:"aussen",winkel:k.winkel===undefined?90:k.winkel,eckschieber:!!k.eckschieber,teile:drbTeile(k.teile)||"",wunsch:drbWunsch(k.wunsch)||""})):[];
  a.stoss=d.stoss==="schieber"?"schieber":"ueberlappung";
- if(d.schieber&&typeof d.schieber==="object")a.schieber={zugabe:d.schieber.zugabe===undefined?"":d.schieber.zugabe,abzug:d.schieber.abzug===undefined?"":d.schieber.abzug,eckModus:d.schieber.eckModus==="zugabe"?"zugabe":"abzug"};
+ if(d.schieber&&typeof d.schieber==="object")a.schieber={zugabe:d.schieber.zugabe===undefined||d.schieber.zugabe===""?(d.ergebnis&&d.ergebnis.schieber&&Number.isFinite(Number(d.ergebnis.schieber.zugabe))?Number(d.ergebnis.schieber.zugabe):""):d.schieber.zugabe,abzug:d.schieber.abzug===undefined?"":d.schieber.abzug,eckModus:d.schieber.eckModus==="zugabe"?"zugabe":"abzug"};
  a.geschlossen=!!d.geschlossen;
  if(d.stueck)a.stueck={laenge:d.stueck.laenge===undefined?DRB_STANDARD.stueckLaenge:d.stueck.laenge,
    ueberlappung:d.stueck.ueberlappung===undefined?DRB_STANDARD.ueberlappung:d.stueck.ueberlappung,gleich:!!d.stueck.gleich};
@@ -182,7 +182,7 @@ function drbEckTyp(kanten,j){
 }
 function drbSchieberWerte(d){
  const sch=d&&d.schieber||{};
- const std=(typeof madSchieberMass!=="undefined"&&Number.isFinite(Number(madSchieberMass)))?Number(madSchieberMass):0;
+ const std=0;   // v3.412: die Schieber-Zugabe gehoert zur Massaufnahme, nicht mehr in die Einstellungen
  return {zugabe:drbHat(sch.zugabe)?drbZ(sch.zugabe):std,zugabeStandard:!drbHat(sch.zugabe),abzug:drbHat(sch.abzug)?drbZ(sch.abzug):0,eckModus:sch.eckModus==="zugabe"?"zugabe":"abzug"};   // v3.405: das Eckschieber-Mass wirkt als Abzug (kuerzer) ODER als Zugabe (laenger)
 }
 function drbStueckeSchieber(d,material){

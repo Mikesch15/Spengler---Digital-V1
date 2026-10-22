@@ -78,8 +78,7 @@ const EFIRMA_STAND_QUELLEN={
  einfassung_rund:()=>einfassungSettings,
  kamineinfassung:()=>kaminSettings,
  dachfenstereinfassung:()=>dfaSettings,
- mauerabdeckung:()=>({boden_mass:madBodenMass,schieber_mass:madSchieberMass,boden_ausmass_mass:madBodenAusmassMass}),
- dachrandblech:()=>({schieber_mass:madSchieberMass}),
+ mauerabdeckung:()=>({boden_mass:madBodenMass,boden_ausmass_mass:madBodenAusmassMass}),
  lukarne:()=>({achsabstand:lukAchsabstand,hilfsriss:lukHilfsriss,zugabe_breite:lukZugabeBreite,zugabe_laenge:lukZugabeLaenge}),
  rinne_halbrund:()=>({dila_mass:rinneDilaMass,dila_ausmass_mass:rinneDilaAusmassMass})
 };

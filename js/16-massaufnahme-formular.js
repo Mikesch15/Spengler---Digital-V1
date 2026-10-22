@@ -240,7 +240,7 @@ function buildMeasurementFromForm(){
    gesamtlaenge,
    stueckliste,
    bodenMass:madBodenMass,
-   schieberMass:madSchieberMass,
+   schieberMass:(typeof madaSchieberMassWert==="function"?madaSchieberMassWert():madSchieberMass),
    gehrungMass:madGehrungMass,
    ...zusatz
   }};

@@ -1,0 +1,1 @@
+ABSCHLUSSBERICHT v3.412 - Schieber-Zugabe/-Abzug je Massaufnahme (Mauerabdeckung neu, Dachrand ohne Einstellungs-Standard), aus den Einstellungen entfernt. Nicht live getestet; Pruefstaende angepasst.

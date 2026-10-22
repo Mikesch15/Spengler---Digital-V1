@@ -83,9 +83,9 @@ const INIT=()=>{
 
 
  console.log("\nF · v3.395: Einstellungs-Stand bei ALLEN Arten");
- const ARTEN=["einlaufblech_gerade","einlaufblech_konisch","kehle","anschlussblech","einfassung_rund","kamineinfassung","dachfenstereinfassung","mauerabdeckung","dachrandblech","lukarne","rinne_halbrund"];
+ const ARTEN=["einlaufblech_gerade","einlaufblech_konisch","kehle","anschlussblech","einfassung_rund","kamineinfassung","dachfenstereinfassung","mauerabdeckung","lukarne","rinne_halbrund"];
  r=await ev((arten)=>arten.map(t=>{const s=efStandAktuell(t);return [t,!!s&&Object.keys(s).length>0&&Object.values(s).every(v=>typeof v==="number"||typeof v==="string")]}),ARTEN);
- p(r.every(x=>x[1]),"Für alle 11 Arten gibt es einen Einstellungs-Stand aus einfachen Werten",r.filter(x=>!x[1]));
+ p(r.every(x=>x[1]),"Für alle 10 Arten gibt es einen Einstellungs-Stand aus einfachen Werten",r.filter(x=>!x[1]));
  r=await ev((arten)=>arten.map(t=>{
    const snap=efStandAktuell(t);const m=(e)=>({type:t,data:{_einst:e}});
    const k=Object.keys(snap)[0];const geaendert={...snap,[k]:typeof snap[k]==="number"?snap[k]+1:snap[k]+"x"};

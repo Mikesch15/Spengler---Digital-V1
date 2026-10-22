@@ -107,7 +107,7 @@ const text=page=>page.evaluate(()=>$("mauerabdeckungAufnahme").innerText);
    {id:3,name:"Kupfer",legacy_key:"kupfer",max_abstand_mm:6000,ab_fixpunkt_mm:3000},
    {id:6,name:"Stahl, verzinkt",legacy_key:"stahl_verzinkt",max_abstand_mm:8000,ab_fixpunkt_mm:4000}];
   blechRollenbreiten=[];          // -> Standard 1000 / 670
-  madBodenMass=0; madSchieberMass=10;   // Stand der laufenden App
+  madBodenMass=0; madSchieberMass=10;{const _l=madaLeer;madaLeer=function(){const a=_l();a.schieberEingabe=10;return a}}   // v3.412: Schieber-Zugabe gehoert zur Massaufnahme   // Stand der laufenden App
   // v3.84: die Gehrung-Zugabe ist standardmaessig 100mm (Ecke) - dieser
   // Pruefstand rechnet seine Zahlen von Hand ohne sie nach, deshalb hier
   // ausdruecklich auf 0 gesetzt (eigene Faelle fuer die Gehrung-Zugabe

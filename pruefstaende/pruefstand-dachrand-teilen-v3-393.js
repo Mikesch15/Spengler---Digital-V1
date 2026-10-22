@@ -30,7 +30,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>drbStueckeBerechnen([{laenge:5000,ecke:"ende",teile:1}],3000,40,false).stuecke.map(s=>s.laenge).join());
  p(r==="5000","1 Stück = ganze Kante",r);
  console.log("\nB · Schieber: n gleiche Stücke");
- r=await ev(()=>{madSchieberMass=30;const d={kanten:[{laenge:12000,ecke:"ende",teile:4}],stoss:"schieber",geschlossen:false,schieber:{zugabe:"",abzug:""},stueck:{laenge:3000,ueberlappung:40}};const x=drbStueckeFuer(d,null);return {l:x.stuecke.map(s=>s.laenge),n:x.schieberAnzahl}});
+ r=await ev(()=>{const d={kanten:[{laenge:12000,ecke:"ende",teile:4}],stoss:"schieber",geschlossen:false,schieber:{zugabe:30,abzug:""},stueck:{laenge:3000,ueberlappung:40}};const x=drbStueckeFuer(d,null);return {l:x.stuecke.map(s=>s.laenge),n:x.schieberAnzahl}});
  p(r.n===3&&r.l.join(",")==="3030,3060,3060,3030","12 m in 4: 3 Schieber, Stücke 3030/3060/3060/3030",r);
  console.log("\nC · Speichern, Warnungen, Eingabe");
  r=await ev(()=>{const a=drbAusData({detail:"1.5",kanten:[{laenge:9000,ecke:"ende",teile:"3"}]});return {t:a.kanten[0].teile,alt:drbAusData({kanten:[{laenge:1}]}).kanten[0].teile,bad:drbAusData({kanten:[{laenge:1,teile:-2}]}).kanten[0].teile}});
@@ -59,7 +59,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   return {n:x.stuecke.length,l:x.stuecke.map(s=>s.laenge),sum:x.stuecke.reduce((a,b)=>a+b.laenge,0),vorrang:y.stuecke.length}});
  p(r.n===5&&r.sum===12000+4*40&&Math.max(...r.l)-Math.min(...r.l)<=4,"Überlappung mit Wunschlänge: 5 fast gleiche Stücke, Summe = Länge + Überlappungen",r);
  p(r.vorrang===3,"Anzahl hat Vorrang vor der Wunschlänge",r.vorrang);
- r=await ev(()=>{madSchieberMass=30;const d={kanten:[{laenge:10000,ecke:"ende",wunsch:3000}],stoss:"schieber",geschlossen:false,schieber:{zugabe:"",abzug:""},stueck:{laenge:3000,ueberlappung:40}};const x=drbStueckeFuer(d,null);return {n:x.stuecke.length,s:x.schieberAnzahl}});
+ r=await ev(()=>{const d={kanten:[{laenge:10000,ecke:"ende",wunsch:3000}],stoss:"schieber",geschlossen:false,schieber:{zugabe:30,abzug:""},stueck:{laenge:3000,ueberlappung:40}};const x=drbStueckeFuer(d,null);return {n:x.stuecke.length,s:x.schieberAnzahl}});
  p(r.n===3&&r.s===2,"Schieber mit Wunschlänge: 3 Stücke, 2 Schieber",r);
  r=await ev(()=>{fpA.dachrand=drbAusData({kanten:[{laenge:12000,ecke:"ende",wunsch:2500},{laenge:5000,ecke:"ende"}]});
   return [drbEinteilungHinweis(0),drbEinteilungHinweis(1)]});

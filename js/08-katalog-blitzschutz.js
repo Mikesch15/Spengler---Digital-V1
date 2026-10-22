@@ -913,12 +913,10 @@ function renderSettings(){
  // js/05-daten-laden.js) laengst geladen war - gemeldeter Fehler "wird nicht
  // angezeigt".
  if(typeof renderLagerbestand==="function")renderLagerbestand();
- const madBoden=$("madBodenMassInput"),madSchieber=$("madSchieberMassInput");
+ const madBoden=$("madBodenMassInput");
  if(madBoden)madBoden.value=madBodenMass;
- if(madSchieber)madSchieber.value=madSchieberMass;
- const madBodenAusmass=$("madBodenAusmassMassInput"),madSchieberAusmass=$("madSchieberAusmassMassInput");
+ const madBodenAusmass=$("madBodenAusmassMassInput");
  if(madBodenAusmass)madBodenAusmass.value=madBodenAusmassMass;
- if(madSchieberAusmass)madSchieberAusmass.value=madSchieberAusmassMass;
  const madGehrung=$("madGehrungMassInput"),madGehrungAusmass=$("madGehrungAusmassMassInput");
  if(madGehrung)madGehrung.value=madGehrungMass;
  if(madGehrungAusmass)madGehrungAusmass.value=madGehrungAusmassMass;

@@ -55,7 +55,7 @@ function madaLeer(){
  // eingetragen werden muss. MADA_PROFIL_VORGABE bleibt fuer madaAusData()
  // (alte, gespeicherte Aufnahmen ohne eigenes Profil) unveraendert.
  // rollenAuswahl: leer = das ganze Blechlager der Firma.
- return {material:"",segmente:[],geschlossen:false,wunschAlle:"",schieberManuell:false,schieber:[],
+ return {material:"",segmente:[],schieberModus:"zugabe",schieberEingabe:"",schieberAusmassEingabe:"",geschlossen:false,wunschAlle:"",schieberManuell:false,schieber:[],
          profil:{breite:"",gefaelle:"",hoeheLinks:"",hoeheRechts:"",
                  umschlagLinks:"",umschlagRechts:"",biegeLinks:"",biegeRechts:"",
                  saum:"",windexponiert:false},
@@ -71,6 +71,11 @@ const MADA_STUMMEL=[
  ["mad_biegeLinks","biegeLinks"],["mad_biegeRechts","biegeRechts"],
  ["mad_saum","saum"]
 ];
+// v3.412: Schieber-Zugabe/-Abzug gehoert zur Massaufnahme (nicht mehr in die
+// Einstellungen). Eingabe = Betrag, schieberModus "zugabe" (+) oder "abzug" (-).
+function madaSchieberVorz(){return madA.schieberModus==="abzug"?-1:1}
+function madaSchieberMassWert(){return madaSchieberVorz()*Math.abs(madaZahl(madA.schieberEingabe))}
+function madaSchieberAusmassWert(){return madaSchieberVorz()*Math.abs(madaZahl(madA.schieberAusmassEingabe))}
 function madaVerlaufDaten(){return calcMadSchieber(madA.segmente||[],madA.material,!!madA.geschlossen)}
 // Von Hand gesetzte Schieber schlagen die gerechneten - wie bisher ueber das
 // Kaestchen "Schieber von Hand setzen".
@@ -98,7 +103,7 @@ function madaMaterialTabelle(){return madMaterialTabelle(madA.material)}
 function madaStueckliste(){
  const {boundaries}=madaVerlaufDaten();
  return berechneMadStueckliste(madA.segmente||[],madaSchieberAktiv(),boundaries,
-   madBodenMass,madSchieberMass,madGehrungMass,!!madA.geschlossen);
+   madBodenMass,madaSchieberMassWert(),madGehrungMass,!!madA.geschlossen);
 }
 function madaGesamtlaenge(){return computeMadBoundaries(madA.segmente||[],!!madA.geschlossen).gesamtlaenge}
 function madaEndenMitBoden(){
@@ -258,7 +263,7 @@ function madaRollenPlan(){
 // ein Schieber als Zugabe an BEIDE angrenzenden Stuecke geht (also doppelt
 // in die Summe der Zuschnittlaengen eingeht).
 function madaAusmassZugabe(){
- return madaBoeden()*Number(madBodenAusmassMass||0)+madaSchieberAktiv().length*Number(madSchieberAusmassMass||0)
+ return madaBoeden()*Number(madBodenAusmassMass||0)+madaSchieberAktiv().length*madaSchieberAusmassWert()
    // v3.84: dieselbe Idee fuer die Gehrung - eigener, unabhaengiger
    // Ausmass-Wert, jede Ecke zaehlt einmal.
    +madaEcken()*Number(madGehrungAusmassMass||0);
@@ -340,6 +345,7 @@ function madaPruefungen(){
    if(n&&Ls/n>tab.maxAbstand)warn("Segment "+(i+1)+": "+n+" Stücke ergeben "+madaMm(Ls/n)+" mm Abstand – mehr als die "+madaMm(tab.maxAbstand)+" mm nach SIA 271.");
   });
  }
+ if(madaSchieberAktiv().length&&!madaZahl(madA.schieberEingabe))warn("Schieber-Zugabe/-Abzug ist 0 mm – die Stücke am Schieber bekommen weder Zugabe noch Abzug (Register «Boden & Schieber»).");
  if(seg.length&&!madA.geschlossen&&!e.anfang&&!e.ende)
   warn("Kein Boden gesetzt – beide Enden gelten als offen. Ist das gewollt?");
 
@@ -454,7 +460,7 @@ hier nicht neu festgelegt.</div>
 <tr><td>Max. Abstand zwischen zwei Schiebern</td><td style="text-align:right"><b>${madaMeter(t.maxAbstand)} m</b></td></tr>
 <tr><td>Max. Abstand ab einer Ecke oder einem Boden</td><td style="text-align:right"><b>${madaMeter(t.abEcke)} m</b></td></tr>
 <tr><td>Zugabe je Boden</td><td style="text-align:right"><b>${madaMm(madBodenMass)} mm</b></td></tr>
-<tr><td>Zugabe je Schieberseite</td><td style="text-align:right"><b>${madaMm(madSchieberMass)} mm</b></td></tr>
+<tr><td>${madA.schieberModus==="abzug"?"Abzug":"Zugabe"} je Schieberseite</td><td style="text-align:right"><b>${madaMm(Math.abs(madaSchieberMassWert()))} mm</b></td></tr>
 <tr><td>Zugabe je Gehrung (Ecke)</td><td style="text-align:right"><b>${madaMm(madGehrungMass)} mm</b></td></tr>
 </tbody></table></div>
 <div class="bar"><button type="button" class="gray" id="mada_einst">⚙️ Einstellungen</button></div>`;
@@ -549,6 +555,12 @@ ${boundaries.length?`<h3 style="margin-top:14px;font-size:12px;text-transform:up
 App nach SIA 271 aus dem Material und den Grenzpunkten – hier wird nichts
 zweites gerechnet.<br><b>${esc(tabelle.label)}</b>: höchstens ${madaMeter(tabelle.maxAbstand)} m
 zwischen zwei Schiebern, ab einer Ecke oder einem Boden höchstens ${madaMeter(tabelle.abEcke)} m.</div>
+<div class="ra-zeile"><div class="ra-zeile-kopf"><b>Schieber: Zugabe oder Abzug (diese Massaufnahme)</b></div>
+<div class="grid">
+${madaFeld("Art",`<select data-mada-sm-modus><option value="zugabe"${madA.schieberModus!=="abzug"?" selected":""}>Zugabe (Stücke länger)</option><option value="abzug"${madA.schieberModus==="abzug"?" selected":""}>Abzug (Stücke kürzer)</option></select>`)}
+${madaFeld((madA.schieberModus==="abzug"?"Abzug":"Zugabe")+" je Schieberseite – Zuschnitt (mm)",`<input type="number" inputmode="numeric" step="1" min="0" placeholder="0" data-mada-sm-mass value="${madA.schieberEingabe===""?"":Math.abs(madaZahl(madA.schieberEingabe))}">`)}
+${madaFeld((madA.schieberModus==="abzug"?"Abzug":"Zugabe")+" je Schieber – Ausmass (mm)",`<input type="number" inputmode="numeric" step="1" min="0" placeholder="0" data-mada-sm-ausmass value="${madA.schieberAusmassEingabe===""?"":Math.abs(madaZahl(madA.schieberAusmassEingabe))}">`)}
+</div></div>
 <label class="ra-schalter"><input type="checkbox" id="mada_manuell"${madA.schieberManuell?" checked":""}> Schieber von Hand setzen (sonst automatisch)</label>
 ${madA.schieberManuell?`<div class="ra-warnung">Von Hand gesetzt. Die Rechnung käme auf ${auto.length} Schieber.</div>`:""}
 ${sch.length?`<div class="scroll"><table class="eb-table ra-tab">
@@ -610,7 +622,7 @@ function madaStuecklisteHtml(){
 <td style="text-align:right"><b>${madaMm(x.zuschnitt)}&nbsp;mm</b> × ${madaMm(B)}&nbsp;mm</td>
 <td style="text-align:right">${madaMm(x.pos)}</td></tr>`).join("");
  return `<div class="info">Zuschnitt = Abstand + Zugabe je Ende. Zugabe je Boden
-${madaMm(madBodenMass)} mm, je Schieberseite ${madaMm(madSchieberMass)} mm, je Gehrung (Ecke)
+${madaMm(madBodenMass)} mm, je Schieberseite ${madA.schieberModus==="abzug"?"−":""}${madaMm(Math.abs(madaSchieberMassWert()))} mm (diese Massaufnahme), je Gehrung (Ecke)
 ${madaMm(madGehrungMass)} mm (Einstellungen → Massaufnahmen).</div>
 <div class="scroll"><table class="eb-table ra-tab">
 <thead><tr><th>Nr.</th><th>Von → Bis</th><th style="text-align:right">Abstand (mm)</th><th style="text-align:right">Zuschnitt (Länge × Breite)</th><th style="text-align:right">Position ab Start</th></tr></thead>
@@ -668,7 +680,7 @@ zweite Eingabe. Ohne Artikelnummern und ohne Preise.</div>
 <tr><td>Max. Abstand zwischen zwei Schiebern</td><td style="text-align:right"><b>${madaMeter(t.maxAbstand)} m</b></td></tr>
 <tr><td>Max. Abstand ab einer Ecke oder einem Boden</td><td style="text-align:right"><b>${madaMeter(t.abEcke)} m</b></td></tr>
 <tr><td>Zugabe je Boden</td><td style="text-align:right"><b>${madaMm(madBodenMass)} mm</b></td></tr>
-<tr><td>Zugabe je Schieberseite</td><td style="text-align:right"><b>${madaMm(madSchieberMass)} mm</b></td></tr>
+<tr><td>${madA.schieberModus==="abzug"?"Abzug":"Zugabe"} je Schieberseite</td><td style="text-align:right"><b>${madaMm(Math.abs(madaSchieberMassWert()))} mm</b></td></tr>
 <tr><td>Zugabe je Gehrung (Ecke)</td><td style="text-align:right"><b>${madaMm(madGehrungMass)} mm</b></td></tr>
 </tbody></table></div>`;
 }
@@ -792,6 +804,8 @@ function madaVerdrahten(){
    if(s){s.winkel=t.value===""?"":madaZahl(t.value);madaSchieberNeu();madaLive()}
    return;
   }
+  if(d.madaSmMass!==undefined){a.schieberEingabe=t.value===""?"":Math.abs(madaZahl(t.value));madaLive();return}
+  if(d.madaSmAusmass!==undefined){a.schieberAusmassEingabe=t.value===""?"":Math.abs(madaZahl(t.value));madaLive();return}
   if(d.madaTeile!==undefined){
    const s=a.segmente[Number(d.madaTeile)];
    if(s){s.teile=madTeile(t.value)||"";madaEinteilungNeu();madaLive();madaTeileHinweiseNeu()}
@@ -832,6 +846,7 @@ function madaVerdrahten(){
   {const w=zuRollenKlick(e.target,"data-mada-rolle");
    if(w!==null){madA.rollenAuswahl=w; renderMauerabdeckungAufnahme(); return}}
   if(t.id==="mada_material"){a.material=t.value;madaSchieberNeu();renderMauerabdeckungAufnahme();return}
+  if(d.madaSmModus!==undefined){a.schieberModus=t.value==="abzug"?"abzug":"zugabe";renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_geschlossen"){a.geschlossen=!!t.checked;madaBodenAufraeumen();madaSchieberNeu();renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_wind"){a.profil.windexponiert=t.checked;renderMauerabdeckungAufnahme();return}
   if(t.id==="mada_manuell"){
@@ -944,6 +959,18 @@ function madaAusData(d){
  const rq=(d.rollen&&d.rollen.auswahl);
  a.rollenAuswahl=Array.isArray(rq)?rq.map(Number).filter(x=>x>0):[];
  a.segmente=Array.isArray(d.segments)?d.segments.map(s=>({...s})):[];
+ // v3.412: Schieber-Zugabe/-Abzug je Massaufnahme. Aeltere Aufnahmen tragen nur
+ // das gespeicherte Vorzeichen-Mass (schieberMass); das Ausmass kam bisher aus der Einstellung.
+ if(d.schieberModus!==undefined){
+  a.schieberModus=d.schieberModus==="abzug"?"abzug":"zugabe";
+  a.schieberEingabe=d.schieberEingabe===undefined||d.schieberEingabe===""?"":Math.abs(Number(d.schieberEingabe)||0);
+  a.schieberAusmassEingabe=d.schieberAusmassEingabe===undefined||d.schieberAusmassEingabe===""?"":Math.abs(Number(d.schieberAusmassEingabe)||0);
+ }else{
+  const alt=Number(d.schieberMass)||0, altA=Number(typeof madSchieberAusmassMass!=="undefined"?madSchieberAusmassMass:0)||0;
+  a.schieberModus=alt<0?"abzug":"zugabe";
+  a.schieberEingabe=alt?Math.abs(alt):"";
+  a.schieberAusmassEingabe=altA?Math.abs(altA):"";
+ }
  a.geschlossen=!!d.geschlossen;
  a.wunschAlle=madWunsch(d.wunschAlle)||"";
  // Eine gespeicherte Aufnahme bringt ihre Schieber mit - die duerfen nicht
@@ -983,6 +1010,9 @@ function madaFuellen(d){
 function madaZusatzDaten(){
  const plan=madaRollenPlan();
  return {
+  schieberModus:madA.schieberModus==="abzug"?"abzug":"zugabe",
+  schieberEingabe:madA.schieberEingabe,
+  schieberAusmassEingabe:madA.schieberAusmassEingabe,
   geschlossen:!!madA.geschlossen,
   wunschAlle:madWunsch(madA.wunschAlle)||"",
   flaeche_m2:Number(madaFlaecheM2().toFixed(3)),

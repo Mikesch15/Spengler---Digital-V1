@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.411`
+- Aktueller Entwicklungsstand: `v3.412`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.412: Schieber-Zugabe/-Abzug gehört zur Massaufnahme (Mauerabdeckung: `schieberModus/schieberEingabe/schieberAusmassEingabe`, Register «Boden & Schieber»; Dachrand: kein Standard mehr aus den Einstellungen); «Mass Schieber» aus den Einstellungen entfernt.
 - v3.411: Mauerabdeckung: Eingaben zur Einteilung (Anzahl/Wunschlänge/Eckstücke/Einzellängen) schalten «Schieber von Hand» ab und gelten sofort (js/32 `madaEinteilungNeu`).
 - v3.410: Mauerabdeckung: Eckstücke am Segmentanfang/-ende frei wählbar (Rest gleichmässig oder SIA) und Einzellängen je Segment von Hand (js/12b `madSegPositionen`, js/32).
 - v3.409: Mauerabdeckung: umlaufender Grundriss (`geschlossen`, Schlussecke, kein Boden) und je Segment Anzahl/Wunschlänge gleicher Stücke wie Dachrand (js/12b, 32, 12, 16, 60).
