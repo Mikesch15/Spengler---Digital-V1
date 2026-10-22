@@ -110,6 +110,16 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   f('[data-mada-einzel="1"]',"1000, 3000");o.z=madA.segmente[1].einzel.join();
   w.querySelector('[data-mada-einzel-fuellen="0"]').click();o.fuell=madA.segmente[0].einzel.join();return o});
  p(r.a===400&&r.e===600&&r.z==="1000,3000"&&/^400,.*600$/.test(r.fuell),"Eingabe Eckstück/Einzellängen im Formular; «Aus Einteilung» füllt die Liste",r);
+ console.log("\nH · Handeingaben führen (auch in geladener Aufnahme)");
+ r=await ev(()=>{const d={material:"",segments:[{laenge:12000,winkel:0}],schieber:[{posAbStart:6000}],profil:{}};madaFuellen(d);madaSchritt=2;madaVerdrahten();renderMauerabdeckungAufnahme();
+  const w=document.getElementById("measTypeMauerabdeckung");const vor=madaSchieberAktiv().length;
+  const e=w.querySelector('[data-mada-einzel="0"]');e.value="1000, 2000, 3000, 6000";e.dispatchEvent(new Event("input",{bubbles:true}));
+  const st=madaStueckliste();
+  return {vor,manuell:madA.schieberManuell,n:madaSchieberAktiv().length,pos:madaSchieberAktiv().map(x=>Math.round(x.posAbStart)).join(),abst:st.map(x=>Math.round(x.abstand)).join(),
+   zf:(document.getElementById("mada_zfSchieber")||{textContent:"3"}).textContent,gr:(madaGrundriss().match(/#e07a1f/g)||[]).length}});
+ p(r.vor===1&&r.manuell===false&&r.n===3&&r.pos==="1000,3000,6000"&&r.abst==="1000,2000,3000,6000"&&r.gr===3,"Einzellängen in geladener Aufnahme: Schieber, Stückliste, Grundriss richten sich danach",r);
+ r=await ev(()=>{madA=madaLeer();madA.segmente=[S(10000,0)];const a=madaAusmassZeilen().map(z=>JSON.stringify(z)).join("");madA.segmente[0].einzel=[1000,9000];const b=madaAusmassZeilen().map(z=>JSON.stringify(z)).join("");return [madaSchieberAktiv().length,a!==b||true]});
+ p(r[0]===1,"Einzellängen 1000/9000 → genau 1 Schieber",r);
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
 })();

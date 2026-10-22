@@ -171,6 +171,14 @@ function madaTeileHinweis(sg){
  const wie=madTeile(sg.teile)?"":" (aus der Wunschlänge)";
  return "→ "+n+" gleiche Stücke"+wie+", Abstand "+madaMm(L/n)+" mm";
 }
+// v3.411: Eingaben zur Einteilung (Anzahl, Wunschlaenge, Eckstuecke, Einzellaengen)
+// sind eine Ansage und gelten sofort - auch in einer geladenen Aufnahme, in der
+// die Schieber bisher von Hand standen. Grundriss, Stueckliste, Schieberzahl und
+// Ausmass rechnen danach aus diesen Eingaben.
+function madaEinteilungNeu(){
+ madA.schieberManuell=false;
+ madaSchieberNeu();
+}
 function madaSchieberNeu(){
  if(!madA.schieberManuell)madA.schieber=madaVerlaufDaten().schieber;
 }
@@ -786,22 +794,22 @@ function madaVerdrahten(){
   }
   if(d.madaTeile!==undefined){
    const s=a.segmente[Number(d.madaTeile)];
-   if(s){s.teile=madTeile(t.value)||"";madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   if(s){s.teile=madTeile(t.value)||"";madaEinteilungNeu();madaLive();madaTeileHinweiseNeu()}
    return;
   }
   if(d.madaWunsch!==undefined){
    const s=a.segmente[Number(d.madaWunsch)];
-   if(s){s.wunsch=madWunsch(t.value)||"";madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   if(s){s.wunsch=madWunsch(t.value)||"";madaEinteilungNeu();madaLive();madaTeileHinweiseNeu()}
    return;
   }
   if(d.madaEckeA!==undefined||d.madaEckeE!==undefined){
    const a2=d.madaEckeA!==undefined, s=a.segmente[Number(a2?d.madaEckeA:d.madaEckeE)];
-   if(s){const v=madWunsch(t.value)||"";if(a2)s.eckeAnfang=v;else s.eckeEnde=v;madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   if(s){const v=madWunsch(t.value)||"";if(a2)s.eckeAnfang=v;else s.eckeEnde=v;madaEinteilungNeu();madaLive();madaTeileHinweiseNeu()}
    return;
   }
   if(d.madaEinzel!==undefined){
    const s=a.segmente[Number(d.madaEinzel)];
-   if(s){s.einzel=madEinzel(t.value);madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   if(s){s.einzel=madEinzel(t.value);madaEinteilungNeu();madaLive();madaTeileHinweiseNeu()}
    return;
   }
   if(t.id==="mada_wunschAlle"){a.wunschAlle=madWunsch(t.value)||"";return}
@@ -883,13 +891,13 @@ function madaVerdrahten(){
    const pos=[von,...madaVerlaufDaten().schieber.map(x=>x.posAbStart).filter(p=>p>von+0.5&&p<bis-0.5),bis];
    s.einzel=pos.slice(1).map((p,k)=>Math.round((p-pos[k])*10)/10);
    if(s.einzel.length<2)s.einzel=[];
-   madaSchieberNeu(); renderMauerabdeckungAufnahme(); return;
+   madaEinteilungNeu(); renderMauerabdeckungAufnahme(); return;
   }
   if(t.id==="mada_wunschAlleBtn"){
    const w=madWunsch(($("mada_wunschAlle")||{}).value);
    if(!w){appAlert("Bitte eine Wunschlänge in mm eingeben.");return}
    a.wunschAlle=w; a.segmente.forEach(sg=>{sg.wunsch=w;sg.teile=""});
-   madaSchieberNeu(); renderMauerabdeckungAufnahme(); return;
+   madaEinteilungNeu(); renderMauerabdeckungAufnahme(); return;
   }
   if(t.id==="mada_segPlus"){madaSegmentAnhaengen();renderMauerabdeckungAufnahme();return}
   if(d.madaWeg!==undefined){

@@ -1,0 +1,1 @@
+ABSCHLUSSBERICHT v3.411 - Mauerabdeckung: Handeingaben der Einteilung (Einzellaengen etc.) gelten sofort, auch in gespeicherten Aufnahmen. Nicht live getestet; Pruefstand 32 ok.

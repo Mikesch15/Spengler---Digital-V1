@@ -34890,3 +34890,7 @@ Ansage des Anwenders: «In Mauerabdeckung … ein Grundriss auch geschlossen sei
 ### v3.410 — Mauerabdeckung: Eckstücke frei, Einzellängen anpassbar
 
 Ansage des Anwenders: Eckstücke sollen frei wählbar bleiben, die anderen Stücke anpassbar. `madSegPositionen` (js/12b): Vorrang Einzellängen (`einzel`, frei) > Eckstück Anfang/Ende (`eckeAnfang`/`eckeEnde`, Rest in n gleiche Teile oder SIA auf dem Mittelstück) > Anzahl/Wunschlänge > SIA 271. js/32: Felder je Segment, «Aus Einteilung» füllt die Einzellängen vor, Warnungen (Summe ≠ Länge, Stück über SIA-Maximum). Prüfstand mauerabdeckung-teilen-geschlossen (30), Mutation erkannt.
+
+### v3.411 — Mauerabdeckung: Handeingaben der Einteilung gelten sofort
+
+Ansage des Anwenders: Grundriss, Stückliste, Schieberanzahl sollen sich nach den von Hand eingegebenen Einzellängen richten. Ursache: eine geladene Aufnahme steht auf «Schieber von Hand» (`madaAusData`), `madaSchieberNeu` rechnete dann nicht neu. Neu `madaEinteilungNeu()` (js/32): jede Eingabe zu Anzahl, Wunschlänge, Eckstücken, Einzellängen, «für alle» und «Aus Einteilung» setzt `schieberManuell=false`. Prüfstand Abschnitt H, Mutation erkannt.
