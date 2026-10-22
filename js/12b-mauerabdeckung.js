@@ -41,6 +41,34 @@ function madAnzahlWunsch(L,W){
  if(n0>1&&Math.abs(L/(n0-1)-W)<Math.abs(L/n0-W)-1e-9)best=n0-1;
  return Math.min(200,best);
 }
+// v3.409: Einzellaengen (frei angepasste Stuecke eines Segments) aus Liste oder Text
+function madEinzel(v){
+ const a=Array.isArray(v)?v:String(v==null?"":v).split(/[\s;,]+/);
+ const r=a.map(Number).filter(x=>Number.isFinite(x)&&x>0);
+ return r.length>=2?r:[];
+}
+// Schieberpositionen eines Segments (relativ zum Segmentanfang):
+// 1. Einzellaengen (frei), 2. Eckstuecke am Anfang/Ende frei gewaehlt, der Rest in n
+// gleiche Teile (Anzahl/Wunschlaenge) oder nach SIA 271, 3. nur n gleiche Teile, 4. SIA 271.
+function madSegPositionen(sg,L,leftMax,rightMax,maxAbstand){
+ const ez=madEinzel(sg&&sg.einzel);
+ if(ez.length){const r=[];let c=0;ez.slice(0,-1).forEach(x=>{c+=x;if(c>0&&c<L)r.push(c)});return r}
+ const eA=madWunsch(sg&&sg.eckeAnfang),eE=madWunsch(sg&&sg.eckeEnde);
+ const nT=madAnzahlSeg(sg);
+ if(eA||eE){
+  const inner=L-eA-eE;
+  const r=[];
+  if(eA&&eA<L)r.push(eA);
+  if(inner>0){
+   const rel=nT?Array.from({length:nT-1},(_,j)=>inner*(j+1)/nT)
+    :calcDilaPositionsInStretch(inner,eA?maxAbstand:leftMax,eE?maxAbstand:rightMax,maxAbstand);
+   rel.forEach(x=>r.push(eA+x));
+   if(eE&&eE<L)r.push(L-eE);
+  }
+  return r;
+ }
+ return nT?Array.from({length:nT-1},(_,j)=>L*(j+1)/nT):calcDilaPositionsInStretch(L,leftMax,rightMax,maxAbstand);
+}
 // Wirksame Anzahl eines Segments: Anzahl hat Vorrang, dann Wunschlaenge, sonst 0 (= SIA 271 automatisch)
 function madAnzahlSeg(s){
  const n=madTeile(s&&s.teile);
@@ -85,9 +113,7 @@ function calcMadSchieber(segments,material,geschlossen){
   const rightMax=right.typ==="ecke"?tab.abEcke:tab.maxAbstand;
   // gleiche Verteilungslogik wie bei der Rinne
   // v3.409: eingetragene Anzahl/Wunschlaenge teilt das Segment in n gleiche Teile
-  const nT=madAnzahlSeg(segments[i]);
-  const relPositions=nT?Array.from({length:nT-1},(_,j)=>L*(j+1)/nT)
-   :calcDilaPositionsInStretch(L,leftMax,rightMax,tab.maxAbstand);
+  const relPositions=madSegPositionen(segments[i],L,leftMax,rightMax,tab.maxAbstand);
   relPositions.forEach(rp=>schieber.push({posAbStart:left.pos+rp}));
  }
  return{schieber,tabelle:tab,boundaries,gesamtlaenge};

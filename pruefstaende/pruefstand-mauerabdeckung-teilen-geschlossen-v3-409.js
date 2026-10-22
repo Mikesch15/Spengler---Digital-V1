@@ -92,6 +92,24 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  await page.waitForTimeout(100);
  r=await ev(()=>madA.segmente.map(s=>s.wunsch+"/"+(s.teile||"")).join());
  p(r==="2000/,2000/,2000/,2000/","«Für alle Segmente übernehmen» setzt die Wunschlänge und löscht die Anzahl",r);
+ console.log("\nG · Eckstücke frei, Einzellängen");
+ r=await ev(()=>({a:calcMadSchieber([S(6000,90,{eckeAnfang:500,eckeEnde:700,teile:2})],"x",false).schieber.map(x=>Math.round(x.posAbStart)).join(),
+  b:calcMadSchieber([S(6000,90,{eckeAnfang:500})],"x",false).schieber.map(x=>Math.round(x.posAbStart)).join(),
+  c:calcMadSchieber([S(6000,90,{einzel:[500,2500,2500,500]})],"x",false).schieber.map(x=>Math.round(x.posAbStart)).join(),
+  d:calcMadSchieber([S(2000,90),S(6000,90,{einzel:"500, 2500 2500;500"})],"x",false).schieber.map(x=>Math.round(x.posAbStart)).join(),
+  e:madEinzel("1000"),f:madEinzel([0,5])}));
+ p(r.a==="500,2900,5300"&&r.b==="500,3250"&&r.c==="500,3000,5500"&&r.d==="2500,5000,7500"&&r.e.length===0&&r.f.length===0,"Eckstück am Anfang/Ende frei, Rest gleichmässig; nur Eckstück; Einzellängen (Liste/Text) setzen die Positionen",r);
+ r=await ev(()=>{const s=[S(6000,90,{einzel:[500,2500,2500,500]}),S(4000,90),S(6000,90),S(4000,90)];return berechneMadStueckliste(s,calcMadSchieber(s,"x",true).schieber,computeMadBoundaries(s,true).boundaries,0,0,20,true).slice(0,4).map(x=>Math.round(x.abstand)).join()});
+ p(r==="500,2500,2500,500","Stückliste folgt den Einzellängen (Eckstücke 500)",r);
+ r=await ev(()=>{madA=madaLeer();madA.segmente=[S(6000,0,{einzel:[500,2000]})];const w=madaPruefungen().map(x=>x.text).join("|");const h=madaTeileHinweis(madA.segmente[0]);
+  madA.segmente=[S(6000,0,{eckeAnfang:500,teile:3})];return {w,h,h2:madaTeileHinweis(madA.segmente[0])}});
+ p(/Einzellängen ergeben 2.500|Einzellängen ergeben 2[^ ]*500 mm statt/.test(r.w)&&/von Hand/.test(r.h)&&/Eckstück 500.*3 gleiche Stücke/.test(r.h2),"Warnung bei falscher Summe, Hinweise",r);
+ r=await ev(()=>{madA=madaLeer();madA.material="";madA.segmente=REC();madaSchritt=2;madaVerdrahten();renderMauerabdeckungAufnahme();const w=document.getElementById("measTypeMauerabdeckung");
+  const f=(sel,v)=>{const e=w.querySelector(sel);e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}))};
+  f('[data-mada-ecke-a="0"]',"400");f('[data-mada-ecke-e="0"]',"600");const o={a:madA.segmente[0].eckeAnfang,e:madA.segmente[0].eckeEnde};
+  f('[data-mada-einzel="1"]',"1000, 3000");o.z=madA.segmente[1].einzel.join();
+  w.querySelector('[data-mada-einzel-fuellen="0"]').click();o.fuell=madA.segmente[0].einzel.join();return o});
+ p(r.a===400&&r.e===600&&r.z==="1000,3000"&&/^400,.*600$/.test(r.fuell),"Eingabe Eckstück/Einzellängen im Formular; «Aus Einteilung» füllt die Liste",r);
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
 })();

@@ -163,6 +163,9 @@ function madaSchluss(){
 function madaTeileHinweis(sg){
  const L=madaZahl(sg.laenge);
  if(!(L>0))return "";
+ const ez=madEinzel(sg.einzel);
+ if(ez.length){const sum=ez.reduce((a,b)=>a+b,0);return "→ "+ez.length+" Stücke von Hand"+(Math.abs(sum-L)>1?" – Summe "+madaMm(sum)+" mm statt "+madaMm(L)+" mm":"")}
+ if(madWunsch(sg.eckeAnfang)||madWunsch(sg.eckeEnde)){const n=madAnzahlSeg(sg);return "→ Eckstück"+(madWunsch(sg.eckeAnfang)?" "+madaMm(sg.eckeAnfang):"")+(madWunsch(sg.eckeEnde)?" / "+madaMm(sg.eckeEnde):"")+" mm, Rest "+(n?n+" gleiche Stücke":"nach SIA 271")}
  const n=madAnzahlSeg(sg);
  if(!n)return "automatisch nach SIA 271";
  const wie=madTeile(sg.teile)?"":" (aus der Wunschlänge)";
@@ -320,6 +323,12 @@ function madaPruefungen(){
   const tab=madaMaterialTabelle();
   seg.forEach((sg,i)=>{
    const n=madAnzahlSeg(sg), Ls=madaZahl(sg.laenge);
+   const ez=madEinzel(sg.einzel);
+   if(ez.length){
+    const sum=ez.reduce((x,y)=>x+y,0);
+    if(Math.abs(sum-Ls)>1)warn("Segment "+(i+1)+": die Einzellängen ergeben "+madaMm(sum)+" mm statt "+madaMm(Ls)+" mm.");
+    if(Math.max(...ez)>tab.maxAbstand)warn("Segment "+(i+1)+": ein Stück ist länger als die "+madaMm(tab.maxAbstand)+" mm nach SIA 271.");
+   }
    if(n&&Ls/n>tab.maxAbstand)warn("Segment "+(i+1)+": "+n+" Stücke ergeben "+madaMm(Ls/n)+" mm Abstand – mehr als die "+madaMm(tab.maxAbstand)+" mm nach SIA 271.");
   });
  }
@@ -464,7 +473,13 @@ ${madaFeld(letzte&&!madA.geschlossen?"Winkel – am letzten Segment folgt nichts
 <div class="grid">
 ${madaFeld("Anzahl gleiche Stücke",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="auto" data-mada-teile="${i}" value="${madTeile(s.teile)||""}">`)}
 ${madaFeld("oder Wunschlänge (mm)",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="auto" data-mada-wunsch="${i}" value="${madWunsch(s.wunsch)||""}">`)}
-</div><div class="small" data-mada-hinweis="${i}">${esc(madaTeileHinweis(s))}</div>
+</div>
+<div class="grid">
+${madaFeld("Eckstück am Anfang (mm)",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="frei" data-mada-ecke-a="${i}" value="${madWunsch(s.eckeAnfang)||""}">`)}
+${madaFeld("Eckstück am Ende (mm)",`<input type="number" inputmode="numeric" step="1" min="1" placeholder="frei" data-mada-ecke-e="${i}" value="${madWunsch(s.eckeEnde)||""}">`)}
+</div>
+${madaFeld("Einzellängen (mm, z. B. 500, 2000, 2000, 500)",`<div style="display:flex;gap:6px"><input type="text" inputmode="text" data-mada-einzel="${i}" placeholder="leer = Einteilung oben" value="${esc(madEinzel(s.einzel).join(", "))}"><button type="button" class="gray" data-mada-einzel-fuellen="${i}" style="flex:0 0 auto">Aus Einteilung</button></div>`)}
+<div class="small" data-mada-hinweis="${i}">${esc(madaTeileHinweis(s))}</div>
 ${!madA.geschlossen&&(i===0||letzte)?`<div style="display:flex;flex-wrap:wrap;gap:6px 20px">
 ${i===0?`<label class="ra-schalter"><input type="checkbox" data-mada-boden-l="${i}"${s.bodenLinks?" checked":""}> Boden am Anfang</label>`:""}
 ${letzte?`<label class="ra-schalter"><input type="checkbox" data-mada-boden-r="${i}"${s.bodenRechts?" checked":""}> Boden am Ende</label>`:""}
@@ -779,6 +794,16 @@ function madaVerdrahten(){
    if(s){s.wunsch=madWunsch(t.value)||"";madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
    return;
   }
+  if(d.madaEckeA!==undefined||d.madaEckeE!==undefined){
+   const a2=d.madaEckeA!==undefined, s=a.segmente[Number(a2?d.madaEckeA:d.madaEckeE)];
+   if(s){const v=madWunsch(t.value)||"";if(a2)s.eckeAnfang=v;else s.eckeEnde=v;madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   return;
+  }
+  if(d.madaEinzel!==undefined){
+   const s=a.segmente[Number(d.madaEinzel)];
+   if(s){s.einzel=madEinzel(t.value);madaSchieberNeu();madaLive();madaTeileHinweiseNeu()}
+   return;
+  }
   if(t.id==="mada_wunschAlle"){a.wunschAlle=madWunsch(t.value)||"";return}
   if(d.madaProfil!==undefined){
    // Leeres Feld bleibt leer, damit die Vorgabe aus dem Gefaelle greifen kann.
@@ -850,6 +875,15 @@ function madaVerdrahten(){
     openSettingsTo("measurements","mauerabdeckung");
    }
    return;
+  }
+  if(d.madaEinzelFuellen!==undefined){
+   const i2=Number(d.madaEinzelFuellen), s=a.segmente[i2];
+   if(!s)return;
+   const {boundaries}=madaVerlaufDaten(), von=boundaries[i2].pos, bis=boundaries[i2+1].pos;
+   const pos=[von,...madaVerlaufDaten().schieber.map(x=>x.posAbStart).filter(p=>p>von+0.5&&p<bis-0.5),bis];
+   s.einzel=pos.slice(1).map((p,k)=>Math.round((p-pos[k])*10)/10);
+   if(s.einzel.length<2)s.einzel=[];
+   madaSchieberNeu(); renderMauerabdeckungAufnahme(); return;
   }
   if(t.id==="mada_wunschAlleBtn"){
    const w=madWunsch(($("mada_wunschAlle")||{}).value);
