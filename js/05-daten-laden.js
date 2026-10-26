@@ -249,4 +249,6 @@ function applyEinlaufblechSettings(){
  if(document.activeElement!==$("keas_ueberlappung"))$("keas_ueberlappung").value=kehleSettings.ueberlappung;
  if(document.activeElement!==$("keas_restSchwelle"))$("keas_restSchwelle").value=kehleSettings.rest_schwelle;
  if($("ars_bogenAbzug")&&document.activeElement!==$("ars_bogenAbzug"))$("ars_bogenAbzug").value=ablaufrohrSettings.bogen_abzug;
+ if($("ars_rohrSteckung")&&document.activeElement!==$("ars_rohrSteckung"))$("ars_rohrSteckung").value=ablaufrohrSettings.rohr_steckung;
+ if($("ars_schiebeZugabe")&&document.activeElement!==$("ars_schiebeZugabe"))$("ars_schiebeZugabe").value=ablaufrohrSettings.schiebe_zugabe;
 }

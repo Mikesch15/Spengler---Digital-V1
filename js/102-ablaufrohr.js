@@ -17,9 +17,11 @@
 //
 //   Achse des Zwischenstuecks   s    = D / sin(Bogenwinkel)
 //   Zuschnitt Zwischenstueck    sZu  = s - 2 * a
-//   Hoehe des Schwanenhalses    hH   = sZu * cos(Bogenwinkel)
+//   Hoehe des Schwanenhalses    hH   = sZu * cos(Bogenwinkel) + 2 * a
 //   senkrechte Strecke          F    = H - hH
 //   davon Rohr                  Frohr= F - Ls
+//   Steckung Rohr (St): ein Rohr der Laenge l deckt nur l - St ab (es steckt im naechsten);
+//   das Reststueck wird um St laenger geschnitten. Schiebestueck: Zuschnitt = Ls + Steckungszugabe.
 // Das Fallrohr wird in Rohre der gewaehlten Laengen (2/3/4 m) geteilt; je Laenge
 // n ganze Rohre plus ein Reststueck. Vorgeschlagen wird die Laenge mit dem
 // kleinsten Verschnitt (Reststueck wird aus einem ganzen Rohr geschnitten).
@@ -28,12 +30,12 @@
 const AR_BOGENWINKEL=Object.freeze([45,70,85]);
 const AR_ROHRLAENGEN=Object.freeze([2000,3000,4000]);
 const AR_FASSADEN=Object.freeze([["daemmung","Aussendämmung"],["mauerwerk","Beton / Mauerwerk"]]);
-const AR_STANDARD=Object.freeze({bogen_abzug:0});
+const AR_STANDARD=Object.freeze({bogen_abzug:0,rohr_steckung:0,schiebe_zugabe:0});
 
 function arEinstellungenLaden(){
  const w=(typeof efLokal==="function")?efLokal("sd_ablaufrohrSettings"):{};
- const a=Number(w&&w.bogen_abzug);
- return {...AR_STANDARD,bogen_abzug:Number.isFinite(a)&&a>=0?a:AR_STANDARD.bogen_abzug};
+ const wert=k=>{const x=Number(w&&w[k]);return Number.isFinite(x)&&x>=0?x:AR_STANDARD[k]};
+ return {bogen_abzug:wert("bogen_abzug"),rohr_steckung:wert("rohr_steckung"),schiebe_zugabe:wert("schiebe_zugabe")};
 }
 let ablaufrohrSettings=arEinstellungenLaden();
 
@@ -43,9 +45,10 @@ const arZ=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
 const arMm=v=>Math.round(arZ(v)).toLocaleString("de-CH");
 const arRund1=v=>Math.round(arZ(v)*10)/10;
 // Abzug je Bogen: die Eingabe der Massaufnahme, sonst die Firmeneinstellung
-function arAbzugWirksam(e){
- return arHat(e&&e.bogenAbzug)?Math.max(0,arZ(e.bogenAbzug)):Math.max(0,arZ(ablaufrohrSettings&&ablaufrohrSettings.bogen_abzug));
+function arWirksam(e,feld,standard){
+ return arHat(e&&e[feld])?Math.max(0,arZ(e[feld])):Math.max(0,arZ(ablaufrohrSettings&&ablaufrohrSettings[standard]));
 }
+function arAbzugWirksam(e){return arWirksam(e,"bogenAbzug","bogen_abzug")}
 function arRohrlaengenWahl(e){
  const w=Array.isArray(e&&e.rohrlaengen)?e.rohrlaengen.map(Number):AR_ROHRLAENGEN.slice();
  return AR_ROHRLAENGEN.filter(l=>w.includes(l));
@@ -55,7 +58,8 @@ function berechneAblaufrohr(e){
  e=e||{};
  const A=arZ(e.ausladung),W=arZ(e.wandabstand),al=arZ(e.bogenwinkel),H=arZ(e.hoehe),S=arZ(e.sockel),Ls=arZ(e.schiebestueck);
  const a=arAbzugWirksam(e),D=A-W;
- const r={A,W,alpha:al,H,S,Ls,abzug:a,D,halsOk:false,fallOk:false,sAchse:0,sZu:0,hHals:0,fall:0,fallRohr:0,
+ const St=arWirksam(e,"rohrSteckung","rohr_steckung"),Sz=arWirksam(e,"schiebeZugabe","schiebe_zugabe");
+ const r={A,W,alpha:al,H,S,Ls,abzug:a,steckung:St,schiebeZugabe:Sz,schiebeZuschnitt:Ls>0?Ls+Sz:0,D,halsOk:false,fallOk:false,sAchse:0,sZu:0,hHals:0,fall:0,fallRohr:0,
   gesamtHoehe:H+S,optionen:[],vorschlag:null,fehler:[]};
  if(!(A>0)||!arHat(e.wandabstand)||!AR_BOGENWINKEL.includes(al))return r;
  if(!(D>0)){r.fehler.push("Der Wandabstand ("+arMm(W)+" mm) muss kleiner sein als die Ausladung ("+arMm(A)+" mm).");return r}
@@ -64,7 +68,7 @@ function berechneAblaufrohr(e){
  r.sZu=r.sAchse-2*a;
  if(!(r.sZu>0)){r.fehler.push("Das Zwischenstück wird nicht positiv: "+arMm(r.sAchse)+" mm Achse minus 2 × "+arMm(a)+" mm Abzug je Bogen.");return r}
  r.halsOk=true;
- r.hHals=r.sZu*Math.cos(rad);
+ r.hHals=r.sZu*Math.cos(rad)+2*a;   // Hals = Zwischenstueck x cos + 2 x Abzug je Bogen
  if(!(H>0))return r;
  r.fall=H-r.hHals;
  r.fallRohr=r.fall-Ls;
@@ -72,11 +76,13 @@ function berechneAblaufrohr(e){
  r.fallOk=true;
  // auf 0,1 mm gerundet, sonst ergibt 3999,98 mm kein ganzes 4-m-Rohr
  const F=arRund1(r.fallRohr);
- r.optionen=arRohrlaengenWahl(e).map(l=>{
-  const n=Math.floor(F/l+1e-9);
-  let rest=arRund1(F-n*l);
-  if(rest<0.5)rest=0;
-  return {laenge:l,ganze:n,rest,rohre:n+(rest>0?1:0),verschnitt:rest>0?l-rest:0};
+ r.optionen=arRohrlaengenWahl(e).filter(l=>l-St>0).map(l=>{
+  const le=l-St;   // Nutzlaenge eines Rohres: es steckt St im naechsten
+  const n=Math.floor(F/le+1e-9);
+  let nutz=arRund1(F-n*le);
+  if(nutz<0.5)nutz=0;
+  const rest=nutz>0?nutz+St:0;   // Reststueck wird um die Steckung laenger geschnitten
+  return {laenge:l,nutzlaenge:le,ganze:n,rest,restNutz:nutz,rohre:n+(rest>0?1:0),verschnitt:rest>0?l-rest:0};
  });
  r.vorschlag=r.optionen.slice().sort((x,y)=>x.verschnitt-y.verschnitt||x.rohre-y.rohre||y.laenge-x.laenge)[0]||null;
  if(r.vorschlag)r.vorschlag.vorschlag=true;
@@ -92,10 +98,10 @@ function arStueckliste(g){
  zeile("Zwischenstück Schwanenhals",1,g.sZu,"Achse "+arMm(g.sAchse)+" − 2 × "+arMm(g.abzug)+" mm Abzug");
  if(g.fallOk&&g.vorschlag){
   const v=g.vorschlag;
-  if(v.ganze>0)zeile("Ablaufrohr "+(v.laenge/1000)+" m",v.ganze,v.laenge,"ganze Rohre");
-  if(v.rest>0)zeile("Reststück Ablaufrohr",1,v.rest,"aus "+(v.laenge/1000)+" m, Verschnitt "+arMm(v.verschnitt)+" mm");
+  if(v.ganze>0)zeile("Ablaufrohr "+(v.laenge/1000)+" m",v.ganze,v.laenge,"ganze Rohre"+(g.steckung>0?", Nutzlänge "+arMm(v.nutzlaenge)+" mm (Steckung "+arMm(g.steckung)+" mm)":""));
+  if(v.rest>0)zeile("Reststück Ablaufrohr",1,v.rest,"aus "+(v.laenge/1000)+" m, Verschnitt "+arMm(v.verschnitt)+" mm"+(g.steckung>0?", Nutzlänge "+arMm(v.restNutz)+" mm + Steckung":""));
  }
- if(g.Ls>0)zeile("Schiebestück",1,g.Ls,"");
+ if(g.Ls>0)zeile("Schiebestück",1,g.schiebeZuschnitt,g.schiebeZugabe>0?"Länge "+arMm(g.Ls)+" mm + Steckungszugabe "+arMm(g.schiebeZugabe)+" mm":"");
  if(g.S>0)zeile("Sockelrohr",1,g.S,"");
  return z;
 }

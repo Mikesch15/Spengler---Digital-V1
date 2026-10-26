@@ -20,7 +20,7 @@ let arZeichnet=false;
 
 function arLeer(){
  return {material:"",fassade:"",ausladung:"",wandabstand:"",bogenwinkel:"",hoehe:"",sockel:"",
-  schiebestueck:"",bogenAbzug:"",rohrlaengen:AR_ROHRLAENGEN.slice()};
+  schiebestueck:"",bogenAbzug:"",rohrSteckung:"",schiebeZugabe:"",rohrlaengen:AR_ROHRLAENGEN.slice()};
 }
 let arA=arLeer();
 const arErgebnis=()=>berechneAblaufrohr(arA);
@@ -57,6 +57,8 @@ function arPruefungen(){
  if(!arRohrlaengenWahl(a).length)fehlt("Es ist keine Rohrlänge (2, 3 oder 4 m) gewählt.");
  g.fehler.forEach(t=>fehlt(t));
  if(g.halsOk&&!(g.abzug>0))m.push({art:"warnung",text:"Der Abzug je Bogen ist 0 mm – das Zwischenstück wird ohne Steckungsabzug gerechnet."});
+ if(g.halsOk&&!(g.steckung>0))m.push({art:"warnung",text:"Die Steckung je Rohr ist 0 mm – die Rohre werden ohne Überdeckung gerechnet."});
+ if(g.halsOk&&g.Ls>0&&!(g.schiebeZugabe>0))m.push({art:"warnung",text:"Die Steckungszugabe am Schiebestück ist 0 mm."});
  return m;
 }
 
@@ -85,6 +87,7 @@ function arMasseHtml(){
  const a=arA;
  const wopt=['<option value="">– bitte wählen –</option>'].concat(AR_BOGENWINKEL.map(w=>`<option value="${w}"${arZ(a.bogenwinkel)===w?" selected":""}>${w}°</option>`)).join("");
  const std=arZ(ablaufrohrSettings&&ablaufrohrSettings.bogen_abzug);
+ const stdSt=arZ(ablaufrohrSettings&&ablaufrohrSettings.rohr_steckung),stdSz=arZ(ablaufrohrSettings&&ablaufrohrSettings.schiebe_zugabe);
  const roh=arRohrlaengenWahl(a);
  return `<div class="grid">
 ${arZahlFeld("Ausladung Schwanenhals (Hinterkant Stutzen bis Fassade, mm)","ar_ausladung",a.ausladung,true)}
@@ -94,8 +97,10 @@ ${arZahlFeld("Höhe Oberkant Stutzen bis Unterkant Sockelrohr (mm)","ar_hoehe",a
 ${arZahlFeld("Höhe Sockelrohr (mm)","ar_sockel",a.sockel,true)}
 ${arZahlFeld("Länge Schiebestück (mm, 0 = keines)","ar_schiebe",a.schiebestueck,true)}
 ${arZahlFeld("Abzug je Bogen (Steckung, mm)","ar_abzug",a.bogenAbzug,false,String(std))}
+${arZahlFeld("Steckung je Rohr (mm)","ar_rohrSteckung",a.rohrSteckung,false,String(stdSt))}
+${arZahlFeld("Steckungszugabe Schiebestück (mm)","ar_schiebeZugabe",a.schiebeZugabe,false,String(stdSz))}
 </div>
-<div class="small" style="margin-top:4px">Abzug je Bogen: leer = Standard aus den Einstellungen (${arMm(std)} mm).</div>
+<div class="small" style="margin-top:4px">Abzug je Bogen, Steckung je Rohr und Steckungszugabe: leer = Standard aus den Einstellungen (${arMm(std)} / ${arMm(stdSt)} / ${arMm(stdSz)} mm).</div>
 <h3 style="margin-top:12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Rohrlängen für den Vorschlag</h3>
 <div style="display:flex;flex-wrap:wrap;gap:6px 20px">
 ${AR_ROHRLAENGEN.map(l=>`<label class="ra-schalter"><input type="checkbox" data-ar-rohr="${l}"${roh.includes(l)?" checked":""}> ${l/1000} m</label>`).join("")}
@@ -123,7 +128,7 @@ function arHalsHtml(){
 <tr><td>Zwischenstück Achse = D ÷ sin ${g.alpha}°</td><td style="text-align:right">${arMm(g.sAchse)} mm</td></tr>
 <tr><td>Abzug 2 Bögen × ${arMm(g.abzug)} mm</td><td style="text-align:right">− ${arMm(2*g.abzug)} mm</td></tr>
 <tr><td><b>Zwischenstück Zuschnitt</b></td><td style="text-align:right"><b>${arMm(g.sZu)} mm</b></td></tr>
-<tr><td>Höhe Schwanenhals = Zuschnitt × cos ${g.alpha}°</td><td style="text-align:right"><b>${arMm(g.hHals)} mm</b></td></tr>
+<tr><td>Höhe Schwanenhals = Zuschnitt × cos ${g.alpha}° + 2 × ${arMm(g.abzug)} mm</td><td style="text-align:right"><b>${arMm(g.hHals)} mm</b></td></tr>
 </tbody></table>`;
 }
 function arBerechnungHtml(){
@@ -135,7 +140,7 @@ function arBerechnungHtml(){
 <tr><td>Höhe Schwanenhals</td><td style="text-align:right">${arMm(g.hHals)} mm</td></tr>
 <tr><td>Höhe Stutzen bis Sockelrohr</td><td style="text-align:right">${arMm(g.H)} mm</td></tr>
 <tr><td>Senkrechte Strecke = Höhe − Schwanenhals</td><td style="text-align:right">${g.fallOk||g.fall?arMm(g.fall):"–"} mm</td></tr>
-${g.Ls>0?`<tr><td>− Schiebestück</td><td style="text-align:right">− ${arMm(g.Ls)} mm</td></tr>`:""}
+${g.Ls>0?`<tr><td>− Schiebestück (sichtbare Länge)</td><td style="text-align:right">− ${arMm(g.Ls)} mm</td></tr>`:""}
 <tr><td><b>Fallrohr aus Rohren</b></td><td style="text-align:right"><b>${arMm(g.fallRohr)} mm</b></td></tr>
 </tbody></table>
 <h3 style="margin-top:12px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Rohrlängen</h3>
@@ -237,7 +242,7 @@ function arVerdrahten(){
  const wurzel=$("measTypeAblaufrohr");
  if(!wurzel||wurzel.dataset.arVerdrahtet)return;
  wurzel.dataset.arVerdrahtet="1";
- const felder={ar_ausladung:"ausladung",ar_wandabstand:"wandabstand",ar_hoehe:"hoehe",ar_sockel:"sockel",ar_schiebe:"schiebestueck",ar_abzug:"bogenAbzug"};
+ const felder={ar_ausladung:"ausladung",ar_wandabstand:"wandabstand",ar_hoehe:"hoehe",ar_sockel:"sockel",ar_schiebe:"schiebestueck",ar_abzug:"bogenAbzug",ar_rohrSteckung:"rohrSteckung",ar_schiebeZugabe:"schiebeZugabe"};
  wurzel.addEventListener("input",e=>{
   if(arZeichnet)return;
   const t=e.target;
@@ -279,7 +284,7 @@ function arDaten(){
  return {
   material:a.material,fassade:a.fassade,
   ausladung:a.ausladung,wandabstand:a.wandabstand,bogenwinkel:a.bogenwinkel,hoehe:a.hoehe,sockel:a.sockel,
-  schiebestueck:a.schiebestueck,bogenAbzug:g.abzug,rohrlaengen:arRohrlaengenWahl(a),
+  schiebestueck:a.schiebestueck,bogenAbzug:g.abzug,rohrSteckung:g.steckung,schiebeZugabe:g.schiebeZugabe,rohrlaengen:arRohrlaengenWahl(a),
   versatz:arRund1(g.D),zwischenstueck:arRund1(g.sZu),zwischenstueckAchse:arRund1(g.sAchse),hoeheHals:arRund1(g.hHals),
   fallrohr:arRund1(g.fallRohr),gesamtHoehe:arRund1(g.gesamtHoehe),
   optionen:g.optionen.map(o=>({...o})),vorschlag:g.vorschlag?{...g.vorschlag}:null,
@@ -295,7 +300,7 @@ function arFuellen(d){
  const a=arLeer();
  a.material=w.material??"";
  a.fassade=AR_FASSADEN.some(x=>x[0]===w.fassade)?w.fassade:"";
- ["ausladung","wandabstand","hoehe","sockel","schiebestueck","bogenAbzug"].forEach(k=>{if(arHat(w[k]))a[k]=arZ(w[k])});
+ ["ausladung","wandabstand","hoehe","sockel","schiebestueck","bogenAbzug","rohrSteckung","schiebeZugabe"].forEach(k=>{if(arHat(w[k]))a[k]=arZ(w[k])});
  if(AR_BOGENWINKEL.includes(arZ(w.bogenwinkel)))a.bogenwinkel=arZ(w.bogenwinkel);
  if(Array.isArray(w.rohrlaengen))a.rohrlaengen=AR_ROHRLAENGEN.filter(l=>w.rohrlaengen.map(Number).includes(l));
  arA=a;arSchritt=1;
@@ -319,6 +324,7 @@ function arDruckHtml(m,kopfHtml){
 <tr>${cell("Material",matName)}${cell("Fassade",arEsc(fa?fa[1]:"–"))}</tr>
 <tr>${cell("Ausladung Schwanenhals",arMm(d.ausladung)+" mm")}${cell("Wandabstand",arMm(d.wandabstand)+" mm")}</tr>
 <tr>${cell("Bogenwinkel",arEsc(d.bogenwinkel)+"°")}${cell("Abzug je Bogen",arMm(d.bogenAbzug)+" mm")}</tr>
+<tr>${cell("Steckung je Rohr",arMm(d.rohrSteckung)+" mm")}${cell("Steckungszugabe Schiebestück",arMm(d.schiebeZugabe)+" mm")}</tr>
 <tr>${cell("Höhe Stutzen bis Unterkant Sockelrohr",arMm(d.hoehe)+" mm")}${cell("Höhe Sockelrohr",arMm(d.sockel)+" mm")}</tr>
 <tr>${cell("Schiebestück",arMm(d.schiebestueck)+" mm")}${cell("Zwischenstück Schwanenhals",arMm(d.zwischenstueck)+" mm")}</tr>
 <tr>${cell("Höhe Schwanenhals",arMm(d.hoeheHals)+" mm")}${cell("Fallrohr (Rohre)",arMm(d.fallrohr)+" mm")}</tr>

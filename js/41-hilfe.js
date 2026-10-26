@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.413.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.414.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1115,9 +1115,10 @@ tatsächlich rechnet.</p>`},
 <p>Der <b>Bogenwinkel</b> (45°, 70° oder 85°) gilt für beide Bögen. Die <b>Höhe</b> wird von Oberkant Stutzen bis Unterkant Sockelrohr gemessen; das <b>Sockelrohr</b> kommt als eigene Höhe dazu. Das <b>Schiebestück</b> ist Teil der senkrechten Strecke.</p>
 <p>Der <b>Abzug je Bogen</b> (Steckung) kürzt das Zwischenstück zwischen den Bögen; leer gilt der Standard aus den Einstellungen. Bei den <b>Rohrlängen</b> werden nur die angekreuzten Längen für den Vorschlag verwendet.</p>`},
 "ar-berechnung":{titel:"Schwanenhals (Ablaufrohr)",text:`
-<p>Zwischenstück = (Ausladung − Wandabstand) ÷ sin(Bogenwinkel) − 2 × Abzug je Bogen. Die Höhe des Schwanenhalses ist das Zwischenstück × cos(Bogenwinkel).</p>`},
+<p>Zwischenstück = (Ausladung − Wandabstand) ÷ sin(Bogenwinkel) − 2 × Abzug je Bogen. Die Höhe des Schwanenhalses ist das Zwischenstück × cos(Bogenwinkel) + 2 × Abzug je Bogen.</p>`},
 "ar-rohre":{titel:"Rohre (Ablaufrohr)",text:`
-<p>Die senkrechte Strecke ist die Höhe minus Schwanenhals; davon geht das Schiebestück ab, der Rest wird in Rohre geteilt. Vorgeschlagen wird die Rohrlänge mit dem <b>kleinsten Verschnitt</b>; das Reststück wird aus einem ganzen Rohr geschnitten.</p>`},
+<p>Die senkrechte Strecke ist die Höhe minus Schwanenhals; davon geht das Schiebestück ab, der Rest wird in Rohre geteilt. Vorgeschlagen wird die Rohrlänge mit dem <b>kleinsten Verschnitt</b>; das Reststück wird aus einem ganzen Rohr geschnitten.</p>
+<p>Jedes Rohr steckt um die <b>Steckung</b> im nächsten: es deckt nur Rohrlänge − Steckung ab, das Reststück wird um die Steckung länger geschnitten. Das <b>Schiebestück</b> wird um die Steckungszugabe länger zugeschnitten.</p>`},
 "md-falz":{titel:"Falz (Metalldach)",text:`
 <p>Jede Bahn hat <b>zwei Falze</b>: an der linken und an der rechten Kante (Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an. Im Plan steht dafür ein <b>gebogener Pfeil quer zum Falz</b>, also an der Bahn ausgerichtet, auch bei schräg laufenden Scharen. Er zeigt zur Seite, auf die der Falz gelegt wird.</p>
 <p>Benachbarte Bahnen teilen sich einen Falz: Ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Die <b>Schnellwahl</b> setzt alle Falze auf einmal (alle links oder rechts, von der Passbahn weg, zur Passbahn hin, von der Mitte weg); danach lässt sich jeder Falz einzeln umschalten. Die beiden äussersten Falze am Rand haben auch einen Pfeil und sind normalerweise Untergriff (Pfeil zeigt in die Randbahn hinein).</p>

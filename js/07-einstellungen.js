@@ -434,9 +434,9 @@ $("resetKehleSettings").onclick=async ()=>{
 
 // ---- Ablaufrohr: Abzug je Bogen (firmenweit, v3.413) ---------------------------
 $("saveAblaufrohrSettings").onclick=async()=>{
- const abzug=Number($("ars_bogenAbzug").value);
- if(!Number.isFinite(abzug)||abzug<0){appAlert("Bitte einen gültigen Abzug (0 oder grösser) eingeben.");return}
- ablaufrohrSettings={bogen_abzug:abzug};
+ const abzug=Number($("ars_bogenAbzug").value)||0,steckung=Number($("ars_rohrSteckung").value)||0,zugabe=Number($("ars_schiebeZugabe").value)||0;
+ if(abzug<0||steckung<0||zugabe<0){appAlert("Die Werte dürfen nicht negativ sein.");return}
+ ablaufrohrSettings={bogen_abzug:abzug,rohr_steckung:steckung,schiebe_zugabe:zugabe};
  localStorage.setItem("sd_ablaufrohrSettings",JSON.stringify(ablaufrohrSettings));
  await efMelden("sd_ablaufrohrSettings");
 };
@@ -445,6 +445,8 @@ $("resetAblaufrohrSettings").onclick=async ()=>{
  ablaufrohrSettings={...AR_STANDARD};
  localStorage.setItem("sd_ablaufrohrSettings",JSON.stringify(ablaufrohrSettings));
  $("ars_bogenAbzug").value=ablaufrohrSettings.bogen_abzug;
+ $("ars_rohrSteckung").value=ablaufrohrSettings.rohr_steckung;
+ $("ars_schiebeZugabe").value=ablaufrohrSettings.schiebe_zugabe;
  await efMelden("sd_ablaufrohrSettings","Auf Standardwert zurückgesetzt");
 };
 
