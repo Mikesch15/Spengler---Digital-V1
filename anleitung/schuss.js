@@ -583,16 +583,14 @@ const liste=[];
  // v3.23: die Ruestliste zum Ausdrucken. Sie entsteht in einem eigenen
  // Fenster - hier wird window.open abgefangen, das erzeugte Dokument in eine
  // frische Seite gelegt und fotografiert. Es ist also der echte Ausdruck.
+ // Seit v3.336 druckt die Rüstliste über das Rüstblatt (js/80, iframe), nicht mehr über
+ // window.open. Das Dokument wird deshalb direkt mit rbDokumentHtml() erzeugt - es ist
+ // dasselbe, das gedruckt wird; die grafische Rolleneinteilung bleibt weg (Auswahl «Ohne»).
  const rl=await page.evaluate(async()=>{
-  let raus="";
-  const echt=window.open;
-  window.open=function(){const d={write(h){raus+=h},close(){}};
-    return {document:d,focus(){},print(){},set onload(f){}}};
-  const k=document.querySelector("#werkstattBody [data-werk-druck]");
-  if(k)k.click();
-  await new Promise(r=>setTimeout(r,600));
-  window.open=echt;
-  return raus;
+  const g=werkGruppen().find(x=>werkHatZuschnitt(x));
+  if(!g)return "";
+  let html=await rbDokumentHtml(g.aufnahmen.filter(a=>a.workflow_status!=="abgeschlossen"));
+  return html.replace("</head>","<style>.zu-bilder{display:none !important}</style></head>");
  }).catch(()=>"");
  if(rl&&rl.length>400){
   const seite=await b.newPage({viewport:{width:900,height:900},deviceScaleFactor:2,

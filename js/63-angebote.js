@@ -1231,6 +1231,7 @@ const ANG_MEAS_WOERTER=Object.freeze({
  kamineinfassung:      ["kamineinfassung","kaminanschluss","kaminverkleidung","kamin","schornstein","camin"],
  dachfenstereinfassung:["dachfenstereinfassung","dachfenster","dachflaechenfenster","velux","fenstereinfassung"],
  lukarne:              ["lukarne","gaube","gaupe","seitenverkleidung"],
+ ablaufrohr:           ["ablaufrohr","fallrohr","schwanenhals","regenrohr","abflussrohr"],
  metalldach:           ["metalldach","blechdach","stehfalzdach","stehfalz","doppelstehfalz","falzdach","dachflaeche metall"],
  einlaufblech_konisch: ["einlaufblech konisch","konisches einlaufblech","konisch"],
  einlaufblech_gerade:  ["einlaufblech gerade","einlaufblech","einlauf"],

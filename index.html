@@ -212,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.412</div>
+<div id="appVersion">Version 3.413</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -1503,7 +1503,7 @@ Diese Aktion löscht unwiderruflich:
 <button type="button" id="measVerlaufToggle" class="gray" style="margin-bottom:8px" hidden>🕒 Verlauf anzeigen</button>
 <div id="measVerlaufBody" class="report-list"></div>
 <div class="grid" style="margin-bottom:8px">
-<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Dachrinne</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="dachrandblech">Dachrandblech</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="metalldach">Metalldach</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kamineinfassung">Kamineinfassung</option><option value="dachfenstereinfassung">Dachfenstereinfassung</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
+<div hidden><label>Funktion</label><select id="measType"><option value="skizze_foto">Skizze/Foto</option><option value="einlaufblech_gerade">Einlaufblech gerade</option><option value="rinne_halbrund">Dachrinne</option><option value="einlaufblech_konisch">Einlaufblech konisch</option><option value="freies_profil">Freies Profil</option><option value="dachrandblech">Dachrandblech</option><option value="mauerabdeckung">Mauerabdeckung</option><option value="lukarne">Lukarne Seitenverkleidung</option><option value="ablaufrohr">Ablaufrohr</option><option value="metalldach">Metalldach</option><option value="anschlussblech">Ort- und Seitenbleche</option><option value="einfassung_rund">Einfassung Rund</option><option value="kamineinfassung">Kamineinfassung</option><option value="dachfenstereinfassung">Dachfenstereinfassung</option><option value="kehle">Kehle</option><option value="rinne">Rinne</option></select></div>
 <div><label>Datum</label><input type="date" id="measDate"></div>
 <div class="wide"><label>Bezeichnung</label><input id="measTitle" data-pflicht="1" placeholder="z. B. Kamineinfassung Nordseite"></div>
 <div class="wide"><label>Projekt</label>
@@ -1619,6 +1619,7 @@ mindestens eines von beiden ist nötig.</div>
 </div>
 
 <div id="measTypeMetalldach" hidden><div id="metalldachAufnahme"></div></div>
+<div id="measTypeAblaufrohr" hidden><div id="ablaufrohrAufnahme"></div></div>
 
 <div id="measTypeLukarne" hidden>
 <div id="lukarneAufnahme"></div>
@@ -2508,7 +2509,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.412.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.413.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -2738,6 +2739,17 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <button id="saveEinfassungSettings" class="green">💾 Werte speichern</button>
 <button id="resetEinfassungSettings" class="gray">Auf Standardwerte zur&uuml;cksetzen</button>
 </div>
+</div>
+</div>
+
+<div class="settings-section" data-section="ablaufrohr">
+<div class="settings-section-head" data-toggle-section="ablaufrohr"><h2>Ablaufrohr <button type="button" class="hilfe-knopf no-print" data-hilfe="einst-massvorgaben">i</button></h2><span class="settings-section-chevron">›</span></div>
+<div class="settings-section-body">
+<div class="grid">
+<div><label>Abzug je Bogen – Steckung (mm)</label><input id="ars_bogenAbzug" type="number" step="1" min="0"></div>
+</div>
+<div class="bar"><button id="saveAblaufrohrSettings" class="green">💾 Speichern</button><button type="button" id="resetAblaufrohrSettings" class="gray">↩️ Standardwerte</button></div>
+<div class="small" style="margin-top:4px">Dieser Wert wird beim Zwischenstück des Schwanenhalses je Bogen abgezogen. In jeder Massaufnahme kann er überschrieben werden.</div>
 </div>
 </div>
 
@@ -3211,7 +3223,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.412.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.413.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3698,6 +3710,8 @@ nicht neu installieren.</div>
 <script src="js/99-metalldach.js"></script>
 <script src="js/100-metalldach-aufnahme.js"></script>
 <script src="js/101-bleilappen.js"></script>
+<script src="js/102-ablaufrohr.js"></script>
+<script src="js/103-ablaufrohr-aufnahme.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

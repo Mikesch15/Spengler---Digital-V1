@@ -95,6 +95,12 @@ const RS_SKIZZEN={
   if(dr&&typeof drbGrundrissSvg==="function"&&Array.isArray(dr.kanten)&&dr.kanten.length)
    rsEintrag(liste,"Grundriss",()=>drbGrundrissSvg(dr.kanten,!!dr.geschlossen,typeof drbSvgOptionenAusDaten==="function"?drbSvgOptionenAusDaten(dr):{stueckLaenge:dr.stueck&&dr.stueck.laenge,ueberlappung:dr.stueck&&dr.stueck.ueberlappung,gleich:dr.stueck&&dr.stueck.gleich}));
  },
+ ablaufrohr(d,liste){
+  if(typeof arPlanSvg!=="function"||typeof berechneAblaufrohr!=="function")return;
+  const g=berechneAblaufrohr(d);
+  if(!g.halsOk)return;
+  rsEintrag(liste,"Skizze",()=>arPlanSvg(g));
+ },
  metalldach(d,liste){
   if(typeof mdPlanSvg!=="function"||typeof berechneMetalldach!=="function")return;
   const g=berechneMetalldach(d);

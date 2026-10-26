@@ -188,7 +188,7 @@ const vorbereiten=async(page,aufnahmen,resv)=>{
  console.log("\nE · Der Rueckfall deckt alle vierzehn Typen ab");
  const tab=await page.evaluate(()=>Object.keys(PMAT_TEIL_RUECKFALL));
  const ARTEN=await page.evaluate(()=>Object.keys(MEAS_TYPE_LABELS));
- p(ARTEN.length===15,"die App kennt fünfzehn Arten (v3.369: Dachrandblech, v3.398: Metalldach)",ARTEN.length);
+ p(ARTEN.length===16,"die App kennt sechzehn Arten (v3.369: Dachrandblech, v3.398: Metalldach, v3.413: Ablaufrohr)",ARTEN.length);
  const fehlend=ARTEN.filter(a=>tab.indexOf(a)<0);
  p(fehlend.length===0,"jede Art hat eine Regel",fehlend);
  const zuviel=tab.filter(a=>ARTEN.indexOf(a)<0);

@@ -248,4 +248,5 @@ function applyEinlaufblechSettings(){
  if(document.activeElement!==$("keas_stossLaenge"))$("keas_stossLaenge").value=kehleSettings.stoss_laenge;
  if(document.activeElement!==$("keas_ueberlappung"))$("keas_ueberlappung").value=kehleSettings.ueberlappung;
  if(document.activeElement!==$("keas_restSchwelle"))$("keas_restSchwelle").value=kehleSettings.rest_schwelle;
+ if($("ars_bogenAbzug")&&document.activeElement!==$("ars_bogenAbzug"))$("ars_bogenAbzug").value=ablaufrohrSettings.bogen_abzug;
 }

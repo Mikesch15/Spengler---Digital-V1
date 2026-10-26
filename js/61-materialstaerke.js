@@ -57,7 +57,8 @@ const MEAS_MATERIAL_FELDER=[
  // Staerkefeld wurde schlicht nie angehaengt. Gespeichert und geladen wird
  // die Staerke zentral (js/16, js/10), an dieser einen Zeile hing alles.
  "#dfa_material",    // Dachfenstereinfassung (js/66)
- "#md_material"      // Metalldach (js/100)
+ "#md_material",     // Metalldach (js/100)
+ "#ar_material"      // Ablaufrohr (js/103)
 ];
 
 // Nicht jede Art schneidet aus Rolle oder Tafel:
@@ -330,6 +331,7 @@ const MEAS_FORM_RENDER={
  mauerabdeckung:"renderMauerabdeckungAufnahme",
  lukarne:"renderLukarneAufnahme",
  metalldach:"renderMetalldachAufnahme",
+ ablaufrohr:"renderAblaufrohrAufnahme",
  anschlussblech:"renderAnschlussblechAufnahme",
  einfassung_rund:"renderEinfassungAufnahme",
  kamineinfassung:"renderKaminAufnahme",

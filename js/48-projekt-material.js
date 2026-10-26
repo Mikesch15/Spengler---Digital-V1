@@ -195,6 +195,7 @@ const PMAT_TEIL_RUECKFALL={
  kehle:                ()=>false,
  lukarne:              ()=>false,
  metalldach:           ()=>false,
+ ablaufrohr:           ()=>false,
  rinne:                ()=>false,
  // Skizze/Foto rechnet gar nichts und hat kein Ausmass.
  skizze_foto:          ()=>false

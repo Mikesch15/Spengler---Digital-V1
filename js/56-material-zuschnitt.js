@@ -779,6 +779,7 @@ const MZ_ZUSCHNITT_REGISTER={
  kehle:                {tab:()=>typeof KEA_REGISTER  !=="undefined"?KEA_REGISTER  :null, setzen:n=>keaSetzeSchritt(n)},
  lukarne:              {tab:()=>typeof LUKA_REGISTER !=="undefined"?LUKA_REGISTER :null, setzen:n=>lukaSetzeSchritt(n)},
  metalldach:          {tab:()=>typeof MD_REGISTER   !=="undefined"?MD_REGISTER   :null, setzen:n=>mdaSetzeSchritt(n)},
+ ablaufrohr:          {tab:()=>typeof AR_REGISTER   !=="undefined"?AR_REGISTER   :null, setzen:n=>arSetzeSchritt(n)},
  kamineinfassung:      {tab:()=>typeof KAM_REGISTER  !=="undefined"?KAM_REGISTER  :null, setzen:n=>kamaSetzeSchritt(n)},
  einfassung_rund:      {tab:()=>typeof EINFA_REGISTER!=="undefined"?EINFA_REGISTER:null, setzen:n=>einfaSetzeSchritt(n)},
  rinne:                {tab:()=>typeof RPA_REGISTER  !=="undefined"?RPA_REGISTER  :null, setzen:n=>rpaSetzeSchritt(n)},

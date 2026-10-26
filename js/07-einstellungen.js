@@ -432,6 +432,22 @@ $("resetKehleSettings").onclick=async ()=>{
  await efMelden("sd_kehleSettings","Auf Standardwerte zurückgesetzt");
 };
 
+// ---- Ablaufrohr: Abzug je Bogen (firmenweit, v3.413) ---------------------------
+$("saveAblaufrohrSettings").onclick=async()=>{
+ const abzug=Number($("ars_bogenAbzug").value);
+ if(!Number.isFinite(abzug)||abzug<0){appAlert("Bitte einen gültigen Abzug (0 oder grösser) eingeben.");return}
+ ablaufrohrSettings={bogen_abzug:abzug};
+ localStorage.setItem("sd_ablaufrohrSettings",JSON.stringify(ablaufrohrSettings));
+ await efMelden("sd_ablaufrohrSettings");
+};
+$("resetAblaufrohrSettings").onclick=async ()=>{
+ if(!await appConfirm("Auf den Standardwert zurücksetzen?"))return;
+ ablaufrohrSettings={...AR_STANDARD};
+ localStorage.setItem("sd_ablaufrohrSettings",JSON.stringify(ablaufrohrSettings));
+ $("ars_bogenAbzug").value=ablaufrohrSettings.bogen_abzug;
+ await efMelden("sd_ablaufrohrSettings","Auf Standardwert zurückgesetzt");
+};
+
 // v3.176: Die Auswahlliste der Werkstoffe. Sie kommt aus derselben Quelle
 // wie die Auswahl in der Massaufnahme (measurementMaterials) - eine zweite
 // Liste waere eine zweite Meinung darueber, welche Werkstoffe es gibt.

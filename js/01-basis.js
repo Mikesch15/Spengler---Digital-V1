@@ -577,6 +577,7 @@ const MEAS_TYPE_LABELS=Object.freeze({
  mauerabdeckung:"Mauerabdeckung",
  lukarne:"Lukarne Seitenverkleidung",
  metalldach:"Metalldach",
+ ablaufrohr:"Ablaufrohr",
  anschlussblech:"Ort- und Seitenbleche",
  einfassung_rund:"Einfassung Rund",
  kamineinfassung:"Kamineinfassung",
@@ -600,6 +601,7 @@ const MEAS_TYPE_SETTINGS_SECTION=Object.freeze({
  mauerabdeckung:"mauerabdeckung",
  lukarne:"lukarne",
  metalldach:"material",           // v3.398: keine eigenen Einstellungen, Zugaben je Aufnahme
+ ablaufrohr:"ablaufrohr",         // v3.413: Standard-Abzug je Bogen
  anschlussblech:"anschlussblech",
  einfassung_rund:"einfassung-rund",
  kamineinfassung:"kamineinfassung",
@@ -635,6 +637,7 @@ const MEAS_KATEGORIEN_STANDARD=Object.freeze({
  mauerabdeckung:"flachdach",
  lukarne:"steildach",
  metalldach:"steildach",
+ ablaufrohr:"steildach",
  anschlussblech:"flachdach",
  einfassung_rund:"flachdach",
  kamineinfassung:"steildach",
@@ -651,7 +654,7 @@ function measKategorie(art){
 const MEAS_TYPE_ICONS=Object.freeze({
  skizze_foto:"📷", einlaufblech_gerade:"📐", rinne_halbrund:"🏠",
  einlaufblech_konisch:"📐", freies_profil:"📐", dachrandblech:"🔲", mauerabdeckung:"🧱",
- lukarne:"🏚️", metalldach:"🏗️", anschlussblech:"📐", einfassung_rund:"⭕",
+ lukarne:"🏚️", metalldach:"🏗️", ablaufrohr:"🧪", anschlussblech:"📐", einfassung_rund:"⭕",
  kamineinfassung:"🧱", dachfenstereinfassung:"🪟", kehle:"📏", rinne:"🚰"
 });
 // v3.94: die Kartenauswahl fuer eine neue Massaufnahme nach Kategorie

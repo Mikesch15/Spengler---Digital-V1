@@ -22,7 +22,8 @@ const EFIRMA_LISTE=[
  {key:"sd_einfassungRundSettings",laden:()=>{einfassungSettings=einfEinstellungenLaden()}},
  {key:"sd_rinneProfilSettings",laden:()=>{rinneProfilSettings=rinneProfilEinstellungenLaden()}},
  {key:"sd_kaminSettings",laden:()=>{kaminSettings=kamEinstellungenLaden()}},
- {key:"sd_dfaSettings",laden:()=>{dfaSettings=dfaEinstellungenLaden()}}
+ {key:"sd_dfaSettings",laden:()=>{dfaSettings=dfaEinstellungenLaden()}},
+ {key:"sd_ablaufrohrSettings",laden:()=>{ablaufrohrSettings=arEinstellungenLaden()}}
 ];
 let efFirma={};
 function efLokal(key){

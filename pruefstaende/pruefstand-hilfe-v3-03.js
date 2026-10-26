@@ -22,6 +22,7 @@ const ARTEN=[
  {typ:"kehle",               wurzel:"measTypeKehle",              setz:"keaSetzeSchritt",  reg:"KEA_REGISTER"},
  {typ:"lukarne",             wurzel:"measTypeLukarne",            setz:"lukaSetzeSchritt", reg:"LUKA_REGISTER"},
  {typ:"metalldach",          wurzel:"measTypeMetalldach",         setz:"mdaSetzeSchritt",  reg:"MD_REGISTER"},
+ {typ:"ablaufrohr",          wurzel:"measTypeAblaufrohr",         setz:"arSetzeSchritt",   reg:"AR_REGISTER"},
  {typ:"kamineinfassung",     wurzel:"measTypeKamin",              setz:"kamaSetzeSchritt", reg:"KAM_REGISTER"},
  {typ:"einfassung_rund",     wurzel:"measTypeEinfassungRund",     setz:"einfaSetzeSchritt",reg:"EINFA_REGISTER"},
  {typ:"rinne",               wurzel:"measTypeRinneProfil",        setz:"rpaSetzeSchritt",  reg:"RPA_REGISTER"},

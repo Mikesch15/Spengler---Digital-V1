@@ -111,7 +111,7 @@ const INIT=()=>{
  console.log("\nE · Alle Speicherstellen melden firmenweit");
  const alle=["js/07-einstellungen.js","js/20-anschlussblech.js","js/21-einfassung-rund.js","js/26-rinne.js","js/37-kamin-aufnahme.js","js/66-dachfenster-aufnahme.js"].map(src).join("\n");
  p(!/Gespeichert \(gilt nur für dieses Gerät\)\.\\n/.test(alle)&&(alle.match(/Gespeichert \(gilt nur für dieses Gerät\)/g)||[]).length===1,"Nur die reine Anzeige-Einstellung (js/07) sagt noch «nur für dieses Gerät»",(alle.match(/gilt nur für dieses Gerät/g)||[]).length);
- p((alle.match(/await efMelden\(/g)||[]).length===16,"Alle 16 Speichern- und Zurücksetzen-Stellen rufen efMelden auf",(alle.match(/await efMelden\(/g)||[]).length);
+ p((alle.match(/await efMelden\(/g)||[]).length===18,"Alle 18 Speichern- und Zurücksetzen-Stellen rufen efMelden auf (v3.413: + Ablaufrohr)",(alle.match(/await efMelden\(/g)||[]).length);
  p(/efUebernehmen\(geladen\.appSettings\.massaufnahme_einstellungen\)/.test(src("js/05-daten-laden.js")),"Beim Laden werden die Firmenwerte übernommen (js/05)");
  p(/98-einstellungen-firma\.js/.test(src("index.html"))&&/98-einstellungen-firma\.js/.test(src("sw.js")),"Neue Datei in index.html und sw.js");
  p(page.__f.length===0,"keine Seitenfehler",page.__f);

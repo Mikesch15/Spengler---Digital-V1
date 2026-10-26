@@ -1,0 +1,1 @@
+ABSCHLUSSBERICHT v3.413 - neue Massaufnahme Ablaufrohr (Schwanenhals, Rohrlaengen-Vorschlag, Abzug je Bogen als Einstellung). Nicht live getestet; Pruefstand ablaufrohr-v3-413 (16 ok). Zur Bestaetigung: Hoehenmodell (Sockelrohr zusaetzlich zur Hoehe bis Unterkant Sockel), Hals-Hoehe mit gekuerztem Zwischenstueck.

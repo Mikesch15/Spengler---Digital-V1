@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.412.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.413.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1110,6 +1110,14 @@ tatsächlich rechnet.</p>`},
 <p>Die Scharen laufen unter dem <b>Winkel</b> zur <b>Bezugsseite</b> (meist die Traufe). 90° heisst senkrecht dazu, andere Winkel ergeben schräg verlegte Scharen. Der <b>Achsabstand</b> ist die Deckbreite einer Schar; gezählt wird von links oder rechts (Blick Richtung First).</p>
 <p>Der <b>Hilfsriss</b> ist eine Reisslinie parallel zur Bezugsseite, die um das angegebene Mass über dem tiefsten Punkt liegt. Die Tabelle zeigt für jede Kante jeder Bahn das Mass ab Hilfsriss nach unten (↓) und oben (↑).</p>
 <p><b>Passbahn:</b> Mit «+ Passbahn» fügst du an der gewünschten Stelle («nach Schar Nr. …») eine Passbahn ein. Ohne feste Breite ist sie der Rest, sodass alle anderen Scharen volle Breite haben. Mehrere Passbahnen teilen sich den Rest gleichmässig. Ohne Passbahn nimmt die letzte Schar die Restbreite. Hat die Fläche eine Aussparung, kann eine Bahn aus mehreren Teilen bestehen.</p>`},
+"ar-masse":{titel:"Masse (Ablaufrohr)",text:`
+<p><b>Ausladung</b> ist das Mass von der Hinterkante des Stutzens bis zur Fassade, der <b>Wandabstand</b> das Mass vom Ablaufrohr (unten) bis zur Fassade. Der Schwanenhals überbrückt die Differenz.</p>
+<p>Der <b>Bogenwinkel</b> (45°, 70° oder 85°) gilt für beide Bögen. Die <b>Höhe</b> wird von Oberkant Stutzen bis Unterkant Sockelrohr gemessen; das <b>Sockelrohr</b> kommt als eigene Höhe dazu. Das <b>Schiebestück</b> ist Teil der senkrechten Strecke.</p>
+<p>Der <b>Abzug je Bogen</b> (Steckung) kürzt das Zwischenstück zwischen den Bögen; leer gilt der Standard aus den Einstellungen. Bei den <b>Rohrlängen</b> werden nur die angekreuzten Längen für den Vorschlag verwendet.</p>`},
+"ar-berechnung":{titel:"Schwanenhals (Ablaufrohr)",text:`
+<p>Zwischenstück = (Ausladung − Wandabstand) ÷ sin(Bogenwinkel) − 2 × Abzug je Bogen. Die Höhe des Schwanenhalses ist das Zwischenstück × cos(Bogenwinkel).</p>`},
+"ar-rohre":{titel:"Rohre (Ablaufrohr)",text:`
+<p>Die senkrechte Strecke ist die Höhe minus Schwanenhals; davon geht das Schiebestück ab, der Rest wird in Rohre geteilt. Vorgeschlagen wird die Rohrlänge mit dem <b>kleinsten Verschnitt</b>; das Reststück wird aus einem ganzen Rohr geschnitten.</p>`},
 "md-falz":{titel:"Falz (Metalldach)",text:`
 <p>Jede Bahn hat <b>zwei Falze</b>: an der linken und an der rechten Kante (Blick Richtung First). Für jeden Falz gibst du die <b>Falzrichtung</b> an. Im Plan steht dafür ein <b>gebogener Pfeil quer zum Falz</b>, also an der Bahn ausgerichtet, auch bei schräg laufenden Scharen. Er zeigt zur Seite, auf die der Falz gelegt wird.</p>
 <p>Benachbarte Bahnen teilen sich einen Falz: Ändert man den rechten Falz einer Bahn, ändert sich der linke der nächsten. Die Bahn, von der der Pfeil <b>wegzeigt</b>, hat den <b>Obergriff</b>, die andere den Untergriff. Die <b>Schnellwahl</b> setzt alle Falze auf einmal (alle links oder rechts, von der Passbahn weg, zur Passbahn hin, von der Mitte weg); danach lässt sich jeder Falz einzeln umschalten. Die beiden äussersten Falze am Rand haben auch einen Pfeil und sind normalerweise Untergriff (Pfeil zeigt in die Randbahn hinein).</p>
