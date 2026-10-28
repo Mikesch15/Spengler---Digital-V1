@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.415`
+- Aktueller Entwicklungsstand: `v3.416`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.416: Rinne halbrund: ein Einhängestutzen hat keine Naht – das Rinnenstück läuft durch (`durchlaufend` in `computeRinneBoundaries`, js/12; bleibt Fixpunkt für die Dila-Regel).
 - v3.415: Rinne halbrund: Stücke länger als die längste Normlänge werden aus gleich langen Teilen mit Nahtüberlappung zusammengesetzt (`raTeile`, Einstellung `sd_rinneHalbrundSettings`, Einstellungen → Dachrinne → Nähte).
 - v3.414: Ablaufrohr: Höhe Schwanenhals = Zwischenstück × cos + 2 × Abzug je Bogen; Steckung je Rohr (Nutzlänge = Länge − Steckung, Reststück + Steckung) und Steckungszugabe am Schiebestück (Einstellung `sd_ablaufrohrSettings`, je Aufnahme überschreibbar).
 - v3.413: Neue Massaufnahme-Art «Ablaufrohr» (js/102 Rechnung, js/103 Erfassung; Schwanenhals aus Ausladung/Wandabstand/Bogenwinkel, Abzug je Bogen = Einstellung `sd_ablaufrohrSettings` überschreibbar je Aufnahme, Fallrohr in 2/3/4-m-Rohre mit Reststück).

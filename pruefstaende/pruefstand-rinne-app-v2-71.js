@@ -108,7 +108,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
 
  console.log("\nC · Zuschnitt und Normlaengen");
  const zs=await page.evaluate(()=>raStueckliste(rinneA).map(s=>Math.round(s.zuschnitt)));
- p(zs.join("/")==="3835/2835/2835/3335","Zuschnitte 3835/2835/2835/3335 (Dila -165, Boden 0)",zs);
+ p(zs.join("/")==="3835/5670/3335","Zuschnitte 3835/5670/3335 (Dila -165, Boden 0; v3.416: der Einhängestutzen trennt das Stück nicht, 2835 + 2835 laufen durch)",zs);
  const plan=await page.evaluate(()=>raNormErgebnis(rinneA));
  p(plan.ok&&plan.optimal&&plan.gesamt===14000&&plan.verschnitt===1160,
    "Normlaengenplan: 14'000 mm, 1'160 mm Verschnitt, als bester ausgewiesen",

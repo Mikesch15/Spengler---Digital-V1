@@ -77,7 +77,11 @@ function computeRinneBoundaries(segments){
   if(!typId)return null;
   const f=rinneFittingTypes.find(x=>x.id===Number(typId));
   if(!f)return null;
-  if(f.is_fixpunkt)return{typ:"fix",name:f.name,symbol:f.symbol};
+  // v3.416: ein Einhaengestutzen hat keine Naht - er wird in ein durchlaufendes
+  // Rinnenstueck eingesetzt. Er bleibt Fixpunkt (Dila-Regel), trennt aber kein Stueck.
+  const abl=!!f.is_fixpunkt&&!f.is_schiebestutzen&&(String(f.symbol||"").toUpperCase()==="ABL"||/einh[aä]nge/i.test(f.name||"")
+    ||(typeof raTypId==="function"&&Number(raTypId("einhaenge"))===Number(f.id)));
+  if(f.is_fixpunkt)return{typ:"fix",name:f.name,symbol:f.symbol,abl};
   if(f.is_schiebestutzen)return{typ:"schiebe",name:f.name,symbol:f.symbol};
   return null;
  }
@@ -99,7 +103,12 @@ function computeRinneBoundaries(segments){
  }
  const gesamtlaenge=cum;
  const boundaries=[{pos:0,typ:grenzen[0].info?grenzen[0].info.typ:null,name:grenzen[0].info?grenzen[0].info.name:null}];
- for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].info)boundaries.push({pos:grenzen[i].pos,typ:grenzen[i].info.typ,name:grenzen[i].info.name});
+ for(let i=1;i<grenzen.length-1;i++)if(grenzen[i].info){
+  const a=grenzInfo(segments[i-1].rechtsTyp),b=grenzInfo(segments[i].linksTyp);
+  // durchlaufend: an dieser Grenze steht nur ein Einhaengestutzen (keine Ecke, kein Schiebestutzen)
+  const durch=!!(a||b)&&(!a||a.abl)&&(!b||b.abl);
+  boundaries.push({pos:grenzen[i].pos,typ:grenzen[i].info.typ,name:grenzen[i].info.name,...(durch?{durchlaufend:true}:{})});
+ }
  const letzte=grenzen[grenzen.length-1];
  boundaries.push({pos:gesamtlaenge,typ:letzte.info?letzte.info.typ:null,name:letzte.info?letzte.info.name:null});
  return{boundaries,gesamtlaenge};
@@ -139,6 +148,8 @@ function berechneRinneStueckliste(segments,dilas,boundaries,dilaMass){
  const punkte=[];
  segGrenzen.forEach((pos,i)=>{
   const b=(boundaries||[]).find(x=>Math.round(x.pos)===Math.round(pos));
+  // v3.416: ein Einhaengestutzen trennt das Rinnenstueck nicht (kein Stoss, kein Zuschlag)
+  if(b&&b.durchlaufend&&i>0&&i<segGrenzen.length-1)return;
   let label;
   if(b&&b.name)label=b.name;
   else if(i===0)label="Start";
@@ -337,7 +348,9 @@ function generateRinneGrundriss(segments,dilas,boundaries,enden,geschlossen){
   const segGrenzen=[0];
   let cAcc=0;
   segments.forEach(s=>{cAcc+=Number(s.laenge)||0;segGrenzen.push(cAcc);});
-  const volleKette=[...new Set([...segGrenzen,...dilas.map(d=>Math.round(Number(d.posAbStart)||0))])].sort((a,b)=>a-b);
+  // v3.416: Grenzen mit Einhaengestutzen sind keine Stuecktrennung (wie in der Stueckliste)
+  const durch=new Set(boundaries.filter(b=>b.durchlaufend).map(b=>Math.round(b.pos)));
+  const volleKette=[...new Set([...segGrenzen.filter((g,i)=>i===0||i===segGrenzen.length-1||!durch.has(Math.round(g))),...dilas.map(d=>Math.round(Number(d.posAbStart)||0))])].sort((a,b)=>a-b);
   for(let i=0;i<volleKette.length-1;i++){
    const mid=(volleKette[i]+volleKette[i+1])/2;
    const p=svgPosAt(mid);
