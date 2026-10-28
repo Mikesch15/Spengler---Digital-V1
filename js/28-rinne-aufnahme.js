@@ -450,8 +450,45 @@ function raStueckliste(a){
  const d=raDilas(a);
  return berechneRinneStueckliste(d.segmente,d.dilas,d.boundaries||[],rinneDilaMass);
 }
+// v3.415: Ein Rinnenstueck, das laenger ist als die laengste Normlaenge, wird aus
+// mehreren Teilen zusammengesetzt. Die Teile ueberlappen sich an der Naht um die
+// Nahtueberlappung (Einstellungen -> Dachrinne); die Teile sind gleich lang
+// (kein winziges Reststueck), zusammen Z + (k-1) x Ueberlappung, jedes <= der
+// laengsten Normlaenge. Alle Teile gehen einzeln in die Normlaengen-Rechnung.
+const RA_NAHT_STANDARD=Object.freeze({naht_ueberlappung:0});
+function raNahtEinstellungenLaden(){
+ let w=null;
+ try{w=JSON.parse(localStorage.getItem("sd_rinneHalbrundSettings")||"null")}catch(e){}
+ const x=Number(w&&w.naht_ueberlappung);
+ return {naht_ueberlappung:Number.isFinite(x)&&x>=0?x:RA_NAHT_STANDARD.naht_ueberlappung};
+}
+let rinneHalbrundSettings=raNahtEinstellungenLaden();
+function raNahtUeberlappung(){return Math.max(0,raZahl(rinneHalbrundSettings&&rinneHalbrundSettings.naht_ueberlappung))}
+function raTeile(a){
+ const U=raNahtUeberlappung();
+ const norm=raNormlaengenGefiltert(a)||[];
+ const maxN=norm.length?Math.max.apply(null,norm):0;
+ const out=[];
+ raStueckliste(a).forEach(s=>{
+  const Z=Math.round(raZahl(s.zuschnitt));
+  if(!(Z>0))return;
+  if(!(maxN>0)||Z<=maxN||!(maxN>U)){
+   out.push({nr:s.nr,label:String(s.nr),laenge:Z,teil:1,teile:1,gesamt:Z,ueberlappung:0});
+   return;
+  }
+  const k=Math.ceil((Z-U)/(maxN-U)-1e-9);
+  const summe=Z+(k-1)*U, e=Math.floor(summe/k), rest=summe-e*k;
+  for(let i=0;i<k;i++)
+   out.push({nr:s.nr,label:String(s.nr)+String.fromCharCode(97+i),laenge:e+(i<rest?1:0),teil:i+1,teile:k,gesamt:Z,ueberlappung:U});
+ });
+ return out;
+}
+function raNaehte(a){
+ return raTeile(a).filter(t=>t.teil===1&&t.teile>1).map(t=>({nr:t.nr,gesamt:t.gesamt,teile:t.teile,ueberlappung:t.ueberlappung,
+  laengen:raTeile(a).filter(x=>x.nr===t.nr).map(x=>x.laenge)}));
+}
 function raZuschnitte(a){
- return raStueckliste(a).map(s=>Math.round(raZahl(s.zuschnitt))).filter(v=>v>0);
+ return raTeile(a).map(t=>t.laenge);
 }
 function raNormErgebnis(a){return raNormPlan(raZuschnitte(a),raNormlaengenGefiltert(a))}
 
@@ -471,6 +508,10 @@ function raPruefungen(a){
   if(w<-180||w>180)meldungen.push({art:"fehler",text:`Der Winkel nach Abschnitt ${i+1} liegt ausserhalb von −180° bis 180°.`});
  });
  if(segs.length&&L<=0)meldungen.push({art:"fehler",text:"Die Gesamtlänge ist 0 mm."});
+ {
+  const n=raNaehte(a);
+  if(n.length&&!(raNahtUeberlappung()>0))meldungen.push({art:"warnung",text:`${n.length===1?"Ein Rinnenstück ist":n.length+" Rinnenstücke sind"} länger als die längste Normlänge und werden aus mehreren Teilen zusammengesetzt – die Nahtüberlappung ist 0 mm (Einstellungen → Dachrinne).`});
+ }
  if(L>0&&L<300)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${raMm(L)} mm ist auffällig kurz – bitte prüfen.`});
  if(L>200000)meldungen.push({art:"warnung",text:`Die Gesamtlänge von ${raMeter(L)} m ist auffällig lang – bitte prüfen.`});
  // Manuelle Gesamtlänge gegen die Summe der Abschnitte
@@ -909,8 +950,7 @@ function raZuschnittPlan(){
  const r=raNormErgebnis(a);
  // raPasst() rechnet mit nackten Laengen. Fuer die Belegung wird jeder Wert
  // wieder seiner Stuecknummer zugeordnet - jedes Stueck genau einmal.
- const vorrat=raStueckliste(a).map(x=>({nr:x.nr,laenge:Math.round(raZahl(x.zuschnitt))}))
-   .filter(x=>x.laenge>0);
+ const vorrat=raTeile(a).map(t=>({nr:t.label,laenge:t.laenge}));
  const hole=l=>{
   const i=vorrat.findIndex(x=>x.laenge===l);
   if(i<0)return {nr:"?",laenge:l};
@@ -923,7 +963,8 @@ function raZuschnittPlan(){
   einleitung:ZU_EINLEITUNG_STANGE,
   // Fuer welches Material und welche Groesse die Normlaengen gelten - sonst
   // waere nicht erkennbar, worauf sich der Plan bezieht.
-  zusatz:"Gilt für <b>"+esc(raMaterialText(a))+" "+esc(raGroesseText(a))+"</b>.",
+  zusatz:"Gilt für <b>"+esc(raMaterialText(a))+" "+esc(raGroesseText(a))+"</b>."
+   +raNaehte(a).map(n=>"<br>Stück "+esc(n.nr)+" ("+esc(raMm(n.gesamt))+" mm) ist länger als die längste Normlänge und wird aus "+n.teile+" Teilen zusammengesetzt (Nahtüberlappung "+esc(raMm(n.ueberlappung))+" mm): "+n.laengen.map(l=>esc(raMm(l))+" mm").join(" + ")+".").join(""),
   quelle:ZU_QUELLE_STANGE,
   leer:"Noch nichts zuzuschneiden.",
   breite:raZuschnittBreite(a),
@@ -1246,6 +1287,8 @@ function rinneAufnahmeZusatzDaten(){
   // gerechnet wurden - leer = alle. Ohne dieses Feld wuerde ein
   // Wiederoeffnen die getroffene Auswahl verlieren.
   normlaengenAuswahl:Array.isArray(a.normlaengenAuswahl)?a.normlaengenAuswahl.slice():[],
+  naehte:raNaehte(a),
+  nahtUeberlappung:raNahtUeberlappung(),
   normplan:plan?{stangen:plan.stangen,gesamt:plan.gesamt,verschnitt:plan.verschnitt,
                  summeStuecke:plan.summeStuecke,optimal:plan.optimal,zuLang:plan.zuLang}:null,
   // v3.79: derselbe Plan wie normplan, nur mit Stücknummern und der Form, die

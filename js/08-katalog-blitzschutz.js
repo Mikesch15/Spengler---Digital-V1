@@ -899,6 +899,8 @@ function renderSettings(){
  $("protectedTabBtn").hidden=!isAdmin();
  const dilaFeld=$("rinneDilaMassInput");
  if(dilaFeld)dilaFeld.value=rinneDilaMass;
+ const nahtFeld=$("rinneNahtUeberlappungInput");
+ if(nahtFeld&&typeof rinneHalbrundSettings!=="undefined")nahtFeld.value=rinneHalbrundSettings.naht_ueberlappung;
  const dilaAusmassFeld=$("rinneDilaAusmassMassInput");
  if(dilaAusmassFeld)dilaAusmassFeld.value=rinneDilaAusmassMass;
  if(typeof renderRinneNormSettings==="function")renderRinneNormSettings();

@@ -1,0 +1,54 @@
+// v3.415: Rinne halbrund - zu lange Rinnenstuecke werden aus mehreren Teilen mit Nahtueberlappung zusammengesetzt.
+const {chromium}=require(process.env.SP+"/node_modules/playwright-core");
+const {chromePfad}=require(__dirname+"/chrome-pfad.js");
+const {stubSchuetzen}=require(__dirname+"/stub-schutz.js");
+const path=require("path"),fs=require("fs");
+let ok=0,fail=0;
+const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  FEHLGESCHLAGEN: "+t+(z!==undefined?"  "+JSON.stringify(z).slice(0,600):""))}};
+const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}},
+ from:()=>{const q={};['select','eq','order','limit','in'].forEach(k=>q[k]=()=>q);q.then=r=>Promise.resolve({data:[],error:null}).then(r);return q},
+ storage:{from:()=>({createSignedUrl:async()=>({data:null,error:{message:"x"}})})},rpc:async()=>({data:null,error:null})})}};
+(async()=>{
+ const b=await chromium.launch({executablePath:chromePfad(),args:["--no-sandbox"]});
+ const page=await b.newPage({viewport:{width:412,height:1400}});page.__f=[];page.on("pageerror",e=>page.__f.push(String(e)));
+ await stubSchuetzen(page);await page.addInitScript(INIT);
+ await page.goto("file://"+path.join(process.cwd(),"index.html"));await page.waitForTimeout(400);
+ await page.evaluate(()=>{window.appAlert=async()=>{};
+  rinneNormlaengen={"3|330":[4000,5000,6000]};
+  rinneA.material="3";rinneA.groesse="330";rinneA.normlaengenAuswahl=[];
+  window.ZS=(...z)=>{window.raStueckliste=()=>z.map((v,i)=>({nr:i+1,zuschnitt:v}))};
+  window.U=u=>{rinneHalbrundSettings={naht_ueberlappung:u}};
+ });
+ const ev=(f,...a)=>page.evaluate(f,...a);
+ console.log("\nA · Teilung");
+ let r=await ev(()=>{ZS(7000);U(30);return raTeile(rinneA).map(t=>t.label+":"+t.laenge).join(" ")});
+ p(r==="1a:3515 1b:3515","7000 mm bei max. 6000 und 30 mm Überlappung: 2 gleiche Teile 3515 (zusammen 7030)",r);
+ r=await ev(()=>{ZS(13000);U(50);const t=raTeile(rinneA);return {l:t.map(x=>x.laenge).join(),s:t.reduce((a,x)=>a+x.laenge,0),max:Math.max(...t.map(x=>x.laenge))}});
+ p(r.l==="4367,4367,4366"&&r.s===13100&&r.max<=6000,"13000 mm, 50 mm Überlappung: 3 Teile, Summe = 13000 + 2 × 50, jedes ≤ 6000",r);
+ r=await ev(()=>{ZS(7000,5000,6000,6001);U(0);return raTeile(rinneA).map(t=>t.label+":"+t.laenge).join(" ")});
+ p(r==="1a:3500 1b:3500 2:5000 3:6000 4a:3001 4b:3000"||r==="1a:3500 1b:3500 2:5000 3:6000 4a:3001 4b:3000","Ohne Überlappung: gleiche Teile; Stücke bis 6000 bleiben ganz, 6001 wird geteilt",r);
+ r=await ev(()=>{ZS(7000);U(6000);const a=raTeile(rinneA).length;U(30);rinneA.normlaengenAuswahl=[4000];const b=raTeile(rinneA).map(t=>t.laenge).join();rinneA.normlaengenAuswahl=[];return {a,b}});
+ p(r.a===1,"Ist die Überlappung nicht kleiner als die längste Normlänge, wird nicht geteilt (Stück bleibt 'zu lang')",r);
+ p(r.b==="3515,3515","Nur 4000 gewählt: 7000 wird weiterhin in 2 Teile à 3515 geteilt (jedes ≤ 4000)",r);
+ r=await ev(()=>{ZS(9000);U(30);rinneA.normlaengenAuswahl=[4000];const t=raTeile(rinneA).map(x=>x.laenge).join();rinneA.normlaengenAuswahl=[];return t});
+ p(r==="3020,3020,3020","Nur 4000 gewählt: 9000 → 3 Teile à 3020 (9000 + 2 × 30)",r);
+ r=await ev(()=>{ZS(11990);U(50);const t=raTeile(rinneA);return {n:t.length,max:Math.max(...t.map(x=>x.laenge)),s:t.reduce((a,x)=>a+x.laenge,0)}});
+ p(r.n===3&&r.max<=6000&&r.s===12090,"Randfall 11990 mm bei 50 mm Überlappung: 3 Teile (2 Teile à 6020 wären zu lang)",r);
+ console.log("\nB · Zuschnittplan");
+ r=await ev(()=>{ZS(7000,2000);U(30);const e=raNormErgebnis(rinneA);const pl=raZuschnittPlan();
+  return {zl:e.zuLang.length,sum:e.summeStuecke,ok:e.ok,nrs:pl.stangen.flatMap(s=>s.stuecke.map(x=>x.nr)).sort().join(),zus:pl.zusatz}});
+ p(r.zl===0&&r.sum===9030&&r.ok&&r.nrs==="1a,1b,2"&&/Stück 1 \(7.000 mm\) ist länger als die längste Normlänge und wird aus 2 Teilen zusammengesetzt \(Nahtüberlappung 30 mm\): 3.515 mm \+ 3.515 mm/.test(r.zus.replace(/[’']/g,".")),"Plan enthält die Teile 1a/1b statt «zu lang»; Material 7000 + 30 + 2000; Hinweis in der Zusatzzeile",r);
+ console.log("\nC · Kontrolle, Speichern");
+ r=await ev(()=>{ZS(7000);U(0);const a=raPruefungen(rinneA).map(x=>x.text).join("|");U(30);const b=raPruefungen(rinneA).map(x=>x.text).join("|");return [/Nahtüberlappung ist 0 mm/.test(a),/Nahtüberlappung ist 0 mm/.test(b)]});
+ p(r[0]===true&&r[1]===false,"Warnung nur bei Überlappung 0 mm",r);
+ r=await ev(()=>{ZS(7000,2000);U(30);const z=rinneAufnahmeZusatzDaten();const h=zuschnittHtml(raZuschnittPlan());return {n:z.naehte.map(x=>x.nr+":"+x.teile+":"+x.laengen.join("+")).join(),u:z.nahtUeberlappung,st:z.zuschnitt&&z.zuschnitt.stangen.flatMap(s=>s.stuecke.map(x=>x.nr)).sort().join(),h1:/1a/.test(h)&&/1b/.test(h)}});
+ p(r.n==="1:2:3515+3515"&&r.u===30&&r.st==="1a,1b,2"&&r.h1,"Gespeichert: Nähte, Überlappung und der Plan mit den Teilen 1a/1b; die Zuschnittanzeige nennt beide Teile",r);
+ console.log("\nD · Einstellung");
+ r=await ev(()=>({feld:!!document.getElementById("rinneNahtUeberlappungInput"),knopf:!!document.getElementById("saveRinneNaht"),liste:EFIRMA_LISTE.some(e=>e.key==="sd_rinneHalbrundSettings"),stand:(()=>{U(40);return efStandAktuell("rinne_halbrund")})(),std:RA_NAHT_STANDARD.naht_ueberlappung}));
+ p(r.feld&&r.knopf&&r.liste&&r.stand.naht_ueberlappung===40&&r.std===0,"Einstellungsfeld, Firmenspeicher und Stand-Warnung sind eingebunden",r);
+ r=await ev(async()=>{localStorage.setItem("sd_rinneHalbrundSettings",JSON.stringify({naht_ueberlappung:25}));const a=raNahtEinstellungenLaden().naht_ueberlappung;localStorage.setItem("sd_rinneHalbrundSettings",JSON.stringify({naht_ueberlappung:-5}));const b=raNahtEinstellungenLaden().naht_ueberlappung;localStorage.removeItem("sd_rinneHalbrundSettings");const c=raNahtEinstellungenLaden().naht_ueberlappung;
+  const f=document.getElementById("rinneNahtUeberlappungInput");f.value="35";document.getElementById("saveRinneNaht").click();await new Promise(r=>setTimeout(r,300));return {a,b,c,gesp:rinneHalbrundSettings.naht_ueberlappung,ls:JSON.parse(localStorage.getItem("sd_rinneHalbrundSettings")).naht_ueberlappung}});
+ p(r.a===25&&r.b===0&&r.c===0&&r.gesp===35&&r.ls===35,"Laden (ungültig → 0) und Speichern der Nahtüberlappung",r);
+ p(page.__f.length===0,"keine Seitenfehler",page.__f);
+ await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
+})();

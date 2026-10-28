@@ -23,6 +23,7 @@ const EFIRMA_LISTE=[
  {key:"sd_rinneProfilSettings",laden:()=>{rinneProfilSettings=rinneProfilEinstellungenLaden()}},
  {key:"sd_kaminSettings",laden:()=>{kaminSettings=kamEinstellungenLaden()}},
  {key:"sd_dfaSettings",laden:()=>{dfaSettings=dfaEinstellungenLaden()}},
+ {key:"sd_rinneHalbrundSettings",laden:()=>{rinneHalbrundSettings=raNahtEinstellungenLaden()}},
  {key:"sd_ablaufrohrSettings",laden:()=>{ablaufrohrSettings=arEinstellungenLaden()}}
 ];
 let efFirma={};
@@ -81,7 +82,7 @@ const EFIRMA_STAND_QUELLEN={
  dachfenstereinfassung:()=>dfaSettings,
  mauerabdeckung:()=>({boden_mass:madBodenMass,boden_ausmass_mass:madBodenAusmassMass}),
  lukarne:()=>({achsabstand:lukAchsabstand,hilfsriss:lukHilfsriss,zugabe_breite:lukZugabeBreite,zugabe_laenge:lukZugabeLaenge}),
- rinne_halbrund:()=>({dila_mass:rinneDilaMass,dila_ausmass_mass:rinneDilaAusmassMass})
+ rinne_halbrund:()=>({dila_mass:rinneDilaMass,dila_ausmass_mass:rinneDilaAusmassMass,naht_ueberlappung:(typeof raNahtUeberlappung==="function"?raNahtUeberlappung():0)})
 };
 function efStandAktuell(type){
  const q=EFIRMA_STAND_QUELLEN[type];

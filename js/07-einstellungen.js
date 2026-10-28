@@ -203,6 +203,15 @@ $("saveRinneDilaMass").onclick=async()=>{
  if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
  appAlert("Gespeichert (gilt für alle).");
 };
+// v3.415: Nahtueberlappung zusammengesetzter Rinnenstuecke (firmenweit wie die Einstellungen der anderen Arten)
+$("saveRinneNaht").onclick=async()=>{
+ const u=Number($("rinneNahtUeberlappungInput").value)||0;
+ if(u<0){appAlert("Die Nahtüberlappung darf nicht negativ sein.");return}
+ rinneHalbrundSettings={naht_ueberlappung:u};
+ localStorage.setItem("sd_rinneHalbrundSettings",JSON.stringify(rinneHalbrundSettings));
+ if(typeof renderRinneAufnahme==="function")renderRinneAufnahme();
+ await efMelden("sd_rinneHalbrundSettings");
+};
 // Normlängen je Material und Grösse. Leeres Feld = nichts hinterlegt; dort
 // rechnet die Massaufnahme bewusst nichts, statt eine Stangenlänge zu raten.
 if($("saveRinneNorm"))$("saveRinneNorm").onclick=async()=>{

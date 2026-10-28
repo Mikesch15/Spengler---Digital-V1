@@ -212,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.414</div>
+<div id="appVersion">Version 3.415</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -2509,7 +2509,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.414.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.415.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -2838,6 +2838,13 @@ Gehrung: gilt an jeder Ecke (Segment mit Winkel ≠ 0), zusätzlich zu Boden (an
 <div class="small" style="margin-bottom:8px">Zuschnitt: wird jedem Rinnenstück abgezogen, das an eine Dila grenzt (negativer Wert = Abzug) - betrifft nur den Materialbedarf.
 Ausmass: eigener, unabhängiger Wert, der nur die Ausmass-Länge der Dachrinne verändert - betrifft nicht den Zuschnitt.</div>
 <div class="bar" style="margin-bottom:14px"><button id="saveRinneDilaMass" class="green">💾 Dila-Masse speichern</button></div>
+
+<h2 style="margin-top:14px">Nähte</h2>
+<div class="grid" style="margin-bottom:10px">
+<div><label>Nahtüberlappung (mm)</label><input id="rinneNahtUeberlappungInput" type="number" step="1" min="0"></div>
+</div>
+<div class="small" style="margin-bottom:8px">Ist ein Rinnenstück länger als die längste Normlänge, wird es aus mehreren Teilen zusammengesetzt. An jeder Naht überlappen sich die Teile um dieses Mass; es erhöht den Materialbedarf. Gilt für die ganze Firma.</div>
+<div class="bar" style="margin-bottom:14px"><button id="saveRinneNaht" class="green">💾 Nahtüberlappung speichern</button></div>
 
 <h2 style="margin-top:14px">Normlängen</h2>
 <div class="small" style="margin-bottom:8px">Welche Stangenlängen der Lieferant je Material und Rinnengrösse führt –
@@ -3225,7 +3232,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.414.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.415.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
