@@ -134,6 +134,7 @@ const SHELL = [
   "./js/101-bleilappen.js",
   "./js/102-ablaufrohr.js",
   "./js/103-ablaufrohr-aufnahme.js",
+  "./js/104-cad-teile.js",
   "./img/startbanner.jpg",
   // v3.200: fest im Projekt statt vom CDN - sonst laesst sich eine Offerte
   // ohne Verbindung nicht erzeugen (siehe vendor/README.md).

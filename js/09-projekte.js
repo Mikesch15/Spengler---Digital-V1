@@ -524,6 +524,8 @@ async function loadProjectMeasurements(projectId){
  }).join(""):'<div class="empty">'+(projectMeasArchivAnzeigen?"Keine archivierten Massaufnahmen."
    :(archivierte.length?"Keine aktive Massaufnahme – "+archivierte.length+" archiviert."
     :"Noch keine Massaufnahme zu diesem Projekt."))+'</div>');
+ // v3.417: Teile aus dem CAD unter der Liste (js/104) - ohne Warten, stoert die Liste nie.
+ if(typeof cadTeileNachListe==="function")cadTeileNachListe(projectId);
  // Die Zahl im Kopf und im Arbeitsstand zaehlt die AKTIVEN - auch dann, wenn
  // gerade die archivierten angezeigt werden.
  return alle.length-archivierte.length;

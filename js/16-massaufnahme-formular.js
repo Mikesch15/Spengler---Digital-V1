@@ -601,6 +601,8 @@ $("saveMeasurement").onclick=async()=>{
   // darf nie eine Datei kosten, auf die die gespeicherte Zeile noch zeigt.
   await measBilderAufraeumen(workingId,measSelectedProjectId,bilderVorher,photoUrls.concat(sketchUrls));
   if(typeof mwNachSpeichern==="function")mwNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
+  // v3.417: kam die Massaufnahme aus einem CAD-Teil (js/104), wird sie dort vermerkt - nur bei einer NEUEN Aufnahme.
+  if(warNeu&&typeof cadTeilNachSpeichern==="function")cadTeilNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
   currentMeasurementId=workingId;
   measLoeschenKnopfAktualisieren();
   currentMeasurementMeta=warNeu
