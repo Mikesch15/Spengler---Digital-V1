@@ -11,7 +11,7 @@ const INIT=()=>{window.__tab={};window.__aufrufe=[];
    q.update=(w)=>{window.__aufrufe.push({tab,update:w});return q};
    q.then=r=>Promise.resolve({data:window.__tab[tab]||[],error:null}).then(r);return q},
   storage:{from:()=>({createSignedUrl:async()=>({data:null,error:{message:"x"}})})},rpc:async()=>({data:null,error:null})})}};
-const TEIL={id:"t1",project_id:7,teil_nr:1,teil_label:"18162-01",name:"Ortgang",stueck:2,material_name:"Alu",staerke_mm:0.7,zuschnitt_breite_mm:200,zuschnitt_laenge_mm:3000,
+const TEIL={id:"t1",auftrag:"18162",project_id:7,teil_nr:1,teil_label:"18162-01",name:"Ortgang",stueck:2,material_name:"Alu",staerke_mm:0.7,zuschnitt_breite_mm:200,zuschnitt_laenge_mm:3000,
  vorlage_name:"Winkelfalz",dokument:"Dach",measurement_id:null,status:"neu",
  app_data:{material:"",ansicht:"rechts",konisch:"nein",schenkel:[{laenge:168,winkel:0},{laenge:25,winkel:90},{laenge:7,winkel:180}],segmente:[{laenge:3000,massen:[]}],cad:{material_name:"Alu"}}};
 (async()=>{
@@ -52,6 +52,8 @@ const TEIL={id:"t1",project_id:7,teil_nr:1,teil_label:"18162-01",name:"Ortgang",
  p(r.n===1&&/Ortgang/.test(r.text),"erscheint unter der Liste, bei erneutem Laden nicht doppelt",r);
  r=await ev(async()=>{window.__tab.cad_teile=[];await cadTeileNachListe(7);return document.querySelectorAll("#cadTeileBox").length});
  p(r===0,"keine Teile mehr: Karte verschwindet");
+ r=await ev(async()=>{window.__tab.cad_teile=[{id:5,type:"kehle",title:"Fremde Zeile"}];await cadTeileNachListe(7);return document.querySelectorAll("#cadTeileBox").length});
+ p(r===0,"Zeilen ohne Auftrag/Teilnummer (keine cad_teile) werden nicht als Teil angezeigt");
  r=await ev(async t=>{window.__tab.cad_teile=[t];cockpitProjectId=8;await cadTeileNachListe(7);return document.querySelectorAll("#cadTeileBox").length},TEIL);
  p(r===0,"anderes Projekt inzwischen offen: nichts eingefügt");
  p(await ev(()=>typeof loadProjectMeasurements==="function"&&/cadTeileNachListe/.test(loadProjectMeasurements.toString())),"js/09 ruft den Hook auf");

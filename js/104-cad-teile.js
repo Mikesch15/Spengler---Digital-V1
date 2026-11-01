@@ -56,11 +56,12 @@ async function cadTeileNachListe(projectId){
   if(!box||!projectId)return;
   const {data,error}=await sb.from("cad_teile").select("*").eq("project_id",projectId).order("teil_nr",{ascending:true});
   if(error||!Array.isArray(data)){cadTeileCache=[];return}
-  cadTeileCache=data;
+  // Nur echte cad_teile-Zeilen (Auftrag + Teilnummer) - alles andere wird ignoriert, statt es als Teil anzuzeigen.
+  cadTeileCache=data.filter(t=>t&&typeof t.auftrag==="string"&&t.teil_nr!==undefined);
   const alt=$("cadTeileBox");
   if(alt)alt.remove();
   if(cockpitProjectId!==projectId)return;      // inzwischen ein anderes Projekt geoeffnet
-  box.insertAdjacentHTML("beforeend",cadTeileHtml(data));
+  box.insertAdjacentHTML("beforeend",cadTeileHtml(cadTeileCache));
  }catch(e){cadTeileCache=[]}
 }
 
