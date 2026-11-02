@@ -212,7 +212,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.417</div>
+<div id="appVersion">Version 3.418</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -799,6 +799,22 @@
 <div class="card" id="aboBox"></div>
 </details>
 <div class="bar"><button id="closeTermine" class="gray">← Zurück</button></div>
+</div>
+</div>
+
+<!-- v3.418: Zuschnittrechner - Blechformat und Zuschnittmasse eingeben (oder aus Excel
+     importieren), Zuschnittplan mit sichtbarer Belegung. Rechnung und Darstellung
+     kommen aus dem gemeinsamen Zuschnitt (js/29, js/33); die Bedienung steht in js/105. -->
+<div id="zrModal" class="modal" hidden>
+<div class="modalbox">
+<div class="card">
+<h2>✂️ Zuschnittrechner <button type="button" class="hilfe-knopf no-print" data-hilfe="zuschnittrechner">i</button></h2>
+<div class="small" style="color:var(--muted)">Blechformat wählen, Zuschnittmasse eingeben oder aus Excel importieren – daraus entsteht der Zuschnittplan.</div>
+</div>
+<div class="card"><h3>1 · Blechformat</h3><div id="zrFormat"></div></div>
+<div class="card"><h3>2 · Zuschnittmasse</h3><div id="zrEingabe"></div></div>
+<div class="card"><h3>3 · Zuschnittplan</h3><div id="zrPlan"></div></div>
+<div class="bar"><button id="closeZr" class="gray">← Zurück</button></div>
 </div>
 </div>
 
@@ -2509,7 +2525,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.417.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.418.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 121 Seiten)</a></div>
 </div>
 </div>
 
@@ -3232,7 +3248,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.417.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.418.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>
@@ -3722,6 +3738,7 @@ nicht neu installieren.</div>
 <script src="js/102-ablaufrohr.js"></script>
 <script src="js/103-ablaufrohr-aufnahme.js"></script>
 <script src="js/104-cad-teile.js"></script>
+<script src="js/105-zuschnittrechner.js"></script>
 <!-- v3.150: laedt NACH allen Fachmodulen. Die Ansicht umhuellt drei ihrer
      Funktionen (showStart, renderAufgaben, loadProjectCockpitData) - die
      muessen dafuer bereits da sein. -->

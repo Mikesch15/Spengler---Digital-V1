@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.417";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.418";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.417<br>
+  Version 3.418<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -105,7 +105,8 @@ nav ol{margin:2px 0 10px}
 <li><span class="nr">24</span>Ohne Internet</li>
 <li><span class="nr">25</span>Begriffe</li>
 <li><span class="nr">26</span>Abwicklung: Rundrohr mit schrägem Anschnitt</li>
-<li><span class="nr">27</span>Zu diesem Dokument</li>
+<li><span class="nr">27</span>Zuschnittrechner: Plan aus Blechformat und Masseliste</li>
+<li><span class="nr">28</span>Zu diesem Dokument</li>
 </ol>
 </nav>
 
@@ -3071,8 +3072,28 @@ damals gespeicherten ab, sagt die App das ausdrücklich – ein Zuschnitt, nach
 dem schon geschnitten wurde, darf nicht stillschweigend andere Zahlen
 bekommen.</div>
 
-<h2 class="seite">27 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.417</strong>, Stand 5. Oktober 2026.</p>
+<h2 class="seite">27 · Zuschnittrechner: Plan aus Blechformat und Masseliste</h2>
+<p>Der Zuschnittrechner ist ein <strong>freies Werkzeug ohne Projekt</strong>: Blechformat wählen,
+Zuschnittmasse eintragen oder aus Excel einlesen, und die App erstellt den Zuschnittplan – mit
+derselben Rechnung und derselben sichtbaren Belegung wie der Zuschnitt in den Massaufnahmen.
+Zu finden unter <strong>Mehr → Zuschnittrechner</strong>.</p>
+<h3>1 · Blechformat</h3>
+<p><strong>Rolle</strong>: die Rollenbreite in mm (Schnellwahl 1000, 670, 500 …). <strong>Tafel</strong>: Breite und Länge der
+Tafel. Mit <em>Stücke dürfen gedreht werden</em> wird die kürzere Seite eines Stücks zur Streifenbreite.</p>
+<h3>2 · Zuschnittmasse</h3>
+<p>Je Zeile <strong>Länge</strong> (in Richtung der Rolle bzw. Tafel), <strong>Breite</strong> (Streifenbreite) und <strong>Anzahl</strong>,
+optional eine Bezeichnung. Eine Zeile mit Anzahl 3 sind drei Stücke mit aufeinanderfolgenden Nummern.
+<strong>Excel / CSV importieren</strong> liest die Spalten Länge, Breite und Anzahl (mit oder ohne Kopfzeile);
+die <strong>Vorlage</strong> zeigt den Aufbau. Weitere Importe werden angehängt.</p>
+<h3>3 · Zuschnittplan</h3>
+<p>Stückzahl und Nettofläche, dann der Plan: welches Stück in welchem Streifen liegt, wie viel Rolle bzw. wie viele
+Tafeln gebraucht werden und wie viel Verschnitt bleibt. <strong>Plan drucken / PDF</strong> erzeugt ein Blatt mit
+Zuschnittmassen und Plan.</p>
+<div class="hin">Nichts davon wird in der Datenbank gespeichert; der letzte Stand bleibt nur auf diesem Gerät.
+Für Zuschnitte, die zu einem Projekt gehören, ist weiterhin der Zuschnitt in der Massaufnahme zuständig.</div>
+
+<h2 class="seite">28 · Zu diesem Dokument</h2>
+<p>Diese Anleitung beschreibt <strong>Version 3.418</strong>, Stand 5. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

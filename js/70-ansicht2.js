@@ -134,6 +134,7 @@ const A2_BEREICHE={
  projectsModal:     {zu:"closeProjects"},
  zaehlwerkModal:    {zu:"closeZaehlwerk"},
  abwicklungModal:   {zu:"closeAbwicklung"},
+ zrModal:           {zu:"closeZr"},   // v3.418: Zuschnittrechner
  termineModal:      {zu:"closeTermine"},
  // v3.251: Das Lieferanten-Lager ist seit der Abschaffung der alten
  // Lagerverwaltung der Schirm des Lager-Knopfs. Vorher stand hier
@@ -1264,6 +1265,8 @@ function a2SeiteMehr(){
   {id:"zaehlwerk",gruppe:"firma",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
   {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"},
+  // v3.418: Zuschnittrechner (js/105) - ein Werkzeug ohne Projekt
+  {id:"zuschnittrechner",gruppe:"arbeiten", zeichen:"✂️", text:"Zuschnittrechner",    unter:"Blechformat und Zuschnittmasse (auch Excel) → Zuschnittplan"},
   // v3.375: Terminplanung (js/92)
   {id:"termine",gruppe:"arbeiten", zeichen:"📅", text:"Termine",                   unter:"Wochenübersicht, Kalender vom Handy importieren"}
  ].filter(e=>e.id!=="termine"||typeof modulAn!=="function"||modulAn("termine"));   // v3.389: Modul "termine" der Firma
@@ -1672,6 +1675,10 @@ document.addEventListener("click",async e=>{
  }
  if(was==="abwicklung"&&typeof abwOeffnen==="function"){
   a2BereichStarten("abwicklungModal","Abwicklung","mehr",()=>abwOeffnen());
+  return;
+ }
+ if(was==="zuschnittrechner"&&typeof zrOeffnen==="function"){
+  a2BereichStarten("zrModal","Zuschnittrechner","mehr",()=>zrOeffnen());
   return;
  }
   // v3.157: bis v3.156 fuehrte dieser Eintrag ueber openSettingsTo() in die
