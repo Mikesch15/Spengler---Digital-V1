@@ -6,8 +6,8 @@
 // oder Tafel) eingeben, Zuschnittmasse von Hand oder per Excel/CSV-Import,
 // daraus ein Zuschnittplan mit sichtbarer Belegung - mit denselben Bausteinen
 // wie der Zuschnitt in den Massaufnahmen:
-//   * Packrechnung            ebaFormatPlan / ebaPackeInStreifen (js/29)
-//   * Darstellung der Belegung zuschnittHtml (js/33), Druck zuDruckHtml (js/33)
+//   * Schnittfuge             ebaSchnittfuge (js/29, Einstellung der Firma)
+//   * Darstellung und Stil    wie das Schnittbild der Massaufnahmen (zu-bilder, js/33)
 // Hier steht nur die Eingabe, die Aufbereitung der Stuecke und der Import.
 // Es wird nichts in der Datenbank gespeichert; der letzte Stand bleibt als
 // Bequemlichkeit im Browser dieses Geraets (localStorage).
@@ -56,7 +56,7 @@ function zrLaden(){
 // Jedes Stueck bekommt eine fortlaufende Nummer; eine Zeile mit Anzahl 3 sind
 // drei Stuecke mit aufeinanderfolgenden Nummern (zrNummern: von-bis je Zeile).
 // "Drehen erlaubt": die kuerzere Seite wird Streifenbreite, die laengere Laenge.
-function zrBleche(a){
+function zrBleche(a,roh){
  a=a||zrA;
  const out=[],bereich=[];
  let nr=0;
@@ -64,52 +64,143 @@ function zrBleche(a){
   let L=zrZ(z.laenge),B=zrZ(z.breite);
   const n=Math.max(1,Math.min(1000,Math.floor(zrZ(z.anzahl)||1)));
   if(!(L>0&&B>0)){bereich[i]=null;return}
-  if(a.drehen&&B>L){const t=L;L=B;B=t}
+  if(a.drehen&&B>L&&!roh){const t=L;L=B;B=t}
   const von=nr+1;
   for(let k=0;k<n;k++)out.push({nr:++nr,laenge:L,breite:B,zeile:i,bez:z.bez||"",merkmal:"",hinweis:""});
   bereich[i]={von,bis:nr};
  });
  return {bleche:out,bereich};
 }
-function zrFormate(a){
- a=a||zrA;
- if(a.form==="tafel"){
-  const B=zrZ(a.tafelBreite),L=zrZ(a.tafelLaenge);
-  return (B>0&&L>0)?[{breite:B,laenge:L,text:ebaFormatText({breite:B,laenge:L})}]:[];
- }
- const R=zrZ(a.rolle);
- return R>0?[{breite:R,laenge:null,text:ebaFormatText({breite:R,laenge:null})}]:[];
+// ---- Die Packung ---------------------------------------------------------------
+// Eigene Reihenpackung (Shelf), weil hier verschiedene Streifenbreiten auf DERSELBEN
+// Tafel bzw. im selben Rollenabschnitt liegen duerfen - die gemeinsame Packrechnung der
+// Massaufnahmen (ebaFormatPlan) bildet Gruppen je Streifenbreite, jede auf eigenen Tafeln.
+// Reihen laufen in Laengsrichtung; eine Reihe ist so hoch wie ihr breitestes Stueck.
+// Schnittfuge (Einstellungen) liegt zwischen Stuecken und zwischen Reihen. Drei
+// Sortierungen werden gerechnet, die mit der kleinsten Blechflaeche gewinnt.
+function zrFuge(){return typeof ebaSchnittfuge==="function"?zrZ(ebaSchnittfuge()):0}
+function zrPackeLauf(stuecke,SB,SL,tafel,drehen,fuge,sortFn){
+ const teile=stuecke.slice().sort(sortFn);
+ const sheets=[],nicht=[];
+ const orient=t=>(drehen&&tafel)?[[t.laenge,t.breite],[t.breite,t.laenge]]:[[t.laenge,t.breite]];
+ const setze=(s,sh,t,l,b)=>{
+  const x=sh.used+(sh.pieces.length?fuge:0);
+  sh.pieces.push({nr:t.nr,zeile:t.zeile,bez:t.bez,laenge:l,breite:b,x,y:sh.y,gedreht:l!==t.laenge||b!==t.breite});
+  sh.used=x+l;
+ };
+ teile.forEach(t=>{
+  const passt=orient(t).filter(([l,b])=>l<=SL+1e-9&&b<=SB+1e-9);
+  if(!passt.length){nicht.push(t);return}
+  for(const s of sheets){
+   let best=null;
+   passt.forEach(([l,b])=>{
+    s.shelves.forEach(sh=>{
+     const need=l+(sh.pieces.length?fuge:0);
+     if(sh.h>=b-1e-9&&SL-sh.used>=need-1e-9){
+      const w=(sh.h-b)*1e4+(SL-sh.used-need);
+      if(!best||w<best.w)best={w,sh,l,b,neu:false};
+     }
+    });
+    const ny=s.usedH+(s.shelves.length?fuge:0);
+    if(SB-ny>=b-1e-9){const w=1e9+b*1e3;if(!best||w<best.w)best={w,l,b,ny,neu:true}}
+   });
+   if(best){
+    let sh=best.sh;
+    if(best.neu){sh={y:best.ny,h:best.b,pieces:[],used:0};s.shelves.push(sh);s.usedH=best.ny+best.b}
+    setze(s,sh,t,best.l,best.b);
+    return;
+   }
+  }
+  const [l,b]=passt[0];
+  const s={shelves:[],usedH:0};sheets.push(s);
+  const sh={y:0,h:b,pieces:[],used:0};s.shelves.push(sh);s.usedH=b;
+  setze(s,sh,t,l,b);
+ });
+ sheets.forEach(s=>{s.len=tafel?SL:Math.max.apply(null,s.shelves.map(sh=>sh.used).concat([1]))});
+ const flaeche=sheets.reduce((a,s)=>a+SB*s.len,0);
+ return {sheets,nicht,flaeche};
 }
-
-// ---- Der Plan (gleiche Form wie in den Massaufnahmen, vgl. mdaZuschnittPlan) ----
-function zrPlan(a){
+function zrPackung(a){
  a=a||zrA;
- const form=a.form==="tafel"?"tafel":"rolle";
- const {bleche}=zrBleche(a);
- const formate=zrFormate(a);
- const netto=bleche.reduce((s,x)=>s+x.laenge*x.breite,0)/1e6;
- let p={gruppen:[],moeglich:[],zuSchmal:[],zuLang:[],zuKurz:[],bestes:null,netto,optimal:true,form,formate};
- if(bleche.length&&typeof ebaFormatPlan==="function"){
-  const nach=new Map();
-  bleche.forEach(x=>{if(!nach.has(x.breite))nach.set(x.breite,[]);nach.get(x.breite).push(x)});
-  const gruppen=Array.from(nach.keys()).sort((x,y)=>y-x).map(B=>({breite:B,stuecke:nach.get(B),bleche:nach.get(B)}));
-  p=ebaFormatPlan({gruppen,formate,form,netto});
+ const tafel=a.form==="tafel";
+ const SB=tafel?zrZ(a.tafelBreite):zrZ(a.rolle);
+ const stuecke=zrBleche(a,tafel).bleche;   // Tafel: Originallage (Drehen wird beim Legen entschieden); Rolle: ggf. schon gedreht
+ const netto=stuecke.reduce((s,x)=>s+x.laenge*x.breite,0)/1e6;
+ const leer={tafel,SB,SL:0,sheets:[],nicht:[],stuecke:stuecke.length,netto,flaeche:0,verschnitt:0,anteil:0,fuge:zrFuge(),ok:false};
+ if(!(SB>0)||!stuecke.length)return leer;
+ let SL=tafel?zrZ(a.tafelLaenge):0;
+ if(tafel&&!(SL>0))return leer;
+ if(!tafel){
+  const passend=stuecke.filter(x=>x.breite<=SB+1e-9);
+  SL=passend.reduce((m,x)=>Math.max(m,x.laenge),0);
+  if(!(SL>0))return {...leer,nicht:stuecke,SL:0};
  }
- return {art:form,form,formGrund:"",formQuelle:"wahl",formLaenge:p.bestes?(p.bestes.laenge||null):null,einheit:"Stück",material:a.material||"",
-  einleitung:zuEinleitung(form),quelle:zuQuelle(form),
-  leer:ebaLeerText({form,formate},bleche.length?"":"Noch nichts zuzuschneiden – bitte Zuschnittmasse eingeben oder importieren."),
-  streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
-  gruppen:p.gruppen||[],moeglich:p.moeglich||[],bestes:p.bestes||null,netto:p.netto,ausResten:[],
-  zuLang:p.zuLang||[],zuKurz:p.zuKurz||[],zuSchmal:p.zuSchmal||[],optimal:p.optimal!==false,formate:p.formate||formate};
+ const fuge=zrFuge();
+ const sorts=[(x,y)=>y.breite-x.breite||y.laenge-x.laenge,(x,y)=>y.laenge-x.laenge||y.breite-x.breite,(x,y)=>y.laenge*y.breite-x.laenge*x.breite];
+ let best=null;
+ sorts.forEach(f=>{
+  const r=zrPackeLauf(stuecke,SB,SL,tafel,!!a.drehen,fuge,f);
+  const w=r.nicht.length*1e12+r.flaeche;
+  if(!best||w<best.w)best={w,r};
+ });
+ const r=best.r;
+ const flaecheM2=r.flaeche/1e6;
+ return {tafel,SB,SL,sheets:r.sheets,nicht:r.nicht,stuecke:stuecke.length,netto,flaeche:flaecheM2,
+  verschnitt:Math.max(0,flaecheM2-netto),anteil:flaecheM2>0?Math.max(0,flaecheM2-netto)/flaecheM2*100:0,fuge,ok:true};
 }
-// Gespeicherte Form fuer zuDruckHtml (gleiche Felder wie mdDaten().zuschnitt)
-function zrZuschnittDaten(p){
- return {auswahl:[],breiten:(p.formate||[]).map(f=>f.breite),
-  form:p.form,formGrund:"",formQuelle:"wahl",formLaenge:p.bestes?(p.bestes.laenge||null):null,
-  netto:Number(zrZ(p.netto).toFixed(3)),bestes:p.bestes||null,moeglich:p.moeglich||[],
-  gruppen:(p.gruppen||[]).map(g=>({breite:g.breite,rollenLaenge:g.rollenLaenge,abschnittLaenge:g.abschnittLaenge,jeAbschnitt:g.jeAbschnitt,abschnitte:g.abschnitte,
-   streifen:(g.streifen||[]).map(s=>({stuecke:s.stuecke.map(x=>({nr:x.nr,laenge:x.laenge,breite:x.breite,merkmal:x.merkmal||""})),rest:s.rest,abschnittLaenge:s.abschnittLaenge,abschnittNr:s.abschnittNr}))})),
-  optimal:p.optimal!==false,ausResten:[]};
+const zrQm=v=>zrZ(v).toFixed(2).replace(".",",");
+// ---- Schnittbild im Massstab 1:1 (Laenge und Breite im gleichen Massstab) --------
+function zrBildHtml(r){
+ if(!r.ok||!r.sheets.length)return "";
+ const W=1000;
+ const bilder=r.sheets.map((s,i)=>{
+  const Lz=Math.max(1,r.tafel?r.SL:s.len), sx=W/Lz, H=Math.max(20,Math.round(W*r.SB/Lz)), sy=H/r.SB;
+  let el="";
+  s.shelves.forEach(sh=>sh.pieces.forEach(x=>{
+   const w=x.laenge*sx,h=x.breite*sy,t=String(x.nr);
+   const fs=Math.max(10,Math.min(26,h*0.5,w/(t.length+0.6)));
+   const farbe="hsl("+((x.zeile||0)*57%360)+",55%,88%)";
+   let teil=`<rect x="${(x.x*sx).toFixed(1)}" y="${(x.y*sy).toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${farbe}" stroke="#17202a" stroke-width="1.5"/>`;
+   const gross=h>=fs*2.6&&w>=fs*5;
+   if(w>=fs*0.9&&h>=10)teil+=`<text x="${((x.x+x.laenge/2)*sx).toFixed(1)}" y="${((x.y+x.breite/2)*sy+fs*0.35-(gross?fs*0.55:0)).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+   if(gross){
+    const m=zrMm(x.laenge)+" × "+zrMm(x.breite)+(x.gedreht?" ⟳":"");
+    const f2=Math.max(9,Math.min(fs*0.6,w/(m.length*0.62)));
+    teil+=`<text x="${((x.x+x.laenge/2)*sx).toFixed(1)}" y="${((x.y+x.breite/2)*sy+fs*0.35+f2*1.25).toFixed(1)}" font-size="${f2.toFixed(0)}" text-anchor="middle" fill="#3d4850">${esc(m)}</text>`;
+   }
+   el+=teil;
+  }));
+  const n=s.shelves.reduce((a,sh)=>a+sh.pieces.length,0);
+  const belegt=s.shelves.reduce((a,sh)=>a+sh.pieces.reduce((b2,x)=>b2+x.laenge*x.breite,0),0);
+  const kopf=(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · "+zrMm(Lz)+" × "+zrMm(r.SB)+" mm · "+n+" Stück"+(n===1?"":"e")+" · "+Math.round(belegt/(Lz*r.SB)*100)+" % belegt";
+  return `<figure class="zu-bild"><figcaption>${esc(kopf)}</figcaption><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}"><rect x="0" y="0" width="${W}" height="${H}" fill="#eceff1"/>${el}<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#17202a" stroke-width="2.5"/></svg></figure>`;
+ }).join("");
+ return `<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild im Massstab 1:1 – so liegt jedes Stück <span class="zu-bilder-legende">(Länge und Breite im gleichen Massstab, grau = Rest${r.sheets.some(s=>s.shelves.some(sh=>sh.pieces.some(x=>x.gedreht)))?", ⟳ = gedreht":""})</span></div>${bilder}</div>`;
+}
+function zrListeHtml(r){
+ if(!r.ok||!r.sheets.length)return "";
+ const zeilen=[];
+ r.sheets.forEach((s,i)=>s.shelves.forEach((sh,k)=>sh.pieces.forEach(x=>zeilen.push({nr:x.nr,bez:x.bez,laenge:x.laenge,breite:x.breite,gedreht:x.gedreht,
+  ort:(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · Reihe "+(k+1)+" · ab "+zrMm(x.x)+" mm"}))));
+ zeilen.sort((a,b)=>a.nr-b.nr);
+ return `<table class="eb-table ra-tab"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th style="text-align:right">Länge × Breite</th><th>Lage</th></tr></thead><tbody>${
+  zeilen.map(z=>`<tr><td><b>${z.nr}</b></td><td>${esc(z.bez)}</td><td style="text-align:right">${esc(zrMm(z.laenge))} × ${esc(zrMm(z.breite))} mm${z.gedreht?" ⟳":""}</td><td class="small">${esc(z.ort)}</td></tr>`).join("")}</tbody></table>`;
+}
+function zrKennzahlenHtml(r){
+ const f=(l,w)=>`<div><label>${l}</label><div class="ra-wert">${w}</div></div>`;
+ let h=`<div class="grid" style="margin-bottom:8px">${f("Stücke",r.stuecke)}${f("Nettofläche",zrQm(r.netto)+" m²")}`;
+ if(r.ok&&r.sheets.length){
+  h+=r.tafel?f("Tafeln",r.sheets.length+" × "+zrMm(r.SL)+" × "+zrMm(r.SB)):f("Rolle",zrMm(r.sheets.reduce((a,s)=>a+s.len,0))+" mm lang, "+r.sheets.length+" Abschnitt"+(r.sheets.length===1?"":"e"));
+  h+=f("Blechfläche",zrQm(r.flaeche)+" m²")+f("Verschnitt",zrQm(r.verschnitt)+" m² ("+Math.round(r.anteil)+" %)");
+ }
+ return h+"</div>";
+}
+function zrMeldungenHtml(r){
+ const m=[];
+ if(r.nicht.length)m.push(`<div class="ra-fehler">${r.nicht.length===1?"Ein Stück passt":r.nicht.length+" Stücke passen"} nicht ${r.tafel?"auf die Tafel":"auf die Rolle"}: ${esc(r.nicht.slice(0,8).map(x=>"Nr. "+x.nr+" ("+zrMm(x.laenge)+" × "+zrMm(x.breite)+")").join(", "))}${r.nicht.length>8?" …":""}. ${r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rollenbreite "+zrMm(r.SB)+" mm"}${zrA.drehen?"":" – evtl. «Stücke dürfen gedreht werden» einschalten"}.</div>`);
+ if(r.ok&&r.fuge>0)m.push(`<div class="small">Schnittfuge ${esc(zrMm(r.fuge))} mm zwischen den Stücken und Reihen ist eingerechnet.</div>`);
+ if(r.ok)m.push(`<div class="small">Die Stücke werden in Reihen gelegt (verschiedene Breiten dürfen auf derselben ${r.tafel?"Tafel":"Rolle"} liegen); die Anordnung ist eine gute Näherung, kein mathematisch bewiesenes Optimum.</div>`);
+ return m.join("");
 }
 
 // ---- Import aus Excel / CSV -------------------------------------------------
@@ -220,14 +311,10 @@ function zrEingabeHtml(){
 <div class="small">Masse in mm. Beim Import werden die Spalten <b>Länge</b>, <b>Breite</b> und <b>Anzahl</b> (und optional <b>Bezeichnung</b>) erkannt – mit oder ohne Kopfzeile. Eine Zeile mit Anzahl 3 sind drei gleiche Stücke.</div>`;
 }
 function zrPlanHtml(){
- const {bleche}=zrBleche();
- const p=zrPlan();
- const stk=bleche.length;
- const kenn=`<div class="grid" style="margin-bottom:8px">
-<div><label>Stücke</label><div class="ra-wert">${stk}</div></div>
-<div><label>Nettofläche</label><div class="ra-wert">${zrZ(p.netto).toFixed(2).replace(".",",")} m²</div></div>
-</div>`;
- return kenn+(bleche.length?zuSchnittbildHtml(p,{treu:true}):"")+zuschnittHtml(p)+`<div class="bar" style="margin-top:10px"><button type="button" class="blue" id="zrDruck"${stk?"":" disabled"}>🖨️ Plan drucken / PDF</button></div>`;
+ const r=zrPackung();
+ return zrKennzahlenHtml(r)+zrMeldungenHtml(r)+zrBildHtml(r)+zrListeHtml(r)
+  +`<div class="bar" style="margin-top:10px"><button type="button" class="blue" id="zrDruck"${r.ok&&r.sheets.length?"":" disabled"}>🖨️ Plan drucken / PDF</button></div>`
+  +((!r.stuecke)?`<div class="info">Noch nichts zuzuschneiden – bitte Zuschnittmasse eingeben oder importieren.</div>`:"");
 }
 // Nur die Zeilennummern aktualisieren (die Eingabefelder bleiben stehen, der Fokus auch)
 function zrNummernNeu(){
@@ -268,24 +355,28 @@ async function zrDrucken(){
  if(!bleche.length)return;
  const win=window.open("","_blank");
  if(!win){appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
- const p=zrPlan();
+ const r=zrPackung();
  let logoSrc="";
  try{logoSrc=(typeof storageSignedUrl==="function")?await storageSignedUrl(logoUrl):logoUrl}catch(e){logoSrc=""}
  const kopf=(typeof pdfKopfHtml==="function")
   ?pdfKopfHtml({logoSrc,dokumenttyp:"Zuschnittplan",unterart:"Zuschnittrechner",material:zrA.material||"",datum:new Date().toISOString().slice(0,10)})
   :`<h1>Zuschnittplan</h1>`;
  const tabelle=zrA.zeilen.map((z,i)=>bereich[i]?`<tr><td>${bereich[i].von===bereich[i].bis?bereich[i].von:bereich[i].von+"–"+bereich[i].bis}</td><td>${esc(z.bez)}</td><td>${zrMm(z.laenge)}</td><td>${zrMm(z.breite)}</td><td>${esc(z.anzahl)}</td></tr>`:"").join("");
- const fmt=(p.formate||[])[0];
+ const fmt=r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rolle "+zrMm(r.SB)+" mm";
+ const bedarf=r.ok&&r.sheets.length?(r.tafel?r.sheets.length+" Tafel"+(r.sheets.length===1?"":"n"):zrMm(r.sheets.reduce((a,s)=>a+s.len,0))+" mm Rolle"):"–";
  const html=`${kopf}
 <div class="eb-section-head">Angaben</div>
 <table class="eb-info-table">
-<tr><td><label>Blechformat</label><div class="val">${esc(zrA.form==="tafel"?"Tafel":"Rolle")} ${esc(fmt?fmt.text:"–")}</div></td><td><label>Stücke / Nettofläche</label><div class="val">${bleche.length} / ${zrZ(p.netto).toFixed(2).replace(".",",")} m²</div></td></tr>
-${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt (kürzere Seite = Streifenbreite)</div></td></tr>`:""}
+<tr><td><label>Blechformat</label><div class="val">${esc(fmt)}</div></td><td><label>Bedarf</label><div class="val">${esc(bedarf)}</div></td></tr>
+<tr><td><label>Stücke / Nettofläche</label><div class="val">${r.stuecke} / ${zrQm(r.netto)} m²</div></td><td><label>Blechfläche / Verschnitt</label><div class="val">${zrQm(r.flaeche)} m² / ${zrQm(r.verschnitt)} m² (${Math.round(r.anteil)} %)</div></td></tr>
+${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt</div></td></tr>`:""}
 </table>
 <div class="eb-section-head">Zuschnittmasse</div>
 <table class="eb-cutlist"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
-${zuSchnittbildHtml(p,{treu:true})}
-${zuDruckHtml(zrZuschnittDaten(p),0,"Stück")}`;
+<div class="eb-section-head">Zuschnittplan</div>
+${zrBildHtml(r)}
+${zrListeHtml(r)}
+${r.nicht.length?`<div class="note">${esc(r.nicht.length+" Stück(e) passen nicht auf das Format: "+r.nicht.map(x=>"Nr. "+x.nr).join(", "))}</div>`:""}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Zuschnittplan</title>
 <style>
 ${PDF_LAYOUT_CSS}

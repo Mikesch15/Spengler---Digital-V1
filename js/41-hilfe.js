@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.419.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.420.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1111,7 +1111,7 @@ tatsächlich rechnet.</p>`},
 <p>Der <b>Hilfsriss</b> ist eine Reisslinie parallel zur Bezugsseite, die um das angegebene Mass über dem tiefsten Punkt liegt. Die Tabelle zeigt für jede Kante jeder Bahn das Mass ab Hilfsriss nach unten (↓) und oben (↑).</p>
 <p><b>Passbahn:</b> Mit «+ Passbahn» fügst du an der gewünschten Stelle («nach Schar Nr. …») eine Passbahn ein. Ohne feste Breite ist sie der Rest, sodass alle anderen Scharen volle Breite haben. Mehrere Passbahnen teilen sich den Rest gleichmässig. Ohne Passbahn nimmt die letzte Schar die Restbreite. Hat die Fläche eine Aussparung, kann eine Bahn aus mehreren Teilen bestehen.</p>`},
 "zuschnittrechner":{titel:"Zuschnittrechner",text:`
-<p>Ein freies Werkzeug ohne Projekt: <b>Blechformat</b> wählen (Rolle mit Breite, oder Tafel mit Breite × Länge), die <b>Zuschnittmasse</b> eintragen oder aus Excel/CSV importieren – die App erstellt den Zuschnittplan mit der Belegung, wie im Zuschnitt der Massaufnahmen.</p>
+<p>Ein freies Werkzeug ohne Projekt: <b>Blechformat</b> wählen (Rolle mit Breite, oder Tafel mit Breite × Länge), die <b>Zuschnittmasse</b> eintragen oder aus Excel/CSV importieren – die App erstellt den Zuschnittplan: ein Schnittbild im Massstab 1:1 und die Liste mit der Lage jedes Stücks. Stücke verschiedener Breite dürfen auf derselben Tafel liegen.</p>
 <p><b>Länge</b> ist die Richtung entlang der Rolle bzw. Tafel, <b>Breite</b> die Streifenbreite. Mit «Stücke dürfen gedreht werden» wird die kürzere Seite zur Streifenbreite. Die <b>Anzahl</b> macht aus einer Zeile mehrere gleiche Stücke.</p>
 <p><b>Excel-Import:</b> Spalten <b>Länge, Breite, Anzahl</b> (optional Bezeichnung), mit oder ohne Kopfzeile, Masse in mm. «Vorlage» lädt ein Beispiel herunter. Es wird nichts in der Datenbank gespeichert; der letzte Stand bleibt nur auf diesem Gerät.</p>`},
 "ar-masse":{titel:"Masse (Ablaufrohr)",text:`
