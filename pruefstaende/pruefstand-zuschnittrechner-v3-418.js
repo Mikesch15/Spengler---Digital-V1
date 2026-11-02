@@ -102,6 +102,10 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r,"Im Zuschnittrechner stehen Schnittbild und Liste mit der Lage der Stücke direkt im Plan",r);
  r=await ev(async()=>{zrA=zrLeer();zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"4"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Massstab 1:1/.test(raus)&&/<svg/.test(raus)&&/Zuschnittplan/.test(raus)});
  p(r,"Der Ausdruck enthält das Schnittbild und die Liste",r);
+ console.log("\nH0 · Fall aus der Praxis (dreistufig)");
+ r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=[{bez:"",laenge:"1200",breite:"260",anzahl:"1"},{bez:"",laenge:"520",breite:"330",anzahl:"1"},{bez:"",laenge:"500",breite:"500",anzahl:"1"},{bez:"",laenge:"360",breite:"750",anzahl:"1"}];
+  const k=zrPackung(a);a.drehen=true;const k2=zrPackung(a);return {n:k.sheets.length,layout:k.layout,n2:k2.sheets.length,gr:k.untergrenze}});
+ p(r.n===1&&r.layout==="frei"&&r.n2===1,"1200×260, 520×330, 500×500, 360×750 auf Tafel 2000×1000: geht auf EINER Tafel auf (links Block mit einem Stück oben und zwei darunter, rechts das hohe Stück) – auch ohne Drehen",r);
  console.log("\nH · Zuschneidbar auf der Tafelschere, Schnittfolge");
  await ev(()=>{
   window.GUI=(s,Lz,B)=>{
@@ -137,6 +141,18 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   }
   return {faelle,steps,bad:bad.slice(0,4)}});
  p(r.bad.length===0&&r.steps>100,"30 zufällige Aufgaben (Tafel/Rolle, mit und ohne Drehen): jede Schnittfolge ist durchgehend von Kante zu Kante, zerschneidet nie ein Stück, trennt jedes Stück einzeln ab; kein Stück geht verloren",r);
+ r=await ev(()=>{const bad=[];let frei=0,tafeln=0;const rnd=ZUF(99);
+  for(let f=0;f<40;f++){
+   const a=zrLeer();a.form="tafel";a.tafelBreite=f%2?"1250":"1000";a.tafelLaenge=f%2?"2500":"2000";a.drehen=f%3===0;a.schere=f%5===0?"1500":"";
+   a.zeilen=[];const nz=3+Math.floor(rnd()*5);
+   for(let i=0;i<nz;i++)a.zeilen.push({bez:"",laenge:String(150+Math.floor(rnd()*1400)),breite:String(80+Math.floor(rnd()*600)),anzahl:String(1+Math.floor(rnd()*3))});
+   const k=zrPackung(a);if(k.layout==="frei")frei++;tafeln+=k.sheets.length;
+   k.sheets.forEach((s,i)=>{const e=GUI(s,k.SL,k.SB);if(e.length)bad.push("Fall "+f+" ("+k.layout+") Blatt "+(i+1)+": "+e.slice(0,2).join("; "))});
+   if(k.nicht.length===0&&k.sheets.reduce((x,s)=>x+s.shelves.reduce((y,sh)=>y+sh.pieces.length,0),0)!==k.stuecke)bad.push("Fall "+f+": Stuecke verloren");
+   if(a.schere&&k.gueltig&&k.maxSchnitt>1500.5)bad.push("Fall "+f+": Schere ueberschritten "+k.maxSchnitt);
+  }
+  return {bad:bad.slice(0,4),frei,tafeln}});
+ p(r.bad.length===0&&r.frei>=1,"40 weitere Tafel-Aufgaben (mit freier Packung, Schere, Drehen): jede Schnittfolge gültig, kein Stück verloren, Scherenlänge eingehalten",r);
  r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=[{bez:"",laenge:"520",breite:"330",anzahl:"1"},{bez:"",laenge:"1200",breite:"250",anzahl:"1"}];const k=zrPackung(a);
   const s=k.sheets[0];return {n:k.sheets.length,schritte:s.schritte.map(t=>t.stufe+":"+t.art+":"+Math.round(t.laenge)).join(" | "),nr:s.schritte.map(t=>t.nr).join(),fehler:GUI(s,k.SL,k.SB).length}});
  p(r.n===1&&r.fehler===0&&r.nr==="1,2,3,4,5,6"||r.n===1&&r.fehler===0,"Praxisfall: eine Tafel, Schnittfolge lückenlos nummeriert und gültig",r);
@@ -156,7 +172,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   return {opt:zrA.schritte,liste:/Schnittfolge/.test(h1),schere:zrA.schere,ls:JSON.parse(localStorage.getItem("sd_zuschnittrechner")).schere}});
  p(r.opt&&r.liste&&r.schere==="1500"&&r.ls==="1500","Bedienung: Option und Scherenlänge wirken und werden gemerkt",r);
  r=await ev(()=>{const mk=(n)=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=Array.from({length:n},(_,i)=>({bez:"",laenge:String(300+i*37),breite:String(150+i*23),anzahl:"1"}));return zrBleche(a,true).bleche};
-  return {klein:Array.isArray(zrErschoepfend(mk(5),"reihen",1000,2000,true,false,0)),gross:zrErschoepfend(mk(10),"reihen",1000,2000,true,false,0)}});
+  return {klein:Array.isArray(zrAlleReihenfolgen(mk(5),720)),gross:zrAlleReihenfolgen(mk(10),720)}});
  p(r.klein&&r.gross===null,"Kleine Aufgaben werden vollständig durchprobiert, grosse mit vielen Reihenfolgen",r);
  r=await ev(async()=>{zrA=zrLeer();zrA.schritte=true;zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"2"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Schnittfolge/.test(raus)&&/<circle/.test(raus)});
  p(r,"Der Ausdruck enthält mit der Option auch die Schnittfolge",r);
