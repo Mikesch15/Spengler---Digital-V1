@@ -1,0 +1,1 @@
+ABSCHLUSSBERICHT v3.421 - Zuschnittrechner: auf der Tafelschere zuschneidbar (Guillotine), gruendlichere Optimierung, Schnittfolge als Option, Scherenlaenge. Nicht live getestet; Pruefstand 33 ok.

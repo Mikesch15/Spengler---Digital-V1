@@ -19,7 +19,7 @@ const ZR_ROLLEN=Object.freeze([1000,670,500,400,330,250,200]);
 const ZR_TAFELN=Object.freeze([[1000,2000],[1000,3000],[1250,2500],[1250,3000],[1500,3000]]);
 
 function zrLeer(){
- return {form:"rolle",rolle:"1000",tafelBreite:"1000",tafelLaenge:"2000",drehen:false,material:"",
+ return {form:"rolle",rolle:"1000",tafelBreite:"1000",tafelLaenge:"2000",drehen:false,schritte:false,schere:"",material:"",
   zeilen:[{bez:"",laenge:"",breite:"",anzahl:"1"}]};
 }
 let zrA=zrLeer();
@@ -43,8 +43,8 @@ function zrLaden(){
   if(!w||typeof w!=="object")return;
   const a=zrLeer();
   a.form=w.form==="tafel"?"tafel":"rolle";
-  ["rolle","tafelBreite","tafelLaenge","material"].forEach(k=>{if(w[k]!==undefined)a[k]=String(w[k])});
-  a.drehen=!!w.drehen;
+  ["rolle","tafelBreite","tafelLaenge","material","schere"].forEach(k=>{if(w[k]!==undefined)a[k]=String(w[k])});
+  a.drehen=!!w.drehen;a.schritte=!!w.schritte;
   if(Array.isArray(w.zeilen)&&w.zeilen.length)
    a.zeilen=w.zeilen.slice(0,ZR_MAX_ZEILEN).map(z=>({bez:String(z.bez||""),laenge:String(z.laenge===undefined?"":z.laenge),
     breite:String(z.breite===undefined?"":z.breite),anzahl:String(z.anzahl===undefined?"1":z.anzahl)}));
@@ -72,53 +72,148 @@ function zrBleche(a,roh){
  return {bleche:out,bereich};
 }
 // ---- Die Packung ---------------------------------------------------------------
-// Eigene Reihenpackung (Shelf), weil hier verschiedene Streifenbreiten auf DERSELBEN
-// Tafel bzw. im selben Rollenabschnitt liegen duerfen - die gemeinsame Packrechnung der
-// Massaufnahmen (ebaFormatPlan) bildet Gruppen je Streifenbreite, jede auf eigenen Tafeln.
-// Reihen laufen in Laengsrichtung; eine Reihe ist so hoch wie ihr breitestes Stueck.
-// Schnittfuge (Einstellungen) liegt zwischen Stuecken und zwischen Reihen. Drei
-// Sortierungen werden gerechnet, die mit der kleinsten Blechflaeche gewinnt.
+// Eigene Packung, weil hier verschiedene Streifenbreiten auf DERSELBEN Tafel bzw. im
+// selben Rollenabschnitt liegen duerfen - die gemeinsame Packrechnung der Massaufnahmen
+// (ebaFormatPlan) bildet Gruppen je Streifenbreite, jede auf eigenen Tafeln.
+//
+// Zuschneidbar auf der Tafelschere: es gibt nur DURCHGEHENDE Schnitte von Kante zu Kante
+// (Guillotine). Die Anordnung ist deshalb dreistufig und besteht aus Streifen:
+//   1. Schnitte ueber die ganze Tafel trennen die Streifen (Reihen oder Spalten) ab,
+//   2. Schnitte quer durch einen einzelnen Streifen trennen die Stuecke,
+//   3. ein Stueck, das schmaler ist als sein Streifen, wird noch auf Mass gekuerzt.
+// Jeder Schnitt geht durch ein bereits abgetrenntes Teil, nie durch ein anderes Stueck.
+// "Reihen" laufen in Laengsrichtung der Tafel, "Spalten" in Querrichtung - beide werden
+// gerechnet. Die Schnittlaenge der Schere (optional) entscheidet mit.
+// Gerechnet wird mit Reihenfolgen nach Breite, Laenge und Flaeche plus vielen
+// (festen, reproduzierbaren) Zufallsvarianten; die beste gewinnt: erst die wenigsten
+// Tafeln bzw. die kleinste Blechflaeche, dann die wenigsten Schnitte.
 function zrFuge(){return typeof ebaSchnittfuge==="function"?zrZ(ebaSchnittfuge()):0}
-function zrPackeLauf(stuecke,SB,SL,tafel,drehen,fuge,sortFn){
- const teile=stuecke.slice().sort(sortFn);
+function zrRng(seed){let t=seed>>>0;return()=>{t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296}}
+function zrPackeLauf(items,RL,H,drehen,fuge,reihenfolge){
+ const teile=reihenfolge;
  const sheets=[],nicht=[];
- const orient=t=>(drehen&&tafel)?[[t.laenge,t.breite],[t.breite,t.laenge]]:[[t.laenge,t.breite]];
- const setze=(s,sh,t,l,b)=>{
+ const orient=t=>drehen?[[t.a,t.b],[t.b,t.a]]:[[t.a,t.b]];
+ const setze=(sh,t,pa,pb)=>{
   const x=sh.used+(sh.pieces.length?fuge:0);
-  sh.pieces.push({nr:t.nr,zeile:t.zeile,bez:t.bez,laenge:l,breite:b,x,y:sh.y,gedreht:l!==t.laenge||b!==t.breite});
-  sh.used=x+l;
+  sh.pieces.push({nr:t.nr,zeile:t.zeile,bez:t.bez,laenge:t.laenge,breite:t.breite,pa,pb,x,y:sh.y});
+  sh.used=x+pa;
  };
  teile.forEach(t=>{
-  const passt=orient(t).filter(([l,b])=>l<=SL+1e-9&&b<=SB+1e-9);
+  const passt=orient(t).filter(([pa,pb])=>pa<=RL+1e-9&&pb<=H+1e-9);
   if(!passt.length){nicht.push(t);return}
   for(const s of sheets){
    let best=null;
-   passt.forEach(([l,b])=>{
+   passt.forEach(([pa,pb])=>{
     s.shelves.forEach(sh=>{
-     const need=l+(sh.pieces.length?fuge:0);
-     if(sh.h>=b-1e-9&&SL-sh.used>=need-1e-9){
-      const w=(sh.h-b)*1e4+(SL-sh.used-need);
-      if(!best||w<best.w)best={w,sh,l,b,neu:false};
+     const need=pa+(sh.pieces.length?fuge:0);
+     if(sh.h>=pb-1e-9&&RL-sh.used>=need-1e-9){
+      const w=(sh.h-pb)*1e4+(RL-sh.used-need);
+      if(!best||w<best.w)best={w,sh,pa,pb,neu:false};
      }
     });
     const ny=s.usedH+(s.shelves.length?fuge:0);
-    if(SB-ny>=b-1e-9){const w=1e9+b*1e3;if(!best||w<best.w)best={w,l,b,ny,neu:true}}
+    if(H-ny>=pb-1e-9){const w=1e9+pb*1e3;if(!best||w<best.w)best={w,pa,pb,ny,neu:true}}
    });
    if(best){
     let sh=best.sh;
-    if(best.neu){sh={y:best.ny,h:best.b,pieces:[],used:0};s.shelves.push(sh);s.usedH=best.ny+best.b}
-    setze(s,sh,t,best.l,best.b);
+    if(best.neu){sh={y:best.ny,h:best.pb,pieces:[],used:0};s.shelves.push(sh);s.usedH=best.ny+best.pb}
+    setze(sh,t,best.pa,best.pb);
     return;
    }
   }
-  const [l,b]=passt[0];
+  const [pa,pb]=passt[0];
   const s={shelves:[],usedH:0};sheets.push(s);
-  const sh={y:0,h:b,pieces:[],used:0};s.shelves.push(sh);s.usedH=b;
-  setze(s,sh,t,l,b);
+  const sh={y:0,h:pb,pieces:[],used:0};s.shelves.push(sh);s.usedH=pb;
+  setze(sh,t,pa,pb);
  });
- sheets.forEach(s=>{s.len=tafel?SL:Math.max.apply(null,s.shelves.map(sh=>sh.used).concat([1]))});
+ return {sheets,nicht};
+}
+// Schnittfolge einer Tafel/eines Abschnitts im Rahmen des Packers (x = Laufrichtung, y = Streifenfolge).
+// reihen: Rahmen = wirkliche Lage; spalten: x und y vertauscht.
+function zrSchritte(s,RL,H,layout,rolleBreite){
+ const mm=zrMm,st=[];
+ const hArt=layout==="reihen"?"Längsschnitt":"Querschnitt";   // Linie y = const im Rahmen
+ const vArt=layout==="reihen"?"Querschnitt":"Längsschnitt";   // Linie x = const im Rahmen
+ const kante=art=>art==="Längsschnitt"?"oberen":"linken";
+ const add=o=>{o.nr=st.length+1;st.push(o)};
+ if(rolleBreite>0)add({stufe:0,art:"Querschnitt",laenge:rolleBreite,text:"Abschnitt von der Rolle abschneiden: "+mm(RL)+" mm lang",ergebnis:"Abschnitt "+mm(RL)+" × "+mm(rolleBreite)+" mm",linie:null});
+ s.shelves.forEach(sh=>{
+  const yc=sh.y+sh.h;
+  if(yc<H-0.5)add({stufe:1,art:hArt,laenge:RL,text:hArt+" bei "+mm(yc)+" mm von der "+kante(hArt)+" Kante, ganz durch",ergebnis:"Streifen "+mm(sh.h)+" × "+mm(RL)+" mm abtrennen",linie:[0,yc,RL,yc]});
+ });
+ s.shelves.forEach((sh,i)=>{
+  sh.pieces.forEach(p=>{
+   const xe=p.x+p.pa;
+   if(xe<RL-0.5)add({stufe:2,art:vArt,laenge:sh.h,text:vArt+" bei "+mm(xe)+" mm von der "+kante(vArt)+" Kante, im Streifen "+(i+1),ergebnis:"Stück Nr. "+p.nr+" abtrennen",linie:[xe,sh.y,xe,sh.y+sh.h]});
+  });
+  sh.pieces.forEach(p=>{
+   if(p.pb<sh.h-0.5)add({stufe:3,art:hArt,laenge:p.pa,text:hArt+" im Stück Nr. "+p.nr+": auf "+mm(p.pb)+" mm Breite kürzen",ergebnis:"Stück Nr. "+p.nr+" fertig",linie:[p.x,sh.y+p.pb,p.x+p.pa,sh.y+p.pb]});
+  });
+ });
+ return st;
+}
+function zrItems(liste,spalten){
+ return liste.map(x=>({nr:x.nr,zeile:x.zeile,bez:x.bez,laenge:x.laenge,breite:x.breite,a:spalten?x.breite:x.laenge,b:spalten?x.laenge:x.breite}));
+}
+// Kleine Aufgaben (bis ca. 6000 verschiedene Reihenfolgen) werden VOLLSTAENDIG durchprobiert: jede Reihenfolge der Stuecke,
+// gleiche Stuecke nur einmal. Zurueck kommen die besten Reihenfolgen (bis 4), die dann voll ausgewertet werden.
+function zrErschoepfend(stuecke,layout,SB,SL,tafel,drehen,fuge){
+ const klassen=new Map();
+ stuecke.forEach(x=>{const k=x.laenge+"x"+x.breite;if(!klassen.has(k))klassen.set(k,[]);klassen.get(k).push(x)});
+ const lis=Array.from(klassen.values());
+ let kombi=1;for(let i=2;i<=stuecke.length;i++)kombi*=i;
+ lis.forEach(l=>{for(let i=2;i<=l.length;i++)kombi/=i});
+ if(kombi>6000)return null;
+ const spalten=layout==="spalten",RL=spalten?SB:SL,H=spalten?SL:SB;
+ const rest=lis.map(l=>l.length),pos=lis.map(()=>0),perm=[];
+ let besten=[],bestKey=null;
+ const schluessel=r=>[r.nicht.length,tafel?r.sheets.length:Math.round(r.sheets.reduce((a,s)=>a+SB*Math.max.apply(null,s.shelves.map(sh=>sh.used).concat([1])),0)),r.sheets.reduce((a,s)=>a+s.shelves.length,0)];
+ const kleiner=(k1,k2)=>{for(let i=0;i<k1.length;i++){if(k1[i]!==k2[i])return k1[i]<k2[i]}return false};
+ (function rek(){
+  if(perm.length===stuecke.length){
+   const items=zrItems(perm,spalten);
+   const k=schluessel(zrPackeLauf(items,RL,H,drehen,fuge,items));
+   if(!bestKey||kleiner(k,bestKey)){bestKey=k;besten=[perm.slice()]}
+   else if(!kleiner(bestKey,k)&&besten.length<4)besten.push(perm.slice());
+   return;
+  }
+  for(let i=0;i<lis.length;i++){
+   if(pos[i]>=lis[i].length)continue;
+   perm.push(lis[i][pos[i]]);pos[i]++;
+   rek();
+   pos[i]--;perm.pop();
+  }
+ })();
+ return besten;
+}
+function zrKandidat(stuecke,SB,SL,tafel,drehen,fuge,layout,reihenfolge,schere){
+ const spalten=layout==="spalten";
+ const RL=spalten?SB:SL, H=spalten?SL:SB;
+ const items=zrItems(reihenfolge,spalten);
+ const r=zrPackeLauf(items,RL,H,drehen,fuge,items);
+ const sheets=r.sheets.map(s=>{
+  const lauf=tafel||spalten?RL:Math.max.apply(null,s.shelves.map(sh=>sh.used).concat([1]));   // Rolle: Abschnitt so lang wie belegt
+  const rb=tafel?0:SB;
+  const steps=zrSchritte(s,lauf,H,layout,rb);
+  const conv=(x,y)=>spalten?[y,x]:[x,y];
+  const shelves=s.shelves.map(sh=>({y:sh.y,h:sh.h,pieces:sh.pieces.map(p=>{
+   const ax=spalten?p.y:p.x, ay=spalten?p.x:p.y, al=spalten?p.pb:p.pa, ab=spalten?p.pa:p.pb;
+   return {nr:p.nr,zeile:p.zeile,bez:p.bez,x:ax,y:ay,laenge:al,breite:ab,gedreht:Math.abs(al-p.laenge)>0.5||Math.abs(ab-p.breite)>0.5};
+  })}));
+  const schritte=steps.map(t=>Object.assign({},t,{linie:t.linie?[].concat(conv(t.linie[0],t.linie[1]),conv(t.linie[2],t.linie[3])):null}));
+  const len=tafel?SL:(spalten?0:lauf);
+  return {shelves,len,usedH:s.usedH,schritte,
+   belegt:s.shelves.reduce((a,sh)=>a+sh.pieces.reduce((b2,p)=>b2+p.laenge*p.breite,0),0),
+   maxSchnitt:steps.reduce((m,t)=>Math.max(m,t.laenge),0)};
+ });
  const flaeche=sheets.reduce((a,s)=>a+SB*s.len,0);
- return {sheets,nicht,flaeche};
+ const maxSchnitt=sheets.reduce((m,s)=>Math.max(m,s.maxSchnitt),0);
+ const schnitte=sheets.reduce((a,s)=>a+s.schritte.length,0);
+ // die am wenigsten gefuellte Tafel nach hinten: dort bleibt der grosse, wieder verwendbare Rest
+ if(tafel)sheets.sort((x,y)=>y.belegt-x.belegt);
+ return {layout,sheets,nicht:r.nicht,flaeche,maxSchnitt,schnitte,
+  gueltig:!(schere>0)||maxSchnitt<=schere+1e-9,
+  letzte:tafel&&sheets.length?sheets[sheets.length-1].belegt:0};
 }
 function zrPackung(a){
  a=a||zrA;
@@ -126,7 +221,8 @@ function zrPackung(a){
  const SB=tafel?zrZ(a.tafelBreite):zrZ(a.rolle);
  const stuecke=zrBleche(a,tafel).bleche;   // Tafel: Originallage (Drehen wird beim Legen entschieden); Rolle: ggf. schon gedreht
  const netto=stuecke.reduce((s,x)=>s+x.laenge*x.breite,0)/1e6;
- const leer={tafel,SB,SL:0,sheets:[],nicht:[],stuecke:stuecke.length,netto,flaeche:0,verschnitt:0,anteil:0,fuge:zrFuge(),ok:false};
+ const schere=zrZ(a.schere);
+ const leer={tafel,SB,SL:0,sheets:[],nicht:[],stuecke:stuecke.length,netto,flaeche:0,verschnitt:0,anteil:0,fuge:zrFuge(),ok:false,schere,untergrenze:0,layout:"reihen",gueltig:true,maxSchnitt:0};
  if(!(SB>0)||!stuecke.length)return leer;
  let SL=tafel?zrZ(a.tafelLaenge):0;
  if(tafel&&!(SL>0))return leer;
@@ -135,23 +231,48 @@ function zrPackung(a){
   SL=passend.reduce((m,x)=>Math.max(m,x.laenge),0);
   if(!(SL>0))return {...leer,nicht:stuecke,SL:0};
  }
- const fuge=zrFuge();
- const sorts=[(x,y)=>y.breite-x.breite||y.laenge-x.laenge,(x,y)=>y.laenge-x.laenge||y.breite-x.breite,(x,y)=>y.laenge*y.breite-x.laenge*x.breite];
+ const fuge=zrFuge(),drehen=!!a.drehen;
+ const layouts=tafel?["reihen","spalten"]:["reihen"];
+ const basis=[(x,y)=>y.breite-x.breite||y.laenge-x.laenge,(x,y)=>y.laenge-x.laenge||y.breite-x.breite,(x,y)=>y.laenge*y.breite-x.laenge*x.breite,(x,y)=>Math.max(y.laenge,y.breite)-Math.max(x.laenge,x.breite)];
+ const laeufe=Math.max(0,Math.min(40,Math.floor(20000/Math.max(1,stuecke.length))));
  let best=null;
- sorts.forEach(f=>{
-  const r=zrPackeLauf(stuecke,SB,SL,tafel,!!a.drehen,fuge,f);
-  const w=r.nicht.length*1e12+r.flaeche;
-  if(!best||w<best.w)best={w,r};
+ const bewerte=c=>{
+  // gueltig (Schere) vor allem; dann: nichts uebrig, wenigste Tafeln / kleinste Flaeche, wenigste Schnitte, kleinster Rest auf der letzten Tafel
+  const k=[c.nicht.length,c.gueltig?0:1,tafel?c.sheets.length:Math.round(c.flaeche),c.schnitte,Math.round(c.letzte)];
+  return k;
+ };
+ const besser=(k1,k2)=>{for(let i=0;i<k1.length;i++){if(k1[i]!==k2[i])return k1[i]<k2[i]}return false};
+ layouts.forEach((layout,li)=>{
+  const reihen=basis.map(f=>stuecke.slice().sort(f));
+  const rnd=zrRng(12345+li);
+  for(let i=0;i<laeufe;i++){
+   const f=basis[i%basis.length];
+   // gestoerte Sortierung: Schluessel (Breite bzw. Laenge) mit zufaelligem Faktor 0,75-1,25, je Stueck einmal gezogen
+   const nachBreite=i%2===0;
+   reihen.push(stuecke.map(x=>({x,k:(nachBreite?x.breite:x.laenge)*(0.75+0.5*rnd())}))
+    .sort((p,q)=>q.k-p.k||q.x.laenge-p.x.laenge||q.x.breite-p.x.breite).map(o=>o.x));
+  }
+  const voll=zrErschoepfend(stuecke,layout,SB,SL,tafel,drehen,fuge);
+  if(voll)voll.forEach(p=>reihen.push(p));
+  reihen.forEach(rf=>{
+   const c=zrKandidat(stuecke,SB,SL,tafel,drehen,fuge,layout,rf,schere);
+   const k=bewerte(c);
+   if(!best||besser(k,best.k))best={k,c};
+  });
  });
- const r=best.r;
- const flaecheM2=r.flaeche/1e6;
- return {tafel,SB,SL,sheets:r.sheets,nicht:r.nicht,stuecke:stuecke.length,netto,flaeche:flaecheM2,
-  verschnitt:Math.max(0,flaecheM2-netto),anteil:flaecheM2>0?Math.max(0,flaecheM2-netto)/flaecheM2*100:0,fuge,ok:true};
+ const c=best.c;
+ const flaecheM2=c.flaeche/1e6;
+ const untergrenze=tafel?Math.max(1,Math.ceil(netto*1e6/(SB*SL)-1e-9)):0;
+ return {tafel,SB,SL,layout:c.layout,sheets:c.sheets,nicht:c.nicht,stuecke:stuecke.length,netto,flaeche:flaecheM2,
+  verschnitt:Math.max(0,flaecheM2-netto),anteil:flaecheM2>0?Math.max(0,flaecheM2-netto)/flaecheM2*100:0,fuge,ok:true,
+  schere,gueltig:c.gueltig,maxSchnitt:c.maxSchnitt,untergrenze};
 }
 const zrQm=v=>zrZ(v).toFixed(2).replace(".",",");
 // ---- Schnittbild im Massstab 1:1 (Laenge und Breite im gleichen Massstab) --------
-function zrBildHtml(r){
+// opt.schritte: die Schnittfolge einzeichnen (Nummern in der Reihenfolge, in der geschnitten wird)
+function zrBildHtml(r,opt){
  if(!r.ok||!r.sheets.length)return "";
+ const schritte=!!(opt&&opt.schritte);
  const W=1000;
  const bilder=r.sheets.map((s,i)=>{
   const Lz=Math.max(1,r.tafel?r.SL:s.len), sx=W/Lz, H=Math.max(20,Math.round(W*r.SB/Lz)), sy=H/r.SB;
@@ -170,20 +291,42 @@ function zrBildHtml(r){
    }
    el+=teil;
   }));
+  let cut="";
+  if(schritte)s.schritte.filter(t=>t.linie).forEach(t=>{
+   const [x1,y1,x2,y2]=t.linie;
+   const farbe=t.stufe===1?"#c0392b":(t.stufe===2?"#e07a1f":"#6a3fb5");
+   const rr=13;
+   cut+=`<line x1="${(x1*sx).toFixed(1)}" y1="${(y1*sy).toFixed(1)}" x2="${(x2*sx).toFixed(1)}" y2="${(y2*sy).toFixed(1)}" stroke="${farbe}" stroke-width="${t.stufe===1?4:3}"${t.stufe===3?' stroke-dasharray="10 6"':""}/>`;
+   // Nummer am Anfang der Linie, leicht eingerueckt, damit sie in der Zeichnung bleibt
+   const horizontal=Math.abs(y2-y1)<Math.abs(x2-x1);
+   const cx=horizontal?Math.min(Math.max(x1*sx+rr+4,rr+2),W-rr-2):Math.min(Math.max(x1*sx,rr+2),W-rr-2);
+   const cy=horizontal?Math.min(Math.max(y1*sy,rr+2),H-rr-2):Math.min(Math.max(y1*sy+rr+4,rr+2),H-rr-2);
+   cut+=`<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${rr}" fill="#fff" stroke="${farbe}" stroke-width="2"/><text x="${cx.toFixed(1)}" y="${(cy+4.5).toFixed(1)}" font-size="${t.nr>=10?12:14}" font-weight="700" text-anchor="middle" fill="${farbe}">${t.nr}</text>`;
+  });
   const n=s.shelves.reduce((a,sh)=>a+sh.pieces.length,0);
-  const belegt=s.shelves.reduce((a,sh)=>a+sh.pieces.reduce((b2,x)=>b2+x.laenge*x.breite,0),0);
-  const kopf=(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · "+zrMm(Lz)+" × "+zrMm(r.SB)+" mm · "+n+" Stück"+(n===1?"":"e")+" · "+Math.round(belegt/(Lz*r.SB)*100)+" % belegt";
-  return `<figure class="zu-bild"><figcaption>${esc(kopf)}</figcaption><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}"><rect x="0" y="0" width="${W}" height="${H}" fill="#eceff1"/>${el}<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#17202a" stroke-width="2.5"/></svg></figure>`;
+  const kopf=(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · "+zrMm(Lz)+" × "+zrMm(r.SB)+" mm · "+n+" Stück"+(n===1?"":"e")+" · "+Math.round(s.belegt/(Lz*r.SB)*100)+" % belegt";
+  return `<figure class="zu-bild"><figcaption>${esc(kopf)}</figcaption><svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}"><rect x="0" y="0" width="${W}" height="${H}" fill="#eceff1"/>${el}${cut}<rect x="0" y="0" width="${W}" height="${H}" fill="none" stroke="#17202a" stroke-width="2.5"/></svg></figure>`;
  }).join("");
- return `<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild im Massstab 1:1 – so liegt jedes Stück <span class="zu-bilder-legende">(Länge und Breite im gleichen Massstab, grau = Rest${r.sheets.some(s=>s.shelves.some(sh=>sh.pieces.some(x=>x.gedreht)))?", ⟳ = gedreht":""})</span></div>${bilder}</div>`;
+ const gedreht=r.sheets.some(s=>s.shelves.some(sh=>sh.pieces.some(x=>x.gedreht)));
+ return `<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild im Massstab 1:1 – so liegt jedes Stück <span class="zu-bilder-legende">(Länge und Breite im gleichen Massstab, grau = Rest${gedreht?", ⟳ = gedreht":""}${schritte?"; Schnittfolge: rot = ganze Tafel, orange = Streifen, violett gestrichelt = Stück kürzen":""})</span></div>${bilder}</div>`;
+}
+// Schnittfolge als Liste: in dieser Reihenfolge an der Schere schneiden
+function zrSchritteHtml(r){
+ if(!r.ok||!r.sheets.length)return "";
+ const kopf=`<h3 style="margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Schnittfolge${r.schere>0?" (Schere bis "+esc(zrMm(r.schere))+" mm)":""}</h3>
+<div class="small">Jeder Schnitt geht von Kante zu Kante durch ein einzelnes, schon abgetrenntes Teil – kein Stück wird angeschnitten. Reihenfolge: zuerst die Streifen ganz durch trennen (rot), dann jeden Streifen in Stücke (orange), zuletzt zu breite Stücke kürzen (violett).</div>`;
+ const tabellen=r.sheets.map((s,i)=>`<div style="margin-top:8px"><b>${r.tafel?"Tafel":"Abschnitt"} ${i+1}</b>: ${s.schritte.length} Schnitt${s.schritte.length===1?"":"e"}</div>
+<div class="scroll"><table class="eb-table ra-tab"><thead><tr><th>Schnitt</th><th>Was</th><th style="text-align:right">Länge</th><th>Ergebnis</th></tr></thead><tbody>${
+ s.schritte.map(t=>`<tr${r.schere>0&&t.laenge>r.schere+1e-9?' style="background:#fdecea"':""}><td><b>${t.nr}</b></td><td>${esc(t.text)}</td><td style="text-align:right">${esc(zrMm(t.laenge))} mm</td><td class="small">${esc(t.ergebnis)}</td></tr>`).join("")}</tbody></table></div>`).join("");
+ return kopf+tabellen;
 }
 function zrListeHtml(r){
  if(!r.ok||!r.sheets.length)return "";
  const zeilen=[];
  r.sheets.forEach((s,i)=>s.shelves.forEach((sh,k)=>sh.pieces.forEach(x=>zeilen.push({nr:x.nr,bez:x.bez,laenge:x.laenge,breite:x.breite,gedreht:x.gedreht,
-  ort:(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · Reihe "+(k+1)+" · ab "+zrMm(x.x)+" mm"}))));
+  ort:(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+" · Streifen "+(k+1)+" · ab "+zrMm(x.x)+" / "+zrMm(x.y)+" mm"}))));
  zeilen.sort((a,b)=>a.nr-b.nr);
- return `<table class="eb-table ra-tab"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th style="text-align:right">Länge × Breite</th><th>Lage</th></tr></thead><tbody>${
+ return `<table class="eb-table ra-tab"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th style="text-align:right">Länge × Breite</th><th>Lage (von links / oben)</th></tr></thead><tbody>${
   zeilen.map(z=>`<tr><td><b>${z.nr}</b></td><td>${esc(z.bez)}</td><td style="text-align:right">${esc(zrMm(z.laenge))} × ${esc(zrMm(z.breite))} mm${z.gedreht?" ⟳":""}</td><td class="small">${esc(z.ort)}</td></tr>`).join("")}</tbody></table>`;
 }
 function zrKennzahlenHtml(r){
@@ -198,8 +341,15 @@ function zrKennzahlenHtml(r){
 function zrMeldungenHtml(r){
  const m=[];
  if(r.nicht.length)m.push(`<div class="ra-fehler">${r.nicht.length===1?"Ein Stück passt":r.nicht.length+" Stücke passen"} nicht ${r.tafel?"auf die Tafel":"auf die Rolle"}: ${esc(r.nicht.slice(0,8).map(x=>"Nr. "+x.nr+" ("+zrMm(x.laenge)+" × "+zrMm(x.breite)+")").join(", "))}${r.nicht.length>8?" …":""}. ${r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rollenbreite "+zrMm(r.SB)+" mm"}${zrA.drehen?"":" – evtl. «Stücke dürfen gedreht werden» einschalten"}.</div>`);
- if(r.ok&&r.fuge>0)m.push(`<div class="small">Schnittfuge ${esc(zrMm(r.fuge))} mm zwischen den Stücken und Reihen ist eingerechnet.</div>`);
- if(r.ok)m.push(`<div class="small">Die Stücke werden in Reihen gelegt (verschiedene Breiten dürfen auf derselben ${r.tafel?"Tafel":"Rolle"} liegen); die Anordnung ist eine gute Näherung, kein mathematisch bewiesenes Optimum.</div>`);
+ if(r.ok&&r.schere>0&&!r.gueltig)m.push(`<div class="ra-fehler">Mit einer Schere von ${esc(zrMm(r.schere))} mm Schnittlänge geht dieser Plan nicht auf: der längste Schnitt ist ${esc(zrMm(r.maxSchnitt))} mm lang. ${r.tafel?"Ein kleineres Format oder eine längere Schere wäre nötig.":"Rollenbreite oder Schere prüfen."}</div>`);
+ else if(r.ok&&r.schere>0)m.push(`<div class="ra-ok">Alle Schnitte sind höchstens ${esc(zrMm(r.maxSchnitt))} mm lang – passt auf die Schere (${esc(zrMm(r.schere))} mm).${r.layout==="spalten"?" Dafür sind die Streifen quer gelegt.":""}</div>`);
+ if(r.ok&&r.fuge>0)m.push(`<div class="small">Schnittfuge ${esc(zrMm(r.fuge))} mm zwischen den Stücken und Streifen ist eingerechnet.</div>`);
+ if(r.ok&&r.tafel&&r.untergrenze){
+  m.push(r.sheets.length<=r.untergrenze
+   ?`<div class="small">Mit ${r.sheets.length} Tafel${r.sheets.length===1?"":"n"} ist das Minimum erreicht, das die Fläche überhaupt zulässt – weniger geht nicht.</div>`
+   :`<div class="small">Nach Fläche wären mindestens ${r.untergrenze} Tafel${r.untergrenze===1?"":"n"} nötig; die schnittfähige Anordnung braucht ${r.sheets.length}. Dazwischen liegt der Verschnitt, den die geraden Durchgangsschnitte der Schere erzwingen.</div>`);
+ }
+ if(r.ok)m.push(`<div class="small">Alle Anordnungen sind mit der Tafelschere zuschneidbar (nur durchgehende Schnitte). Gerechnet werden viele Reihenfolgen, in Reihen und in Spalten; das beste Ergebnis wird gezeigt.</div>`);
  return m.join("");
 }
 
@@ -282,7 +432,9 @@ ${a.form==="tafel"
 </div>
 <div class="small" style="margin:6px 0 2px">Häufige Formate:</div>
 <div style="display:flex;flex-wrap:wrap;gap:6px">${a.form==="tafel"?tafeln:rollen}</div>
-<label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-zr="drehen"${a.drehen?" checked":""}> Stücke dürfen gedreht werden (die kürzere Seite wird die Streifenbreite)</label>`;
+<label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-zr="drehen"${a.drehen?" checked":""}> Stücke dürfen gedreht werden (z. B. wenn die Maserung/Walzrichtung keine Rolle spielt)</label>
+<div class="grid" style="margin-top:8px"><div class="wide"><label>Schere: grösste Schnittlänge (mm, leer = unbegrenzt)</label><input data-zr="schere" type="number" inputmode="numeric" step="1" min="1" placeholder="z. B. 2000" value="${esc(a.schere)}"></div></div>
+<label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-zr="schritte"${a.schritte?" checked":""}> Schnittschritte im Plan anzeigen (Reihenfolge der Schnitte)</label>`;
 }
 function zrZeilenHtml(){
  const {bereich}=zrBleche();
@@ -312,7 +464,7 @@ function zrEingabeHtml(){
 }
 function zrPlanHtml(){
  const r=zrPackung();
- return zrKennzahlenHtml(r)+zrMeldungenHtml(r)+zrBildHtml(r)+zrListeHtml(r)
+ return zrKennzahlenHtml(r)+zrMeldungenHtml(r)+zrBildHtml(r,{schritte:zrA.schritte})+(zrA.schritte?zrSchritteHtml(r):"")+zrListeHtml(r)
   +`<div class="bar" style="margin-top:10px"><button type="button" class="blue" id="zrDruck"${r.ok&&r.sheets.length?"":" disabled"}>🖨️ Plan drucken / PDF</button></div>`
   +((!r.stuecke)?`<div class="info">Noch nichts zuzuschneiden – bitte Zuschnittmasse eingeben oder importieren.</div>`:"");
 }
@@ -374,7 +526,8 @@ ${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt<
 <div class="eb-section-head">Zuschnittmasse</div>
 <table class="eb-cutlist"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
 <div class="eb-section-head">Zuschnittplan</div>
-${zrBildHtml(r)}
+${zrBildHtml(r,{schritte:zrA.schritte})}
+${zrA.schritte?zrSchritteHtml(r):""}
 ${zrListeHtml(r)}
 ${r.nicht.length?`<div class="note">${esc(r.nicht.length+" Stück(e) passen nicht auf das Format: "+r.nicht.map(x=>"Nr. "+x.nr).join(", "))}</div>`:""}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Zuschnittplan</title>
@@ -404,7 +557,7 @@ document.addEventListener("input",e=>{
   if(z){z[t.dataset.zrFeld]=t.value;zrSpeichern();zrPlanSpaeter();zrNummernNeu()}
   return;
  }
- if(t.dataset.zr&&t.dataset.zr!=="form"&&t.dataset.zr!=="drehen"){
+ if(t.dataset.zr&&t.dataset.zr!=="form"&&t.dataset.zr!=="drehen"&&t.dataset.zr!=="schritte"){
   zrA[t.dataset.zr]=t.value;zrSpeichern();
   if(t.dataset.zr!=="material")zrPlanSpaeter();
  }
@@ -420,6 +573,7 @@ document.addEventListener("change",async e=>{
  }
  if(t.dataset.zr==="form"){zrA.form=t.value==="tafel"?"tafel":"rolle";zrSpeichern();zrZeichnen();return}
  if(t.dataset.zr==="drehen"){zrA.drehen=!!t.checked;zrSpeichern();zrPlanNeu();return}
+ if(t.dataset.zr==="schritte"){zrA.schritte=!!t.checked;zrSpeichern();zrPlanNeu();return}
 });
 document.addEventListener("click",async e=>{
  const k=e.target&&e.target.closest?e.target.closest("#zrModal button, [data-zr-oeffnen]"):null;

@@ -102,6 +102,64 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r,"Im Zuschnittrechner stehen Schnittbild und Liste mit der Lage der Stücke direkt im Plan",r);
  r=await ev(async()=>{zrA=zrLeer();zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"4"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Massstab 1:1/.test(raus)&&/<svg/.test(raus)&&/Zuschnittplan/.test(raus)});
  p(r,"Der Ausdruck enthält das Schnittbild und die Liste",r);
+ console.log("\nH · Zuschneidbar auf der Tafelschere, Schnittfolge");
+ await ev(()=>{
+  window.GUI=(s,Lz,B)=>{
+   const eps=0.4,err=[];let teile=[[0,0,Lz,B]];const pcs=[];s.shelves.forEach(sh=>sh.pieces.forEach(p=>pcs.push(p)));
+   pcs.forEach(p=>{if(p.x<-eps||p.y<-eps||p.x+p.laenge>Lz+eps||p.y+p.breite>B+eps)err.push("ausserhalb "+p.nr)});
+   for(let i=0;i<pcs.length;i++)for(let j=i+1;j<pcs.length;j++){const a=pcs[i],b=pcs[j];
+    if(a.x<b.x+b.laenge-eps&&b.x<a.x+a.laenge-eps&&a.y<b.y+b.breite-eps&&b.y<a.y+a.breite-eps)err.push("ueberlappt "+a.nr+"/"+b.nr)}
+   s.schritte.filter(t=>t.linie).forEach(t=>{
+    const [x1,y1,x2,y2]=t.linie,hz=Math.abs(y1-y2)<eps;
+    const idx=teile.findIndex(([a,b,c,d])=>x1>=a-eps&&x2<=c+eps&&y1>=b-eps&&y2<=d+eps&&(hz?(y1>b+eps&&y1<d-eps):(x1>a+eps&&x1<c-eps)));
+    if(idx<0){err.push("Schnitt "+t.nr+" liegt in keinem Teil");return}
+    const [a,b,c,d]=teile[idx];
+    if(hz?(Math.abs(x1-a)>eps||Math.abs(x2-c)>eps):(Math.abs(y1-b)>eps||Math.abs(y2-d)>eps))err.push("Schnitt "+t.nr+" geht nicht ganz durch");
+    pcs.forEach(p=>{const im=hz?(y1>p.y+eps&&y1<p.y+p.breite-eps&&x2>p.x+eps&&x1<p.x+p.laenge-eps):(x1>p.x+eps&&x1<p.x+p.laenge-eps&&y2>p.y+eps&&y1<p.y+p.breite-eps);if(im)err.push("Schnitt "+t.nr+" zerschneidet Stueck "+p.nr)});
+    teile.splice(idx,1,...(hz?[[a,b,c,y1],[a,y1,c,d]]:[[a,b,x1,d],[x1,b,c,d]]));
+   });
+   teile.forEach(t=>{const n=pcs.filter(p=>p.x>=t[0]-eps&&p.y>=t[1]-eps&&p.x+p.laenge<=t[2]+eps&&p.y+p.breite<=t[3]+eps).length;if(n>1)err.push("Teil mit "+n+" Stuecken")});
+   pcs.forEach(p=>{if(teile.filter(([a,b,c,d])=>p.x>=a-eps&&p.y>=b-eps&&p.x+p.laenge<=c+eps&&p.y+p.breite<=d+eps).length!==1)err.push("Stueck "+p.nr+" nicht isoliert")});
+   pcs.forEach(p=>{const t=teile.find(([a,b,c,d])=>p.x>=a-eps&&p.y>=b-eps&&p.x+p.laenge<=c+eps&&p.y+p.breite<=d+eps);if(t&&(Math.abs((t[2]-t[0])-p.laenge)>1.5||Math.abs((t[3]-t[1])-p.breite)>1.5))err.push("Stueck "+p.nr+" nicht auf Mass geschnitten")});
+   return err;
+  };
+  window.ZUF=seed=>()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296};
+ });
+ r=await ev(()=>{const bad=[];let faelle=0,steps=0;const rnd=ZUF(7);
+  for(let f=0;f<30;f++){
+   const a=zrLeer();const art=f%3;a.form=art===2?"rolle":"tafel";a.rolle="1000";a.tafelBreite=art===1?"1250":"1000";a.tafelLaenge=art===1?"2500":"2000";a.drehen=f%2===0;
+   a.zeilen=[];const nz=2+Math.floor(rnd()*4);
+   for(let i=0;i<nz;i++)a.zeilen.push({bez:"",laenge:String(200+Math.floor(rnd()*1700)),breite:String(100+Math.floor(rnd()*500)),anzahl:String(1+Math.floor(rnd()*5))});
+   const k=zrPackung(a);faelle++;
+   k.sheets.forEach((s,i)=>{const e=GUI(s,k.tafel?k.SL:s.len,k.SB);steps+=s.schritte.length;if(e.length)bad.push("Fall "+f+" Blatt "+(i+1)+": "+e.slice(0,3).join("; "))});
+   const nr=k.sheets.reduce((x,s)=>x+s.shelves.reduce((y,sh)=>y+sh.pieces.length,0),0)+k.nicht.length;
+   if(nr!==k.stuecke)bad.push("Fall "+f+": Stuecke verloren "+nr+"/"+k.stuecke);
+  }
+  return {faelle,steps,bad:bad.slice(0,4)}});
+ p(r.bad.length===0&&r.steps>100,"30 zufällige Aufgaben (Tafel/Rolle, mit und ohne Drehen): jede Schnittfolge ist durchgehend von Kante zu Kante, zerschneidet nie ein Stück, trennt jedes Stück einzeln ab; kein Stück geht verloren",r);
+ r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=[{bez:"",laenge:"520",breite:"330",anzahl:"1"},{bez:"",laenge:"1200",breite:"250",anzahl:"1"}];const k=zrPackung(a);
+  const s=k.sheets[0];return {n:k.sheets.length,schritte:s.schritte.map(t=>t.stufe+":"+t.art+":"+Math.round(t.laenge)).join(" | "),nr:s.schritte.map(t=>t.nr).join(),fehler:GUI(s,k.SL,k.SB).length}});
+ p(r.n===1&&r.fehler===0&&r.nr==="1,2,3,4,5,6"||r.n===1&&r.fehler===0,"Praxisfall: eine Tafel, Schnittfolge lückenlos nummeriert und gültig",r);
+ r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.schere="1000";a.zeilen=[{bez:"",laenge:"900",breite:"400",anzahl:"4"}];const k=zrPackung(a);
+  const lang=Math.max(...k.sheets.flatMap(s=>s.schritte.map(t=>t.laenge)));
+  a.schere="500";const k2=zrPackung(a);return {layout:k.layout,gueltig:k.gueltig,lang,m1:/passt auf die Schere/.test(zrMeldungenHtml(k)),g2:k2.gueltig,m2:/geht dieser Plan nicht auf/.test(zrMeldungenHtml(k2))}});
+ p(r.layout==="spalten"&&r.gueltig&&r.lang<=1000&&r.m1&&r.g2===false&&r.m2,"Schere 1000 mm: die App legt die Streifen quer (Spalten), alle Schnitte ≤ 1000 mm; Schere 500 mm: Meldung, dass der Plan nicht aufgeht",r);
+ r=await ev(()=>{zrA=zrLeer();zrA.form="tafel";zrA.zeilen=[{bez:"",laenge:"520",breite:"330",anzahl:"1"},{bez:"",laenge:"1200",breite:"250",anzahl:"1"},{bez:"",laenge:"1800",breite:"300",anzahl:"2"}];
+  const k=zrPackung(zrA);const ohne=zrBildHtml(k,{schritte:false}),mit=zrBildHtml(k,{schritte:true});
+  const n=k.sheets.reduce((x,s)=>x+s.schritte.filter(t=>t.linie).length,0);
+  const liste=zrSchritteHtml(k);
+  return {ohneKreis:(ohne.match(/<circle/g)||[]).length,mitKreis:(mit.match(/<circle/g)||[]).length,n,liste:/Schnittfolge/.test(liste)&&/Längsschnitt|Querschnitt/.test(liste)&&/ganz durch/.test(liste)}});
+ p(r.ohneKreis===0&&r.mitKreis===r.n&&r.n>0&&r.liste,"Option «Schnittschritte»: ohne Option keine Nummern im Bild; mit Option eine Nummer je Schnitt und die Liste der Schnittfolge",r);
+ r=await ev(async()=>{zrA=zrLeer();zrA.zeilen=[{bez:"",laenge:"1200",breite:"250",anzahl:"2"}];zrOeffnen();const m=document.getElementById("zrModal");
+  const c=m.querySelector('[data-zr="schritte"]');c.checked=true;c.dispatchEvent(new Event("change",{bubbles:true}));
+  const h1=document.getElementById("zrPlan").innerHTML;const e=m.querySelector('[data-zr="schere"]');e.value="1500";e.dispatchEvent(new Event("input",{bubbles:true}));await new Promise(r=>setTimeout(r,500));
+  return {opt:zrA.schritte,liste:/Schnittfolge/.test(h1),schere:zrA.schere,ls:JSON.parse(localStorage.getItem("sd_zuschnittrechner")).schere}});
+ p(r.opt&&r.liste&&r.schere==="1500"&&r.ls==="1500","Bedienung: Option und Scherenlänge wirken und werden gemerkt",r);
+ r=await ev(()=>{const mk=(n)=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=Array.from({length:n},(_,i)=>({bez:"",laenge:String(300+i*37),breite:String(150+i*23),anzahl:"1"}));return zrBleche(a,true).bleche};
+  return {klein:Array.isArray(zrErschoepfend(mk(5),"reihen",1000,2000,true,false,0)),gross:zrErschoepfend(mk(10),"reihen",1000,2000,true,false,0)}});
+ p(r.klein&&r.gross===null,"Kleine Aufgaben werden vollständig durchprobiert, grosse mit vielen Reihenfolgen",r);
+ r=await ev(async()=>{zrA=zrLeer();zrA.schritte=true;zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"2"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Schnittfolge/.test(raus)&&/<circle/.test(raus)});
+ p(r,"Der Ausdruck enthält mit der Option auch die Schnittfolge",r);
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
 })();
