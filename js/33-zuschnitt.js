@@ -466,7 +466,10 @@ function zuListeAbschnitteHtml(p){
 // v3.337: Schnittbild - je Abschnitt ein Rechteck (Länge der Rolle, Breite = Rollenbreite), darin die Streifen und darin die Stücke
 // mit ihrer Nummer, in Schnittreihenfolge. Zeigt, wo welches Stück im Abschnitt liegt; abgehakte Stücke sind grün. Reine Anzeige aus
 // zuAlleStuecke() (dieselben Angaben wie die Liste), nichts wird gerechnet oder gespeichert. Stücke aus Resten stehen nicht im Abschnitt.
-function zuSchnittbildHtml(p){
+// v3.419: opt.treu = massstabgetreue 1:1-Anordnung (Zuschnittrechner): Laenge und Breite im selben Massstab, die Hoehe wird
+// nicht auf 70-240 begrenzt, und in grossen Stuecken steht zusaetzlich das Mass. Ohne opt bleibt alles wie bisher.
+function zuSchnittbildHtml(p,opt){
+ const treu=!!(opt&&opt.treu);
  if(!p||!p.gruppen&&p.art!=="stange")return "";
  const alle=zuAlleStuecke(p).filter(x=>x.abschnitt!==undefined&&x.abschnitt!==null&&zuZahl(x.abLaenge)>0);
  if(!alle.length)return "";
@@ -496,7 +499,7 @@ function zuSchnittbildHtml(p){
   const B=stange?zuZahl(p.breite)||summe:(b.rolle||zuZahl(best&&best.breite)||summe);
   const Bm=Math.max(B,summe,1);
   const L=Math.max(b.L,zeilen.reduce((m,z)=>Math.max(m,z.st.reduce((s,x)=>s+zuZahl(x.laenge),0)),0),1);
-  const H=Math.max(70,Math.min(240,Math.round(W*Bm/L)));
+  const H=treu?Math.max(20,Math.round(W*Bm/L)):Math.max(70,Math.min(240,Math.round(W*Bm/L)));
   const sx=W/L, sy=H/Bm;
   let y=0, el="";
   zeilen.forEach(z=>{
@@ -509,7 +512,12 @@ function zuSchnittbildHtml(p){
     const klick=hakenOk&&hm!==undefined&&hm!==null&&hn!==undefined&&hn!==null;
     let teil=`<rect x="${x0.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${ok?"#9fd3a8":"#dbe7f3"}" stroke="#17202a" stroke-width="1.5"/>`;
     const fs=Math.max(12,Math.min(30,h*0.55,w/(t.length+0.6)));
-    if(w>=fs*0.9&&h>=12)teil+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+    if(w>=fs*0.9&&h>=12)teil+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35-(treu&&h>=fs*2.6&&w>=fs*5?fs*0.55:0)).toFixed(1)}" font-size="${fs.toFixed(0)}" font-weight="700" text-anchor="middle" fill="#17202a">${esc(t)}</text>`;
+    if(treu&&h>=fs*2.6&&w>=fs*5){
+     const m=zuMm(Math.round(zuZahl(x.laenge)))+" × "+zuMm(Math.round(zuZahl(x.breite)||z.A));
+     const f2=Math.max(9,Math.min(fs*0.6,w/(m.length*0.62)));
+     teil+=`<text x="${(x0+w/2).toFixed(1)}" y="${(y+h/2+fs*0.35+f2*1.25).toFixed(1)}" font-size="${f2.toFixed(0)}" text-anchor="middle" fill="#3d4850">${esc(m)}</text>`;
+    }
     // Im gemeinsamen Plan tragen Stücke aus verschiedenen Massaufnahmen dieselbe Nummer: darunter steht die Herkunft.
     if(p.sammel&&x.hinweis&&w>=60&&h>=40){
      const hk=String(x.hinweis).slice(0,Math.max(4,Math.floor(w/11)));
@@ -527,9 +535,9 @@ function zuSchnittbildHtml(p){
   const rst=(rest>0.5?`<rect x="0" y="${(summe*sy).toFixed(1)}" width="${W}" height="${(rest*sy).toFixed(1)}" fill="#f1f1f1" stroke="#9aa5ab" stroke-width="1" stroke-dasharray="6 4"/>`:"");
   const kopf=stange?("Stange "+k):(zuWort(p).abschnitt+" "+k);
   return `<figure class="zu-bild"><figcaption>${esc(kopf)} · ${esc(zuMm(Math.round(L)))} × ${esc(zuMm(Math.round(Bm)))} mm</figcaption>`
-   +`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}: Lage der Stücke">${rst}${el}${rand}</svg></figure>`;
+   +`<svg viewBox="0 0 ${W} ${H}" width="100%" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(kopf)}: Lage der Stücke">${treu?`<rect x="0" y="0" width="${W}" height="${H}" fill="#eceff1"/>`:""}${rst}${el}${rand}</svg></figure>`;
  }).join("");
- return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">Schnittbild – wo welches Stück liegt <span class="zu-bilder-legende">(grün = abgehakt${hakenOk&&(mid!==null&&mid!==undefined||p.sammel)?" · Stück antippen = abhaken":""})</span></div>${svg}</div>`:"";
+ return svg?`<div class="zu-bilder"><div class="zu-bilder-kopf">${treu?"Schnittbild im Massstab 1:1 – so liegt jedes Stück":"Schnittbild – wo welches Stück liegt"} <span class="zu-bilder-legende">(${treu?"Länge und Breite im gleichen Massstab, grau = Rest":"grün = abgehakt"}${hakenOk&&(mid!==null&&mid!==undefined||p.sammel)?" · Stück antippen = abhaken":""})</span></div>${svg}</div>`:"";
 }
 // v3.343: Rollenband - die Abschnitte des Plans fortlaufend auf der Rolle (Länge von links nach rechts, Rollenbreite als Höhe), darin je
 // Abschnitt die Streifen und Stücke, eingefärbt nach Herkunft (Massaufnahme). Reihen brechen bei ca. 6 m um. Reine Darstellung der

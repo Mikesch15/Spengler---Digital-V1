@@ -83,6 +83,16 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   await zrDrucken();window.open=echt;return {len:raus.length,kopf:/Zuschnittplan/.test(raus),masse:/Zuschnittmasse/.test(raus)&&/Abdeckung/.test(raus),plan:/Streifen|Rolle|Tafel/.test(raus),mat:/Titanzink 0,7/.test(raus)}});
  p(r.len>1000&&r.kopf&&r.masse&&r.plan&&r.mat,"Druck: Kopf, Zuschnittmasse, Plan und Material im Dokument",r);
  r=await ev(()=>({sw:null,hilfe:typeof HILFE==="object"?!!HILFE["zuschnittrechner"]:null}));
+ console.log("\nG · Massstabgetreue 1:1-Anordnung");
+ r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="3000";a.zeilen=[{bez:"",laenge:"2800",breite:"450",anzahl:"2"}];const p=zrPlan(a);
+  const t=zuSchnittbildHtml(p,{treu:true}),n=zuSchnittbildHtml(p);
+  const vb=h=>{const m=/viewBox="0 0 (\d+) (\d+)"/.exec(h);return m?[Number(m[1]),Number(m[2])]:null};
+  return {treu:vb(t),alt:vb(n),kopf:/Massstab 1:1/.test(t),mass:/2’?\.?800 × 450|2.800 × 450/.test(t.replace(/[’']/g,".")),nr:(t.match(/font-weight="700"/g)||[]).length>=2,figs:(t.match(/<figure/g)||[]).length}});
+ p(r.treu&&r.treu[0]===1000&&r.treu[1]===333&&r.alt&&r.alt[1]===240&&r.kopf&&r.mass&&r.figs===1,"Tafel 1000 × 3000: Schnittbild mit Seitenverhältnis 3:1 (1000 × 333, nicht auf 240 gestaucht), Mass im Stück, eine Tafel",r);
+ r=await ev(()=>{zrA=zrLeer();zrA.zeilen=[{bez:"",laenge:"2000",breite:"300",anzahl:"3"}];zrOeffnen();const h=document.getElementById("zrPlan").innerHTML;return {bild:/zu-bilder/.test(h)&&/Massstab 1:1/.test(h),vorListe:h.indexOf("zu-bilder")<h.indexOf("zu-liste-kopf")}});
+ p(r.bild,"Im Zuschnittrechner steht das Schnittbild im Massstab 1:1 direkt im Plan",r);
+ r=await ev(async()=>{zrA=zrLeer();zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"4"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Massstab 1:1/.test(raus)&&/<svg/.test(raus)});
+ p(r,"Der Ausdruck enthält das Schnittbild",r);
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
 })();

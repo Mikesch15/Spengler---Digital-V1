@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.418`
+- Aktueller Entwicklungsstand: `v3.419`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.419: Zuschnittrechner: Schnittbild im Massstab 1:1 (`zuSchnittbildHtml(p,{treu:true})`, js/33: Höhe nicht begrenzt, Mass im Stück, grauer Rest) im Plan und im Ausdruck.
 - v3.418: Zuschnittrechner (js/105, Mehr → Zuschnittrechner): Blechformat (Rolle/Tafel) + Zuschnittmasse per Eingabe oder Excel/CSV-Import → Zuschnittplan mit Belegung (gemeinsame Bausteine ebaFormatPlan/zuschnittHtml/zuDruckHtml), Druck; Stand nur lokal.
 - v3.417: Teile aus dem CAD (Fusion-Add-in «Spengler Digital CAD»): neue Tabelle `cad_teile` (RLS Firma, vom Add-in beschrieben: Auftrag, Teilnummer, Material, Zuschnitt, `app_data` im Format «Freies Profil»; `measurement_id`/`status` setzt die App). Neues Modul js/104: Karte «Teile aus dem CAD» unter den Massaufnahmen im Projekt-Cockpit (Hook am Ende von `loadProjectMeasurements`, js/09), «Als Massaufnahme übernehmen» über `measurementAlsVorlage()` (js/10), Verknüpfung nach dem Speichern (Hook in js/16, nur bei neuer Aufnahme, 30 Minuten gültig). Ohne CAD-Teile keine Änderung der Oberfläche. Zuordnung zum Projekt über `projects.order_no` = Auftragsnummer. Prüfstand `cad-teile-v3-417`; `projekt-fotos-v3-142` kennt die neue Abfrage `cad_teile`. Offen: Material automatisch zuordnen, Reststücke, Rückmeldung App-Status ins CAD. Live nicht geprüft (Sandbox).
 - v3.416: Rinne halbrund: ein Einhängestutzen hat keine Naht – das Rinnenstück läuft durch (`durchlaufend` in `computeRinneBoundaries`, js/12; bleibt Fixpunkt für die Dila-Regel).

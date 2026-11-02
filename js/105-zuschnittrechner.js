@@ -95,7 +95,7 @@ function zrPlan(a){
   const gruppen=Array.from(nach.keys()).sort((x,y)=>y-x).map(B=>({breite:B,stuecke:nach.get(B),bleche:nach.get(B)}));
   p=ebaFormatPlan({gruppen,formate,form,netto});
  }
- return {art:form,form,formGrund:"",formQuelle:"wahl",einheit:"Stück",material:a.material||"",
+ return {art:form,form,formGrund:"",formQuelle:"wahl",formLaenge:p.bestes?(p.bestes.laenge||null):null,einheit:"Stück",material:a.material||"",
   einleitung:zuEinleitung(form),quelle:zuQuelle(form),
   leer:ebaLeerText({form,formate},bleche.length?"":"Noch nichts zuzuschneiden – bitte Zuschnittmasse eingeben oder importieren."),
   streifenbreiten:(p.gruppen||[]).map(g=>g.breite),
@@ -227,7 +227,7 @@ function zrPlanHtml(){
 <div><label>Stücke</label><div class="ra-wert">${stk}</div></div>
 <div><label>Nettofläche</label><div class="ra-wert">${zrZ(p.netto).toFixed(2).replace(".",",")} m²</div></div>
 </div>`;
- return kenn+zuschnittHtml(p)+`<div class="bar" style="margin-top:10px"><button type="button" class="blue" id="zrDruck"${stk?"":" disabled"}>🖨️ Plan drucken / PDF</button></div>`;
+ return kenn+(bleche.length?zuSchnittbildHtml(p,{treu:true}):"")+zuschnittHtml(p)+`<div class="bar" style="margin-top:10px"><button type="button" class="blue" id="zrDruck"${stk?"":" disabled"}>🖨️ Plan drucken / PDF</button></div>`;
 }
 // Nur die Zeilennummern aktualisieren (die Eingabefelder bleiben stehen, der Fokus auch)
 function zrNummernNeu(){
@@ -284,10 +284,17 @@ ${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt 
 </table>
 <div class="eb-section-head">Zuschnittmasse</div>
 <table class="eb-cutlist"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
+${zuSchnittbildHtml(p,{treu:true})}
 ${zuDruckHtml(zrZuschnittDaten(p),0,"Stück")}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Zuschnittplan</title>
 <style>
 ${PDF_LAYOUT_CSS}
+.zu-bilder{margin:2mm 0;padding:1.5mm 2mm;border:.5pt solid #b3bcc2;break-inside:avoid}
+.zu-bilder-kopf{font-size:8pt;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:1mm}
+.zu-bilder-legende{font-weight:400;text-transform:none;letter-spacing:0;color:#5b666e}
+.zu-bild{margin:1mm 0 3mm;break-inside:avoid}
+.zu-bild figcaption{font-size:8pt;font-weight:700}
+.zu-bild svg{display:block;width:100%;height:auto}
 </style></head><body>
 ${(typeof pdfZahlenRechts==="function")?pdfZahlenRechts(html):html}
 </body></html>`);
