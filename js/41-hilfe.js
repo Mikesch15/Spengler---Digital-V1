@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.422.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.423.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1113,7 +1113,7 @@ tatsächlich rechnet.</p>`},
 "zuschnittrechner":{titel:"Zuschnittrechner",text:`
 <p>Ein freies Werkzeug ohne Projekt: <b>Blechformat</b> wählen (Rolle mit Breite, oder Tafel mit Breite × Länge), die <b>Zuschnittmasse</b> eintragen oder aus Excel/CSV importieren – die App erstellt den Zuschnittplan: ein Schnittbild im Massstab 1:1 und die Liste mit der Lage jedes Stücks. Stücke verschiedener Breite dürfen auf derselben Tafel liegen. Alles ist auf der Tafelschere zuschneidbar (nur durchgehende Schnitte). Die Option «Schnittschritte» zeigt die Reihenfolge der Schnitte, die «Schere» (grösste Schnittlänge) berücksichtigt die Länge Ihrer Maschine.</p>
 <p><b>Länge</b> ist die Richtung entlang der Rolle bzw. Tafel, <b>Breite</b> die Streifenbreite. Mit «Stücke dürfen gedreht werden» wird die kürzere Seite zur Streifenbreite. Die <b>Anzahl</b> macht aus einer Zeile mehrere gleiche Stücke.</p>
-<p><b>Excel-Import:</b> Spalten <b>Länge, Breite, Anzahl</b> (optional Bezeichnung), mit oder ohne Kopfzeile, Masse in mm. «Vorlage» lädt ein Beispiel herunter. Es wird nichts in der Datenbank gespeichert; der letzte Stand bleibt nur auf diesem Gerät.</p>`},
+<p><b>Excel-Import:</b> Spalten <b>Länge, Breite, Anzahl</b> (optional <b>Pos.</b> = Positionsnummer und Bezeichnung), mit oder ohne Kopfzeile, Masse in mm. «Vorlage» lädt ein Beispiel herunter. Es wird nichts in der Datenbank gespeichert; der letzte Stand bleibt nur auf diesem Gerät.</p>`},
 "ar-masse":{titel:"Masse (Ablaufrohr)",text:`
 <p><b>Ausladung</b> ist das Mass von der Hinterkante des Stutzens bis zur Fassade, der <b>Wandabstand</b> das Mass vom Ablaufrohr (unten) bis zur Fassade. Der Schwanenhals überbrückt die Differenz.</p>
 <p>Der <b>Bogenwinkel</b> (45°, 70° oder 85°) gilt für beide Bögen. Die <b>Höhe</b> wird von Oberkant Stutzen bis Unterkant Sockelrohr gemessen; das <b>Sockelrohr</b> kommt als eigene Höhe dazu. Das <b>Schiebestück</b> ist Teil der senkrechten Strecke.</p>

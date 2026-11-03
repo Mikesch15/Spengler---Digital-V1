@@ -20,7 +20,7 @@ const ZR_TAFELN=Object.freeze([[1000,2000],[1000,3000],[1250,2500],[1250,3000],[
 
 function zrLeer(){
  return {form:"rolle",rolle:"1000",tafelBreite:"1000",tafelLaenge:"2000",drehen:false,schritte:false,schere:"",material:"",
-  zeilen:[{bez:"",laenge:"",breite:"",anzahl:"1"}]};
+  zeilen:[{pos:"",bez:"",laenge:"",breite:"",anzahl:"1"}]};
 }
 let zrA=zrLeer();
 
@@ -46,7 +46,7 @@ function zrLaden(){
   ["rolle","tafelBreite","tafelLaenge","material","schere"].forEach(k=>{if(w[k]!==undefined)a[k]=String(w[k])});
   a.drehen=!!w.drehen;a.schritte=!!w.schritte;
   if(Array.isArray(w.zeilen)&&w.zeilen.length)
-   a.zeilen=w.zeilen.slice(0,ZR_MAX_ZEILEN).map(z=>({bez:String(z.bez||""),laenge:String(z.laenge===undefined?"":z.laenge),
+   a.zeilen=w.zeilen.slice(0,ZR_MAX_ZEILEN).map(z=>({pos:String(z.pos||""),bez:String(z.bez||""),laenge:String(z.laenge===undefined?"":z.laenge),
     breite:String(z.breite===undefined?"":z.breite),anzahl:String(z.anzahl===undefined?"1":z.anzahl)}));
   zrA=a;
  }catch(e){}
@@ -66,10 +66,14 @@ function zrBleche(a,roh){
   if(!(L>0&&B>0)){bereich[i]=null;return}
   if(a.drehen&&B>L&&!roh){const t=L;L=B;B=t}
   const von=nr+1;
-  for(let k=0;k<n;k++)out.push({nr:++nr,laenge:L,breite:B,zeile:i,bez:z.bez||"",merkmal:"",hinweis:""});
+  for(let k=0;k<n;k++)out.push({nr:++nr,pos:String(z.pos||"").trim(),laenge:L,breite:B,zeile:i,bez:z.bez||"",merkmal:"",hinweis:""});
   bereich[i]={von,bis:nr};
  });
- return {bleche:out,bereich};
+ // Positionsnummern (z. B. aus der Excel-Liste): gleiche Position = gleiche Nummer auf allen Stuecken der Zeile.
+ // Gibt es welche, bekommen Zeilen ohne Position die laufende Nummer in Klammern, damit nichts doppelt vorkommt.
+ const hatPos=out.some(x=>x.pos);
+ out.forEach(x=>{x.label=x.pos?x.pos:(hatPos?"("+x.nr+")":String(x.nr))});
+ return {bleche:out,bereich,hatPos};
 }
 // ---- Die Packung ---------------------------------------------------------------
 // Eigene Packung, weil hier verschiedene Streifenbreiten auf DERSELBEN Tafel bzw. im
@@ -95,7 +99,7 @@ function zrPackeLauf(items,RL,H,drehen,fuge,reihenfolge){
  const orient=t=>drehen?[[t.a,t.b],[t.b,t.a]]:[[t.a,t.b]];
  const setze=(sh,t,pa,pb)=>{
   const x=sh.used+(sh.pieces.length?fuge:0);
-  sh.pieces.push({nr:t.nr,zeile:t.zeile,bez:t.bez,laenge:t.laenge,breite:t.breite,pa,pb,x,y:sh.y});
+  sh.pieces.push({nr:t.nr,label:t.label,zeile:t.zeile,bez:t.bez,laenge:t.laenge,breite:t.breite,pa,pb,x,y:sh.y});
   sh.used=x+pa;
  };
  teile.forEach(t=>{
@@ -144,10 +148,10 @@ function zrSchritte(s,RL,H,layout,rolleBreite){
  s.shelves.forEach((sh,i)=>{
   sh.pieces.forEach(p=>{
    const xe=p.x+p.pa;
-   if(xe<RL-0.5)add({stufe:2,art:vArt,laenge:sh.h,text:vArt+" bei "+mm(xe)+" mm von der "+kante(vArt)+" Kante, im Streifen "+(i+1),ergebnis:"Stück Nr. "+p.nr+" abtrennen",linie:[xe,sh.y,xe,sh.y+sh.h]});
+   if(xe<RL-0.5)add({stufe:2,art:vArt,laenge:sh.h,text:vArt+" bei "+mm(xe)+" mm von der "+kante(vArt)+" Kante, im Streifen "+(i+1),ergebnis:"Stück Nr. "+p.label+" abtrennen",linie:[xe,sh.y,xe,sh.y+sh.h]});
   });
   sh.pieces.forEach(p=>{
-   if(p.pb<sh.h-0.5)add({stufe:3,art:hArt,laenge:p.pa,text:hArt+" im Stück Nr. "+p.nr+": auf "+mm(p.pb)+" mm Breite kürzen",ergebnis:"Stück Nr. "+p.nr+" fertig",linie:[p.x,sh.y+p.pb,p.x+p.pa,sh.y+p.pb]});
+   if(p.pb<sh.h-0.5)add({stufe:3,art:hArt,laenge:p.pa,text:hArt+" im Stück Nr. "+p.label+": auf "+mm(p.pb)+" mm Breite kürzen",ergebnis:"Stück Nr. "+p.label+" fertig",linie:[p.x,sh.y+p.pb,p.x+p.pa,sh.y+p.pb]});
   });
  });
  return st;
@@ -177,7 +181,7 @@ function zrFreiSchnittZahl(sheets){
  return z;
 }
 function zrItems(liste,spalten){
- return liste.map(x=>({nr:x.nr,zeile:x.zeile,bez:x.bez,laenge:x.laenge,breite:x.breite,a:spalten?x.breite:x.laenge,b:spalten?x.laenge:x.breite}));
+ return liste.map(x=>({nr:x.nr,label:x.label,zeile:x.zeile,bez:x.bez,laenge:x.laenge,breite:x.breite,a:spalten?x.breite:x.laenge,b:spalten?x.laenge:x.breite}));
 }
 function zrKandidat(stuecke,SB,SL,tafel,drehen,fuge,layout,reihenfolge,schere){
  const spalten=layout==="spalten";
@@ -191,7 +195,7 @@ function zrKandidat(stuecke,SB,SL,tafel,drehen,fuge,layout,reihenfolge,schere){
   const conv=(x,y)=>spalten?[y,x]:[x,y];
   const shelves=s.shelves.map(sh=>({y:sh.y,h:sh.h,pieces:sh.pieces.map(p=>{
    const ax=spalten?p.y:p.x, ay=spalten?p.x:p.y, al=spalten?p.pb:p.pa, ab=spalten?p.pa:p.pb;
-   return {nr:p.nr,zeile:p.zeile,bez:p.bez,x:ax,y:ay,laenge:al,breite:ab,gedreht:Math.abs(al-p.laenge)>0.5||Math.abs(ab-p.breite)>0.5};
+   return {nr:p.nr,label:p.label,zeile:p.zeile,bez:p.bez,x:ax,y:ay,laenge:al,breite:ab,gedreht:Math.abs(al-p.laenge)>0.5||Math.abs(ab-p.breite)>0.5};
   })}));
   const schritte=steps.map(t=>Object.assign({},t,{linie:t.linie?[].concat(conv(t.linie[0],t.linie[1]),conv(t.linie[2],t.linie[3])):null}));
   const len=tafel?SL:(spalten?0:lauf);
@@ -226,7 +230,7 @@ function zrFreiLauf(liste,SB,SL,drehen,fuge,fit,split){
   return Math.max(dw,dh)*1e5+Math.min(dw,dh);
  };
  const platz=(s,r,t,w,h)=>{
-  r.stueck={nr:t.nr,zeile:t.zeile,bez:t.bez,x:r.x,y:r.y,laenge:w,breite:h,gedreht:Math.abs(w-t.laenge)>0.5||Math.abs(h-t.breite)>0.5};
+  r.stueck={nr:t.nr,label:t.label,zeile:t.zeile,bez:t.bez,x:r.x,y:r.y,laenge:w,breite:h,gedreht:Math.abs(w-t.laenge)>0.5||Math.abs(h-t.breite)>0.5};
   s.frei.splice(s.frei.indexOf(r),1);
   const lw=r.w-w,lh=r.h-h;
   r.cutW=lw>0.5;r.cutH=lh>0.5;
@@ -265,12 +269,12 @@ function zrFreiSchritte(root){
   if(r.split==="H"){
    if(r.cutH)add(d,{art:"Längsschnitt",laenge:r.w,linie:[r.x,r.y+h,r.x+r.w,r.y+h],text:"Längsschnitt "+mm(h)+" mm von der oberen Kante des Teils "+teil+", ganz durch",ergebnis:"Streifen "+mm(r.w)+" × "+mm(h)+" mm abtrennen"});
    const ds=d+(r.cutH?1:0);
-   if(r.cutW)add(ds,{art:"Querschnitt",laenge:h,linie:[r.x+w,r.y,r.x+w,r.y+h],text:"Querschnitt "+mm(w)+" mm von der linken Kante des Streifens "+mm(r.w)+" × "+mm(h)+" mm, ganz durch",ergebnis:"Stück Nr. "+p.nr+" ("+mm(w)+" × "+mm(h)+") abtrennen"});
+   if(r.cutW)add(ds,{art:"Querschnitt",laenge:h,linie:[r.x+w,r.y,r.x+w,r.y+h],text:"Querschnitt "+mm(w)+" mm von der linken Kante des Streifens "+mm(r.w)+" × "+mm(h)+" mm, ganz durch",ergebnis:"Stück Nr. "+p.label+" ("+mm(w)+" × "+mm(h)+") abtrennen"});
    emit(r.rechts,ds+(r.cutW?1:0));emit(r.unten,ds);
   }else{
    if(r.cutW)add(d,{art:"Querschnitt",laenge:r.h,linie:[r.x+w,r.y,r.x+w,r.y+r.h],text:"Querschnitt "+mm(w)+" mm von der linken Kante des Teils "+teil+", ganz durch",ergebnis:"Streifen "+mm(w)+" × "+mm(r.h)+" mm abtrennen"});
    const ds=d+(r.cutW?1:0);
-   if(r.cutH)add(ds,{art:"Längsschnitt",laenge:w,linie:[r.x,r.y+h,r.x+w,r.y+h],text:"Längsschnitt "+mm(h)+" mm von der oberen Kante des Streifens "+mm(w)+" × "+mm(r.h)+" mm, ganz durch",ergebnis:"Stück Nr. "+p.nr+" ("+mm(w)+" × "+mm(h)+") abtrennen"});
+   if(r.cutH)add(ds,{art:"Längsschnitt",laenge:w,linie:[r.x,r.y+h,r.x+w,r.y+h],text:"Längsschnitt "+mm(h)+" mm von der oberen Kante des Streifens "+mm(w)+" × "+mm(r.h)+" mm, ganz durch",ergebnis:"Stück Nr. "+p.label+" ("+mm(w)+" × "+mm(h)+") abtrennen"});
    emit(r.unten,ds+(r.cutH?1:0));emit(r.rechts,ds);
   }
  })(root,0);
@@ -296,10 +300,10 @@ function zrPackung(a){
  a=a||zrA;
  const tafel=a.form==="tafel";
  const SB=tafel?zrZ(a.tafelBreite):zrZ(a.rolle);
- const stuecke=zrBleche(a,tafel).bleche;   // Tafel: Originallage (Drehen wird beim Legen entschieden); Rolle: ggf. schon gedreht
+ const sb=zrBleche(a,tafel),stuecke=sb.bleche,hatPos=sb.hatPos;   // Tafel: Originallage (Drehen wird beim Legen entschieden); Rolle: ggf. schon gedreht
  const netto=stuecke.reduce((s,x)=>s+x.laenge*x.breite,0)/1e6;
  const schere=zrZ(a.schere);
- const leer={tafel,SB,SL:0,sheets:[],nicht:[],stuecke:stuecke.length,netto,flaeche:0,verschnitt:0,anteil:0,fuge:zrFuge(),ok:false,schere,untergrenze:0,layout:"reihen",gueltig:true,maxSchnitt:0};
+ const leer={hatPos,tafel,SB,SL:0,sheets:[],nicht:[],stuecke:stuecke.length,netto,flaeche:0,verschnitt:0,anteil:0,fuge:zrFuge(),ok:false,schere,untergrenze:0,layout:"reihen",gueltig:true,maxSchnitt:0};
  if(!(SB>0)||!stuecke.length)return leer;
  let SL=tafel?zrZ(a.tafelLaenge):0;
  if(tafel&&!(SL>0))return leer;
@@ -358,7 +362,7 @@ function zrPackung(a){
  const c=best.c;
  const flaecheM2=c.flaeche/1e6;
  const untergrenze=tafel?Math.max(1,Math.ceil(netto*1e6/(SB*SL)-1e-9)):0;
- return {tafel,SB,SL,layout:c.layout,sheets:c.sheets,nicht:c.nicht,stuecke:stuecke.length,netto,flaeche:flaecheM2,
+ return {hatPos,tafel,SB,SL,layout:c.layout,sheets:c.sheets,nicht:c.nicht,stuecke:stuecke.length,netto,flaeche:flaecheM2,
   verschnitt:Math.max(0,flaecheM2-netto),anteil:flaecheM2>0?Math.max(0,flaecheM2-netto)/flaecheM2*100:0,fuge,ok:true,
   schere,gueltig:c.gueltig,maxSchnitt:c.maxSchnitt,untergrenze};
 }
@@ -373,7 +377,7 @@ function zrBildHtml(r,opt){
   const Lz=Math.max(1,r.tafel?r.SL:s.len), sx=W/Lz, H=Math.max(20,Math.round(W*r.SB/Lz)), sy=H/r.SB;
   let el="";
   s.shelves.forEach(sh=>sh.pieces.forEach(x=>{
-   const w=x.laenge*sx,h=x.breite*sy,t=String(x.nr);
+   const w=x.laenge*sx,h=x.breite*sy,t=String(x.label===undefined?x.nr:x.label);
    const fs=Math.max(10,Math.min(26,h*0.5,w/(t.length+0.6)));
    const farbe="hsl("+((x.zeile||0)*57%360)+",55%,88%)";
    let teil=`<rect x="${(x.x*sx).toFixed(1)}" y="${(x.y*sy).toFixed(1)}" width="${Math.max(w,1).toFixed(1)}" height="${Math.max(h,1).toFixed(1)}" fill="${farbe}" stroke="#17202a" stroke-width="1.5"/>`;
@@ -418,11 +422,11 @@ function zrSchritteHtml(r){
 function zrListeHtml(r){
  if(!r.ok||!r.sheets.length)return "";
  const zeilen=[];
- r.sheets.forEach((s,i)=>s.shelves.forEach((sh,k)=>sh.pieces.forEach(x=>zeilen.push({nr:x.nr,bez:x.bez,laenge:x.laenge,breite:x.breite,gedreht:x.gedreht,
+ r.sheets.forEach((s,i)=>s.shelves.forEach((sh,k)=>sh.pieces.forEach(x=>zeilen.push({nr:x.nr,label:x.label,bez:x.bez,laenge:x.laenge,breite:x.breite,gedreht:x.gedreht,
   ort:(r.tafel?"Tafel ":"Abschnitt ")+(i+1)+(s.frei?"":" · Streifen "+(k+1))+" · ab "+zrMm(x.x)+" / "+zrMm(x.y)+" mm"}))));
  zeilen.sort((a,b)=>a.nr-b.nr);
- return `<table class="eb-table ra-tab"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th style="text-align:right">Länge × Breite</th><th>Lage (von links / oben)</th></tr></thead><tbody>${
-  zeilen.map(z=>`<tr><td><b>${z.nr}</b></td><td>${esc(z.bez)}</td><td style="text-align:right">${esc(zrMm(z.laenge))} × ${esc(zrMm(z.breite))} mm${z.gedreht?" ⟳":""}</td><td class="small">${esc(z.ort)}</td></tr>`).join("")}</tbody></table>`;
+ return `<table class="eb-table ra-tab"><thead><tr><th>${r.hatPos?"Pos.":"Nr."}</th><th>Bezeichnung</th><th style="text-align:right">Länge × Breite</th><th>Lage (von links / oben)</th></tr></thead><tbody>${
+  zeilen.map(z=>`<tr><td><b>${esc(z.label===undefined?z.nr:z.label)}</b></td><td>${esc(z.bez)}</td><td style="text-align:right">${esc(zrMm(z.laenge))} × ${esc(zrMm(z.breite))} mm${z.gedreht?" ⟳":""}</td><td class="small">${esc(z.ort)}</td></tr>`).join("")}</tbody></table>`;
 }
 function zrKennzahlenHtml(r){
  const f=(l,w)=>`<div><label>${l}</label><div class="ra-wert">${w}</div></div>`;
@@ -435,7 +439,7 @@ function zrKennzahlenHtml(r){
 }
 function zrMeldungenHtml(r){
  const m=[];
- if(r.nicht.length)m.push(`<div class="ra-fehler">${r.nicht.length===1?"Ein Stück passt":r.nicht.length+" Stücke passen"} nicht ${r.tafel?"auf die Tafel":"auf die Rolle"}: ${esc(r.nicht.slice(0,8).map(x=>"Nr. "+x.nr+" ("+zrMm(x.laenge)+" × "+zrMm(x.breite)+")").join(", "))}${r.nicht.length>8?" …":""}. ${r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rollenbreite "+zrMm(r.SB)+" mm"}${zrA.drehen?"":" – evtl. «Stücke dürfen gedreht werden» einschalten"}.</div>`);
+ if(r.nicht.length)m.push(`<div class="ra-fehler">${r.nicht.length===1?"Ein Stück passt":r.nicht.length+" Stücke passen"} nicht ${r.tafel?"auf die Tafel":"auf die Rolle"}: ${esc(r.nicht.slice(0,8).map(x=>(r.hatPos?"Pos. ":"Nr. ")+x.label+" ("+zrMm(x.laenge)+" × "+zrMm(x.breite)+")").join(", "))}${r.nicht.length>8?" …":""}. ${r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rollenbreite "+zrMm(r.SB)+" mm"}${zrA.drehen?"":" – evtl. «Stücke dürfen gedreht werden» einschalten"}.</div>`);
  if(r.ok&&r.schere>0&&!r.gueltig)m.push(`<div class="ra-fehler">Mit einer Schere von ${esc(zrMm(r.schere))} mm Schnittlänge geht dieser Plan nicht auf: der längste Schnitt ist ${esc(zrMm(r.maxSchnitt))} mm lang. ${r.tafel?"Ein kleineres Format oder eine längere Schere wäre nötig.":"Rollenbreite oder Schere prüfen."}</div>`);
  else if(r.ok&&r.schere>0)m.push(`<div class="ra-ok">Alle Schnitte sind höchstens ${esc(zrMm(r.maxSchnitt))} mm lang – passt auf die Schere (${esc(zrMm(r.schere))} mm).${r.layout==="spalten"?" Dafür sind die Streifen quer gelegt.":""}</div>`);
  if(r.ok&&r.fuge>0)m.push(`<div class="small">Schnittfuge ${esc(zrMm(r.fuge))} mm zwischen den Stücken und Streifen ist eingerechnet.</div>`);
@@ -460,7 +464,8 @@ function zrZeilenAusTabelle(rows){
   laenge:c=>/^(l|len|length)$/i.test(c)||/l(ä|ae|Ã¤)nge/i.test(c),
   breite:c=>/^(breite|b|width)$/i.test(c)||/breite/i.test(c),
   anzahl:c=>/^(anz\.?|anzahl|stk\.?|stück|stueck|menge|qty|n)$/i.test(c)||/anzahl|st(ü|ue)ck/i.test(c),
-  bez:c=>/^(bez\.?|bezeichnung|name|text|teil|pos\.?|position|nr\.?)$/i.test(c)||/bezeichnung/i.test(c)
+  bez:c=>/^(bez\.?|bezeichnung|name|text|teil)$/i.test(c)||/bezeichnung/i.test(c),
+  pos:c=>/^(pos\.?|position|nr\.?|nummer|lfd\.?\s*nr\.?)$/i.test(c)||/^pos|position|nummer|pos\.?\s*-?\s*nr/i.test(c)
  };
  const kopf=tab[0].map(c=>String(c==null?"":c).trim());
  const idx={};
@@ -472,8 +477,10 @@ function zrZeilenAusTabelle(rows){
   const erste=tab[0];
   const nZahl=erste.filter(c=>!Number.isNaN(zrZahl(c))).length;
   const textVorn=erste.length>0&&Number.isNaN(zrZahl(erste[0]))&&nZahl>=2;
-  const o=textVorn?1:0;
-  idx.bez=textVorn?0:undefined;idx.laenge=o;idx.breite=o+1;idx.anzahl=o+2;
+  // vier Zahlen ohne Kopfzeile: Position, Laenge, Breite, Anzahl (die uebliche Reihenfolge einer Zuschnittliste)
+  const posVorn=!textVorn&&erste.length>=4&&erste.slice(0,4).every(c=>!Number.isNaN(zrZahl(c)));
+  const o=(textVorn||posVorn)?1:0;
+  idx.bez=textVorn?0:undefined;idx.pos=posVorn?0:undefined;idx.laenge=o;idx.breite=o+1;idx.anzahl=o+2;
   if(Number.isNaN(zrZahl(erste[idx.laenge]))&&tab.length>1){start=1}   // doch eine unbekannte Kopfzeile
  }
  const zeilen=[];let uebersprungen=0;
@@ -483,7 +490,7 @@ function zrZeilenAusTabelle(rows){
   if(!(L>0&&B>0)){uebersprungen++;continue}
   let n=idx.anzahl!==undefined?zrZahl(r[idx.anzahl]):1;
   if(!(n>=1))n=1;
-  zeilen.push({bez:idx.bez!==undefined?String(r[idx.bez]==null?"":r[idx.bez]).trim():"",
+  zeilen.push({pos:idx.pos!==undefined?String(r[idx.pos]==null?"":r[idx.pos]).trim().replace(/\.0+$/,""):"",bez:idx.bez!==undefined?String(r[idx.bez]==null?"":r[idx.bez]).trim():"",
    laenge:String(L),breite:String(B),anzahl:String(Math.floor(n))});
  }
  return {zeilen,uebersprungen,grund:zeilen.length?"":"keine"};
@@ -506,7 +513,7 @@ async function zrImportDatei(datei){
 }
 async function zrVorlage(){
  if(typeof xlsxLaden!=="function"||!(await xlsxLaden())){appAlert("Die Vorlage ist gerade nicht verfügbar (Bibliothek nicht geladen).");return}
- const ws=XLSX.utils.aoa_to_sheet([["Bezeichnung","Länge (mm)","Breite (mm)","Anzahl"],["Beispiel Abdeckung",2000,310,4],["Beispiel Winkel",1500,250,2]]);
+ const ws=XLSX.utils.aoa_to_sheet([["Pos.","Bezeichnung","Länge (mm)","Breite (mm)","Anzahl"],[1,"Beispiel Abdeckung",2000,310,4],[2,"Beispiel Winkel",1500,250,2]]);
  const wb=XLSX.utils.book_new();
  XLSX.utils.book_append_sheet(wb,ws,"Zuschnitt");
  XLSX.writeFile(wb,"Zuschnittliste-Vorlage.xlsx");
@@ -531,12 +538,20 @@ ${a.form==="tafel"
 <div class="grid" style="margin-top:8px"><div class="wide"><label>Schere: grösste Schnittlänge (mm, leer = unbegrenzt)</label><input data-zr="schere" type="number" inputmode="numeric" step="1" min="1" placeholder="z. B. 2000" value="${esc(a.schere)}"></div></div>
 <label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-zr="schritte"${a.schritte?" checked":""}> Schnittschritte im Plan anzeigen (Reihenfolge der Schnitte)</label>`;
 }
+// Hinweis unter einer Zeile: Position (wenn vorhanden) bzw. die laufenden Nummern der Stuecke
+function zrZeilenHinweis(z,b){
+ if(!b)return "";
+ const n=b.bis-b.von+1;
+ if(String(z.pos||"").trim())return "Pos. "+String(z.pos).trim()+(n>1?" · "+n+" Stück":"");
+ return b.von===b.bis?"Nr. "+b.von:"Nr. "+b.von+"–"+b.bis;
+}
 function zrZeilenHtml(){
  const {bereich}=zrBleche();
  return zrA.zeilen.map((z,i)=>{
   const b=bereich[i];
-  const nr=b?(b.von===b.bis?"Nr. "+b.von:"Nr. "+b.von+"–"+b.bis):"";
-  return `<div class="zr-zeile" style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr) auto;gap:6px;align-items:end;margin-bottom:6px">
+  const nr=zrZeilenHinweis(z,b);
+  return `<div class="zr-zeile" style="display:grid;grid-template-columns:minmax(0,.6fr) minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.7fr) auto;gap:6px;align-items:end;margin-bottom:6px">
+<div><label>${i===0?"Pos.":"&nbsp;"}</label><input data-zr-zeile="${i}" data-zr-feld="pos" type="text" inputmode="text" placeholder="–" value="${esc(z.pos)}"></div>
 <div><label>${i===0?"Bezeichnung":"&nbsp;"}</label><input data-zr-zeile="${i}" data-zr-feld="bez" type="text" placeholder="optional" value="${esc(z.bez)}"></div>
 <div><label>${i===0?"Länge":"&nbsp;"}</label><input data-zr-zeile="${i}" data-zr-feld="laenge" type="number" inputmode="numeric" step="1" min="1" value="${esc(z.laenge)}"></div>
 <div><label>${i===0?"Breite":"&nbsp;"}</label><input data-zr-zeile="${i}" data-zr-feld="breite" type="number" inputmode="numeric" step="1" min="1" value="${esc(z.breite)}"></div>
@@ -555,7 +570,7 @@ function zrEingabeHtml(){
 <button type="button" class="gray" id="zrLoeschen">Alles löschen</button>
 </div>
 <input type="file" id="zrDatei" accept=".xlsx,.xls,.csv,.ods,.txt" hidden>
-<div class="small">Masse in mm. Beim Import werden die Spalten <b>Länge</b>, <b>Breite</b> und <b>Anzahl</b> (und optional <b>Bezeichnung</b>) erkannt – mit oder ohne Kopfzeile. Eine Zeile mit Anzahl 3 sind drei gleiche Stücke.</div>`;
+<div class="small">Masse in mm. Beim Import werden die Spalten <b>Länge</b>, <b>Breite</b> und <b>Anzahl</b> (und optional <b>Pos.</b> und <b>Bezeichnung</b>) erkannt – mit oder ohne Kopfzeile. Eine Zeile mit Anzahl 3 sind drei gleiche Stücke. Eine <b>Positionsnummer</b> steht im Plan an allen Stücken dieser Zeile.</div>`;
 }
 function zrPlanHtml(){
  const r=zrPackung();
@@ -568,7 +583,7 @@ function zrNummernNeu(){
  const {bereich}=zrBleche();
  document.querySelectorAll("#zrModal [data-zr-nr]").forEach(el=>{
   const b=bereich[Number(el.dataset.zrNr)];
-  el.textContent=b?(b.von===b.bis?"Nr. "+b.von:"Nr. "+b.von+"–"+b.bis):"";
+  el.textContent=zrZeilenHinweis(zrA.zeilen[Number(el.dataset.zrNr)]||{},b);
  });
 }
 function zrPlanNeu(){
@@ -608,7 +623,7 @@ async function zrDrucken(){
  const kopf=(typeof pdfKopfHtml==="function")
   ?pdfKopfHtml({logoSrc,dokumenttyp:"Zuschnittplan",unterart:"Zuschnittrechner",material:zrA.material||"",datum:new Date().toISOString().slice(0,10)})
   :`<h1>Zuschnittplan</h1>`;
- const tabelle=zrA.zeilen.map((z,i)=>bereich[i]?`<tr><td>${bereich[i].von===bereich[i].bis?bereich[i].von:bereich[i].von+"–"+bereich[i].bis}</td><td>${esc(z.bez)}</td><td>${zrMm(z.laenge)}</td><td>${zrMm(z.breite)}</td><td>${esc(z.anzahl)}</td></tr>`:"").join("");
+ const tabelle=zrA.zeilen.map((z,i)=>bereich[i]?`<tr><td>${esc(String(z.pos||"").trim()||(bereich[i].von===bereich[i].bis?bereich[i].von:bereich[i].von+"–"+bereich[i].bis))}</td><td>${esc(z.bez)}</td><td>${zrMm(z.laenge)}</td><td>${zrMm(z.breite)}</td><td>${esc(z.anzahl)}</td></tr>`:"").join("");
  const fmt=r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rolle "+zrMm(r.SB)+" mm";
  const bedarf=r.ok&&r.sheets.length?(r.tafel?r.sheets.length+" Tafel"+(r.sheets.length===1?"":"n"):zrMm(r.sheets.reduce((a,s)=>a+s.len,0))+" mm Rolle"):"–";
  const html=`${kopf}
@@ -619,12 +634,12 @@ async function zrDrucken(){
 ${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt</div></td></tr>`:""}
 </table>
 <div class="eb-section-head">Zuschnittmasse</div>
-<table class="eb-cutlist"><thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
+<table class="eb-cutlist"><thead><tr><th>${r.hatPos?"Pos.":"Nr."}</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
 <div class="eb-section-head">Zuschnittplan</div>
 ${zrBildHtml(r,{schritte:zrA.schritte})}
 ${zrA.schritte?zrSchritteHtml(r):""}
 ${zrListeHtml(r)}
-${r.nicht.length?`<div class="note">${esc(r.nicht.length+" Stück(e) passen nicht auf das Format: "+r.nicht.map(x=>"Nr. "+x.nr).join(", "))}</div>`:""}`;
+${r.nicht.length?`<div class="note">${esc(r.nicht.length+" Stück(e) passen nicht auf das Format: "+r.nicht.map(x=>(r.hatPos?"Pos. ":"Nr. ")+x.label).join(", "))}</div>`:""}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Zuschnittplan</title>
 <style>
 ${PDF_LAYOUT_CSS}
@@ -679,12 +694,12 @@ document.addEventListener("click",async e=>{
  if(k.dataset.zrTafel!==undefined){const [b,l]=k.dataset.zrTafel.split("x");zrA.tafelBreite=b;zrA.tafelLaenge=l;zrSpeichern();zrZeichnen();return}
  if(k.dataset.zrWeg!==undefined){
   zrA.zeilen.splice(Number(k.dataset.zrWeg),1);
-  if(!zrA.zeilen.length)zrA.zeilen.push({bez:"",laenge:"",breite:"",anzahl:"1"});
+  if(!zrA.zeilen.length)zrA.zeilen.push({pos:"",bez:"",laenge:"",breite:"",anzahl:"1"});
   zrSpeichern();zrZeichnen();return;
  }
  if(k.id==="zrPlus"){
   if(zrA.zeilen.length>=ZR_MAX_ZEILEN){appAlert("Höchstens "+ZR_MAX_ZEILEN+" Zeilen.");return}
-  zrA.zeilen.push({bez:"",laenge:"",breite:"",anzahl:"1"});zrSpeichern();zrZeichnen();
+  zrA.zeilen.push({pos:"",bez:"",laenge:"",breite:"",anzahl:"1"});zrSpeichern();zrZeichnen();
   const f=document.querySelector('#zrZeilen [data-zr-zeile="'+(zrA.zeilen.length-1)+'"][data-zr-feld="laenge"]');if(f)f.focus();
   return;
  }
@@ -692,7 +707,7 @@ document.addEventListener("click",async e=>{
  if(k.id==="zrVorlage"){await zrVorlage();return}
  if(k.id==="zrLoeschen"){
   if(!await appConfirm("Alle Zuschnittmasse löschen?"))return;
-  zrA.zeilen=[{bez:"",laenge:"",breite:"",anzahl:"1"}];zrSpeichern();zrZeichnen();return;
+  zrA.zeilen=[{pos:"",bez:"",laenge:"",breite:"",anzahl:"1"}];zrSpeichern();zrZeichnen();return;
  }
  if(k.id==="zrDruck"){await zrDrucken();return}
 });

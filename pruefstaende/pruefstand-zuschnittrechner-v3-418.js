@@ -22,6 +22,36 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r.zeilen.length===3&&r.zeilen[0].bez==="Abdeckung"&&r.zeilen[0].laenge==="2000"&&r.zeilen[1].breite==="250.5"&&r.zeilen[2].anzahl==="1"&&r.uebersprungen===1,"Mit Kopfzeile: Spalten erkannt, ungültige Zeile übersprungen, leere Anzahl = 1",r);
  r=await ev(()=>({a:zrZeilenAusTabelle([[2000,300,3],[1500,250,1]]).zeilen.map(z=>[z.laenge,z.breite,z.anzahl].join("x")).join(),b:zrZeilenAusTabelle([["Teil A",2000,300,3]]).zeilen[0],c:zrZeilenAusTabelle([[2000,300],[1000,200]]).zeilen.map(z=>z.anzahl).join(),d:zrZeilenAusTabelle([["Breite","Länge","Stk."],[300,2000,2]]).zeilen[0],e:zrZeilenAusTabelle([]).grund,f:zrZeilenAusTabelle([["a","b"],["c","d"]]).grund}));
  p(r.a==="2000x300x3,1500x250x1"&&r.b.bez==="Teil A"&&r.b.breite==="300"&&r.c==="1,1"&&r.d.laenge==="2000"&&r.d.breite==="300"&&r.d.anzahl==="2"&&r.e==="leer"&&r.f==="keine","Ohne Kopfzeile (Länge, Breite, Anzahl / mit Bezeichnung davor / nur zwei Spalten); Spaltenreihenfolge über die Kopfzeile; leer/unbrauchbar",r);
+ console.log("\nA2 · Positionsnummern");
+ r=await ev(()=>({
+  a:zrZeilenAusTabelle([["Pos.","Bezeichnung","Länge","Breite","Anzahl"],[12,"Deckel",2000,300,3],["7a","Winkel",1500,250,1]]).zeilen.map(z=>[z.pos,z.bez,z.laenge,z.breite,z.anzahl].join("|")).join(" ; "),
+  b:zrZeilenAusTabelle([["Position","Länge (mm)","Breite (mm)","Stk."],[10,2000,300,2]]).zeilen[0].pos,
+  c:zrZeilenAusTabelle([["Positionsnummer","Bezeichnung","Länge","Breite","Anzahl"],[5,"A",100,100,1]]).zeilen[0].pos,
+  d:zrZeilenAusTabelle([["Nr.","Länge","Breite","Anzahl"],[3,2000,300,2]]).zeilen[0].pos,
+  e:zrZeilenAusTabelle([[11,2000,300,2],[12,1500,250,1]]).zeilen.map(z=>[z.pos,z.laenge,z.breite,z.anzahl].join("x")).join(),
+  f:zrZeilenAusTabelle([[2000,300,2],[1500,250,1]]).zeilen.map(z=>z.pos).join("|"),
+  g:zrZeilenAusTabelle([["Pos.","Länge","Breite","Anzahl"],["12.0",2000,300,2]]).zeilen[0].pos}));
+ p(r.a==="12|Deckel|2000|300|3 ; 7a|Winkel|1500|250|1"&&r.b==="10"&&r.c==="5"&&r.d==="3"&&r.e==="11x2000x300x2,12x1500x250x1"&&r.f==="|"&&r.g==="12","Import: Spalte Pos./Position/Positionsnummer/Nr. wird als Positionsnummer gelesen (auch «7a»); ohne Kopfzeile bei vier Zahlen: Pos, Länge, Breite, Anzahl; ohne Position bleibt sie leer",r);
+ r=await ev(()=>{const a=zrLeer();a.zeilen=[{pos:"12",bez:"A",laenge:"2000",breite:"300",anzahl:"3"},{pos:"",bez:"B",laenge:"1000",breite:"200",anzahl:"1"},{pos:"7a",bez:"C",laenge:"500",breite:"100",anzahl:"1"}];
+  const x=zrBleche(a);const b=zrLeer();b.zeilen=[{pos:"",bez:"",laenge:"2000",breite:"300",anzahl:"2"}];const y=zrBleche(b);
+  return {l:x.bleche.map(q=>q.label).join(","),hat:x.hatPos,l2:y.bleche.map(q=>q.label).join(","),hat2:y.hatPos}});
+ p(r.l==="12,12,12,(4),7a"&&r.hat&&r.l2==="1,2"&&!r.hat2,"Alle Stücke einer Zeile tragen dieselbe Positionsnummer; Zeilen ohne Position bekommen die laufende Nummer in Klammern; ohne Positionen bleibt es bei 1, 2, 3",r);
+ r=await ev(()=>{zrA=zrLeer();zrA.form="tafel";zrA.tafelBreite="1000";zrA.tafelLaenge="2000";zrA.schritte=true;zrA.zeilen=[{pos:"12",bez:"Deckel",laenge:"520",breite:"330",anzahl:"1"},{pos:"7a",bez:"Winkel",laenge:"1200",breite:"250",anzahl:"2"}];
+  const k=zrPackung(zrA);const bild=zrBildHtml(k,{schritte:true}),liste=zrListeHtml(k),sch=zrSchritteHtml(k);
+  const texte=[...bild.matchAll(/font-weight="700" text-anchor="middle" fill="#17202a">([^<]+)</g)].map(m=>m[1]);
+  return {texte:texte.join(","),liste:/Pos\./.test(liste)&&/<b>12<\/b>/.test(liste)&&/<b>7a<\/b>/.test(liste),sch:/Stück Nr\. (12|7a)/.test(sch),kopf:/<th>Pos\.<\/th>/.test(liste)}});
+ p(/12/.test(r.texte)&&/7a/.test(r.texte)&&r.liste&&r.kopf&&r.sch,"Im Plan stehen die Positionsnummern (Bild, Liste mit Spaltenkopf «Pos.», Schnittfolge)",r);
+ r=await ev(()=>{zrA=zrLeer();zrOeffnen();const m=document.getElementById("zrModal");const set=(sel,v)=>{const e=m.querySelector(sel);e.value=v;e.dispatchEvent(new Event("input",{bubbles:true}))};
+  set('[data-zr-zeile="0"][data-zr-feld="pos"]',"15");set('[data-zr-zeile="0"][data-zr-feld="laenge"]',"2000");set('[data-zr-zeile="0"][data-zr-feld="breite"]',"300");set('[data-zr-zeile="0"][data-zr-feld="anzahl"]',"3");
+  const h=m.querySelector('[data-zr-nr="0"]').textContent;return {pos:zrA.zeilen[0].pos,h,gespeichert:JSON.parse(localStorage.getItem("sd_zuschnittrechner")).zeilen[0].pos}});
+ p(r.pos==="15"&&r.h==="Pos. 15 · 3 Stück"&&r.gespeichert==="15","Eingabe der Positionsnummer in der Maske; Hinweis «Pos. 15 · 3 Stück»; wird gemerkt",r);
+ r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=[{pos:"P10",laenge:"1200",breite:"260",anzahl:"1"},{pos:"P20",laenge:"520",breite:"330",anzahl:"1"},{pos:"P30",laenge:"500",breite:"500",anzahl:"1"},{pos:"P40",laenge:"360",breite:"750",anzahl:"1"}];
+  zrA=a;const k=zrPackung(a);const sch=zrSchritteHtml(k);const bild=zrBildHtml(k,{schritte:true});
+  return {layout:k.layout,n:k.sheets.length,pos:["P10","P20","P30","P40"].every(x=>sch.indexOf("Nr. "+x)>=0&&bild.indexOf(">"+x+"<")>=0),keinLfd:!/Stück Nr\. [1-4] /.test(sch)}});
+ p(r.n===1&&r.layout==="frei"&&r.pos&&r.keinLfd,"Auch die freie Aufteilung zeigt die Positionsnummern (Bild und Schnittfolge), nicht die laufende Nummer",r);
+ r=await ev(async()=>{zrA=zrLeer();zrA.zeilen=[{pos:"12",bez:"A",laenge:"2000",breite:"310",anzahl:"2"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /<th[^>]*>Pos\.<\/th>/.test(raus)&&/<td[^>]*>12<\/td>/.test(raus)});
+ p(r,"Der Ausdruck zeigt die Positionsnummern (Spalte «Pos.»)",r);
+ await ev(()=>{localStorage.removeItem("sd_zuschnittrechner");zrA=zrLeer()});
  console.log("\nB · Stücke");
  r=await ev(()=>{const a=zrLeer();a.zeilen=[{bez:"A",laenge:"2000",breite:"300",anzahl:"3"},{bez:"",laenge:"",breite:"",anzahl:"1"},{bez:"B",laenge:"300",breite:"1500",anzahl:"2"}];
   const x=zrBleche(a);a.drehen=true;const y=zrBleche(a);return {n:x.bleche.length,nr:x.bleche.map(q=>q.nr).join(),ber:JSON.stringify(x.bereich),b3:x.bleche[3].laenge+"x"+x.bleche[3].breite,d3:y.bleche[3].laenge+"x"+y.bleche[3].breite}});
@@ -45,7 +75,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{const a=zrLeer();a.form="tafel";a.tafelBreite="1000";a.tafelLaenge="2000";a.zeilen=[{bez:"",laenge:"",breite:"",anzahl:"1"}];const k=zrPackung(a);return {ok:k.ok,s:k.sheets.length,h:/Noch nichts zuzuschneiden/.test(zrPlanHtml())}});
  p(!r.ok&&r.s===0&&r.h,"Ohne Masse: Hinweis statt Plan",r);
  console.log("\nD · Maske");
- r=await ev(()=>{localStorage.removeItem("sd_zuschnittrechner");zrOeffnen();const m=document.getElementById("zrModal");
+ r=await ev(()=>{localStorage.removeItem("sd_zuschnittrechner");zrA=zrLeer();zrOeffnen();const m=document.getElementById("zrModal");
   return {offen:!m.hidden,rolle:!!m.querySelector('[data-zr="rolle"]'),zeile:!!m.querySelector('[data-zr-feld="laenge"]'),knoepfe:["zrPlus","zrImport","zrVorlage","zrLoeschen"].every(i=>!!document.getElementById(i)),plan:document.getElementById("zrPlan").textContent.length>0}});
  p(r.offen&&r.rolle&&r.zeile&&r.knoepfe&&r.plan,"Modal öffnet mit Rollenbreite, Zeilen und Knöpfen",r);
  r=await ev(async()=>{const m=document.getElementById("zrModal");

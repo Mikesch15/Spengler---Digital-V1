@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.422`
+- Aktueller Entwicklungsstand: `v3.423`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.423: Zuschnittrechner: Positionsnummern aus der Excel-Liste (Spalte Pos./Position/Nr.) werden gelesen und stehen im Plan (Bild, Liste, Schnittfolge, Ausdruck) an den Stücken.
 - v3.422: Zuschnittrechner: freie Guillotine-Packung (Teile beliebig tief zerlegt, `zrFreiLauf`) zusätzlich zu Reihen/Spalten; zweistufige Suche (billig bewerten, beste voll auswerten) – schnell auch bei 300 Stücken.
 - v3.421: Zuschnittrechner: schnittfähige Anordnung (Guillotine: Reihen oder Spalten, nur durchgehende Schnitte), vollständiges Durchprobieren kleiner Aufgaben, Untergrenze nach Fläche, Option «Schnittschritte» (nummerierte Schnittfolge im Bild + Liste), Eingabe «Schere: grösste Schnittlänge».
 - v3.420: Zuschnittrechner: eigene Reihenpackung (`zrPackung`, js/105) – verschiedene Streifenbreiten auf derselben Tafel/Rolle, Schnittfuge, Drehen, Bild im Massstab 1:1 und Lagenliste; ersetzt die Gruppen-Packung der Massaufnahmen im Rechner.
