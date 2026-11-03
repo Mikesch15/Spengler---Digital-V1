@@ -47,6 +47,14 @@ function cadSendenZeile(m,projectId,laenge,stueck){
   laenge_mm:laenge,stueck:stueck,staerke_mm:m.staerke_mm!=null?Number(m.staerke_mm):null,daten:{schenkel}};
 }
 
+// Fehlt die Tabelle noch (Migration v3425 nicht eingespielt), kommt vom Server ein technischer Satz - hier ein verständlicher.
+function cadSendenFehlertext(error){
+ const t=String((error&&(error.message||error.details))||"");
+ if((error&&error.code==="PGRST205")||/schema cache|does not exist|42P01/i.test(t))
+  return "Diese Funktion ist in der Datenbank noch nicht eingerichtet (Migration v3.425). Bitte beim Administrator melden.";
+ return t||"unbekannter Fehler";
+}
+
 function cadSendenKnopf(m){
  return cadSendenKannProfil(m)
   ?`<button class="gray" data-cad-senden="${esc(m.id)}" title="Profil mit Länge und Stückzahl an das Fusion-Add-in senden">🖥 An CAD senden</button>`:"";
@@ -66,7 +74,7 @@ async function cadSendenAusfuehren(measId){
  const stueck=cadSendenZahl(sText,1,999,true);
  if(stueck===null){await appAlert("Die Stückzahl muss eine ganze Zahl zwischen 1 und 999 sein.");return false}
  const {error}=await sb.from("cad_profil_auftraege").insert(cadSendenZeile(m,projectId,laenge,stueck));
- if(error){await appAlert("Konnte nicht an das CAD gesendet werden: "+error.message);return false}
+ if(error){await appAlert("Konnte nicht an das CAD gesendet werden: "+cadSendenFehlertext(error));return false}
  await appAlert("An das CAD gesendet: "+laenge+" mm, "+stueck+" Stück. Im Add-in: «Blech aus Massaufnahme» zeigt den Auftrag.");
  await cadSendenNachListe(projectId);
  return true;
@@ -109,7 +117,7 @@ async function cadSendenWeg(id){
  const frage=a.status==="offen"?"Diesen Auftrag zurückziehen? Das CAD zeigt ihn dann nicht mehr an.":"Diesen erledigten Auftrag aus der Liste entfernen?";
  if(!(await appConfirm(frage)))return false;
  const {error}=await sb.from("cad_profil_auftraege").update({status:"storniert"}).eq("id",a.id);
- if(error){await appAlert("Konnte nicht geändert werden: "+error.message);return false}
+ if(error){await appAlert("Konnte nicht geändert werden: "+cadSendenFehlertext(error));return false}
  await cadSendenNachListe(a.project_id);
  return true;
 }

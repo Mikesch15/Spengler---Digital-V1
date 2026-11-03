@@ -50,6 +50,10 @@ const M={id:41,project_id:7,type:"freies_profil",title:"Ortgang Nord",staerke_mm
  r=await ev(async m=>{const a=[];window.__antw=["1000","1"];window.appPrompt=async()=>window.__antw.shift();window.appAlert=async t=>{a.push(t)};window.__insertFehler={message:"new row violates row-level security policy"};
   const ret=await cadSendenAusfuehren(41);window.__insertFehler=null;return {ret,alert:a}},M);
  p(r.ret===false&&/row-level security/.test(r.alert[0]),"Datenbankfehler (z. B. fehlendes Recht) wird gemeldet",r);
+ r=await ev(async m=>{const a=[];window.__antw=["1000","1"];window.appPrompt=async()=>window.__antw.shift();window.appAlert=async t=>{a.push(t)};
+  window.__insertFehler={code:"PGRST205",message:"Could not find the table 'public.cad_profil_auftraege' in the schema cache"};
+  const ret=await cadSendenAusfuehren(41);window.__insertFehler=null;return {ret,alert:a}},M);
+ p(r.ret===false&&/noch nicht eingerichtet/.test(r.alert[0])&&!/schema cache/.test(r.alert[0]),"fehlende Tabelle: verständliche Meldung statt Servertext",r);
  p(await ev(()=>cadSendenAusfuehren(999)).then(x=>x===false),"unbekannte Massaufnahme: nichts passiert");
  console.log("\nC · Box im Cockpit");
  const A={id:5,project_id:7,titel:"Ortgang Nord",laenge_mm:3200,stueck:4,staerke_mm:0.7,status:"offen"};
