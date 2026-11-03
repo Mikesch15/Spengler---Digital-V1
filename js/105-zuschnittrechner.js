@@ -37,10 +37,8 @@ function zrZahl(v){
 const zrMm=v=>Math.round(zrZ(v)).toLocaleString("de-CH");
 
 function zrSpeichern(){try{localStorage.setItem(ZR_SPEICHER,JSON.stringify(zrA))}catch(e){}}
-function zrLaden(){
- try{
-  const w=JSON.parse(localStorage.getItem(ZR_SPEICHER)||"null");
-  if(!w||typeof w!=="object")return;
+function zrAusEingaben(w){
+  w=(w&&typeof w==="object")?w:{};
   const a=zrLeer();
   a.form=w.form==="tafel"?"tafel":"rolle";
   ["rolle","tafelBreite","tafelLaenge","material","schere"].forEach(k=>{if(w[k]!==undefined)a[k]=String(w[k])});
@@ -48,7 +46,13 @@ function zrLaden(){
   if(Array.isArray(w.zeilen)&&w.zeilen.length)
    a.zeilen=w.zeilen.slice(0,ZR_MAX_ZEILEN).map(z=>({pos:String(z.pos||""),bez:String(z.bez||""),laenge:String(z.laenge===undefined?"":z.laenge),
     breite:String(z.breite===undefined?"":z.breite),anzahl:String(z.anzahl===undefined?"1":z.anzahl)}));
-  zrA=a;
+  return a;
+}
+function zrLaden(){
+ try{
+  const w=JSON.parse(localStorage.getItem(ZR_SPEICHER)||"null");
+  if(!w||typeof w!=="object")return;
+  zrA=zrAusEingaben(w);
  }catch(e){}
 }
 
@@ -602,6 +606,7 @@ function zrZeichnen(){
  a.innerHTML=zrFormatHtml();
  b.innerHTML=zrEingabeHtml();
  zrPlanNeu();
+ zrAblageNeu();
 }
 function zrOeffnen(){
  const m=$("zrModal");
@@ -609,21 +614,24 @@ function zrOeffnen(){
  zrLaden();
  zrZeichnen();
  m.hidden=false;
+ zrPlaeneLaden();   // abgelegte Plaene (ohne Warten)
 }
 
 // ---- Ausdruck ------------------------------------------------------------------
-async function zrDrucken(){
- const {bleche,bereich}=zrBleche();
+// quelle: {r,a,bez,projekt} druckt einen GESPEICHERTEN Plan; ohne quelle der aktuelle
+async function zrDrucken(quelle){
+ const a=quelle?quelle.a:zrA;
+ const {bleche,bereich}=zrBleche(a);
  if(!bleche.length)return;
  const win=window.open("","_blank");
  if(!win){appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
- const r=zrPackung();
+ const r=quelle?quelle.r:zrPackung(a);
  let logoSrc="";
  try{logoSrc=(typeof storageSignedUrl==="function")?await storageSignedUrl(logoUrl):logoUrl}catch(e){logoSrc=""}
  const kopf=(typeof pdfKopfHtml==="function")
-  ?pdfKopfHtml({logoSrc,dokumenttyp:"Zuschnittplan",unterart:"Zuschnittrechner",material:zrA.material||"",datum:new Date().toISOString().slice(0,10)})
+  ?pdfKopfHtml({logoSrc,dokumenttyp:"Zuschnittplan",unterart:(quelle&&quelle.bez)?quelle.bez:"Zuschnittrechner",bezeichnung:(quelle&&quelle.bez)||"",projekt:(quelle&&quelle.projekt)?((typeof allProjects!=="undefined"&&allProjects.find(x=>String(x.id)===String(quelle.projekt)))||{}):(zrDb.projekt?((typeof allProjects!=="undefined"&&allProjects.find(x=>String(x.id)===String(zrDb.projekt)))||{}):{}),material:a.material||"",datum:new Date().toISOString().slice(0,10)})
   :`<h1>Zuschnittplan</h1>`;
- const tabelle=zrA.zeilen.map((z,i)=>bereich[i]?`<tr><td>${esc(String(z.pos||"").trim()||(bereich[i].von===bereich[i].bis?bereich[i].von:bereich[i].von+"–"+bereich[i].bis))}</td><td>${esc(z.bez)}</td><td>${zrMm(z.laenge)}</td><td>${zrMm(z.breite)}</td><td>${esc(z.anzahl)}</td></tr>`:"").join("");
+ const tabelle=a.zeilen.map((z,i)=>bereich[i]?`<tr><td>${esc(String(z.pos||"").trim()||(bereich[i].von===bereich[i].bis?bereich[i].von:bereich[i].von+"–"+bereich[i].bis))}</td><td>${esc(z.bez)}</td><td>${zrMm(z.laenge)}</td><td>${zrMm(z.breite)}</td><td>${esc(z.anzahl)}</td></tr>`:"").join("");
  const fmt=r.tafel?"Tafel "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm":"Rolle "+zrMm(r.SB)+" mm";
  const bedarf=r.ok&&r.sheets.length?(r.tafel?r.sheets.length+" Tafel"+(r.sheets.length===1?"":"n"):zrMm(r.sheets.reduce((a,s)=>a+s.len,0))+" mm Rolle"):"–";
  const html=`${kopf}
@@ -631,13 +639,13 @@ async function zrDrucken(){
 <table class="eb-info-table">
 <tr><td><label>Blechformat</label><div class="val">${esc(fmt)}</div></td><td><label>Bedarf</label><div class="val">${esc(bedarf)}</div></td></tr>
 <tr><td><label>Stücke / Nettofläche</label><div class="val">${r.stuecke} / ${zrQm(r.netto)} m²</div></td><td><label>Blechfläche / Verschnitt</label><div class="val">${zrQm(r.flaeche)} m² / ${zrQm(r.verschnitt)} m² (${Math.round(r.anteil)} %)</div></td></tr>
-${zrA.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt</div></td></tr>`:""}
+${a.drehen?`<tr><td colspan="2"><label>Drehen</label><div class="val">erlaubt</div></td></tr>`:""}
 </table>
 <div class="eb-section-head">Zuschnittmasse</div>
 <table class="eb-cutlist"><thead><tr><th>${r.hatPos?"Pos.":"Nr."}</th><th>Bezeichnung</th><th>Länge (mm)</th><th>Breite (mm)</th><th>Anzahl</th></tr></thead><tbody>${tabelle}</tbody></table>
 <div class="eb-section-head">Zuschnittplan</div>
-${zrBildHtml(r,{schritte:zrA.schritte})}
-${zrA.schritte?zrSchritteHtml(r):""}
+${zrBildHtml(r,{schritte:a.schritte})}
+${a.schritte?zrSchritteHtml(r):""}
 ${zrListeHtml(r)}
 ${r.nicht.length?`<div class="note">${esc(r.nicht.length+" Stück(e) passen nicht auf das Format: "+r.nicht.map(x=>(r.hatPos?"Pos. ":"Nr. ")+x.label).join(", "))}</div>`:""}`;
  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Zuschnittplan</title>
@@ -658,10 +666,171 @@ ${(typeof pdfZahlenRechts==="function")?pdfZahlenRechts(html):html}
  setTimeout(drucken,800);
 }
 
+// ---- Ablage im Projekt (Tabelle zuschnittplaene, v3.424) ----------------------------
+// Gespeichert werden die EINGABEN (Format, Zuschnittmasse mit Positionen, Optionen) und der
+// gerechnete PLAN samt Schnittfolge. Beim Laden stehen die Eingaben wieder in der Maske; ein
+// Ausdruck aus der Liste zeigt den gespeicherten Plan - er bleibt gleich, auch wenn sich die
+// Rechnung der App spaeter aendert. Weicht ein frisch gerechneter Plan ab, wird das gesagt.
+// Zugriff und Firmengrenze erzwingt die Datenbank (RLS), nicht diese Datei.
+let zrDb={id:null,bez:"",projekt:""};
+let zrPlaene=[];
+function zrEingaben(a){
+ a=a||zrA;
+ return {form:a.form==="tafel"?"tafel":"rolle",rolle:String(a.rolle||""),tafelBreite:String(a.tafelBreite||""),tafelLaenge:String(a.tafelLaenge||""),
+  drehen:!!a.drehen,schritte:!!a.schritte,schere:String(a.schere||""),material:String(a.material||""),
+  zeilen:(a.zeilen||[]).map(z=>({pos:String(z.pos||""),bez:String(z.bez||""),laenge:String(z.laenge===undefined?"":z.laenge),breite:String(z.breite===undefined?"":z.breite),anzahl:String(z.anzahl===undefined?"1":z.anzahl)}))};
+}
+function zrKurztext(r){
+ if(!r||!r.ok||!r.sheets||!r.sheets.length)return "–";
+ return r.tafel?r.sheets.length+" Tafel"+(r.sheets.length===1?"":"n")+" "+zrMm(r.SL)+" × "+zrMm(r.SB)+" mm"
+  :zrMm(r.sheets.reduce((x,s)=>x+s.len,0))+" mm Rolle "+zrMm(r.SB)+" mm";
+}
+function zrErgebnisFuer(r){
+ return {version:"3.424",
+  kennzahlen:{text:zrKurztext(r),stuecke:r.stuecke,netto:Number(zrZ(r.netto).toFixed(3)),form:r.tafel?"tafel":"rolle",
+   blaetter:r.sheets.length,flaeche:Number(zrZ(r.flaeche).toFixed(3)),verschnitt:Number(zrZ(r.verschnitt).toFixed(3)),
+   anteil:Math.round(r.anteil),maxSchnitt:Math.round(r.maxSchnitt||0),schere:r.schere||0,hatPos:!!r.hatPos},
+  plan:JSON.parse(JSON.stringify(r))};
+}
+function zrProjektName(id){
+ if(id===null||id===undefined||id==="")return "";
+ const p=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects.find(x=>String(x.id)===String(id)):null;
+ return p?(p.name||p.title||("Projekt "+p.id)):"Projekt "+id;
+}
+const zrDatum=s=>{try{return new Date(s).toLocaleDateString("de-CH")}catch(e){return ""}};
+function zrAblageHtml(){
+ const liste=(typeof allProjects!=="undefined"&&Array.isArray(allProjects))?allProjects:[];
+ const opt=`<option value="">– ohne Projekt –</option>`+liste.map(p=>`<option value="${esc(p.id)}"${String(p.id)===String(zrDb.projekt)?" selected":""}>${esc(p.name||p.title||("Projekt "+p.id))}</option>`).join("");
+ const plaene=zrPlaene.length?zrPlaene.map(x=>{
+  const k=x.kennzahlen||{};
+  const proj=zrProjektName(x.project_id);
+  return `<div class="abw-zeile" style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;justify-content:space-between;padding:6px 0;border-top:1px solid var(--card-line)">
+<div style="flex:1 1 180px"><b>${esc(x.bezeichnung||"Zuschnittplan")}</b>${String(x.id)===String(zrDb.id)?' <span class="small">(geladen)</span>':""}
+<div class="small">${esc([k.text,k.stuecke?k.stuecke+" Stück":"",proj,zrDatum(x.created_at)].filter(Boolean).join(" · "))}</div></div>
+<div style="display:flex;gap:6px"><button type="button" class="kon-klein kon-k-blau" data-zr-plan-laden="${esc(x.id)}">laden</button>
+<button type="button" class="kon-klein kon-k-grau" data-zr-plan-druck="${esc(x.id)}">drucken</button>
+<button type="button" class="kon-klein kon-k-grau" data-zr-plan-weg="${esc(x.id)}">löschen</button></div></div>`;
+ }).join(""):`<p class="small">Noch nichts abgelegt.</p>`;
+ return `<div class="grid">
+<div class="wide"><label>Bezeichnung</label><input id="zrBez" type="text" placeholder="z. B. Dachrand Süd" value="${esc(zrDb.bez)}"></div>
+<div class="wide"><label>Projekt</label><select id="zrProjekt">${opt}</select></div>
+</div>
+<div class="bar"><button type="button" class="green" id="zrAblegen">💾 ${zrDb.id?"Änderungen speichern":"Im Projekt speichern"}</button>${zrDb.id?'<button type="button" class="gray" id="zrAlsKopie">Als neuen Plan speichern</button>':""}</div>
+<div class="small">${zrDb.id?"Dieser Plan ist abgelegt – «Änderungen speichern» überschreibt ihn.":"Gespeichert werden die Eingaben und der gerechnete Plan mit Schnittfolge."}</div>
+<h3 style="margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)">Abgelegte Zuschnittpläne</h3>${plaene}`;
+}
+function zrAblageNeu(){const el=$("zrAblage");if(el)el.innerHTML=zrAblageHtml()}
+async function zrPlaeneLaden(){
+ if(typeof sb==="undefined")return;
+ try{
+  const {data,error}=await sb.from("zuschnittplaene").select("id,bezeichnung,project_id,created_at,kennzahlen:ergebnis->kennzahlen").order("created_at",{ascending:false}).limit(100);
+  // nur echte zuschnittplaene-Zeilen (sie tragen die Spalte kennzahlen), alles andere wird ignoriert
+  zrPlaene=(!error&&Array.isArray(data))?data.filter(x=>x&&typeof x==="object"&&"kennzahlen" in x):[];
+ }catch(e){zrPlaene=[]}
+ zrAblageNeu();
+}
+async function zrAblegen(alsKopie){
+ const r=zrPackung();
+ if(!r.ok||!r.sheets.length){appAlert("Es gibt noch keinen Plan zum Ablegen – bitte zuerst Format und Zuschnittmasse eingeben.");return}
+ if(typeof sb==="undefined"){appAlert("Keine Verbindung – nichts gespeichert.");return}
+ const bez=(zrDb.bez||"").trim()||("Zuschnittplan "+zrDatum(new Date()));
+ const satz={bezeichnung:bez,project_id:zrDb.projekt?Number(zrDb.projekt):null,eingaben:zrEingaben(),ergebnis:zrErgebnisFuer(r)};
+ const knopf=$("zrAblegen");if(knopf)knopf.disabled=true;
+ let res;
+ try{
+  if(zrDb.id&&!alsKopie){
+   satz.updated_at=new Date().toISOString();
+   res=await sb.from("zuschnittplaene").update(satz).eq("id",zrDb.id).select("id");
+  }else{
+   satz.erstellt_von=(typeof currentProfile==="object"&&currentProfile)?currentProfile.id:null;
+   res=await sb.from("zuschnittplaene").insert(satz).select("id");
+  }
+ }catch(e){res={error:{message:String(e&&e.message||e)}}}
+ if(knopf)knopf.disabled=false;
+ if(res.error){appAlert("Konnte nicht gespeichert werden: "+res.error.message);return}
+ // Ein von RLS geblockter Schreibvorgang meldet keinen Fehler, er betrifft still 0 Zeilen.
+ if(!res.data||!res.data.length){appAlert("Nicht gespeichert – fehlt die nötige Berechtigung?");return}
+ zrDb.id=res.data[0].id;zrDb.bez=bez;
+ await zrPlaeneLaden();
+ appAlert("Zuschnittplan abgelegt"+(zrDb.projekt?" im Projekt «"+zrProjektName(zrDb.projekt)+"»":"")+".");
+}
+async function zrZeileHolen(id){
+ if(typeof sb==="undefined")return null;
+ const {data,error}=await sb.from("zuschnittplaene").select("*").eq("id",id).maybeSingle();
+ return error?null:data;
+}
+async function zrPlanLaden(id){
+ const z=await zrZeileHolen(id);
+ if(!z){appAlert("Der Plan konnte nicht geladen werden.");return false}
+ zrA=zrAusEingaben(z.eingaben||{});
+ zrDb={id:z.id,bez:z.bezeichnung||"",projekt:z.project_id?String(z.project_id):""};
+ zrSpeichern();zrZeichnen();
+ const m=$("zrModal");if(m)m.hidden=false;
+ // gespeichert vs. heute gerechnet: Abweichung ausdruecklich sagen
+ const alt=z.ergebnis&&z.ergebnis.plan,neu=zrPackung();
+ if(alt&&neu.ok&&(alt.sheets.length!==neu.sheets.length||Math.abs(zrZ(alt.flaeche)-zrZ(neu.flaeche))>0.001))
+  appAlert("Hinweis: Mit der heutigen Rechnung ergibt sich ein anderer Plan als beim Speichern (gespeichert: "+zrKurztext(alt)+", jetzt: "+zrKurztext(neu)+"). Der Ausdruck aus der Liste zeigt weiterhin den gespeicherten Plan.");
+ return true;
+}
+async function zrPlanDrucken(id){
+ const z=await zrZeileHolen(id);
+ if(!z||!z.ergebnis||!z.ergebnis.plan){appAlert("Der Plan konnte nicht geladen werden.");return}
+ await zrDrucken({r:z.ergebnis.plan,a:zrAusEingaben(z.eingaben||{}),bez:z.bezeichnung,projekt:z.project_id});
+}
+async function zrPlanLoeschen(id){
+ if(typeof sb==="undefined")return;
+ if(!await appConfirm("Diesen abgelegten Zuschnittplan wirklich löschen?"))return;
+ const {data,error}=await sb.from("zuschnittplaene").delete().eq("id",id).select("id");
+ if(error){appAlert("Konnte nicht gelöscht werden: "+error.message);return}
+ if(!data||!data.length){appAlert("Nichts gelöscht – fehlt die nötige Berechtigung?");return}
+ if(String(zrDb.id)===String(id))zrDb.id=null;
+ await zrPlaeneLaden();
+ const ph=$("zrPlaeneBox");if(ph&&typeof cockpitProjectId!=="undefined")zrPlaeneNachListe(cockpitProjectId);
+}
+// ---- Im Projekt-Cockpit, unter den Massaufnahmen (Aufruf am Ende von loadProjectMeasurements, js/09) ----
+function zrPlaeneBoxHtml(liste){
+ const zeilen=liste.map(x=>{
+  const k=x.kennzahlen||{};
+  return `<div class="report-row"><div class="report-row-info"><b>${esc(x.bezeichnung||"Zuschnittplan")}</b>`
+   +`<span>${esc([k.text,k.stuecke?k.stuecke+" Stück":"",zrDatum(x.created_at)].filter(Boolean).join(" · "))}</span></div>`
+   +`<div class="report-row-actions"><button class="blue" data-zrp-oeffnen="${esc(x.id)}">Öffnen</button>`
+   +`<button class="gray" data-zrp-druck="${esc(x.id)}">🖨️</button>`
+   +`<button class="red" data-zrp-weg="${esc(x.id)}" title="Löschen">×</button></div></div>`;
+ }).join("");
+ return `<div id="zrPlaeneBox" style="margin-top:14px"><h3 style="margin:8px 0">Zuschnittpläne <span class="small">(${liste.length})</span></h3>`
+  +(zeilen||`<div class="empty">Noch kein Zuschnittplan in diesem Projekt.</div>`)
+  +`<div class="bar"><button class="gray" data-zrp-neu="1">✂️ Neuer Zuschnittplan für dieses Projekt</button></div></div>`;
+}
+async function zrPlaeneNachListe(projectId){
+ try{
+  const box=$("cockpitMeasBody");
+  if(!box||!projectId||typeof sb==="undefined")return;
+  let {data,error}=await sb.from("zuschnittplaene").select("id,bezeichnung,project_id,created_at,kennzahlen:ergebnis->kennzahlen").eq("project_id",projectId).order("created_at",{ascending:false});
+  if(error||!Array.isArray(data))return;
+  data=data.filter(x=>x&&typeof x==="object"&&"kennzahlen" in x);
+  const alt=$("zrPlaeneBox");if(alt)alt.remove();
+  if(typeof cockpitProjectId!=="undefined"&&cockpitProjectId!==projectId)return;   // inzwischen ein anderes Projekt
+  box.insertAdjacentHTML("beforeend",zrPlaeneBoxHtml(data));
+ }catch(e){}
+}
+document.addEventListener("click",async e=>{
+ const b=e.target&&e.target.closest?e.target.closest("[data-zrp-oeffnen],[data-zrp-druck],[data-zrp-weg],[data-zrp-neu]"):null;
+ if(!b)return;
+ const d=b.dataset;
+ if(d.zrpOeffnen!==undefined){await zrPlanLaden(d.zrpOeffnen);return}
+ if(d.zrpDruck!==undefined){await zrPlanDrucken(d.zrpDruck);return}
+ if(d.zrpWeg!==undefined){await zrPlanLoeschen(d.zrpWeg);return}
+ if(d.zrpNeu!==undefined){
+  zrDb={id:null,bez:"",projekt:(typeof cockpitProjectId!=="undefined"&&cockpitProjectId)?String(cockpitProjectId):""};
+  zrOeffnen();
+ }
+});
+
 // ---- Bedienung -----------------------------------------------------------------
 document.addEventListener("input",e=>{
  const t=e.target;
  if(!t||!t.closest||!t.closest("#zrModal"))return;
+ if(t.id==="zrBez"){zrDb.bez=t.value;return}
  if(t.dataset.zrFeld!==undefined){
   const z=zrA.zeilen[Number(t.dataset.zrZeile)];
   if(z){z[t.dataset.zrFeld]=t.value;zrSpeichern();zrPlanSpaeter();zrNummernNeu()}
@@ -681,6 +850,7 @@ document.addEventListener("change",async e=>{
   if(f)await zrImportDatei(f);
   return;
  }
+ if(t.id==="zrProjekt"){zrDb.projekt=t.value;return}
  if(t.dataset.zr==="form"){zrA.form=t.value==="tafel"?"tafel":"rolle";zrSpeichern();zrZeichnen();return}
  if(t.dataset.zr==="drehen"){zrA.drehen=!!t.checked;zrSpeichern();zrPlanNeu();return}
  if(t.dataset.zr==="schritte"){zrA.schritte=!!t.checked;zrSpeichern();zrPlanNeu();return}
@@ -703,6 +873,11 @@ document.addEventListener("click",async e=>{
   const f=document.querySelector('#zrZeilen [data-zr-zeile="'+(zrA.zeilen.length-1)+'"][data-zr-feld="laenge"]');if(f)f.focus();
   return;
  }
+ if(k.id==="zrAblegen"){await zrAblegen(false);return}
+ if(k.id==="zrAlsKopie"){await zrAblegen(true);return}
+ if(k.dataset.zrPlanLaden!==undefined){await zrPlanLaden(k.dataset.zrPlanLaden);return}
+ if(k.dataset.zrPlanDruck!==undefined){await zrPlanDrucken(k.dataset.zrPlanDruck);return}
+ if(k.dataset.zrPlanWeg!==undefined){await zrPlanLoeschen(k.dataset.zrPlanWeg);return}
  if(k.id==="zrImport"){const d=$("zrDatei");if(d)d.click();return}
  if(k.id==="zrVorlage"){await zrVorlage();return}
  if(k.id==="zrLoeschen"){

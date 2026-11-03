@@ -206,6 +206,63 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r.klein&&r.gross===null,"Kleine Aufgaben werden vollständig durchprobiert, grosse mit vielen Reihenfolgen",r);
  r=await ev(async()=>{zrA=zrLeer();zrA.schritte=true;zrA.zeilen=[{bez:"A",laenge:"2000",breite:"310",anzahl:"2"}];let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrDrucken();window.open=echt;return /Schnittfolge/.test(raus)&&/<circle/.test(raus)});
  p(r,"Der Ausdruck enthält mit der Option auch die Schnittfolge",r);
+
+ console.log("\nI · Ablage im Projekt (v3.424)");
+ await ev(()=>{
+  window.__meld=[];window.appAlert=async t=>{window.__meld.push(String(t))};window.appConfirm=async()=>true;
+  window.__zp=[];window.__seq=0;window.__fehler=null;window.__leer=false;
+  const orig=sb.from.bind(sb);
+  sb.from=t=>{
+   if(t!=="zuschnittplaene")return orig(t);
+   const st={op:"select",cols:"",f:{},row:null,single:false};
+   const q={select(c){st.cols=c;return q},insert(r){st.op="insert";st.row=r;return q},update(r){st.op="update";st.row=r;return q},delete(){st.op="delete";return q},
+    eq(k,v){st.f[k]=v;return q},order(){return q},limit(){return q},maybeSingle(){st.single=true;return q},
+    then(res,rej){return Promise.resolve(run()).then(res,rej)}};
+   const passt=r=>Object.keys(st.f).every(k=>String(r[k])===String(st.f[k]));
+   const run=()=>{
+    if(window.__fehler)return {data:null,error:{message:window.__fehler}};
+    if(st.op==="insert"){if(window.__leer)return {data:[],error:null};const r={...st.row,id:++window.__seq,created_at:new Date().toISOString(),company_id:1};window.__zp.push(r);return {data:[{id:r.id}],error:null}}
+    if(st.op==="update"){if(window.__leer)return {data:[],error:null};const hit=window.__zp.filter(passt);hit.forEach(r=>Object.assign(r,st.row));return {data:hit.map(r=>({id:r.id})),error:null}}
+    if(st.op==="delete"){const hit=window.__zp.filter(passt);window.__zp=window.__zp.filter(r=>!passt(r));return {data:hit.map(r=>({id:r.id})),error:null}}
+    const rows=window.__zp.filter(passt);
+    if(st.single)return {data:rows[0]||null,error:null};
+    return {data:rows.map(r=>st.cols==="*"?r:{id:r.id,bezeichnung:r.bezeichnung,project_id:r.project_id,created_at:r.created_at,kennzahlen:r.ergebnis&&r.ergebnis.kennzahlen}).reverse(),error:null};
+   };
+   return q;
+  };
+  allProjects=[{id:5,name:"Haus Müller"},{id:6,name:"Garage Keller"}];
+ });
+ r=await ev(()=>{zrA=zrLeer();zrA.form="tafel";zrA.tafelBreite="1000";zrA.tafelLaenge="2000";zrA.material="Titanzink 0,7";zrA.zeilen=[{pos:"12",bez:"Deckel",laenge:"520",breite:"330",anzahl:"1"},{pos:"7a",bez:"Winkel",laenge:"1200",breite:"250",anzahl:"2"}];
+  const e=zrEingaben(),g=zrErgebnisFuer(zrPackung());
+  return {e:e.zeilen[0].pos+"|"+e.material+"|"+e.tafelLaenge,k:g.kennzahlen.text,st:g.kennzahlen.stuecke,pl:g.plan.sheets.length,js:JSON.stringify(g).length>500}});
+ p(r.e==="12|Titanzink 0,7|2000"&&/1 Tafel 2.000 × 1.000 mm/.test(r.k.replace(/[’']/g,"."))&&r.st===3&&r.pl===1&&r.js,"Eingaben (mit Positionen) und Ergebnis (Kennzahlen + ganzer Plan) sind speicherbar",r);
+ r=await ev(async()=>{zrSpeichern();zrOeffnen();zrDb={id:null,bez:"Dachrand Süd",projekt:"5"};zrAblageNeu();await zrAblegen(false);
+  const z=window.__zp[0];return {n:window.__zp.length,proj:z.project_id,bez:z.bezeichnung,pos:z.eingaben.zeilen[0].pos,blatt:z.ergebnis.plan.sheets.length,id:zrDb.id,meld:window.__meld.slice(-1)[0],liste:zrPlaene.length,ui:/Dachrand Süd/.test(document.getElementById("zrAblage").innerHTML)&&/Änderungen speichern/.test(document.getElementById("zrAblage").innerHTML)}});
+ p(r.n===1&&r.proj===5&&r.bez==="Dachrand Süd"&&r.pos==="12"&&r.blatt===1&&r.id===1&&/abgelegt im Projekt «Haus Müller»/.test(r.meld)&&r.liste===1&&r.ui,"Speichern: Zeile mit Projekt, Bezeichnung, Eingaben und Plan; Meldung nennt das Projekt; Liste und Knopf «Änderungen speichern»",r);
+ r=await ev(async()=>{zrA.zeilen[0].laenge="530";await zrAblegen(false);const a=window.__zp.length;const l=window.__zp[0].eingaben.zeilen[0].laenge;await zrAblegen(true);return {a,l,b:window.__zp.length,id:zrDb.id}});
+ p(r.a===1&&r.l==="530"&&r.b===2&&r.id===2,"Erneutes Speichern überschreibt (update), «Als neuen Plan speichern» legt eine Kopie an",r);
+ r=await ev(async()=>{zrA=zrLeer();zrDb={id:null,bez:"",projekt:""};await zrPlanLaden(1);return {laenge:zrA.zeilen[0].laenge,pos:zrA.zeilen[1].pos,form:zrA.form,db:zrDb.id,bez:zrDb.bez,proj:zrDb.projekt,sel:document.getElementById("zrProjekt").value,bezFeld:document.getElementById("zrBez").value,offen:!document.getElementById("zrModal").hidden}});
+ p(r.laenge==="530"&&r.pos==="7a"&&r.form==="tafel"&&r.db===1&&r.bez==="Dachrand Süd"&&r.proj==="5"&&r.sel==="5"&&r.bezFeld==="Dachrand Süd"&&r.offen,"Laden: Eingaben, Positionen, Format, Bezeichnung und Projekt stehen wieder in der Maske",r);
+ r=await ev(async()=>{const z=window.__zp[0];z.ergebnis.plan.sheets.push(JSON.parse(JSON.stringify(z.ergebnis.plan.sheets[0])));window.__meld.length=0;await zrPlanLaden(1);const m=window.__meld.join("|");z.ergebnis.plan.sheets.pop();return m});
+ p(/anderen? Plan|anderer Plan/.test(r)&&/gespeichert: 2 Tafeln/.test(r.replace(/[’']/g,"."))||/anderer Plan/.test(r),"Weicht der frisch gerechnete Plan vom gespeicherten ab, sagt die App das ausdrücklich",r);
+ r=await ev(async()=>{const z=window.__zp[0];z.ergebnis.plan.sheets[0].shelves[0].pieces[0].label="GESPEICHERT-X";let raus="";const echt=window.open;window.open=()=>({document:{write(h){raus+=h},close(){}},focus(){},print(){},set onload(f){}});await zrPlanDrucken(1);window.open=echt;
+  return {gesp:/GESPEICHERT-X/.test(raus),proj:/Haus Müller/.test(raus),bez:/Dachrand Süd/.test(raus),masse:/Zuschnittmasse/.test(raus)}});
+ p(r.gesp&&r.proj&&r.bez&&r.masse,"Ausdruck aus der Liste zeigt den GESPEICHERTEN Plan (nicht neu gerechnet), mit Projekt und Bezeichnung im Kopf",r);
+ r=await ev(async()=>{document.querySelector("#cockpitMeasBody")||document.body.insertAdjacentHTML("beforeend",'<div id="cockpitMeasBody"></div>');cockpitProjectId=5;await zrPlaeneNachListe(5);
+  const box=document.getElementById("zrPlaeneBox");const t=box?box.textContent:"";
+  document.querySelector("#zrPlaeneBox [data-zrp-oeffnen]").click();await new Promise(r=>setTimeout(r,300));
+  const geladen=zrDb.id;document.getElementById("zrModal").hidden=true;
+  document.querySelector("#zrPlaeneBox [data-zrp-neu]").click();await new Promise(r=>setTimeout(r,200));
+  return {box:!!box,txt:/Dachrand Süd/.test(t)&&/Zuschnittpläne/.test(t),n:document.querySelectorAll("#zrPlaeneBox .report-row").length,geladen,neu:zrDb.id===null&&zrDb.projekt==="5"&&!document.getElementById("zrModal").hidden}});
+ p(r.box&&r.txt&&r.n===2&&r.geladen&&r.neu,"Projekt-Cockpit: Box «Zuschnittpläne» mit den Plänen dieses Projekts, Öffnen lädt den Plan, «Neuer Zuschnittplan» öffnet den Rechner mit vorgewähltem Projekt",r);
+ r=await ev(async()=>{window.__leer=true;zrA=zrLeer();zrA.form="tafel";zrA.zeilen=[{pos:"",bez:"",laenge:"500",breite:"300",anzahl:"1"}];zrDb={id:null,bez:"x",projekt:""};window.__meld.length=0;await zrAblegen(false);const a=window.__meld.join("|");
+  window.__leer=false;window.__fehler="boom";window.__meld.length=0;await zrAblegen(false);const b=window.__meld.join("|");window.__fehler=null;
+  const leerPlan=(()=>{zrA=zrLeer();window.__meld.length=0;return zrAblegen(false).then(()=>window.__meld.join("|"))})();return {a,b,c:await leerPlan,n:window.__zp.length}});
+ p(/Nicht gespeichert – fehlt die nötige Berechtigung/.test(r.a)&&/Konnte nicht gespeichert werden: boom/.test(r.b)&&/noch keinen Plan/.test(r.c),"Fehlerfälle: von der Datenbank geblockt (0 Zeilen), Datenbankfehler, leere Eingabe – jeweils eine klare Meldung",r);
+ r=await ev(async()=>{const n=window.__zp.length;await zrPlanLoeschen(window.__zp[0].id);return {vor:n,nach:window.__zp.length}});
+ p(r.nach===r.vor-1,"Löschen entfernt den abgelegten Plan",r);
+ r=await ev(()=>({karte:!!document.getElementById("zrAblage"),haken:loadProjectMeasurements.toString().includes("zrPlaeneNachListe(projectId)")}));
+ p(r.karte&&r.haken,"Der Zuschnittrechner hat die Karte «4 · Im Projekt ablegen»; das Projekt-Cockpit ruft die Liste nach den Massaufnahmen auf",r);
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();console.log("\n"+ok+" ok, "+fail+" FEHLGESCHLAGEN");process.exit(fail?1:0);
 })();

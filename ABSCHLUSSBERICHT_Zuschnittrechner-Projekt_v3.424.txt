@@ -1,0 +1,1 @@
+ABSCHLUSSBERICHT v3.424 - Zuschnittrechner: Plaene im Projekt ablegen (Tabelle zuschnittplaene, RLS), Ablage-Karte, Cockpit-Box, Ausdruck des gespeicherten Plans. Tabelle in der Datenbank nachgeprueft. Nicht live mit echter Datenbank getestet; Pruefstand 51 ok mit gespielter Datenbank.

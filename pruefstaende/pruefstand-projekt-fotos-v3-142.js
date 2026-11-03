@@ -159,8 +159,9 @@ const wand=page=>page.evaluate(()=>{
  // Liste wird nachgezogen, nicht der Code. Die Aussage dieses Abschnitts
  // bleibt dieselbe: die FOTOWAND fragt nichts Eigenes ab.
  // v3.417: cad_teile (Teile aus dem CAD, js/104) liest die Massaufnahmen-Liste beim Laden - auch das ist nicht die Fotowand.
+ // v3.424: zuschnittplaene (abgelegte Zuschnittplaene, js/105) ebenso.
 const erlaubt=["measurements","ausmass","reports","project_files","angebote",
-                "offerten","leistungen","audit_log","cad_teile"];
+                "offerten","leistungen","audit_log","cad_teile","zuschnittplaene"];
  p(ruf.every(t=>erlaubt.indexOf(t)>=0),"nur die Abfragen der Abschnitte selbst",ruf);
  // Gegenprobe zur nachgezogenen Liste, damit sie nicht zum Freibrief wird:
  // jeder Abschnitt liest GENAU EINMAL. Eine Abfrage je Bild oder je Kachel

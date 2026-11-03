@@ -526,6 +526,8 @@ async function loadProjectMeasurements(projectId){
     :"Noch keine Massaufnahme zu diesem Projekt."))+'</div>');
  // v3.417: Teile aus dem CAD unter der Liste (js/104) - ohne Warten, stoert die Liste nie.
  if(typeof cadTeileNachListe==="function")cadTeileNachListe(projectId);
+ // v3.424: abgelegte Zuschnittplaene (js/105)
+ if(typeof zrPlaeneNachListe==="function")zrPlaeneNachListe(projectId);
  // Die Zahl im Kopf und im Arbeitsstand zaehlt die AKTIVEN - auch dann, wenn
  // gerade die archivierten angezeigt werden.
  return alle.length-archivierte.length;
