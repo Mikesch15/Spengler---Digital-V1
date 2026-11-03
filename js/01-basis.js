@@ -677,6 +677,8 @@ function renderMeasTypeChooser(){
 <div class="settings-section-body"><div class="start-nav">${knoepfe}</div></div>
 </div>`;
  }).join("");
+ // v3.426: von der Firma ausgeblendete Arten (js/107) - nur verstecken, nie einblenden
+ if(typeof uebAnsichtAnwenden==="function")uebAnsichtAnwenden();
 }
 // ID der eigenen app_settings-Zeile. Wird beim Laden gesetzt und beim
 // Speichern als WHERE-Bedingung gebraucht - PostgREST weist ein UPDATE

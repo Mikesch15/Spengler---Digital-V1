@@ -1,0 +1,12 @@
+Abschlussbericht v3.426 – Übersichtlicher (erster Schritt)
+
+Auftrag: App übersichtlicher machen, ohne Funktionen zu entfernen.
+Umgesetzt:
+- «Mehr»: eigene Gruppen «Werkzeuge» (Abwicklung, Zuschnittrechner) und «Hilfe» (Anleitung, Feedback).
+- Einstellungen: Suchfeld über alle Register; Register «Firma» wird nur für Administratoren durchsucht.
+- Einstellungen → Firma → «Funktionen & Ansicht»: je Massaufnahme-Art und Werkzeug «für alle / nur Administratoren / ausgeblendet», firmenweit (app_settings.massaufnahme_einstellungen, Schlüssel sd_firmaAnsicht). Nur Anzeige – Rechte bleiben bei RLS; bestehende Massaufnahmen ausgeblendeter Arten öffnen weiter.
+- Lange Erklärungen in der Massaufnahme auf 3 Zeilen gekürzt, «mehr ▾» klappt auf; Geräte-Schalter unter Anzeige.
+Dateien: js/107-uebersicht.js (neu), js/01 (Hook renderMeasTypeChooser), js/70 (Gruppen, Filter), js/98 (EFIRMA_LISTE), index.html, sw.js.
+Prüfung: pruefstand-uebersicht-v3-426 (26 ok), Gegenproben (5) greifen; 37 betroffene Prüfstände grün.
+Nicht geprüft: echtes Gerät / Live-Anmeldung.
+Offen (nächste Schritte): Cockpit als Kacheln, Massaufnahme «Weitere Angaben», einheitliche Begriffe.

@@ -24,7 +24,9 @@ const EFIRMA_LISTE=[
  {key:"sd_kaminSettings",laden:()=>{kaminSettings=kamEinstellungenLaden()}},
  {key:"sd_dfaSettings",laden:()=>{dfaSettings=dfaEinstellungenLaden()}},
  {key:"sd_rinneHalbrundSettings",laden:()=>{rinneHalbrundSettings=raNahtEinstellungenLaden()}},
- {key:"sd_ablaufrohrSettings",laden:()=>{ablaufrohrSettings=arEinstellungenLaden()}}
+ {key:"sd_ablaufrohrSettings",laden:()=>{ablaufrohrSettings=arEinstellungenLaden()}},
+ // v3.426: Funktionen & Ansicht (js/107) - welche Arten und Werkzeuge die Firma anbietet
+ {key:"sd_firmaAnsicht",laden:()=>{if(typeof uebLaden==="function"){uebAnsicht=uebLaden();uebNeuAnwenden()}}}
 ];
 let efFirma={};
 function efLokal(key){

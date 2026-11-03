@@ -1251,11 +1251,11 @@ function a2ProjektZeileHtml(p){
 // Deshalb steht hier keine einzige eigene Bedingung darueber, wer was darf -
 // ein Eintrag erscheint genau dann, wenn sein Knopf dort sichtbar ist.
 function a2SeiteMehr(){
- const eintraege=[
+ let eintraege=[
   {id:"suche",gruppe:"arbeiten",      zeichen:"🔍", text:"Suche",                 unter:"Projekte, Massaufnahmen, Rapporte"},
   {id:"einstell",gruppe:"firma",   zeichen:"⚙️", text:"Einstellungen",         unter:"Firma, Katalog, Module"},
-  {id:"anleitung",gruppe:"arbeiten",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
-  {id:"feedback",gruppe:"arbeiten",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
+  {id:"anleitung",gruppe:"hilfe",  zeichen:"📖", text:"Anleitung",             unter:"Das ganze Handbuch als PDF"},
+  {id:"feedback",gruppe:"hilfe",   zeichen:"💬", text:"Feedback geben",        unter:"Fehler melden, Wunsch äussern"},
   // v3.227: Der Fingerabdruck. Steht IMMER da, fuer jeden - er ist das
   // einzige, was jede Person auf ihrem eigenen Geraet fuer sich einstellt.
   // Ob das Geraet einen Sensor hat, entscheidet der Dialog selbst (js/81);
@@ -1264,9 +1264,9 @@ function a2SeiteMehr(){
   {id:"fingerabdruck",gruppe:"geraet", zeichen:"🔒", text:"Fingerabdruck",          unter:"Die App auf diesem Gerät mit dem Finger entsperren"},
   {id:"zaehlwerk",gruppe:"firma",  zeichen:"📊", text:"Was die App gelernt hat", unter:"Material, Masse, Auswahlen – und der Schalter dazu"},
   // v3.188: Die Abwicklung braucht kein Projekt - sie ist ein Werkzeug.
-  {id:"abwicklung",gruppe:"arbeiten", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"},
+  {id:"abwicklung",gruppe:"werkzeuge", zeichen:"📐", text:"Abwicklung",              unter:"Rundrohr mit schrägem Anschnitt, Schweifbord und Falz"},
   // v3.418: Zuschnittrechner (js/105) - ein Werkzeug ohne Projekt
-  {id:"zuschnittrechner",gruppe:"arbeiten", zeichen:"✂️", text:"Zuschnittrechner",    unter:"Blechformat und Zuschnittmasse (auch Excel) → Zuschnittplan"},
+  {id:"zuschnittrechner",gruppe:"werkzeuge", zeichen:"✂️", text:"Zuschnittrechner",    unter:"Blechformat und Zuschnittmasse (auch Excel) → Zuschnittplan"},
   // v3.375: Terminplanung (js/92)
   {id:"termine",gruppe:"arbeiten", zeichen:"📅", text:"Termine",                   unter:"Wochenübersicht, Kalender vom Handy importieren"}
  ].filter(e=>e.id!=="termine"||typeof modulAn!=="function"||modulAn("termine"));   // v3.389: Modul "termine" der Firma
@@ -1307,7 +1307,9 @@ function a2SeiteMehr(){
  // v3.227: "Dieses Gerät" als eigene Gruppe. Der Fingerabdruck ist weder
  // Arbeiten noch Firma noch Verwaltung - er gilt nur hier und nur fuer die
  // Person, die gerade angemeldet ist.
- const gruppen=[["Arbeiten","arbeiten"],["Dieses Gerät","geraet"],["Firma","firma"],["Verwaltung","verwaltung"]];
+ // v3.426: Werkzeuge und Hilfe als eigene Gruppen; was die Firma ausgeblendet hat (js/107), fehlt.
+ const gruppen=[["Arbeiten","arbeiten"],["Werkzeuge","werkzeuge"],["Hilfe","hilfe"],["Dieses Gerät","geraet"],["Firma","firma"],["Verwaltung","verwaltung"]];
+ if(typeof uebEintragSichtbar==="function")eintraege=eintraege.filter(e=>uebEintragSichtbar(e.id));
  const zeile=e=>`
   <button type="button" class="a2-zeile" data-a2-tu="${esc(e.id)}">
    <span class="a2-zeile-nr">${e.zeichen}</span>
