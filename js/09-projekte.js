@@ -509,7 +509,8 @@ async function loadProjectMeasurements(projectId){
 <div class="report-row-actions">
 <button class="blue" data-open-project-measurement="${m.id}">Öffnen</button>`
    +(medien?`<button class="gray" data-meas-medien="${m.id}">📷 Fotos/Skizzen</button>`:"")+`
-<button class="gray" data-kopiere-measurement="${m.id}" title="Als Vorlage für eine neue Massaufnahme">📄 Als Vorlage</button>
+<button class="gray" data-kopiere-measurement="${m.id}" title="Als Vorlage für eine neue Massaufnahme">📄 Als Vorlage</button>`
+   +((typeof cadSendenKnopf==="function")?cadSendenKnopf(m):"")+`
 <button class="gray" data-print-project-measurement="${m.id}" title="Drucken">🖨️</button>`
    // v3.276: Archivieren nur fuer abgeschlossene (dort gehoert es hin), Reaktivieren
    // fuer archivierte. Dasselbe Paar wie bei den Projekten.
@@ -526,6 +527,7 @@ async function loadProjectMeasurements(projectId){
     :"Noch keine Massaufnahme zu diesem Projekt."))+'</div>');
  // v3.417: Teile aus dem CAD unter der Liste (js/104) - ohne Warten, stoert die Liste nie.
  if(typeof cadTeileNachListe==="function")cadTeileNachListe(projectId);
+ if(typeof cadSendenNachListe==="function")cadSendenNachListe(projectId);
  // v3.424: abgelegte Zuschnittplaene (js/105)
  if(typeof zrPlaeneNachListe==="function")zrPlaeneNachListe(projectId);
  // Die Zahl im Kopf und im Arbeitsstand zaehlt die AKTIVEN - auch dann, wenn
