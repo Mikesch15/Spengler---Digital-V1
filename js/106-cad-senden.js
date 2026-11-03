@@ -60,8 +60,21 @@ function cadSendenKnopf(m){
   ?`<button class="gray" data-cad-senden="${esc(m.id)}" title="Profil mit Länge und Stückzahl an das Fusion-Add-in senden">🖥 An CAD senden</button>`:"";
 }
 
-async function cadSendenAusfuehren(measId){
- const m=(typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:[]).find(x=>String(x.id)===String(measId));
+// Die Massaufnahme: aus dem Zwischenspeicher der Liste, oder (frisch=true, im offenen Formular) direkt aus der Datenbank -
+// im Formular kann der gespeicherte Stand neuer sein als die Liste.
+async function cadSendenMassaufnahme(measId,frisch){
+ if(!frisch){
+  const c=(typeof projectMeasurementsCache!=="undefined"?projectMeasurementsCache:[]).find(x=>String(x.id)===String(measId));
+  if(c)return c;
+ }
+ try{
+  const {data,error}=await sb.from("measurements").select("*").eq("id",measId).maybeSingle();
+  return error?null:(data||null);
+ }catch(e){return null}
+}
+
+async function cadSendenAusfuehren(measId,frisch){
+ const m=await cadSendenMassaufnahme(measId,!!frisch);
  if(!m||!cadSendenKannProfil(m))return false;
  const projectId=m.project_id;
  const vorschlag=cadSendenLaenge(m);
@@ -121,6 +134,31 @@ async function cadSendenWeg(id){
  await cadSendenNachListe(a.project_id);
  return true;
 }
+
+// Knopf im geöffneten Formular (neben «Als Vorlage speichern»): nur bei einer GESPEICHERTEN «Freies Profil»-Massaufnahme mit Biegung.
+async function cadSendenFormKnopf(){
+ const b=$("measCadSenden");
+ if(!b)return;
+ const id=(typeof currentMeasurementId!=="undefined")?currentMeasurementId:null;
+ if(!id){b.hidden=true;return}
+ const m=await cadSendenMassaufnahme(id,true);
+ if((typeof currentMeasurementId!=="undefined"?currentMeasurementId:null)!==id)return;       // inzwischen etwas anderes offen
+ b.hidden=!cadSendenKannProfil(m);
+}
+
+async function cadSendenAusFormular(){
+ const id=(typeof currentMeasurementId!=="undefined")?currentMeasurementId:null;
+ if(!id)return false;
+ if(typeof isDirty!=="undefined"&&isDirty&&!(await appConfirm("Es gibt ungespeicherte Änderungen. Gesendet wird der zuletzt GESPEICHERTE Stand. Trotzdem senden?")))return false;
+ return cadSendenAusfuehren(id,true);
+}
+
+(function cadSendenFormBinden(){
+ const b=$("measCadSenden"),m=$("measurementEditModal");
+ if(!b||!m)return;
+ b.addEventListener("click",cadSendenAusFormular);
+ if(window.MutationObserver)new MutationObserver(()=>{if(!m.hidden)cadSendenFormKnopf()}).observe(m,{attributes:true,attributeFilter:["hidden"]});
+})();
 
 document.addEventListener("click",e=>{
  const s=e.target.closest&&e.target.closest("[data-cad-senden]");

@@ -605,6 +605,7 @@ $("saveMeasurement").onclick=async()=>{
   if(warNeu&&typeof cadTeilNachSpeichern==="function")cadTeilNachSpeichern(Array.isArray(gespeichert)?gespeichert[0]:gespeichert);
   currentMeasurementId=workingId;
   measLoeschenKnopfAktualisieren();
+  if(typeof cadSendenFormKnopf==="function")cadSendenFormKnopf();
   currentMeasurementMeta=warNeu
    ?{created_by:currentProfile?currentProfile.id:null,created_at:jetzt,updated_by:null,updated_at:null}
    :{...currentMeasurementMeta,updated_by:payload.updated_by,updated_at:jetzt};

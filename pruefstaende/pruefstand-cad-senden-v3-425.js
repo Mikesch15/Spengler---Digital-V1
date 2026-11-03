@@ -10,6 +10,7 @@ const INIT=()=>{window.__tab={};window.__aufrufe=[];
   from:(tab)=>{const q={};['select','eq','order','limit','in','neq','is'].forEach(k=>q[k]=()=>q);
    q.insert=(w)=>{window.__aufrufe.push({tab,insert:w});return Promise.resolve({data:null,error:window.__insertFehler||null})};
    q.update=(w)=>{window.__aufrufe.push({tab,update:w});const u={eq:(c,v)=>{window.__aufrufe[window.__aufrufe.length-1].eq=[c,v];return Promise.resolve({data:null,error:null})}};return u};
+   q.maybeSingle=()=>Promise.resolve({data:(window.__tab[tab]||[])[0]||null,error:null});
    q.then=r=>Promise.resolve({data:window.__tab[tab]||[],error:null}).then(r);return q},
   storage:{from:()=>({createSignedUrl:async()=>({data:null,error:{message:"x"}})})},rpc:async()=>({data:null,error:null})})}};
 const M={id:41,project_id:7,type:"freies_profil",title:"Ortgang Nord",staerke_mm:0.7,
@@ -77,11 +78,26 @@ const M={id:41,project_id:7,type:"freies_profil",title:"Ortgang Nord",staerke_mm
  p(r.ret===true&&r.upd.length===1&&r.upd[0].tab==="cad_profil_auftraege"&&r.upd[0].update.status==="storniert"&&r.upd[0].eq[1]===5,"Zurückziehen setzt den Status auf «storniert» (nichts wird gelöscht)",r.upd);
  r=await ev(async a=>{window.__tab.cad_profil_auftraege=[a];await cadSendenNachListe(7);window.appConfirm=async()=>false;window.__aufrufe=[];const ret=await cadSendenWeg(5);return {ret,n:window.__aufrufe.length}},A);
  p(r.ret===false&&r.n===0,"Rückfrage verneint: nichts passiert",r);
+ console.log("\nE2 · Knopf im geöffneten Formular");
+ r=await ev(async m=>{window.__tab.measurements=[m];currentMeasurementId=41;await cadSendenFormKnopf();const a=$("measCadSenden").hidden;
+  window.__tab.measurements=[Object.assign({},m,{type:"kehle"})];await cadSendenFormKnopf();const b2=$("measCadSenden").hidden;
+  window.__tab.measurements=[Object.assign({},m,{data:{schenkel:[{laenge:5,winkel:0}]}})];await cadSendenFormKnopf();const c=$("measCadSenden").hidden;
+  window.__tab.measurements=[m];currentMeasurementId=null;await cadSendenFormKnopf();const d=$("measCadSenden").hidden;
+  return {a,b2,c,d}},M);
+ p(r.a===false,"gespeicherte «Freies Profil»-Massaufnahme: Knopf sichtbar",r);
+ p(r.b2===true&&r.c===true&&r.d===true,"andere Art, nur ein Schenkel oder noch nicht gespeichert: Knopf versteckt",r);
+ r=await ev(async m=>{window.__tab.measurements=[m];currentMeasurementId=41;isDirty=false;window.__antw=["1800","3"];window.appPrompt=async()=>window.__antw.shift();window.appAlert=async()=>{};
+  window.__aufrufe=[];const ret=await cadSendenAusFormular();return {ret,ins:window.__aufrufe.filter(x=>x.insert)}},M);
+ p(r.ret===true&&r.ins.length===1&&r.ins[0].insert.laenge_mm===1800&&r.ins[0].insert.stueck===3&&r.ins[0].insert.measurement_id===41,"Klick im Formular sendet den gespeicherten Stand",r.ins);
+ r=await ev(async m=>{currentMeasurementId=41;isDirty=true;window.appConfirm=async()=>false;window.__aufrufe=[];const ret=await cadSendenAusFormular();return {ret,n:window.__aufrufe.length}},M);
+ p(r.ret===false&&r.n===0,"ungespeicherte Änderungen, Rückfrage verneint: nichts gesendet",r);
+ p(await ev(()=>{isDirty=false;return true}),"Zustand zurückgesetzt");
  console.log("\nE · Einbindung");
  p(await ev(()=>/cadSendenNachListe/.test(loadProjectMeasurements.toString())&&/cadSendenKnopf/.test(loadProjectMeasurements.toString())),"js/09 ruft Hook und Knopf auf");
  p(page.__f.length===0,"keine Seitenfehler",page.__f);
  await b.close();
  const fs=require("fs");
+ p(/id="measCadSenden"/.test(fs.readFileSync("index.html","utf8"))&&/cadSendenFormKnopf/.test(fs.readFileSync("js/16-massaufnahme-formular.js","utf8")),"Formular: Knopf in index.html, js/16 aktualisiert ihn");
  p(/js\/106-cad-senden\.js/.test(fs.readFileSync("index.html","utf8"))&&/js\/106-cad-senden\.js/.test(fs.readFileSync("sw.js","utf8")),"js/106 steht in index.html und sw.js");
  p(/cad_profil_auftraege/.test(fs.readFileSync("supabase/migrations/v3425_cad_profil_auftraege.sql","utf8"))&&/tenant_boundary_cad_profil_auftraege/.test(fs.readFileSync("supabase/migrations/v3425_cad_profil_auftraege.sql","utf8")),"Migration vorhanden mit Firmengrenze");
  console.log("\n"+ok+" ok, "+fail+" fehlgeschlagen");process.exit(fail?1:0);
