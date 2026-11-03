@@ -797,6 +797,8 @@ function zrPlaeneBoxHtml(liste){
    +`<button class="gray" data-zrp-druck="${esc(x.id)}">🖨️</button>`
    +`<button class="red" data-zrp-weg="${esc(x.id)}" title="Löschen">×</button></div></div>`;
  }).join("");
+ // v3.427: Ohne Plan keine Überschrift und kein Leer-Text - nur der kleine Knopf, damit der Weg zum ersten Plan bleibt.
+ if(!liste.length)return `<div id="zrPlaeneBox" style="margin-top:10px"><div class="bar"><button class="gray" data-zrp-neu="1">✂️ Zuschnittplan für dieses Projekt</button></div></div>`;
  return `<div id="zrPlaeneBox" style="margin-top:14px"><h3 style="margin:8px 0">Zuschnittpläne <span class="small">(${liste.length})</span></h3>`
   +(zeilen||`<div class="empty">Noch kein Zuschnittplan in diesem Projekt.</div>`)
   +`<div class="bar"><button class="gray" data-zrp-neu="1">✂️ Neuer Zuschnittplan für dieses Projekt</button></div></div>`;

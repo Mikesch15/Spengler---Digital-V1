@@ -34945,3 +34945,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.426 – Übersichtlicher
 - «Mehr»: Gruppen Werkzeuge und Hilfe; Einstellungen-Suche; «Funktionen & Ansicht» der Firma (Arten/Werkzeuge: alle / nur Admin / aus, `sd_firmaAnsicht`); gekürzte Erklärtexte in der Massaufnahme. Neues Modul js/107-uebersicht.js, Prüfstand pruefstand-uebersicht-v3-426 (26 Prüfungen, Gegenproben greifen).
+
+## v3.428 – Cockpit: leere Zuschnittplan-Box
+- Ohne Plan nur Knopf. Prüfstand-Fall D2.

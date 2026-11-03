@@ -1,0 +1,2 @@
+Abschlussbericht v3.428
+Cockpit: Box «Zuschnittpläne» ohne Plan nur als kleiner Knopf (js/105). Prüfstand D2, Gegenprobe greift. Nicht geprüft: echtes Gerät.

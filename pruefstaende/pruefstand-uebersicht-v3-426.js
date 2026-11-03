@@ -92,6 +92,10 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   const x=document.getElementById("uebL2").classList.contains("ueb-kurz");d.remove();localStorage.removeItem("sd_erklaerungenGanz");return {x,schalter:!!document.querySelector('[data-section="anzeige"] #uebGanz')}});
  p(!r.x&&r.schalter,"Geräte-Schalter (Einstellungen → Anzeige): Erklärungen immer ganz",r);
 
+ console.log("\nD2 · Cockpit: leere Bereiche");
+ r=await ev(()=>{const l=zrPlaeneBoxHtml([]);const v=zrPlaeneBoxHtml([{id:"1",bezeichnung:"Dach",kennzahlen:{text:"x"},created_at:"2026-01-01"}]);
+  return {leerKnopf:/data-zrp-neu/.test(l),leerOhneKopf:!/<h3/.test(l)&&!/Noch kein/.test(l),vollKopf:/<h3/.test(v)&&/Zuschnittpläne/.test(v)}});
+ p(r.leerKnopf&&r.leerOhneKopf&&r.vollKopf,"Zuschnittpläne im Cockpit: ohne Plan nur der Knopf (keine Überschrift, kein Leer-Text); mit Plan wie bisher",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);
