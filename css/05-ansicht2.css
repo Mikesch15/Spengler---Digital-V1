@@ -693,15 +693,16 @@ html.a2-an #liefModal:not([hidden]){
    Bereich unten bis zum Rand gehen, muss aber links neben der Leiste
    beginnen - sonst laege er darueber. */
 @media (min-width:1000px){
- html.a2-an #werkstattModal:not([hidden]),
- html.a2-an #settingsModal:not([hidden]),
- html.a2-an #globalSearchModal:not([hidden]),
- html.a2-an #feedbackModal:not([hidden]),
- html.a2-an #adminMeasModal:not([hidden]),
- html.a2-an #systemAdminModal:not([hidden]),
- html.a2-an #matZuModal:not([hidden]),
- html.a2-an #projectCockpitModal:not([hidden]),
- html.a2-an #projectsModal:not([hidden]){
+ /* v3.431: nur, wenn die Leiste WIRKLICH da ist (Klasse a2-leiste-da, js/70) - sonst steht links ein leerer Streifen und der Inhalt wird nach rechts geschoben und abgeschnitten. */
+ html.a2-an.a2-leiste-da #werkstattModal:not([hidden]),
+ html.a2-an.a2-leiste-da #settingsModal:not([hidden]),
+ html.a2-an.a2-leiste-da #globalSearchModal:not([hidden]),
+ html.a2-an.a2-leiste-da #feedbackModal:not([hidden]),
+ html.a2-an.a2-leiste-da #adminMeasModal:not([hidden]),
+ html.a2-an.a2-leiste-da #systemAdminModal:not([hidden]),
+ html.a2-an.a2-leiste-da #matZuModal:not([hidden]),
+ html.a2-an.a2-leiste-da #projectCockpitModal:not([hidden]),
+ html.a2-an.a2-leiste-da #projectsModal:not([hidden]){
   left:226px;bottom:0;
  }
 }

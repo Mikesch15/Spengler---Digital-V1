@@ -1,0 +1,2 @@
+Abschlussbericht v3.431
+Gemeldet per Foto: Seite «Archiv und Filter» nach rechts verschoben. Nachgestellt: ab 1000 px Breite ohne Seitenleiste bleibt ein 226-px-Streifen (css/05). Behoben für neun Bereiche; Prüfstand + Gegenprobe. Audit aller 63 Dialoge bei 360/412 px: kein Überlauf. Auf dem Gerät des Anwenders NICHT bestätigt (Ursache dort nicht eindeutig: Gerätebreite/Desktop-Modus unbekannt).

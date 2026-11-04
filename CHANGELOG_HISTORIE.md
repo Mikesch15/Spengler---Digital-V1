@@ -34954,3 +34954,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.430 – Startseite für Neue
 - Reihenfolge, Duplikat-Knopf weg, Einstieg bei leerer Firma. Prüfstand D4.
+
+## v3.431 – Bereiche ohne Seitenleiste
+- Offset 226 px nur noch mit a2-leiste-da. Prüfstand bereich-ohne-leiste.
