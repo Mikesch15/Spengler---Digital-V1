@@ -96,6 +96,13 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{const l=zrPlaeneBoxHtml([]);const v=zrPlaeneBoxHtml([{id:"1",bezeichnung:"Dach",kennzahlen:{text:"x"},created_at:"2026-01-01"}]);
   return {leerKnopf:/data-zrp-neu/.test(l),leerOhneKopf:!/<h3/.test(l)&&!/Noch kein/.test(l),vollKopf:/<h3/.test(v)&&/Zuschnittpläne/.test(v)}});
  p(r.leerKnopf&&r.leerOhneKopf&&r.vollKopf,"Zuschnittpläne im Cockpit: ohne Plan nur der Knopf (keine Überschrift, kein Leer-Text); mit Plan wie bisher",r);
+ console.log("\nD3 · Material für den Regierapport eingeklappt");
+ r=await ev(()=>{measRapportMaterialZuruecksetzen();const d=$("measRapportMaterialDetails");const leer=d.open;
+  measRapportMaterial=[{no:"101.10",qty:2},{no:"101.20",qty:1}];renderMeasRapportMaterial();const voll=d.open,n=$("measRapportMaterialAnzahl").textContent;
+  measRapportMaterialZuruecksetzen();return {leer,voll,n,zu:!d.open,knopf:!!$("measRapportMaterialAdd"),weg:!!d.querySelector("summary .hilfe-knopf")}});
+ p(r.leer===false&&r.voll===true&&r.n==="(2)"&&r.zu&&r.knopf,"Material für den Regierapport: ohne Zeilen eingeklappt, mit Zeilen offen und gezählt «(2)»",r);
+ r=await ev(()=>{const d=$("measRapportMaterialDetails");const h=d.querySelector("summary .hilfe-knopf");const ev=new MouseEvent("click",{bubbles:true,cancelable:true});h.dispatchEvent(ev);return ev.defaultPrevented});
+ p(r===true,"Der «i»-Knopf in der Kopfzeile klappt nicht ein/aus",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);

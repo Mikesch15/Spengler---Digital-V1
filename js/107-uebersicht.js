@@ -176,6 +176,11 @@ function uebAnzeigeSchalterEinbauen(){
  if(!body||$("uebGanz"))return;
  body.insertAdjacentHTML("beforeend",`<label class="ra-schalter" style="margin-top:8px"><input type="checkbox" id="uebGanz"${uebErklaerungenGanz()?" checked":""}> Lange Erklärungen in den Massaufnahmen immer ganz anzeigen (sonst gekürzt, «mehr» klappt auf) – nur auf diesem Gerät</label>`);
 }
+// Der «i»-Knopf in der Kopfzeile eines Einklapp-Bereichs soll nur die Hilfe zeigen, nicht ein-/ausklappen
+document.addEventListener("click",e=>{
+ const h=e.target&&e.target.closest?e.target.closest("summary .hilfe-knopf"):null;
+ if(h)e.preventDefault();
+},true);
 document.addEventListener("change",e=>{
  if(e.target&&e.target.id==="uebGanz"){try{localStorage.setItem("sd_erklaerungenGanz",e.target.checked?"ja":"nein")}catch(x){}}
 });

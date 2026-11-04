@@ -296,12 +296,13 @@ const MESS=[
  });
  await page.waitForTimeout(120);
  z=await page.evaluate(()=>({block:!!$("measRapportMaterial"),
-   text:($("measRapportMaterialBody").innerText||"").trim(),
+   text:($("measRapportMaterialBody").textContent||"").trim(),
    knopf:!!$("measRapportMaterialAdd")}));
  p(z.block&&z.knopf,"der Block steht im Massaufnahme-Formular",z);
  p(/Noch kein Material erfasst/.test(z.text),"leer sagt er das auch",z);
 
  // C2: Zeile anlegen, Nummer Zeichen fuer Zeichen tippen, Fokus behalten.
+ await page.evaluate(()=>{$("measRapportMaterialDetails").open=true});   // v3.429: ohne Zeilen eingeklappt
  if(await tipp(page,"#measRapportMaterialAdd")){
   if(!await tipp(page,'[data-rmat-nr="0"]'))throw new Error("Feld nicht erreichbar");
   await page.keyboard.type("101.10",{delay:15});
@@ -334,14 +335,14 @@ const MESS=[
  await page.keyboard.type("24",{delay:15});
  await page.evaluate(()=>{document.querySelector('[data-rmat-nr="0"]').dispatchEvent(new Event("change",{bubbles:true}))});
  await page.waitForTimeout(100);
- z=await page.evaluate(()=>({text:($("measRapportMaterialBody").innerText||"").replace(/\s+/g," ").trim(),
+ z=await page.evaluate(()=>({text:($("measRapportMaterialBody").textContent||"").replace(/\s+/g," ").trim(),
    payload:measRapportMaterialAusFormular()}));
  p(/Schraube 4.5x35/.test(z.text)&&/A2/.test(z.text),"die Bezeichnung aus dem Katalog steht daneben",z.text);
  p(z.payload.length===1&&z.payload[0].no==="101.10"&&z.payload[0].qty===24,"der Payload traegt Nummer und Menge",z.payload);
 
  // C4: Eine unbekannte Nummer wird als solche ausgewiesen, nicht geraten.
  await page.evaluate(()=>{measRapportMaterial=[{no:"999.01",qty:3}];renderMeasRapportMaterial()});
- z=await page.evaluate(()=>($("measRapportMaterialBody").innerText||"").replace(/\s+/g," ").trim());
+ z=await page.evaluate(()=>($("measRapportMaterialBody").textContent||"").replace(/\s+/g," ").trim());
  p(/nicht im Katalog/.test(z),"eine unbekannte EDV-Nr. wird benannt statt geraten",z);
 
  // C5: Der Payload landet wirklich im Speicher-Objekt - fuer JEDE Art.
@@ -366,7 +367,7 @@ const MESS=[
  // C7: Ein Datensatz VOR v3.16 (ohne Spalte) oeffnet mit leerer Liste - es
  //     wird nichts erfunden.
  z=await page.evaluate(()=>{measRapportMaterialFuellen({id:5,title:"Alt"});
-   return {modell:measRapportMaterial,text:($("measRapportMaterialBody").innerText||"").trim()}});
+   return {modell:measRapportMaterial,text:($("measRapportMaterialBody").textContent||"").trim()}});
  p(z.modell.length===0&&/Noch kein Material/.test(z.text),"ein alter Datensatz erfindet nichts",z);
 
  // C8: rapport_material steht NICHT in data - sonst wuerde die Freigabe

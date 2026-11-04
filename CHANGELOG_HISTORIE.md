@@ -34948,3 +34948,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.428 – Cockpit: leere Zuschnittplan-Box
 - Ohne Plan nur Knopf. Prüfstand-Fall D2.
+
+## v3.429 – Massaufnahme: Regierapport-Material einklappbar
+- Eingeklappt ohne Zeilen. Prüfstand-Fall D3.

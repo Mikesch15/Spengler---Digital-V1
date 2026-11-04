@@ -1,0 +1,2 @@
+Abschlussbericht v3.429
+Massaufnahme: «Material für den Regierapport» eingeklappt ohne Zeilen (index.html, js/57, js/107). Prüfstand D3, Gegenprobe greift; rapport-/massaufnahme-/medien-Prüfstände grün. Nicht geprüft: echtes Gerät.

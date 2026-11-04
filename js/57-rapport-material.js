@@ -69,6 +69,10 @@ function renderMeasRapportMaterial(){
   </div>`;
  }).join(""):'<div class="small">Noch kein Material erfasst. Was hier steht, lässt sich im Regierapport dieses Projekts mit einem Knopf übernehmen.</div>';
  rmatZeichnet=false;
+ // v3.429: eingeklappt ohne Zeilen, offen sobald eine da ist; die Anzahl steht in der Kopfzeile
+ const d=$("measRapportMaterialDetails"), n=$("measRapportMaterialAnzahl");
+ if(d)d.open=measRapportMaterial.length>0;
+ if(n)n.textContent=measRapportMaterial.length?"("+measRapportMaterial.length+")":"";
 }
 
 if($("measRapportMaterialBody")){
