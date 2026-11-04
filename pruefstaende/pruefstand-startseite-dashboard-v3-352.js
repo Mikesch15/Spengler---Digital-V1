@@ -38,7 +38,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(a.k.length>=2&&Number(a.k[0].b)===a.offen&&a.k[0].tab==="projekte","Kennzahl Offene Projekte = a2OffeneProjekte(alle), Ziel Projekte",a);
  p(Number(a.k[1].b)===a.auf&&a.k[1].sc==="a2HeuteAufgaben"&&a.ziel,"Kennzahl Offene Aufgaben = Aufgabenliste, springt zum Abschnitt",a);
  p(a.werkDoppelt===0,"Teile/Montagen stehen nur im Arbeitsstand, nicht zusätzlich im Abschnitt Werkstatt (keine doppelte Kennzahl)",a.werkDoppelt);
- p(a.aktionen.some(x=>/Projekt öffnen/.test(x))&&(a.neuSichtbar===a.aktionen.some(x=>/Neues Projekt/.test(x)))&&(a.sucheSichtbar===a.aktionen.some(x=>/Suche/.test(x))),"Handlungen nur wenn sichtbar (Neues Projekt / Suche); Projekt öffnen immer",a.aktionen);
+ p(!a.aktionen.some(x=>/Projekt öffnen/.test(x))&&(a.neuSichtbar===a.aktionen.some(x=>/Neues Projekt/.test(x)))&&(a.sucheSichtbar===a.aktionen.some(x=>/Suche/.test(x))),"Handlungen nur wenn sichtbar (Neues Projekt / Suche); «Projekt öffnen» entfällt seit v3.430 (Leiste, Kachel, Liste und Suchfeld tun dasselbe)",a.aktionen);
 
  console.log("\nB · Unsicherer Stand und Gegenproben");
  const u=await page.evaluate(()=>{
@@ -57,7 +57,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return {k,ak};
  });
  p(u.k[1]==="–","Aufgaben-Stand unsicher: „–“ statt einer Zahl/Null",u.k);
- p(u.ak.length===1&&/Projekt öffnen/.test(u.ak[0]),"ohne Freigabe: kein Neues Projekt, keine Suche",u.ak);
+ p(u.ak.length===0,"ohne Freigabe: kein Neues Projekt, keine Suche",u.ak);
 
  console.log("\nC · Nächster Schritt je Projekt");
  const n=await page.evaluate(()=>{

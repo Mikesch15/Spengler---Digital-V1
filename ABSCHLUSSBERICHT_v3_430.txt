@@ -1,0 +1,2 @@
+Abschlussbericht v3.430
+Startseite: Arbeit vor Nebenkarten, Knopf «Projekt öffnen» entfällt, Karte «So fängst du an» bei leerer Firma (js/70, js/107). Prüfstand D4 + Gegenproben; Startseite-/Navigation-/Termin-/Wetter-Prüfstände grün. Nicht geprüft: echtes Gerät.

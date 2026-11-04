@@ -103,6 +103,17 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r.leer===false&&r.voll===true&&r.n==="(2)"&&r.zu&&r.knopf,"Material für den Regierapport: ohne Zeilen eingeklappt, mit Zeilen offen und gezählt «(2)»",r);
  r=await ev(()=>{const d=$("measRapportMaterialDetails");const h=d.querySelector("summary .hilfe-knopf");const ev=new MouseEvent("click",{bubbles:true,cancelable:true});h.dispatchEvent(ev);return ev.defaultPrevented});
  p(r===true,"Der «i»-Knopf in der Kopfzeile klappt nicht ein/aus",r);
+ console.log("\nD4 · Startseite: Arbeit zuerst, Einstieg für leere Firma");
+ r=await ev(()=>{a2Zustand.seite="heute";const h=a2SeiteHeute();const d=document.createElement("div");d.innerHTML=h;
+  const kopf=[...d.querySelectorAll(".a2-abschnitt-kopf h2, .a2-karte-titel")].map(x=>x.textContent.trim());
+  return {kopf,einstieg:!!d.querySelector("#uebEinstieg"),knopfOeffnen:/📁 Projekt öffnen/.test(h)}});
+ p(r.einstieg&&!r.knopfOeffnen,"Ohne Projekt: Karte «So fängst du an» statt «Nichts offen»; «Projekt öffnen» gibt es nicht mehr",r);
+ r=await ev(()=>{const alt=a2OffeneProjekte;a2OffeneProjekte=()=>[{id:1,name:"X",status:"in_arbeit"}];const h=a2SeiteHeute();a2OffeneProjekte=alt;return /uebEinstieg/.test(h)});
+ p(r===false,"Mit einem Projekt verschwindet der Einstieg von selbst",r);
+ r=await ev(()=>{const alt={w:window.wetterKarteHtml,t:window.terKarteHtml,z:window.zmKarteHtml};window.wetterKarteHtml=()=>'<div id="tWetter"></div>';window.terKarteHtml=()=>'<div id="tTermine"></div>';window.zmKarteHtml=()=>'<div id="tZeit"></div>';
+  const alt2=a2OffeneProjekte;a2OffeneProjekte=()=>[{id:1,name:"X",status:"in_arbeit"}];const h=a2SeiteHeute();a2OffeneProjekte=alt2;window.wetterKarteHtml=alt.w;window.terKarteHtml=alt.t;window.zmKarteHtml=alt.z;
+  return {ordnung:h.indexOf("a2HeuteProjekte")<h.indexOf("tTermine")&&h.indexOf("a2HeuteProjekte")<h.indexOf("tWetter")&&h.indexOf("a2HeuteProjekte")<h.indexOf("tZeit"),da:/tWetter/.test(h)&&/tTermine/.test(h)&&/tZeit/.test(h)}});
+ p(r.ordnung&&r.da,"Wetter, Termine und Zeitmessung stehen nach den Offenen Projekten (und sind weiter da)",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);

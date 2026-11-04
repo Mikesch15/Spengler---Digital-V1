@@ -137,6 +137,21 @@ function uebSucheAnwenden(text){
  if(info){info.hidden=false;info.textContent=treffer?treffer+" Abschnitt"+(treffer===1?"":"e")+" gefunden – Suchfeld leeren zeigt wieder die Register.":"Nichts gefunden."}
 }
 
+// ---- Einstieg für eine Firma ohne Projekt (v3.430) --------------------------------
+// Steht auf der Startseite anstelle von «Nichts offen. Alles ... ist erledigt», solange es noch kein
+// einziges Projekt gibt. Sobald eines da ist, verschwindet er von selbst - kein Schalter, kein Modus.
+function uebEinstiegHtml(){
+ const schritt=(nr,titel,text)=>`<li style="display:flex;gap:10px;margin:8px 0"><span style="flex:none;width:24px;height:24px;border-radius:50%;background:var(--blue,#1769aa);color:#fff;font-weight:700;text-align:center;line-height:24px">${nr}</span><span><b>${titel}</b><br><span class="small">${text}</span></span></li>`;
+ return `<div class="a2-karte" id="uebEinstieg"><div class="a2-karte-titel">So fängst du an</div>
+<ol style="list-style:none;margin:0;padding:0">
+${schritt(1,"Projekt anlegen","Auftraggeber und Adresse genügen.")}
+${schritt(2,"Massaufnahme erfassen","Im Projekt die Art wählen, Masse eintragen – die App rechnet den Zuschnitt.")}
+${schritt(3,"Zuschnitt und Rüstliste","Die Teile zuschneiden, abhaken und die Rüstliste drucken.")}
+</ol>
+<div class="a2-knopf-reihe"><button type="button" class="a2-knopf a2-k-blau" data-a2-tu="neuesprojekt">＋ Erstes Projekt anlegen</button>
+<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="anleitung">📖 Anleitung</button></div></div>`;
+}
+
 // ---- Lange Erklärtexte in den Massaufnahmen kürzen --------------------------------
 // Eine Erklärung (.info) mit mehr als UEB_LANG Zeichen zeigt nur die ersten Zeilen;
 // «mehr» klappt sie auf. Pro Gerät abschaltbar (Einstellungen → Anzeige).

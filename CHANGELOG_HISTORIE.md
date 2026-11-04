@@ -34951,3 +34951,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.429 – Massaufnahme: Regierapport-Material einklappbar
 - Eingeklappt ohne Zeilen. Prüfstand-Fall D3.
+
+## v3.430 – Startseite für Neue
+- Reihenfolge, Duplikat-Knopf weg, Einstieg bei leerer Firma. Prüfstand D4.

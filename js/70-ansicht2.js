@@ -663,7 +663,7 @@ function a2HeuteAktionenHtml(){
  const suche=a2KnopfSichtbar("openGlobalSearch");
  const knoepfe=[];
  if(neu)knoepfe.push('<button type="button" class="a2-knopf a2-k-blau" data-a2-tu="neuesprojekt">＋ Neues Projekt</button>');
- knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tab="projekte">📁 Projekt öffnen</button>');
+ // v3.430: «Projekt öffnen» entfällt - dasselbe tun die Leiste unten, die Kachel «Offene Projekte», «Alle Projekte ›» und das Suchfeld.
  if(suche)knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="suche">🔍 Suche</button>');
  return `<div class="a2-aktionen" role="group" aria-label="Schnellaktionen">${knoepfe.join("")}</div>`;
 }
@@ -801,12 +801,12 @@ function a2SeiteHeute(){
  const auf=a2Aufgaben();
  let html=a2HeuteHeroHtml();
  html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
- // v3.373: Wetter am Firmenstandort - nur wenn der Administrator es eingeschaltet hat (js/90)
- if(typeof wetterKarteHtml==="function")html+=wetterKarteHtml();
- // v3.375: die nächsten Termine (js/92)
- if(typeof terKarteHtml==="function")html+=terKarteHtml();
- // v3.376: Zeitmessung fuer Regiestunden (js/93)
- if(typeof zmKarteHtml==="function")html+=zmKarteHtml("heute");
+ // v3.430: Wetter (js/90, nur wenn eingeschaltet), nächste Termine (js/92) und Zeitmessung (js/93) stehen
+ // NACH Aufgaben und Projekten - zuerst kommt, womit man arbeitet. Gesammelt in "nebenher", unten angehängt.
+ let nebenher="";
+ if(typeof wetterKarteHtml==="function")nebenher+=wetterKarteHtml();
+ if(typeof terKarteHtml==="function")nebenher+=terKarteHtml();
+ if(typeof zmKarteHtml==="function")nebenher+=zmKarteHtml("heute");
 
  // v3.183: Die Einrichtungs-Checkliste. Sie steht ganz oben, weil eine neue
  // Firma ohne Katalog, Werkstoffe und Rollenbreiten an mehreren Stellen
@@ -913,7 +913,9 @@ function a2SeiteHeute(){
    ? gruppen.map(a2AufgabenGruppeHtml).join("")
    : (a2TerminZeile()
       ? '<div class="a2-leer">Jetzt nichts offen – was wartet, steht oben.</div>'
-      : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>');
+      : ((typeof uebEinstiegHtml==="function"&&a2OffeneProjekte(false).length===0&&a2OffeneProjekte(true).length===0)
+          ? uebEinstiegHtml()
+          : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>'));
   html+="</div>";
  }
 
@@ -981,7 +983,7 @@ function a2SeiteHeute(){
    </div>
    <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div></div>`;
  }
- return html;
+ return html+nebenher;
 }
 
 // Eine Aufgabe. Titel, Farbe und Knopfbeschriftung kommen aus js/45 - dieselbe

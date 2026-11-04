@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.429`
+- Aktueller Entwicklungsstand: `v3.430`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.430: Startseite für Neue klarer (kein Einfach/Experten-Modus): Aufgaben, Werkstatt, Offene Projekte zuerst; Wetter, Termine, Zeitmessung (`nebenher`) danach; Knopf «Projekt öffnen» entfällt (Duplikat); ohne jedes Projekt Karte «So fängst du an» (`uebEinstiegHtml`, js/107), verschwindet mit dem ersten Projekt. Prüfstand-Fälle D4; startseite-158/-352 angepasst.
 - v3.429: Massaufnahme: Block «Material für den Regierapport» als `<details>` (js/57, index.html): eingeklappt ohne Zeilen, offen und gezählt mit Zeilen; «i» in der Kopfzeile klappt nicht (js/107). Prüfstand-Fall D3; `pruefstand-rapport-v3-16` liest `textContent`.
 - v3.428: Cockpit (klassisch): Box «Zuschnittpläne» ohne Plan nur noch als kleiner Knopf (keine Überschrift/Leer-Text); CAD-Boxen waren schon leer ausgeblendet. Prüfstand-Fall D2 in `pruefstand-uebersicht-v3-426`.
 - v3.427: «An CAD senden» (js/106) auch im geöffneten Formular einer gespeicherten Massaufnahme «Freies Profil» (Knopf `measCadSenden` in index.html, `cadSendenFormKnopf()`, aktualisiert beim Öffnen und nach dem Speichern; ungespeicherte Änderungen: Rückfrage, gesendet wird der gespeicherte Stand). Prüfstand `pruefstand-cad-senden-v3-425` erweitert.
