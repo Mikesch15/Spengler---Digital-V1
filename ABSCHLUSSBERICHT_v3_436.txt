@@ -1,0 +1,2 @@
+Abschlussbericht v3.436
+Startbildschirm: Hinweise zugeklappt; Aufgaben + Montagen eine zugeklappte Zeile; Werkstatt heute entfernt. Prüfstand D7 + 3 Gegenproben; 6 ältere Prüfstände auf die zugeklappten Zeilen angepasst. Nicht geprüft: echtes Gerät.

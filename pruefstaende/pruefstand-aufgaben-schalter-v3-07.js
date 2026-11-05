@@ -120,6 +120,7 @@ const laden=async(page,wer,rolle)=>{
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e)));
  page.on("dialog",d=>d.accept());
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true});   // v3.436: «Aufgaben und Montagen» und «Wichtige Hinweise» sind sonst zugeklappt
  // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
  // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
  // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.

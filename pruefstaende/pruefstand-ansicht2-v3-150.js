@@ -77,6 +77,7 @@ const anmelden=page=>page.evaluate(()=>{
  await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP);
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true});   // v3.436: «Aufgaben und Montagen» und «Wichtige Hinweise» sind sonst zugeklappt
 
  // ===== A  Es gibt nur diese eine Ansicht (v3.218) =========================
  // Bis v3.217 stand hier: die Vorgabe greift, eine ausdrueckliche Wahl
@@ -189,9 +190,9 @@ const anmelden=page=>page.evaluate(()=>{
  // B4 und B5 auch gruen, wenn ausser den Aufgaben nichts mehr da waere.
  // Gemessen werden die RUBRIKEN, nicht die Werkstattzahlen: die kommen
  // nachtraeglich (werkLaden laeuft asynchron) und waeren hier ein Wettlauf.
- p(bb.rubriken.indexOf("Meine Aufgaben")>=0&&bb.rubriken.indexOf("Werkstatt heute")>=0
+ p(bb.rubriken.indexOf("Meine Aufgaben")>=0&&bb.rubriken.indexOf("Werkstatt heute")<0
    &&bb.rubriken.indexOf("Offene Projekte")>=0,
-   "B5b die Seite traegt die Rubriken des Prototyps",bb.rubriken);
+   "B5b die Seite traegt die Rubriken (v3.436: «Werkstatt heute» ist entfallen, Aufgaben und Montagen stehen in einer eingeklappten Zeile)",bb.rubriken);
  p(bb.punkt==="2","B6 die Zahl am Register Heute stimmt",bb);
 
  // Der Knopf einer Aufgabe muss GENAU die bestehende Funktion aufrufen.

@@ -34969,3 +34969,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.435 – Kennzahlen-Kacheln auf dem Handy
 - 2 x 2 statt vier schmale Streifen. Prüffall mit vier Kacheln.
+
+## v3.436 – Startbildschirm: Hinweise/Aufgaben/Montagen zugeklappt, Werkstatt heute entfernt
+- Prüfstand D7.

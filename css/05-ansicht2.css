@@ -1838,3 +1838,8 @@ html.dark #a2Inhalt.a2-heute .a2-register-klein{background:var(--card-line)}
 #a2Inhalt.a2-heute .a2-kpi b,#a2Inhalt.a2-heute .a2-kpi span,#a2Inhalt.a2-heute .a2-kpi em{word-break:normal;overflow-wrap:normal;hyphens:none}
 #a2Inhalt.a2-heute .a2-kpi span{line-height:1.25}
 @media(min-width:700px){#a2Inhalt.a2-heute .a2-kpis{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr);max-width:none}}
+/* v3.436: eingeklappte Zeilen mit Inhalt (Hinweise, Aufgaben und Montagen) */
+#a2Inhalt.a2-heute .ueb-klapp>summary{flex-wrap:nowrap}
+#a2Inhalt.a2-heute .ueb-klapp .ueb-info{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#a2Inhalt.a2-heute .ueb-klapp .ueb-inhalt{padding-top:6px}
+#a2Inhalt.a2-heute .ueb-klapp .ueb-inhalt .a2-zeile{box-shadow:none}

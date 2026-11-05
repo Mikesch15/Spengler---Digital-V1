@@ -874,91 +874,59 @@ function a2SeiteHeute(){
   </div>`;
  });
 
- // ---- Wichtige Hinweise --------------------------------------------------
- // v3.160: Die freie Notiz am Projekt (Zufahrt, Schluessel,
- // Ansprechpartner). Sie steht oben, weil sie vor der Abfahrt gilt und
- // nicht nach der Ankunft. Gezeigt wird ausschliesslich, was jemand
+ // ---- Wichtige Hinweise -------------------------------------------------- (v3.436: eingeklappt, eine Zeile)
+ // v3.160: Die freie Notiz am Projekt (Zufahrt, Schluessel, Ansprechpartner). Gezeigt wird ausschliesslich, was jemand
  // eingetragen hat - gibt es keine Notiz, gibt es auch keinen Abschnitt.
  const hinweise=a2HinweisProjekte().slice(0,5);
  if(hinweise.length){
-  html+=`<div class="a2-abschnitt a2-hinweise">
-   <div class="a2-abschnitt-kopf"><h2>Wichtige Hinweise</h2></div>`
-   +hinweise.map(p=>{
+  const zeilen=hinweise.map(p=>{
     const titel=(typeof projektTitel==="function")?projektTitel(p):(p.object||p.name||"Projekt");
     return `<button type="button" class="a2-zeile" data-a2-projekt="${esc(p.id)}">
      <span class="a2-zeile-nr">📌</span>
      <span class="a2-zeile-text"><b>${esc(p.name||titel)}</b>
       <span>${esc(p.hinweis.trim())}</span></span>
      <span class="a2-zeile-pfeil">›</span></button>`;
-   }).join("")+"</div>";
+   }).join("");
+  html+=(typeof uebKlappHtml==="function")
+   ? uebKlappHtml("hinweise","Wichtige Hinweise",hinweise.length+(hinweise.length===1?" Projekt":" Projekte"),zeilen,"","a2-abschnitt a2-hinweise")
+   : `<div class="a2-abschnitt a2-hinweise"><div class="a2-abschnitt-kopf"><h2>Wichtige Hinweise</h2></div>${zeilen}</div>`;
  }
 
- // ---- Meine Aufgaben -----------------------------------------------------
+ // ---- Aufgaben und Montagen (v3.436: EINE eingeklappte Zeile) ------------------------------------------------------------
+ // Vorher zwei Abschnitte (Meine Aufgaben, Anstehende Montage) plus «Werkstatt heute»; «Werkstatt heute» ist entfallen -
+ // die Kennzahlen oben fuehren in die Werkstatt.
  if(!a2AufgabenAktiv()){
   html+=`<div class="a2-abschnitt"><div class="a2-leer">Der Arbeitsablauf ist
    für diese Firma ausgeschaltet. Es gibt deshalb keine Aufgabenliste –
    gearbeitet wird direkt über die Projekte.</div></div>`;
  }else{
-  // v3.257: Die Aufgaben stehen je Projekt zusammen. Der Kopf nennt
-  // weiterhin die GESAMTZAHL - sie ist die Antwort auf "wie viel habe ich
-  // heute", und die aendert sich durch das Gruppieren nicht.
+  // v3.257: Die Aufgaben stehen je Projekt zusammen. Die Zahl im Kopf nennt weiterhin die GESAMTZAHL.
   const gruppen=a2AufgabenNachProjekt(auf);
   const alleAuf=gruppen.length>0&&gruppen.every(g=>a2AufgabenAuf.has(String(g.id)));
-  html+=`<div class="a2-abschnitt" id="a2HeuteAufgaben">
-   <div class="a2-abschnitt-kopf"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
+  let inh=`<div class="a2-abschnitt-kopf" style="margin-top:8px"><h2>Meine Aufgaben ${a2Hilfe("aufgaben")}</h2>
     ${auf.length?`<span class="a2-marke a2-m-blau">${auf.length} offen</span>`:""}
     ${gruppen.length>1?`<button type="button" data-a2-tu="aufgabenalle">${
       alleAuf?"Alle zuklappen":"Alle aufklappen"}</button>`:""}</div>`;
-  // v3.185: Die Zeile "N terminiert" kommt aus js/45 - dieselbe Quelle wie in
-  // der klassischen Ansicht. Sie steht UEBER der Liste, damit "nichts offen"
-  // nicht danebensteht, waehrend etwas wartet.
-  html+=a2TerminZeile();
+  // v3.185: Die Zeile "N terminiert" kommt aus js/45 - dieselbe Quelle wie in der klassischen Ansicht.
+  inh+=a2TerminZeile();
   // v3.291: Ist der Stand nicht frisch (Abruf gescheitert oder offline), steht es da.
   {const sh=(typeof aufgabenStandHinweis==="function")?aufgabenStandHinweis():"";
-   if(sh)html+=`<div class="a2-hinweis a2-h-warnung">${esc(sh)}</div>`;}
-  html+=auf.length
+   if(sh)inh+=`<div class="a2-hinweis a2-h-warnung">${esc(sh)}</div>`;}
+  const keinProjekt=(typeof uebEinstiegHtml==="function"&&a2OffeneProjekte(false).length===0&&a2OffeneProjekte(true).length===0);
+  inh+=auf.length
    ? gruppen.map(a2AufgabenGruppeHtml).join("")
    : (a2TerminZeile()
       ? '<div class="a2-leer">Jetzt nichts offen – was wartet, steht oben.</div>'
-      : ((typeof uebEinstiegHtml==="function"&&a2OffeneProjekte(false).length===0&&a2OffeneProjekte(true).length===0)
-          ? uebEinstiegHtml()
-          : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>'));
-  html+="</div>";
- }
-
- // ---- Werkstatt heute ----------------------------------------------------
- if(a2WerkstattSichtbar()){
-  const z=a2WerkZahlen();
-  html+=`<div class="a2-abschnitt">
-   <div class="a2-abschnitt-kopf"><h2>Werkstatt heute</h2>
-    <button type="button" data-a2-tab="werkstatt">Werkstatt öffnen ›</button></div>`;
-  if(a2WerkFehler){
-   html+=`<div class="a2-hinweis a2-h-warnung"><b>Die Werkstattzahlen fehlen</b>
-    ${esc(a2WerkFehler)}</div>`;
-  }else if(!a2WerkGeladen){
-   html+='<div class="a2-leer">Werkstatt wird geladen …</div>';
-  }else{
-   // v3.354: Teile und Montagen stehen im Arbeitsstand oben (eine Stelle je Zahl); hier bleibt, was dort nicht steht.
-   html+=`<div class="a2-zahlen a2-zahlen-eins">
-    <div class="a2-zahl a2-z-blau"><b>${z.ruestlisten}</b><span>Rüstlisten</span></div>
-   </div>`;
-  }
-  html+="</div>";
-
-  // ---- Anstehende Montage ----------------------------------------------
-  const montage=a2MontageListe();
-  if(a2WerkGeladen&&montage.length){
-   html+=`<div class="a2-abschnitt">
-    <div class="a2-abschnitt-kopf"><h2>Anstehende Montage</h2></div>`
+      : '<div class="a2-leer">Nichts offen. Alles, was dir zugeteilt ist, ist erledigt.</div>');
+  // ---- Anstehende Montage: was geruestet ist und auf die Montage wartet (nur mit Werkstatt) ----
+  const montage=(a2WerkstattSichtbar()&&a2WerkGeladen)?a2MontageListe():[];
+  if(montage.length){
+   inh+=`<div class="a2-abschnitt" style="margin:14px 0 0"><div class="a2-abschnitt-kopf"><h2>Anstehende Montage</h2></div>`
     +montage.map(m=>{
      const p=a2Projekt(m.project_id);
      const b=(typeof aufgabenBeschriftung==="function")?aufgabenBeschriftung(m):{adresse:m.title||"",zusatz:""};
      const wer=a2PersonName(m.monteur_id);
-     // v3.160: Steht ein Termin in der Datenbank, sagt die Zeile ihn -
-     // "morgen", "in 2 Tagen", mit Datum. Gerechnet wird er in
-     // montageTermin() (js/01), derselben Stelle wie im Formular.
-     // Steht KEINER da, wird auch keiner erfunden: dann sagt die Zeile
-     // weiterhin nur, seit wann geruestet bereitliegt (geruestet_am).
+     // v3.160: Steht ein Termin in der Datenbank, sagt die Zeile ihn (montageTermin, js/01); steht keiner da, wird keiner erfunden.
      const t=(typeof montageTermin==="function")?montageTermin(m.montage_am):null;
      const unten=[t?t.wort+" · "+t.datum:(m.geruestet_am?"gerüstet am "+a2Datum(m.geruestet_am):""),
                   wer||"noch niemand eingeteilt"].filter(Boolean).join(" · ");
@@ -969,6 +937,14 @@ function a2SeiteHeute(){
       <span class="a2-zeile-pfeil">›</span></button>`;
     }).join("")+"</div>";
   }
+  const info=(auf.length||montage.length)
+   ? [auf.length?auf.length+" offen":"",montage.length?montage.length+(montage.length===1?" Montage":" Montagen"):""].filter(Boolean).join(" · ")
+   : "nichts offen";
+  // Eine neue Firma ohne Projekt sieht den Einstieg offen; er verschwindet mit dem ersten Projekt.
+  if(keinProjekt&&!auf.length)html+=uebEinstiegHtml();
+  html+=(typeof uebKlappHtml==="function")
+   ? uebKlappHtml("aufg","Aufgaben und Montagen",info,inh,"a2HeuteAufgaben")
+   : `<div class="a2-abschnitt" id="a2HeuteAufgaben">${inh}</div>`;
  }
 
  // ---- Offene Projekte ----------------------------------------------------

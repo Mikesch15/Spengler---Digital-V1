@@ -47,6 +47,7 @@ const koepfe=page=>page.evaluate(()=>
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true});   // v3.436: «Aufgaben und Montagen» und «Wichtige Hinweise» sind sonst zugeklappt
  await page.waitForTimeout(600);
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"c1"};
@@ -74,8 +75,8 @@ const koepfe=page=>page.evaluate(()=>
 
  // ---- A  Die Gliederung ---------------------------------------------------
  let k=await koepfe(page);
- p(k.join("|")==="Meine Aufgaben|Werkstatt heute|Offene Projekte|Termine",
-   "A1 die Rubriken stehen in der Reihenfolge des Prototyps (v3.430: Termine, Wetter, Zeitmessung zuletzt)",k);
+ p(k.join("|")==="Meine Aufgaben|Offene Projekte|Termine",
+   "A1 die Rubriken stehen in der Reihenfolge des Prototyps (v3.430: Termine, Wetter, Zeitmessung zuletzt; v3.436: ohne «Werkstatt heute»)",k);
  const warnung=await page.evaluate(()=>{
   const w=document.querySelector("#a2Inhalt .a2-h-warnung");
   if(!w)return null;

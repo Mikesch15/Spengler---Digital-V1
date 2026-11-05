@@ -155,6 +155,20 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   const rs=[...k.children].map(c=>c.getBoundingClientRect());const lab=[...k.children].map(c=>c.querySelector("span").getBoundingClientRect().height);
   return {spalten,breit:Math.min(...rs.map(x=>x.width))>140,hoch:Math.max(...rs.map(x=>x.height)),lab:Math.max(...lab),vw:innerWidth}});
  p(r.spalten===2&&r.breit&&r.hoch<=100&&r.lab<=40,"Vier Kennzahlen auf dem Handy: 2 x 2, jede Kachel breit genug, Beschriftung höchstens zwei Zeilen (kein senkrechtes Brechen)",r);
+ console.log("\nD7 · Startbildschirm: Hinweise, Aufgaben und Montagen zugeklappt, keine Werkstatt-Rubrik");
+ r=await ev(async()=>{allProjects=[{id:1,name:"Dach Nord",object:"Weg 1",status:"in_arbeit",archived:false,hinweis:"Zufahrt nur bis 16 Uhr"}];uebOffen.aufg=false;uebOffen.hinweise=false;window.a2HinweisProjekte=()=>[{id:1,name:"Dach Nord",object:"Weg 1",hinweis:"Zufahrt nur bis 16 Uhr"}];
+  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;a2Zustand.seite="heute";a2Zeichnen();await new Promise(x=>setTimeout(x,200));
+  const I=document.getElementById("a2Inhalt");const hin=I.querySelector("details[data-ueb-offen=hinweise]"),aufg=I.querySelector("details[data-ueb-offen=aufg]");
+  const h2=[...I.querySelectorAll(".a2-abschnitt-kopf h2")].map(x=>x.textContent.trim());
+  return {hin:!!hin&&!hin.open,hinInfo:hin&&hin.querySelector(".ueb-info").textContent,hinZeile:!!(hin&&hin.querySelector("[data-a2-projekt]")),aufg:!!aufg&&!aufg.open,aufgId:aufg&&aufg.id,aufgTitel:aufg&&aufg.querySelector(".ueb-titel").textContent,
+   aufgInfo:aufg&&aufg.querySelector(".ueb-info").textContent,werk:h2.some(x=>/Werkstatt heute/.test(x)),zwei:I.querySelectorAll("details.ueb-zeile").length}});
+ p(r.hin&&r.hinInfo==="1 Projekt"&&r.hinZeile,"«Wichtige Hinweise» ist eine zugeklappte Zeile («1 Projekt»), die Hinweiszeile liegt darin",r);
+ p(r.aufg&&r.aufgId==="a2HeuteAufgaben"&&r.aufgTitel==="Aufgaben und Montagen"&&/nichts offen|offen/.test(r.aufgInfo),"«Aufgaben und Montagen» ist EINE zugeklappte Zeile mit Kurzinfo",r);
+ p(r.werk===false,"«Werkstatt heute» gibt es auf dem Startbildschirm nicht mehr",r);
+ r=await ev(async()=>{const k=document.querySelector('[data-a2-scroll="a2HeuteAufgaben"]');const z=document.getElementById("a2HeuteAufgaben");z.open=false;
+  if(!k)return {kein:true};k.click();await new Promise(x=>setTimeout(x,100));return {offen:z.open}});
+ p(r.kein||r.offen===true,"Die Kennzahl «Offene Aufgaben» öffnet die zugeklappte Zeile beim Hinspringen",r);
+ await ev(()=>{uebOffen.aufg=false;uebOffen.hinweise=false});
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);
