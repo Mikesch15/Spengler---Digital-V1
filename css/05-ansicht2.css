@@ -1543,7 +1543,7 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
    dieses Blocks. Keine Selektoren ausserhalb der Heute-Seite, keine Logik,
    keine Datenquellen und keine Bedienwege werden veraendert.
    ========================================================================== */
-html.a2-an.a2-heute-an{
+html.a2-premium-start-test{
   --a2-premium-bg:#f3f5f8;
   --a2-premium-line:#e4e9ef;
   --a2-premium-shadow:0 8px 24px rgba(19,39,62,.055);
@@ -1553,14 +1553,14 @@ html.dark.a2-an.a2-heute-an{
   --a2-premium-line:var(--line);
   --a2-premium-shadow:0 8px 24px rgba(0,0,0,.16);
 }
-html.a2-an.a2-heute-an body{background:var(--a2-premium-bg)}
-#a2Inhalt.a2-heute{
+html.a2-premium-start-test body{background:var(--a2-premium-bg)}
+html.a2-premium-start-test #a2Inhalt.a2-heute{
   width:100%;
   max-width:1180px;
   margin:0 auto;
   padding:18px 22px 42px;
 }
-#a2Inhalt.a2-heute .a2-hero{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero{
   overflow:hidden;
   border-radius:16px;
   padding:0;
@@ -1568,7 +1568,7 @@ html.a2-an.a2-heute-an body{background:var(--a2-premium-bg)}
   background:#123d66;
   box-shadow:var(--a2-premium-shadow);
 }
-#a2Inhalt.a2-heute .a2-hero-bild{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{
   display:block;
   width:100%;
   height:clamp(112px,16vw,190px);
@@ -1576,26 +1576,26 @@ html.a2-an.a2-heute-an body{background:var(--a2-premium-bg)}
   object-fit:cover;
   object-position:center 46%;
 }
-#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{
   padding:14px 18px 16px;
   background:linear-gradient(115deg,#123d66,#1769aa);
 }
-#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-gruss{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-gruss{
   font-size:clamp(21px,2.4vw,27px);
   letter-spacing:-.025em;
   font-weight:800;
 }
-#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-unter{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-unter{
   margin-top:4px;
   font-size:13px;
   opacity:.82;
 }
-#a2Inhalt.a2-heute .a2-aktionen{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen{
   display:flex;
   gap:9px;
   margin:0 0 12px;
 }
-#a2Inhalt.a2-heute .a2-aktionen .a2-knopf{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{
   flex:0 1 auto;
   min-width:150px;
   min-height:44px;
@@ -1605,94 +1605,94 @@ html.a2-an.a2-heute-an body{background:var(--a2-premium-bg)}
   font-weight:750;
   box-shadow:none;
 }
-#a2Inhalt.a2-heute .a2-hsuche{gap:9px;margin:0 0 16px}
-#a2Inhalt.a2-heute .a2-hsuche-feld{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche{gap:9px;margin:0 0 16px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-feld{
   min-height:48px;
   border-radius:12px;
   background:var(--card-bg);
   border-color:var(--a2-premium-line);
   box-shadow:0 2px 8px rgba(19,39,62,.025);
 }
-#a2Inhalt.a2-heute .a2-hsuche-feld input{min-height:46px;font-size:14px}
-#a2Inhalt.a2-heute .a2-hsuche-filter{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-feld input{min-height:46px;font-size:14px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-filter{
   width:48px;min-height:48px;border-radius:12px;
   border-color:var(--a2-premium-line);
 }
-#a2Inhalt.a2-heute .a2-abschnitt{margin:0 0 20px}
-#a2Inhalt.a2-heute .a2-abschnitt-kopf{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-abschnitt{margin:0 0 20px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-abschnitt-kopf{
   min-height:38px;
   margin:0 0 9px;
   padding:0 1px;
 }
-#a2Inhalt.a2-heute .a2-abschnitt-kopf h2{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-abschnitt-kopf h2{
   color:var(--ink);
   font-size:13px;
   font-weight:850;
   letter-spacing:.055em;
 }
-#a2Inhalt.a2-heute .a2-abschnitt-kopf button{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-abschnitt-kopf button{
   font-weight:700;
   color:var(--blue);
 }
-#a2Inhalt.a2-heute .a2-kpi,
-#a2Inhalt.a2-heute .a2-zahl{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl{
   border:1px solid var(--a2-premium-line);
   border-radius:13px;
   background:var(--card-bg);
   box-shadow:var(--a2-premium-shadow);
   padding:12px 13px;
 }
-#a2Inhalt.a2-heute .a2-kpi b,
-#a2Inhalt.a2-heute .a2-zahl b{font-size:25px;letter-spacing:-.035em}
-#a2Inhalt.a2-heute .a2-kpi span,
-#a2Inhalt.a2-heute .a2-zahl span{font-size:12.5px;font-weight:600}
-#a2Inhalt.a2-heute .a2-karte,
-#a2Inhalt.a2-heute .a2-zeile,
-#a2Inhalt.a2-heute .a2-auf{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi b,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl b{font-size:25px;letter-spacing:-.035em}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi span,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl span{font-size:12.5px;font-weight:600}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-karte,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zeile,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
   border:1px solid var(--a2-premium-line);
   border-radius:12px;
   background:var(--card-bg);
   box-shadow:0 2px 9px rgba(19,39,62,.025);
 }
-#a2Inhalt.a2-heute .a2-karte{padding:13px 15px;margin:0 0 9px}
-#a2Inhalt.a2-heute .a2-zeile{padding:12px 14px;margin:0 0 8px;min-height:60px}
-#a2Inhalt.a2-heute .a2-auf{padding:12px 14px;margin:0 0 8px}
-#a2Inhalt.a2-heute .a2-karte-titel{font-size:15.5px;font-weight:750}
-#a2Inhalt.a2-heute .a2-zeile-text b{font-size:14px;font-weight:750}
-#a2Inhalt.a2-heute .a2-zeile-text span{font-size:12.5px;line-height:1.45}
-#a2Inhalt.a2-heute .a2-register-klein{gap:7px;margin:0 0 10px}
-#a2Inhalt.a2-heute .a2-register-klein button{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-karte{padding:13px 15px;margin:0 0 9px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zeile{padding:12px 14px;margin:0 0 8px;min-height:60px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{padding:12px 14px;margin:0 0 8px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-karte-titel{font-size:15.5px;font-weight:750}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zeile-text b{font-size:14px;font-weight:750}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zeile-text span{font-size:12.5px;line-height:1.45}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-register-klein{gap:7px;margin:0 0 10px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-register-klein button{
   min-height:35px;padding:0 13px;border-radius:999px;
   border:1px solid var(--a2-premium-line);
   background:var(--card-bg);font-weight:700;
 }
-#a2Inhalt.a2-heute .a2-register-klein button.ist-auf{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-register-klein button.ist-auf{
   background:var(--blue);border-color:var(--blue);color:#fff;
 }
-#a2Inhalt.a2-heute .a2-hinweise .a2-zeile{
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hinweise .a2-zeile{
   background:var(--red-light);
   border-color:transparent;
 }
-#a2Inhalt.a2-heute .a2-hinweis{border-radius:12px}
-#a2Leiste button{transition:background .16s ease,color .16s ease}
-#a2Leiste button.ist-auf{border-radius:10px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hinweis{border-radius:12px}
+html.a2-premium-start-test #a2Leiste button{transition:background .16s ease,color .16s ease}
+html.a2-premium-start-test #a2Leiste button.ist-auf{border-radius:10px}
 @media(min-width:1000px){
-  #a2Inhalt.a2-heute{padding:24px 34px 48px}
-  #a2Inhalt.a2-heute .a2-hero-bild{height:180px}
-  #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:16px 22px 18px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute{padding:24px 34px 48px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:180px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:16px 22px 18px}
 }
 @media(max-width:600px){
-  #a2Inhalt.a2-heute{padding:12px 12px 30px}
-  #a2Inhalt.a2-heute .a2-hero{border-radius:13px;margin-bottom:12px}
-  #a2Inhalt.a2-heute .a2-hero-bild{height:104px}
-  #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:12px 14px 13px}
-  #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{min-width:0;flex:1 1 0;padding:0 9px}
-  #a2Inhalt.a2-heute .a2-kpi,
-  #a2Inhalt.a2-heute .a2-zahl{padding:10px}
-  #a2Inhalt.a2-heute .a2-kpi b,
-  #a2Inhalt.a2-heute .a2-zahl b{font-size:22px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute{padding:12px 12px 30px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero{border-radius:13px;margin-bottom:12px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:104px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:12px 14px 13px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{min-width:0;flex:1 1 0;padding:0 9px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi,
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl{padding:10px}
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi b,
+  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl b{font-size:22px}
 }
 @media(prefers-reduced-motion:reduce){
-  #a2Leiste button{transition:none}
+  html.a2-premium-start-test #a2Leiste button{transition:none}
 }
 /* ENDE PREMIUM-STARTSEITE TESTBRANCH */
