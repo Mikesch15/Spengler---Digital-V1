@@ -803,8 +803,29 @@ function a2HeuteProjListeHtml(auf){
 
 function a2SeiteHeute(){
  const auf=a2Aufgaben();
- let html=a2HeuteHeroHtml();
- html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
+ const premium=document.documentElement.classList.contains("a2-premium-start-test");
+ let html;
+ if(premium){
+  // Eigenstaendige Premium-Komposition: dieselben bestehenden Funktionen,
+  // Datenquellen und data-a2-Aktionen - nur die Startseiten-Anordnung ist neu.
+  html=`<div class="a2-premium-dashboard">
+   <section class="a2-premium-kopf">
+    <div class="a2-premium-kopfzeile"><span>SPENGLER-DIGITAL</span><span>DEIN ARBEITSTAG</span></div>
+    ${a2HeuteHeroHtml()}
+    <div class="a2-premium-schnell">
+     ${a2HeuteAktionenHtml()}
+     ${a2HeuteSucheHtml()}
+    </div>
+    <div class="a2-premium-stand">
+     <div class="a2-premium-titel"><span>01 / ÜBERBLICK</span><b>Arbeitsstand</b></div>
+     ${a2HeuteStandHtml(auf)}
+    </div>
+   </section>
+   <div class="a2-premium-inhalt">`;
+ }else{
+  html=a2HeuteHeroHtml();
+  html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
+ }
  // v3.430: Wetter (js/90, nur wenn eingeschaltet), nächste Termine (js/92) und Zeitmessung (js/93) stehen
  // NACH Aufgaben und Projekten - zuerst kommt, womit man arbeitet. Gesammelt in "nebenher", unten angehängt.
  let nebenher="";
@@ -987,6 +1008,7 @@ function a2SeiteHeute(){
    </div>
    <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div></div>`;
  }
+ if(premium)html+="</div></div>";
  return html+nebenher;
 }
 
