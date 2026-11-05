@@ -34966,3 +34966,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.434 – Startbildschirm: moderner Look
 - Nur Darstellung (css/05, js/70 Such-Symbol). Prüfstand-Fall in uebersicht-v3-426.
+
+## v3.435 – Kennzahlen-Kacheln auf dem Handy
+- 2 x 2 statt vier schmale Streifen. Prüffall mit vier Kacheln.

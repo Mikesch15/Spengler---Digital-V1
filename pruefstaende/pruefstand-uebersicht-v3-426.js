@@ -147,6 +147,14 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  r=await ev(()=>{const h=a2HeuteAktionenHtml();return {suche:/data-a2-tu="suche"/.test(h),svg:/data-a2-tu="suche"><svg/.test(h),emoji:/🔍/.test(h)}});
  p(r.suche&&r.svg&&!r.emoji,"Startbildschirm: «Suche» mit Linien-Symbol statt Emoji (einheitliche Symbolsprache)",r);
  r=await ev(()=>{const h=document.documentElement;const k=document.querySelector(".a2-kpi");const s=getComputedStyle(document.querySelector("#a2Inhalt")||document.body);return {ok:true}});
+ r=await ev(async()=>{currentProfile={id:"u1",role:"admin",first_name:"A",last_name:"B",company_id:"c1"};allProfiles=[currentProfile];meineRechte={admin:true};allProjects=[{id:1,name:"X",object:"Y",status:"in_arbeit",archived:false}];
+  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;a2Zustand.seite="heute";a2Zeichnen();await new Promise(x=>setTimeout(x,300));
+  const k=document.querySelector("#a2Inhalt.a2-heute .a2-kpis");if(!k)return {fehlt:true};
+  const t=[...k.children];while(k.children.length<4){const c=t[0].cloneNode(true);c.querySelector("span").textContent=k.children.length===2?"Teile zu produzieren":"Montagen vorbereitet";k.appendChild(c)}
+  const cs=getComputedStyle(k);const spalten=cs.gridTemplateColumns.split(" ").length;
+  const rs=[...k.children].map(c=>c.getBoundingClientRect());const lab=[...k.children].map(c=>c.querySelector("span").getBoundingClientRect().height);
+  return {spalten,breit:Math.min(...rs.map(x=>x.width))>140,hoch:Math.max(...rs.map(x=>x.height)),lab:Math.max(...lab),vw:innerWidth}});
+ p(r.spalten===2&&r.breit&&r.hoch<=100&&r.lab<=40,"Vier Kennzahlen auf dem Handy: 2 x 2, jede Kachel breit genug, Beschriftung höchstens zwei Zeilen (kein senkrechtes Brechen)",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);

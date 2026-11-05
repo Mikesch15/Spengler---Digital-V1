@@ -1832,3 +1832,9 @@ html.dark #a2Inhalt.a2-heute .a2-register-klein{background:var(--card-line)}
 #a2Inhalt.a2-heute .a2-zeile{border-radius:var(--u-radius);border:1px solid var(--u-linie);background:var(--card-bg,#fff);box-shadow:var(--u-schatten)}
 #a2Inhalt.a2-heute .a2-zeile-text b{font-weight:600;letter-spacing:-.005em}
 @media(min-width:700px){#a2Inhalt.a2-heute .a2-hero-bild{height:auto;aspect-ratio:1400/330;max-height:150px;object-position:center}}
+/* v3.435: Gemeldet (Foto): vier Kennzahlen nebeneinander wurden zu schmalen Streifen mit senkrecht gebrochener Schrift.
+   Auf dem Handy immer zwei Spalten (bei vier Kacheln 2 x 2), die Beschriftung bricht nur an Wortgrenzen; ab 700 px alle in einer Reihe. */
+#a2Inhalt.a2-heute .a2-kpis{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}
+#a2Inhalt.a2-heute .a2-kpi b,#a2Inhalt.a2-heute .a2-kpi span,#a2Inhalt.a2-heute .a2-kpi em{word-break:normal;overflow-wrap:normal;hyphens:none}
+#a2Inhalt.a2-heute .a2-kpi span{line-height:1.25}
+@media(min-width:700px){#a2Inhalt.a2-heute .a2-kpis{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:minmax(0,1fr);max-width:none}}

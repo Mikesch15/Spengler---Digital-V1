@@ -1,0 +1,2 @@
+Abschlussbericht v3.435
+Korrektur: vier Kennzahlen-Kacheln brachen die Schrift senkrecht (v3.434 nur mit zwei Kacheln geprüft). Jetzt 2 x 2 auf dem Handy. Prüffall mit vier Kacheln + Gegenprobe. Nicht geprüft: echtes Gerät.
