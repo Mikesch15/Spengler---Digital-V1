@@ -1535,7 +1535,7 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 .a2-ol-ok{color:#2b8a3e}.a2-ol-fehler{color:#c92a2a}
 
 
-/* ===================================================================
+/* ==========================================================================
    PREMIUM-STARTSEITE – TESTBRANCH  (2026-11)
    --------------------------------------------------------------------------
    Rein optische Verfeinerung der Heute-Seite. Bewusst als eigener, klar
@@ -1747,7 +1747,6 @@ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
  html.a2-premium-start-test #a2Inhalt.a2-heute{padding-top:16px}
  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:132px}
 }
-=======
 /* ---- v3.433: Startbildschirm - nur das Wichtigste sofort, Nebeninformationen eingeklappt ----------------------------------
    Ansage des Anwenders: uebersichtlich, nicht verschachtelt, wie eine professionelle moderne Software. Erster Schritt: der Startbildschirm. */
 #a2Inhalt.a2-heute .a2-hero-bild{aspect-ratio:auto;height:88px;object-position:center}
