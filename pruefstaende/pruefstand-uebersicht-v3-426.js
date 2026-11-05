@@ -144,6 +144,9 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   const d=document.createElement("div");d.innerHTML=h;
   return {einr:!!d.querySelector("details.ueb-einr"),neben:!!d.querySelector("details.ueb-neben #tTer"),roh:!!d.querySelector("#a2HeuteAufgaben")}});
  p(r.einr&&r.neben&&r.roh,"Auf dem Startbildschirm selbst: Einrichtung und Nebeninformationen sind eingeklappt, die Aufgaben stehen weiter offen da",r);
+ r=await ev(()=>{const h=a2HeuteAktionenHtml();return {suche:/data-a2-tu="suche"/.test(h),svg:/data-a2-tu="suche"><svg/.test(h),emoji:/🔍/.test(h)}});
+ p(r.suche&&r.svg&&!r.emoji,"Startbildschirm: «Suche» mit Linien-Symbol statt Emoji (einheitliche Symbolsprache)",r);
+ r=await ev(()=>{const h=document.documentElement;const k=document.querySelector(".a2-kpi");const s=getComputedStyle(document.querySelector("#a2Inhalt")||document.body);return {ok:true}});
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);

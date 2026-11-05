@@ -34963,3 +34963,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.433 – Startbildschirm aufgeräumt (Umbau Schritt 1)
 - Einrichtung und Nebeninformationen eingeklappt, Kopfbild schmaler. Prüfstand D5.
+
+## v3.434 – Startbildschirm: moderner Look
+- Nur Darstellung (css/05, js/70 Such-Symbol). Prüfstand-Fall in uebersicht-v3-426.

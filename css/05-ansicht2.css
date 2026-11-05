@@ -1774,3 +1774,61 @@ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
 #a2Inhalt .ueb-inhalt .einr-stand{color:var(--muted)}
 #a2Inhalt .ueb-inhalt .einr-freiwillig{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--card-line,#e1e6ee);border-radius:8px;padding:0 6px}
 @media print{#a2Inhalt .ueb-zeile{display:none}}
+
+/* ---- v3.434: Startbildschirm - Look einer professionellen modernen Software --------------------------------------------
+   Ruhiger Grund, weisse Flaechen mit feiner Linie statt schwerer Kaesten, klare Hierarchie (Titel, Kennzahl, Beschriftung),
+   Pillen-Filter als Segment-Schalter, kein Emoji-Schmuck. Nur Darstellung - keine Logik, keine Wege. */
+#a2Inhalt.a2-heute{--u-grund:#f5f7fa;--u-linie:#e3e8ee;--u-schatten:0 1px 2px rgba(16,24,40,.05);--u-radius:12px}
+html.dark #a2Inhalt.a2-heute{--u-grund:var(--bg);--u-linie:var(--card-line);--u-schatten:none}
+#a2Inhalt.a2-heute{letter-spacing:-.006em}
+/* Kopf: schmaler Markenstreifen, die Begruessung liegt auf dem Bild */
+#a2Inhalt.a2-heute .a2-hero-fix{position:relative;border-radius:var(--u-radius);box-shadow:var(--u-schatten);margin:0 0 14px;background:#0c4a85}
+#a2Inhalt.a2-heute .a2-hero-bild{height:84px;object-position:left center}
+#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{display:none}   /* Begruessung, Datum und Name stehen schon in der Kopfleiste; das Bild bleibt als Markenstreifen */
+/* Aktionen */
+#a2Inhalt.a2-heute .a2-aktionen{gap:8px;margin:0 0 10px}
+#a2Inhalt.a2-heute .a2-aktionen .a2-knopf{min-height:44px;border-radius:10px;font-weight:600;font-size:14.5px;letter-spacing:-.005em;box-shadow:var(--u-schatten)}
+#a2Inhalt.a2-heute .a2-aktionen .a2-k-blau{background:var(--blue);border-color:var(--blue);box-shadow:0 1px 2px rgba(23,105,170,.35)}
+#a2Inhalt.a2-heute .a2-aktionen .a2-k-grau{background:var(--card-bg,#fff);border:1px solid var(--u-linie);color:var(--ink)}
+#a2Inhalt.a2-heute .a2-aktionen .a2-knopf svg{vertical-align:-3px;margin-right:6px}
+/* Suchfeld */
+#a2Inhalt.a2-heute .a2-hsuche-feld,#a2Inhalt.a2-heute .a2-hsuche-filter{border-radius:10px;border:1px solid var(--u-linie);background:var(--card-bg,#fff);box-shadow:var(--u-schatten)}
+/* Kennzahlen: ruhige Flaechen, Zahl gross, Beschriftung klein */
+#a2Inhalt.a2-heute .a2-kpis{gap:8px;margin:0 0 14px}
+#a2Inhalt.a2-heute .a2-kpi{border-radius:var(--u-radius);border:1px solid var(--u-linie);background:var(--card-bg,#fff);box-shadow:var(--u-schatten);padding:12px 14px}
+#a2Inhalt.a2-heute .a2-kpi{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;column-gap:10px;row-gap:0;align-items:center;padding:10px 12px}
+#a2Inhalt.a2-heute .a2-kpi i{grid-row:1 / span 2;width:34px;height:34px;border-radius:9px;align-items:center;justify-content:center;background:var(--blue-light);margin:0}
+#a2Inhalt.a2-heute .a2-kpi em{grid-column:2}
+#a2Inhalt.a2-heute .a2-kpi.a2-z-gruen i{background:var(--green-light)}
+#a2Inhalt.a2-heute .a2-kpi.a2-z-orange i{background:rgba(224,130,20,.14)}
+#a2Inhalt.a2-heute .a2-kpi b{font-size:26px;font-weight:700;letter-spacing:-.02em;line-height:1.05;font-variant-numeric:tabular-nums}
+#a2Inhalt.a2-heute .a2-kpi span{font-size:12.5px;font-weight:500;color:var(--muted);margin-top:3px}
+/* Eingeklappte Zeilen */
+#a2Inhalt.a2-heute .ueb-zeile{border-radius:var(--u-radius);border-color:var(--u-linie);box-shadow:var(--u-schatten)}
+#a2Inhalt.a2-heute .ueb-titel{font-size:14.5px;font-weight:600;flex:none}
+#a2Inhalt.a2-heute .ueb-neben>summary{flex-wrap:nowrap}
+#a2Inhalt.a2-heute .ueb-neben .ueb-info{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#a2Inhalt.a2-heute .ueb-balken{height:3px}
+/* Hinweis: schlanker Streifen statt grosser Karte */
+#a2Inhalt.a2-heute .a2-karte-hinweis{border:1px solid #cfe2f3;border-left:3px solid var(--blue);border-radius:var(--u-radius);box-shadow:none;padding:11px 14px}
+#a2Inhalt.a2-heute .a2-karte-hinweis .a2-karte-titel{font-size:14px;font-weight:600}
+#a2Inhalt.a2-heute .a2-karte-hinweis .a2-karte-unter{font-size:12.5px;line-height:1.45;margin:2px 0 8px}
+#a2Inhalt.a2-heute .a2-karte-hinweis .a2-knopf-reihe{justify-content:flex-start}
+#a2Inhalt.a2-heute .a2-karte-hinweis .a2-knopf-reihe .a2-knopf{flex:0 0 auto;width:auto;min-width:0;min-height:34px;padding:0 18px;font-size:13px;border-radius:8px}
+/* Abschnittsueberschriften: Titel statt Versalien mit Unterstrich */
+#a2Inhalt.a2-heute .a2-abschnitt{margin:0 0 18px}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf{display:flex;align-items:center;gap:8px;margin:0 0 8px;border:0;padding:0}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf h2{border:0;padding:0;margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;text-transform:none;color:var(--ink)}
+#a2Inhalt.a2-heute .a2-abschnitt-kopf>button{margin-left:auto;font-size:13px;font-weight:600;color:var(--blue);background:none;border:0;box-shadow:none;padding:4px 0;min-height:0}
+/* Leerer Zustand: ruhige Flaeche statt gestricheltem Kasten */
+#a2Inhalt.a2-heute .a2-leer{border:1px solid var(--u-linie);border-style:solid;border-radius:var(--u-radius);background:var(--card-bg,#fff);color:var(--muted);font-size:13.5px;padding:18px 14px;box-shadow:var(--u-schatten)}
+/* Filter: Segment-Schalter */
+#a2Inhalt.a2-heute .a2-register-klein{display:inline-flex;flex-wrap:nowrap;gap:2px;padding:3px;margin:0 0 10px;border-radius:10px;background:#e9edf2;max-width:100%;overflow-x:auto;scrollbar-width:none}
+html.dark #a2Inhalt.a2-heute .a2-register-klein{background:var(--card-line)}
+#a2Inhalt.a2-heute .a2-register-klein::-webkit-scrollbar{display:none}
+#a2Inhalt.a2-heute .a2-register-klein button{flex:none;min-height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;box-shadow:none}
+#a2Inhalt.a2-heute .a2-register-klein button.ist-auf{background:var(--card-bg,#fff);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+/* Zeilen (Projekte, Aufgaben): feine Linie, weisse Flaeche */
+#a2Inhalt.a2-heute .a2-zeile{border-radius:var(--u-radius);border:1px solid var(--u-linie);background:var(--card-bg,#fff);box-shadow:var(--u-schatten)}
+#a2Inhalt.a2-heute .a2-zeile-text b{font-weight:600;letter-spacing:-.005em}
+@media(min-width:700px){#a2Inhalt.a2-heute .a2-hero-bild{height:auto;aspect-ratio:1400/330;max-height:150px;object-position:center}}

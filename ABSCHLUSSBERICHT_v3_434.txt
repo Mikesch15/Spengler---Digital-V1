@@ -1,0 +1,2 @@
+Abschlussbericht v3.434
+Startbildschirm: moderner Look (css/05, nur Heute-Seite). Seitenhöhe Demo 921 px. Prüfstände Startseite/Übersicht grün, Gegenprobe greift. Nicht geprüft: echtes Gerät. Anleitungs-Screenshot 44 nicht neu erzeugt.

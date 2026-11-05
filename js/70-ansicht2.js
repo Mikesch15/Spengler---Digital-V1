@@ -668,7 +668,7 @@ function a2HeuteAktionenHtml(){
  const knoepfe=[];
  if(neu)knoepfe.push('<button type="button" class="a2-knopf a2-k-blau" data-a2-tu="neuesprojekt">＋ Neues Projekt</button>');
  // v3.430: «Projekt öffnen» entfällt - dasselbe tun die Leiste unten, die Kachel «Offene Projekte», «Alle Projekte ›» und das Suchfeld.
- if(suche)knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="suche">🔍 Suche</button>');
+ if(suche)knoepfe.push('<button type="button" class="a2-knopf a2-k-grau" data-a2-tu="suche"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>Suche</button>');
  return `<div class="a2-aktionen" role="group" aria-label="Schnellaktionen">${knoepfe.join("")}</div>`;
 }
 // v3.354: Kopfbereich nach dem Wunschbild: Firmenlogo, Begrüssung, Datum und Name. Kein Bild, nichts Erfundenes.
