@@ -1364,6 +1364,63 @@ function a2EbeneZurueck(){
  }else a2Zustand.seite="heute";
  a2Zeichnen(); window.scrollTo(0,0);
 }
+// Eigenstaendiges, rein darstellerisches Startseiten-Cockpit fuer die Vorschau.
+// Bestehende DOM-Elemente und data-a2-Handler werden verschoben, nicht kopiert.
+function a2PremiumHeuteUmbauen(){
+ const root=$("a2Inhalt");
+ if(!root||!root.classList.contains("a2-heute")||!document.documentElement.classList.contains("a2-premium-start-test"))return;
+ if(root.querySelector(".sd-home"))return;
+ const original=Array.from(root.children);
+ const hero=root.querySelector(":scope > .a2-hero");
+ const gruss=hero&&hero.querySelector(".a2-hero-gruss");
+ const unter=hero&&hero.querySelector(".a2-hero-unter");
+ const shell=document.createElement("div"); shell.className="sd-home";
+ const kopf=document.createElement("section"); kopf.className="sd-home-kopf";
+ const intro=document.createElement("div"); intro.className="sd-home-intro";
+ const kicker=document.createElement("div"); kicker.className="sd-home-kicker"; kicker.textContent="SPENGLER-DIGITAL  /  ARBEITSDASHBOARD";
+ const titel=document.createElement("h1"); titel.textContent=gruss?gruss.textContent:"Dein Arbeitstag";
+ const datum=document.createElement("p"); datum.textContent=unter?unter.textContent:a2HeuteDatum();
+ intro.append(kicker,titel,datum);
+ const aktionen=document.createElement("div"); aktionen.className="sd-home-aktionen";
+ const stand=document.createElement("section"); stand.className="sd-home-stand";
+ const standTitel=document.createElement("div"); standTitel.className="sd-home-sektionstitel";
+ const standLabel=document.createElement("span"); standLabel.textContent="AUF EINEN BLICK";
+ const standHeading=document.createElement("b"); standHeading.textContent="Dein Arbeitsstand";
+ standTitel.append(standLabel,standHeading);
+ const raster=document.createElement("div"); raster.className="sd-home-kpis";
+ const grid=document.createElement("div"); grid.className="sd-home-grid";
+ const haupt=document.createElement("div"); haupt.className="sd-home-haupt";
+ const seite=document.createElement("aside"); seite.className="sd-home-seite";
+ const projekte=document.createElement("section"); projekte.className="sd-home-projekte";
+ const projKopf=document.createElement("div"); projKopf.className="sd-home-projektkopf";
+ const projTitel=document.createElement("div"); projTitel.className="sd-home-sektionstitel";
+ const projLabel=document.createElement("span"); projLabel.textContent="DEINE AUFTRÄGE";
+ const projHeading=document.createElement("b"); projHeading.textContent="Offene Projekte";
+ projTitel.append(projLabel,projHeading); projKopf.append(projTitel);
+ const projektTools=document.createElement("div"); projektTools.className="sd-home-projekttools";
+ let projekteGefunden=false;
+ original.forEach(el=>{
+  if(el===hero||el.classList.contains("a2-hero"))return;
+  if(el.classList.contains("a2-aktionen")){aktionen.appendChild(el);return;}
+  if(el.classList.contains("a2-kpis")){raster.appendChild(el);return;}
+  if(el.classList.contains("a2-hsuche")){projektTools.appendChild(el);return;}
+  if(el.id==="a2HeuteAufgaben"){haupt.appendChild(el);return;}
+  if(el.id==="a2HeuteProjekte"){projekte.appendChild(el);projekteGefunden=true;return;}
+  if(el.classList.contains("a2-hinweise")||el.classList.contains("a2-hinweis")||el.classList.contains("a2-karte-hinweis")||el.classList.contains("a2-h-warnung")){seite.appendChild(el);return;}
+  if(el.classList.contains("a2-abschnitt")){haupt.appendChild(el);return;}
+  seite.appendChild(el);
+ });
+ if(raster.children.length)stand.append(standTitel,raster);
+ if(projektTools.children.length)projKopf.appendChild(projektTools);
+ if(projekteGefunden)projekte.prepend(projKopf);
+ else if(projektTools.children.length)projekte.append(projKopf);
+ if(aktionen.children.length)kopf.append(aktionen);
+ kopf.prepend(intro); shell.append(kopf);
+ if(stand.children.length)shell.append(stand);
+ grid.append(haupt,seite); shell.append(grid);
+ if(projekte.children.length)shell.append(projekte);
+ root.replaceChildren(shell); root.classList.add("sd-home-active");
+}
 function a2Zeichnen(){
  if(!a2Aktiv())return;
  const schirm=$("a2Screen");
@@ -1438,6 +1495,7 @@ function a2Zeichnen(){
  {const istHeute=a2Zustand.seite==="heute"&&!ber;
   $("a2Inhalt").classList.toggle("a2-heute",istHeute);
   document.documentElement.classList.toggle("a2-heute-an",istHeute);}
+  if(a2Zustand.seite==="heute"&&!ber)a2PremiumHeuteUmbauen();
  // v3.280: Die Fotos im Register "Dateien" holen ihre Vorschau erst jetzt - vor
  // dem Einfuegen gaebe es die Bilder noch nicht. Nur Seiten mit Fotos haben
  // solche Bilder, alle anderen Seiten kostet das nichts.
