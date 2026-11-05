@@ -1,4 +1,5 @@
 "use strict";
+// v3.432: Wartezeiten nach setInputFiles (50/200 ms) auf 400/1000 ms - auf dem GitHub-Runner (v3.431) einmal rot, im zweiten Lauf desselben Commits gruen.
 // ---- Pruefstand: PDF der Offerte hochladen (v3.38) ------------------------
 //
 // Auftrag (Wunsch des Betriebs, woertlich): "ich komme nach wie vor nur zu
@@ -256,7 +257,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.locator("#angPdfInput").setInputFiles({
   name:"Offerte-Muster.pdf",mimeType:"application/pdf",buffer:Buffer.from("%PDF-1.4\n%%EOF")
  });
- await page.waitForTimeout(50);
+ await page.waitForTimeout(400);
  const ausgewaehlt=await page.evaluate(()=>({
   hatNewFile:!!angPdfNewFile,dateiname:angPdfNewFile&&angPdfNewFile.name,
   bereichHtml:$("angPdfBereich").innerHTML,
@@ -275,7 +276,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.locator("#angPdfInput").setInputFiles({
   name:"notizen.txt",mimeType:"text/plain",buffer:Buffer.from("kein PDF")
  });
- await page.waitForTimeout(50);
+ await page.waitForTimeout(400);
  const falschesFormat=await page.evaluate(()=>({angPdfNewFile,bereichText:$("angPdfBereich").textContent.trim()}));
  p(falschesFormat.angPdfNewFile===null,"eine .txt-Datei wird NICHT als angPdfNewFile uebernommen",falschesFormat);
  p((page.__dialoge||[]).includes("Bitte nur eine PDF-Datei auswählen."),"und die App meldet genau diesen Text",page.__dialoge);
@@ -295,7 +296,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  console.log("\n4 · Zu grosse PDF-Datei (>50 MB) wird abgewiesen, mit der exakten Meldung");
  page.__dialoge=[];
  await page.locator("#angPdfInput").setInputFiles(grosseDateiPfad(52428801));
- await page.waitForTimeout(200);
+ await page.waitForTimeout(1000);
  const zuGross=await page.evaluate(()=>({angPdfNewFile}));
  p(zuGross.angPdfNewFile===null,"eine 50 MB + 1 Byte grosse PDF-Datei wird NICHT uebernommen",zuGross);
  p((page.__dialoge||[]).includes("Die Datei ist zu gross (50.0 MB). Erlaubt sind höchstens 50 MB pro Datei."),
@@ -303,7 +304,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
 
  page.__dialoge=[];
  await page.locator("#angPdfInput").setInputFiles(grosseDateiPfad(52428800));
- await page.waitForTimeout(200);
+ await page.waitForTimeout(1000);
  const genauGrenze=await page.evaluate(()=>({angPdfNewFile:!!angPdfNewFile,name:angPdfNewFile&&angPdfNewFile.name}));
  // Der Dateiname kommt hier vom echten Dateipfad auf der Platte
  // (setInputFiles mit Pfad statt Buffer-Objekt, siehe grosseDateiPfad()) -
@@ -326,7 +327,7 @@ const ATTRAPPE=`window.supabase={createClient:()=>{
  await page.locator("#angPdfInput").setInputFiles({
   name:"Offerte-Endgueltig.pdf",mimeType:"application/pdf",buffer:Buffer.from("%PDF-1.4\ninhalt\n%%EOF")
  });
- await page.waitForTimeout(50);
+ await page.waitForTimeout(400);
  await page.evaluate(()=>{window.__uploads=[];window.__schreib=[]});
  const gespeichert=await page.evaluate(async()=>{
   await $("saveAngebot").onclick();
