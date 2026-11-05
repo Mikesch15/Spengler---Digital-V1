@@ -43,6 +43,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  const fehler=[]; page.on("pageerror",e=>fehler.push(String(e))); page.on("dialog",d=>d.accept());
  await page.route(/cdn\.jsdelivr\.net|\/vendor\/supabase\./,r=>r.fulfill({status:200,contentType:"application/javascript",body:STUB}));
  await page.goto(APP,{waitUntil:"load"});
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.proj=true});   // v3.437: «Offene Projekte» ist sonst zugeklappt
  await page.waitForTimeout(600);
  await page.evaluate(()=>{
   currentProfile={id:"u1",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"c1"};

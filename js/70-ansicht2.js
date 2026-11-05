@@ -684,7 +684,7 @@ function a2HeuteHeroHtml(){
  return `<div class="a2-hero a2-hero-fix">
   <img class="a2-hero-bild" src="${esc(typeof kopfBildSigniert!=="undefined"&&kopfBildSigniert?kopfBildSigniert:"img/startbanner.jpg")}" alt="${esc(name)}" width="1400" height="525" decoding="async">
   <div class="a2-hero-text">
-   <div class="a2-hero-gruss">${esc(a2HeuteGruss())}</div>
+   <div class="a2-hero-gruss">${esc(a2HeuteGruss())}${profil&&String(profil.first_name||"").trim()?", "+esc(String(profil.first_name).trim()):""}</div>
    <div class="a2-hero-unter">${esc(a2HeuteDatum())} · ${esc(a2Name(profil))}</div>
   </div>
  </div>`;
@@ -808,7 +808,8 @@ function a2SeiteHeute(){
  // v3.430: Wetter (js/90, nur wenn eingeschaltet), nächste Termine (js/92) und Zeitmessung (js/93) stehen
  // NACH Aufgaben und Projekten - zuerst kommt, womit man arbeitet. Gesammelt in "nebenher", unten angehängt.
  let nebenher="";
- if(typeof wetterKarteHtml==="function")nebenher+=wetterKarteHtml();
+ // v3.437: das Wetter steht ueber «Wichtige Hinweise» (Anweisung), nicht mehr unter «Weitere Informationen»
+ const wetter=(typeof wetterKarteHtml==="function")?wetterKarteHtml():"";
  if(typeof terKarteHtml==="function")nebenher+=terKarteHtml();
  if(typeof zmKarteHtml==="function")nebenher+=zmKarteHtml("heute");
 
@@ -874,6 +875,7 @@ function a2SeiteHeute(){
   </div>`;
  });
 
+ html+=wetter;
  // ---- Wichtige Hinweise -------------------------------------------------- (v3.436: eingeklappt, eine Zeile)
  // v3.160: Die freie Notiz am Projekt (Zufahrt, Schluessel, Ansprechpartner). Gezeigt wird ausschliesslich, was jemand
  // eingetragen hat - gibt es keine Notiz, gibt es auch keinen Abschnitt.
@@ -958,13 +960,16 @@ function a2SeiteHeute(){
   const arbeitN=offenAlle.filter(p=>p.status==="in_arbeit").length;
   const nahN=a2WerkstattSichtbar()&&a2WerkGeladen?a2NaheMontageProjekte(offenAlle).length:null;
   const chip=(k,text)=>`<button type="button" data-a2-pfilter="${k}"${a2ProjektFilter===k?' class="ist-auf"':""}>${text}</button>`;
-  html+=`<div class="a2-abschnitt" id="a2HeuteProjekte">
-   <div class="a2-abschnitt-kopf"><h2>Offene Projekte</h2>
+  // v3.437: eingeklappt, eine Zeile «Offene Projekte – n» (Filter und Liste liegen darin; die Suche oben oeffnet sie)
+  const projInh=`<div class="a2-abschnitt-kopf" style="margin-top:8px"><h2>Offene Projekte</h2>
     <button type="button" data-a2-tab="projekte">Alle Projekte (${offenAlle.length}) ›</button></div>
    <div class="a2-register a2-register-klein">
     ${chip("meine","Meine ("+meineN+")")}${chip("alle","Alle ("+offenAlle.length+")")}${chip("in_arbeit","In Arbeit ("+arbeitN+")")}${nahN===null?"":chip("montage","Nahe Montage ("+nahN+")")}
    </div>
-   <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div></div>`;
+   <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div>`;
+  html+=(typeof uebKlappHtml==="function")
+   ? uebKlappHtml("proj","Offene Projekte",offenAlle.length+" offen",projInh,"a2HeuteProjekte","a2-abschnitt")
+   : `<div class="a2-abschnitt" id="a2HeuteProjekte">${projInh}</div>`;
  }
  // v3.433: Nebeninformationen (Termine, Wetter, Zeitmessung) zugeklappt unter einer Zeile (js/107)
  return html+((typeof uebNebenHtml==="function")?uebNebenHtml(nebenher):nebenher);

@@ -34972,3 +34972,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.436 – Startbildschirm: Hinweise/Aufgaben/Montagen zugeklappt, Werkstatt heute entfernt
 - Prüfstand D7.
+
+## v3.437 – Startbildschirm: Projekte zugeklappt, Wetter oben, Banner mit Begrüssung
+- Prüfstand D8; v3.436-Prüfstände nachgezogen.

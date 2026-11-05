@@ -156,13 +156,20 @@ ${schritt(3,"Zuschnitt und Rüstliste","Die Teile zuschneiden, abhaken und die R
 // Ansage des Anwenders: "Es soll nur das wichtigste sofort zu sehen sein. Alles, was Nebeninformationen sind,
 // zugeklappt oder an einem Ort, der nicht in den Hauptbildschirmen ist. Nicht verschachtelt."
 // Der aufgeklappte Zustand wird gemerkt, sonst klappt jedes Neuzeichnen der Seite (Daten laden) alles wieder zu.
-const uebOffen={einr:false,neben:false,hinweise:false,aufg:false};
+const uebOffen={einr:false,neben:false,hinweise:false,aufg:false,proj:false};
 // Allgemeine eingeklappte Zeile (v3.436): Titel + Kurzinfo, darunter der Inhalt. id optional (Sprungziel der Kennzahl-Kacheln).
 function uebKlappHtml(key,titel,info,inhalt,id,klasse){
  return `<details class="ueb-zeile ueb-klapp${klasse?" "+esc(klasse):""}" data-ueb-offen="${esc(key)}"${id?` id="${esc(id)}"`:""}${uebOffen[key]?" open":""}>
 <summary><span class="ueb-titel">${esc(titel)}</span><span class="ueb-info">${esc(info)}</span></summary>
 <div class="ueb-inhalt">${inhalt}</div></details>`;
 }
+// Wer oben nach einem Projekt sucht, will das Ergebnis sehen: die zugeklappte Zeile «Offene Projekte» geht dabei auf.
+document.addEventListener("input",e=>{
+ if(e.target&&e.target.id==="a2HeuteSuche"){
+  const z=document.getElementById("a2HeuteProjekte");
+  if(z&&z.tagName==="DETAILS"&&!z.open)z.open=true;
+ }
+});
 // Die Kennzahl «Offene Aufgaben» springt zur Zeile - ist sie zugeklappt, wird sie dabei geoeffnet (vor dem Sprung in js/70).
 document.addEventListener("click",e=>{
  const k=e.target&&e.target.closest?e.target.closest("[data-a2-scroll]"):null;
@@ -185,7 +192,7 @@ function uebEinrichtungHtml(){
 function uebNebenHtml(inhalt){
  if(!inhalt||!String(inhalt).trim())return "";
  return `<details class="ueb-zeile ueb-neben" data-ueb-offen="neben"${uebOffen.neben?" open":""}>
-<summary><span class="ueb-titel">Weitere Informationen</span><span class="ueb-info">Termine · Wetter · Zeitmessung</span></summary>
+<summary><span class="ueb-titel">Weitere Informationen</span><span class="ueb-info">Termine · Zeitmessung</span></summary>
 <div class="ueb-inhalt">${inhalt}</div></details>`;
 }
 document.addEventListener("toggle",e=>{

@@ -1,0 +1,2 @@
+Abschlussbericht v3.437
+Startbildschirm: Offene Projekte zugeklappt (Suche öffnet), Wetter über Hinweisen, Banner 124 px mit Begrüssung + Vorname. Prüfstand D8 + 4 Gegenproben; 26 Startseiten-Prüfstände lokal grün. Hinweis: die CI von v3.436 war rot (3 Prüfstände lasen zugeklappte Zeilen) - hier behoben. Nicht geprüft: echtes Gerät.

@@ -79,6 +79,7 @@ const box=(page)=>page.evaluate(()=>{
  let letzterDialog="";
  page.on("dialog",d=>{letzterDialog=d.message();d.accept()});
  await page.goto(APP,{waitUntil:"load"}); await page.waitForTimeout(400);
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true;uebOffen.proj=true});   // v3.436: die Zeilen der Startseite sind sonst zugeklappt
  // v3.151: Die neue Ansicht ist seit dieser Version die VORGABE. Dieser
  // Pruefstand prueft Ablaeufe, die von der KLASSISCHEN Startseite ausgehen
  // (ihre Knoepfe, ihre Karten) - sie wird deshalb ausdruecklich gewaehlt.

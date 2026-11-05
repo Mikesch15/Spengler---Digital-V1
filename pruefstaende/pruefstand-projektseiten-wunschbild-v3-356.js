@@ -133,7 +133,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   if(!i)return null;
   const h=document.querySelector("#a2Inhalt .a2-hero-fix");
   return {src:i.getAttribute("src"),alt:i.alt,geladen:i.complete&&i.naturalWidth>0,breite:Math.round(i.getBoundingClientRect().width),
-   hw:Math.round(h.getBoundingClientRect().width),gruss:/^Guten (Morgen|Tag|Abend)$/.test((h.querySelector(".a2-hero-gruss")||{}).textContent||""),
+   hw:Math.round(h.getBoundingClientRect().width),gruss:/^Guten (Morgen|Tag|Abend)(, \S+)?$/.test((h.querySelector(".a2-hero-gruss")||{}).textContent||""),
    unter:(h.querySelector(".a2-hero-unter")||{}).textContent||"",altLogo:!!h.querySelector(".a2-hero-logo"),mitBild:!!document.querySelector("#a2Inhalt .a2-hero-mit-bild")};
  });
  p(l&&l.src==="img/startbanner.jpg"&&l.geladen&&l.breite>=l.hw-2,"Kopf zeigt das feste Banner über die ganze Breite (Datei geladen)",l);

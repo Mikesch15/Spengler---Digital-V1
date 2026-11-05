@@ -1783,8 +1783,10 @@ html.dark #a2Inhalt.a2-heute{--u-grund:var(--bg);--u-linie:var(--card-line);--u-
 #a2Inhalt.a2-heute{letter-spacing:-.006em}
 /* Kopf: schmaler Markenstreifen, die Begruessung liegt auf dem Bild */
 #a2Inhalt.a2-heute .a2-hero-fix{position:relative;border-radius:var(--u-radius);box-shadow:var(--u-schatten);margin:0 0 14px;background:#0c4a85}
-#a2Inhalt.a2-heute .a2-hero-bild{height:84px;object-position:left center}
-#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{display:none}   /* Begruessung, Datum und Name stehen schon in der Kopfleiste; das Bild bleibt als Markenstreifen */
+#a2Inhalt.a2-heute .a2-hero-bild{height:124px;object-position:left center}
+/* v3.437: Banner wieder etwas groesser, mit Begruessung und Vorname (Datum und Name stehen in der Kopfleiste) */
+#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:9px 14px 11px}
+#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-gruss{font-size:19px;font-weight:700;letter-spacing:-.01em}
 /* Aktionen */
 #a2Inhalt.a2-heute .a2-aktionen{gap:8px;margin:0 0 10px}
 #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{min-height:44px;border-radius:10px;font-weight:600;font-size:14.5px;letter-spacing:-.005em;box-shadow:var(--u-schatten)}
@@ -1831,7 +1833,7 @@ html.dark #a2Inhalt.a2-heute .a2-register-klein{background:var(--card-line)}
 /* Zeilen (Projekte, Aufgaben): feine Linie, weisse Flaeche */
 #a2Inhalt.a2-heute .a2-zeile{border-radius:var(--u-radius);border:1px solid var(--u-linie);background:var(--card-bg,#fff);box-shadow:var(--u-schatten)}
 #a2Inhalt.a2-heute .a2-zeile-text b{font-weight:600;letter-spacing:-.005em}
-@media(min-width:700px){#a2Inhalt.a2-heute .a2-hero-bild{height:auto;aspect-ratio:1400/330;max-height:150px;object-position:center}}
+@media(min-width:700px){#a2Inhalt.a2-heute .a2-hero-bild{height:auto;aspect-ratio:1400/400;max-height:190px;object-position:center}}
 /* v3.435: Gemeldet (Foto): vier Kennzahlen nebeneinander wurden zu schmalen Streifen mit senkrecht gebrochener Schrift.
    Auf dem Handy immer zwei Spalten (bei vier Kacheln 2 x 2), die Beschriftung bricht nur an Wortgrenzen; ab 700 px alle in einer Reihe. */
 #a2Inhalt.a2-heute .a2-kpis{grid-auto-flow:row;grid-template-columns:repeat(2,minmax(0,1fr))}

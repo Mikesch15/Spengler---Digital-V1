@@ -13,6 +13,7 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  const page=await b.newPage({viewport:{width:412,height:1600}});page.__f=[];page.on("pageerror",e=>page.__f.push(String(e)));
  await stubSchuetzen(page);await page.addInitScript(INIT);
  await page.goto("file://"+path.join(process.cwd(),"index.html"));await page.waitForTimeout(400);
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.proj=true});   // v3.437: «Offene Projekte» ist sonst zugeklappt
  const ev=(f,...a)=>page.evaluate(f,...a);
  await ev(()=>{window.appAlert=async()=>{};window.__ef=[];window.efMelden=async k=>{window.__ef.push(k);return {}};localStorage.removeItem("sd_firmaAnsicht");uebAnsicht=uebLaden();currentProfile={role:"admin"}});
 
@@ -112,8 +113,8 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r===false,"Mit einem Projekt verschwindet der Einstieg von selbst",r);
  r=await ev(()=>{const alt={w:window.wetterKarteHtml,t:window.terKarteHtml,z:window.zmKarteHtml};window.wetterKarteHtml=()=>'<div id="tWetter"></div>';window.terKarteHtml=()=>'<div id="tTermine"></div>';window.zmKarteHtml=()=>'<div id="tZeit"></div>';
   const alt2=a2OffeneProjekte;a2OffeneProjekte=()=>[{id:1,name:"X",status:"in_arbeit"}];const h=a2SeiteHeute();a2OffeneProjekte=alt2;window.wetterKarteHtml=alt.w;window.terKarteHtml=alt.t;window.zmKarteHtml=alt.z;
-  return {ordnung:h.indexOf("a2HeuteProjekte")<h.indexOf("tTermine")&&h.indexOf("a2HeuteProjekte")<h.indexOf("tWetter")&&h.indexOf("a2HeuteProjekte")<h.indexOf("tZeit"),da:/tWetter/.test(h)&&/tTermine/.test(h)&&/tZeit/.test(h)}});
- p(r.ordnung&&r.da,"Wetter, Termine und Zeitmessung stehen nach den Offenen Projekten (und sind weiter da)",r);
+  return {ordnung:h.indexOf("a2HeuteProjekte")<h.indexOf("tTermine")&&h.indexOf("a2HeuteProjekte")<h.indexOf("tZeit")&&h.indexOf("tWetter")<h.indexOf("a2HeuteProjekte"),da:/tWetter/.test(h)&&/tTermine/.test(h)&&/tZeit/.test(h)}});
+ p(r.ordnung&&r.da,"Termine und Zeitmessung stehen nach den Offenen Projekten, das Wetter davor (v3.437); alles ist weiter da",r);
  console.log("\nD5 · Startbildschirm: Nebeninformationen eingeklappt");
  r=await ev(()=>{
   const d=document.createElement("div");d.innerHTML=uebNebenHtml('<div id="x1">Termine</div>');const n=d.querySelector("details.ueb-neben");
@@ -169,6 +170,20 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   if(!k)return {kein:true};k.click();await new Promise(x=>setTimeout(x,100));return {offen:z.open}});
  p(r.kein||r.offen===true,"Die Kennzahl «Offene Aufgaben» öffnet die zugeklappte Zeile beim Hinspringen",r);
  await ev(()=>{uebOffen.aufg=false;uebOffen.hinweise=false});
+ console.log("\nD8 · Offene Projekte zugeklappt, Wetter über den Hinweisen, Begrüssung mit Vorname");
+ r=await ev(async()=>{allProjects=[{id:1,name:"Dach Nord",object:"Weg 1",status:"in_arbeit",archived:false}];uebOffen.proj=false;uebOffen.hinweise=false;
+  window.a2HinweisProjekte=()=>[{id:1,name:"Dach Nord",hinweis:"Zufahrt"}];const alt=window.wetterKarteHtml;window.wetterKarteHtml=()=>'<div id="tWetter2"></div>';
+  currentProfile={id:"u1",role:"admin",first_name:"Mike",last_name:"Ledermann",company_id:"c1"};
+  $("appRoot").hidden=false;$("authScreen").hidden=true;$("startScreen").hidden=false;a2Zustand.seite="heute";a2Zeichnen();await new Promise(x=>setTimeout(x,200));
+  const I=document.getElementById("a2Inhalt");const pj=I.querySelector("details[data-ueb-offen=proj]");const h=I.innerHTML;
+  const o={zu:!!pj&&!pj.open,id:pj&&pj.id,info:pj&&pj.querySelector(".ueb-info").textContent,liste:!!(pj&&pj.querySelector("#a2HeuteProjListe")),chips:pj?pj.querySelectorAll("[data-a2-pfilter]").length:0,
+   wetterVorHinweisen:h.indexOf("tWetter2")>=0&&h.indexOf("tWetter2")<h.indexOf('data-ueb-offen="hinweise"'),gruss:(I.querySelector(".a2-hero-gruss")||{}).textContent};
+  const s=document.getElementById("a2HeuteSuche");s.value="Dach";s.dispatchEvent(new Event("input",{bubbles:true}));o.sucheOeffnet=document.getElementById("a2HeuteProjekte").open;
+  window.wetterKarteHtml=alt;uebOffen.proj=false;return o});
+ p(r.zu&&r.id==="a2HeuteProjekte"&&r.info==="1 offen"&&r.liste&&r.chips>=3,"«Offene Projekte» ist eine zugeklappte Zeile («1 offen»), Filter und Liste liegen darin",r);
+ p(r.sucheOeffnet===true,"Die Suche oben öffnet die zugeklappte Projektzeile",r);
+ p(r.wetterVorHinweisen===true,"Das Wetter steht über «Wichtige Hinweise»",r);
+ p(r.gruss==="Guten Morgen, Mike"||r.gruss==="Guten Tag, Mike"||r.gruss==="Guten Abend, Mike","Begrüssung mit Vorname",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);
