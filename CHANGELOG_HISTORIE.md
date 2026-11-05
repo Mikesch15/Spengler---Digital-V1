@@ -34957,3 +34957,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.431 – Bereiche ohne Seitenleiste
 - Offset 226 px nur noch mit a2-leiste-da. Prüfstand bereich-ohne-leiste.
+
+## v3.432 – Ausmasse drucken
+- Komplettausmass-Druck (js/85), 🖨️ je Ausmass in der Liste (js/70). Prüfstand ausmass-druck.

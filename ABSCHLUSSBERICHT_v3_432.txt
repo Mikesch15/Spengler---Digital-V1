@@ -1,0 +1,2 @@
+Abschlussbericht v3.432
+Ausmasse drucken: Komplettausmass (js/85 kaDrucken) und 🖨️ je Ausmass in der Liste der neuen Ansicht (js/70). Vorhanden war der Druck nur im Ausmass-Formular und in der klassischen Liste. Prüfstand + 3 Gegenproben, Ausmass-/Cockpit-/Druck-Prüfstände grün. Nicht geprüft: echter Druck auf Gerät/Drucker.

@@ -287,12 +287,65 @@ function kaBauen(host){
  const art=Object.keys(R.nachArt).sort().map(k=>`${R.nachArt[k]} × ${esc(k)}`).join(" · ");
  const mat=Object.keys(R.nachMaterial).sort().map(k=>`${R.nachMaterial[k]} × ${esc(k)}`).join(" · ");
  return {n:String(alle.massaufnahmen.length),kenn:{mas:alle.massaufnahmen.length,gruppen:alle.gruppen.length,pruefen:alle.pruefen.length},
-  html:kopf+`<div class="ka-stats">${kenn.join(" ")}</div>`
+  html:kopf+`<div class="bar no-print" style="margin:6px 0"><button type="button" class="gray mz-klein" data-ka-druck="1">🖨️ Komplettausmass drucken</button></div><div class="ka-stats">${kenn.join(" ")}</div>`
   +(statusZeile?`<div class="small">${statusZeile} <span class="muted">(Status je Massaufnahme, nicht je Position)</span></div>`:"")
   +filter+mengen+pruef+masse+aus
   +(art?`<div class="small muted" style="margin-top:6px">Nach Art: ${art}</div>`:"")
   +(mat?`<div class="small muted">Nach Werkstoff: ${mat}</div>`:"")};
 }
+// v3.432: Ausdruck des Komplettausmasses (Ansage: "Mache, dass man die in der App erstellten Ausmasse ausdrucken kann").
+// Dieselbe Zusammenstellung wie auf dem Bildschirm (kaSammeln, mit dem gewaehlten Status-Filter), im gemeinsamen Kopf/Fuss
+// der Dokumente (pdfKopfHtml/pdfFooterHtml). Das Fenster wird SOFORT im Klick geoeffnet (sonst blockt es der Browser).
+async function kaDrucken(){
+ const pid=(typeof cockpitProjectId!=="undefined")?cockpitProjectId:null;
+ const cache=(typeof projectMeasurementsCache!=="undefined"&&Array.isArray(projectMeasurementsCache))?projectMeasurementsCache:null;
+ if(!pid||!cache){appAlert("Das Komplettausmass ist noch nicht geladen.");return}
+ const win=window.open("","_blank");
+ if(!win){appAlert("Der Browser hat das Öffnen des Druckfensters blockiert. Bitte Pop-ups für diese Seite erlauben.");return}
+ try{
+  const ctx={projectId:pid,companyId:(typeof currentProfile!=="undefined"&&currentProfile)?currentProfile.company_id:null,
+   art:t=>(typeof MEAS_TYPE_LABELS==="object"&&MEAS_TYPE_LABELS[t])||t,
+   material:v=>(typeof pmatMaterialName==="function")?pmatMaterialName(v):String(v)};
+  const wf=(typeof mwAktiv==="function")?mwAktiv():false;
+  let sicht=cache;
+  if(wf&&kaFilter!=="alle")sicht=cache.filter(m=>(KA_STATUS.indexOf(m.workflow_status)>=0?m.workflow_status:"unbekannt")===kaFilter);
+  const R=kaSammeln(sicht,ctx);
+  const proj=(typeof allProjects!=="undefined"?allProjects:[]).find(p=>String(p.id)===String(pid))||{};
+  const logoSrc=await storageSignedUrl(logoUrl);
+  const kopf=pdfKopfHtml({datensatz:{project_id:pid},projekt:proj,bezeichnung:"Komplettausmass",dokumenttyp:"Ausmass",unterart:"Komplettausmass (aus den Massaufnahmen)",
+   datum:new Date().toISOString().slice(0,10),bearbeiter:currentProfile?`${currentProfile.first_name} ${currentProfile.last_name}`:"",logoSrc});
+  let body=kopf;
+  KA_EINHEITEN.forEach(e=>{
+   const gr=R.gruppen.filter(g=>g.einheit===e);
+   if(!gr.length)return;
+   body+=`<div class="am-section-head">${esc(KA_EINHEIT_TITEL[e])}</div><table class="am-cutlist"><thead><tr><th>Bezeichnung</th><th>Menge</th><th>Einheit</th><th>Aus Massaufnahmen</th></tr></thead><tbody>`
+    +gr.map(g=>{
+     const namen=[...new Set(g.quellen.map(q=>q.art+(q.titel?" · "+q.titel:"")))];
+     return `<tr><td>${esc(g.bezeichnung)}${g.dubletten.length?" ⚠ mögliche Dublette":""}</td><td>${esc(kaMengeText(g.summe))}</td><td>${esc(e)}</td><td>${esc(namen.join("; "))}</td></tr>`;
+    }).join("")+"</tbody></table>";
+  });
+  if(!R.gruppen.length)body+='<div class="note">Keine summierbaren Mengen in der Auswahl.</div>';
+  if(R.pruefen.length)body+=`<div class="am-section-head">Zu prüfen (nicht in den Summen)</div><table class="am-cutlist"><thead><tr><th>Bezeichnung</th><th>Massaufnahme</th><th>Pos.</th><th>Menge</th></tr></thead><tbody>`
+   +R.pruefen.map(p=>`<tr><td>${esc(p.bezeichnung)}</td><td>${esc(p.art+(p.titel?" · "+p.titel:""))}</td><td>${esc(p.pos)}</td><td>${esc(String(p.menge))}</td></tr>`).join("")+"</tbody></table>";
+  body+=`<div class="note">Übersicht aus den Massaufnahmen dieses Projekts – keine Offertmenge, kein Zuschnitt und kein vom Kunden bestätigtes oder verrechnetes Ausmass.${
+   wf&&kaFilter!=="alle"?" Auswahl: nur Status «"+esc(kaFilter)+"».":""}</div>`;
+  win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(pdfDateiname(proj.name||"",proj.object||"","Komplettausmass",""))}</title>
+<style>
+${PDF_LAYOUT_CSS}
+</style></head><body>
+${pdfZahlenRechts(body)}
+${pdfFooterHtml({})}
+</body></html>`);
+  win.document.close();
+  const doPrint=()=>{try{win.focus();win.print()}catch(e){}};
+  win.onload=doPrint;
+  setTimeout(doPrint,800);
+ }catch(e){try{win.close()}catch(x){}appAlert("Der Ausdruck konnte nicht erstellt werden: "+(e&&e.message||e))}
+}
+document.addEventListener("click",e=>{
+ const b=e.target&&e.target.closest?e.target.closest("[data-ka-druck]"):null;
+ if(b)kaDrucken();
+});
 // Karte im Cockpit (klassisches Fenster)
 function renderKomplettausmass(){
  const box=$("cockpitKomplettBody");

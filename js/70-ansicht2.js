@@ -1574,6 +1574,12 @@ document.addEventListener("click",async e=>{
  }
  const meas=e.target.closest("[data-a2-meas]");
  if(meas){ a2Oeffne("meas",meas.getAttribute("data-a2-meas")); return }
+ const amDruck=e.target.closest("[data-a2-am-druck]");
+ if(amDruck){
+  const a=a2Am().find(x=>String(x.id)===amDruck.getAttribute("data-a2-am-druck"));
+  if(a&&typeof printAusmass==="function")printAusmass(a);
+  return;
+ }
  const am=e.target.closest("[data-a2-am]");
  if(am){ a2Oeffne("am",am.getAttribute("data-a2-am")); return }
  const ang=e.target.closest("[data-a2-ang]");
@@ -2427,10 +2433,12 @@ function a2RegAusmass(p){
   // COCKPIT_AM_TYPE_LABELS (js/24) ist die vorhandene Beschriftungsquelle.
   const art=(typeof COCKPIT_AM_TYPE_LABELS==="object"&&COCKPIT_AM_TYPE_LABELS[a.type])||a.type||"Ausmass";
   const t=String(a.title||"").trim();
-  return `<button type="button" class="a2-zeile" data-a2-am="${esc(a.id)}">
+  // v3.432: jedes Ausmass laesst sich direkt aus der Liste drucken (dieselbe Funktion wie im Formular: printAusmass, js/17)
+  return `<div class="a2-zeile-reihe"><button type="button" class="a2-zeile" data-a2-am="${esc(a.id)}">
    <span class="a2-zeile-text"><b>${esc(art)}</b>
     <span>${esc([t,a2Datum(a.date)].filter(Boolean).join(" · ")||"—")}</span></span>
-   <span class="a2-zeile-pfeil">›</span></button>`;
+   <span class="a2-zeile-pfeil">›</span></button>
+   <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau a2-zeile-tat" data-a2-am-druck="${esc(a.id)}" title="Ausmass drucken" aria-label="Ausmass drucken">🖨️</button></div>`;
  }).join("")+"</div>";
 }
 
