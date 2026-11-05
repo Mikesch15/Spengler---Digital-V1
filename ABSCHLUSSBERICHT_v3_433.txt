@@ -1,0 +1,2 @@
+Abschlussbericht v3.433
+Umbau der Darstellung, Schritt 1 (Startbildschirm): Kopfbild schmaler, Einrichtung eingeklappt mit Fortschritt, Nebeninformationen unter «Weitere Informationen», Hinweis «Ansicht ist neu» nur mit Projekt. Seitenhöhe im Demo-Zustand 2872 -> 1007 px. Prüfstände D5 + Gegenproben; Startseiten-/Navigations-/Termin-/Wetter-Prüfstände grün. Nicht geprüft: echtes Gerät. Weitere Seiten folgen nach Freigabe durch den Anwender.

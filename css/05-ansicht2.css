@@ -1535,7 +1535,7 @@ html.a2-an .empty{background:var(--card-bg);border-color:var(--a2-trenn)}
 .a2-ol-ok{color:#2b8a3e}.a2-ol-fehler{color:#c92a2a}
 
 
-/* ==========================================================================
+/* ===================================================================
    PREMIUM-STARTSEITE – TESTBRANCH  (2026-11)
    --------------------------------------------------------------------------
    Rein optische Verfeinerung der Heute-Seite. Bewusst als eigener, klar
@@ -1747,3 +1747,31 @@ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
  html.a2-premium-start-test #a2Inhalt.a2-heute{padding-top:16px}
  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:132px}
 }
+=======
+/* ---- v3.433: Startbildschirm - nur das Wichtigste sofort, Nebeninformationen eingeklappt ----------------------------------
+   Ansage des Anwenders: uebersichtlich, nicht verschachtelt, wie eine professionelle moderne Software. Erster Schritt: der Startbildschirm. */
+#a2Inhalt.a2-heute .a2-hero-bild{aspect-ratio:auto;height:88px;object-position:center}
+#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:8px 14px 10px}
+#a2Inhalt.a2-heute .a2-hero-fix .a2-hero-unter{display:none}   /* Datum und Name stehen schon in der Kopfleiste */
+#a2Inhalt .ueb-zeile{background:var(--card,#fff);border:1px solid var(--card-line,#e1e6ee);border-radius:12px;margin:0 0 10px;overflow:hidden}
+#a2Inhalt .ueb-zeile>summary{list-style:none;display:flex;align-items:center;gap:10px;padding:13px 14px;min-height:48px;cursor:pointer;flex-wrap:wrap}
+#a2Inhalt .ueb-zeile>summary::-webkit-details-marker{display:none}
+#a2Inhalt .ueb-zeile>summary::after{content:"›";margin-left:auto;font-size:20px;line-height:1;color:var(--muted);transition:transform .15s}
+#a2Inhalt .ueb-zeile[open]>summary::after{transform:rotate(90deg)}
+#a2Inhalt .ueb-titel{font-weight:700;font-size:15px}
+#a2Inhalt .ueb-info{font-size:12.5px;color:var(--muted)}
+#a2Inhalt .ueb-balken{flex:1 0 100%;order:5;height:4px;border-radius:2px;background:var(--card-line,#e1e6ee);overflow:hidden}
+#a2Inhalt .ueb-balken b{display:block;height:100%;background:var(--blue);border-radius:2px}
+#a2Inhalt .ueb-inhalt{padding:0 14px 12px;border-top:1px solid var(--card-line,#e1e6ee)}
+#a2Inhalt .ueb-inhalt .a2-abschnitt,#a2Inhalt .ueb-inhalt .a2-karte{margin-left:0;margin-right:0}
+#a2Inhalt .ueb-inhalt .einr-liste{margin-top:6px;display:flex;flex-direction:column;gap:0}
+#a2Inhalt .ueb-inhalt .einr-punkt{display:flex;align-items:flex-start;gap:9px;padding:10px 0;border-top:1px solid var(--card-line,#e1e6ee)}
+#a2Inhalt .ueb-inhalt .einr-punkt:first-child{border-top:0}
+#a2Inhalt .ueb-inhalt .einr-haken{flex:none;width:22px;text-align:center;font-size:16px;font-weight:800;color:var(--muted)}
+#a2Inhalt .ueb-inhalt .einr-fertig .einr-haken{color:var(--green)}
+#a2Inhalt .ueb-inhalt .einr-text{flex:1 1 auto;min-width:0}
+#a2Inhalt .ueb-inhalt .einr-text b{font-size:14px}
+#a2Inhalt .ueb-inhalt .einr-text .small{margin-top:2px}
+#a2Inhalt .ueb-inhalt .einr-stand{color:var(--muted)}
+#a2Inhalt .ueb-inhalt .einr-freiwillig{font-size:11px;font-weight:600;color:var(--muted);border:1px solid var(--card-line,#e1e6ee);border-radius:8px;padding:0 6px}
+@media print{#a2Inhalt .ueb-zeile{display:none}}

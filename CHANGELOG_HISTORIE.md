@@ -34960,3 +34960,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.432 – Ausmasse drucken
 - Komplettausmass-Druck (js/85), 🖨️ je Ausmass in der Liste (js/70). Prüfstand ausmass-druck.
+
+## v3.433 – Startbildschirm aufgeräumt (Umbau Schritt 1)
+- Einrichtung und Nebeninformationen eingeklappt, Kopfbild schmaler. Prüfstand D5.

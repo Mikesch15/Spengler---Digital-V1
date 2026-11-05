@@ -152,6 +152,34 @@ ${schritt(3,"Zuschnitt und Rüstliste","Die Teile zuschneiden, abhaken und die R
 <button type="button" class="a2-knopf a2-k-grau" data-a2-tu="anleitung">📖 Anleitung</button></div></div>`;
 }
 
+// ---- Startbildschirm: Einrichtung und Nebeninformationen eingeklappt (v3.433) ------
+// Ansage des Anwenders: "Es soll nur das wichtigste sofort zu sehen sein. Alles, was Nebeninformationen sind,
+// zugeklappt oder an einem Ort, der nicht in den Hauptbildschirmen ist. Nicht verschachtelt."
+// Der aufgeklappte Zustand wird gemerkt, sonst klappt jedes Neuzeichnen der Seite (Daten laden) alles wieder zu.
+const uebOffen={einr:false,neben:false};
+function uebEinrichtungHtml(){
+ if(typeof einrKarteHtml!=="function"||typeof einrStand!=="function")return "";
+ const karte=einrKarteHtml();
+ if(!karte)return "";
+ if(typeof einrErzwungen!=="undefined"&&einrErzwungen)return karte;     // ueber «Mehr» ausdruecklich aufgerufen: gleich offen
+ const liste=einrStand(), pflicht=liste.filter(x=>x.pflicht), fertig=pflicht.filter(x=>x.fertig).length;
+ const pct=pflicht.length?Math.round(100*fertig/pflicht.length):100;
+ const punkte=liste.map(einrPunktHtml).join("");
+ return `<details class="ueb-zeile ueb-einr" data-ueb-offen="einr"${uebOffen.einr?" open":""}>
+<summary><span class="ueb-titel">Einrichtung</span><span class="ueb-info">${fertig} von ${pflicht.length} erledigt</span><i class="ueb-balken" aria-hidden="true"><b style="width:${pct}%"></b></i></summary>
+<div class="ueb-inhalt"><p class="small">Ohne diese Angaben rechnet die App an manchen Stellen nicht – bei jedem Punkt steht, warum.</p><div class="einr-liste">${punkte}</div></div></details>`;
+}
+function uebNebenHtml(inhalt){
+ if(!inhalt||!String(inhalt).trim())return "";
+ return `<details class="ueb-zeile ueb-neben" data-ueb-offen="neben"${uebOffen.neben?" open":""}>
+<summary><span class="ueb-titel">Weitere Informationen</span><span class="ueb-info">Termine · Wetter · Zeitmessung</span></summary>
+<div class="ueb-inhalt">${inhalt}</div></details>`;
+}
+document.addEventListener("toggle",e=>{
+ const d=e.target;
+ if(d&&d.dataset&&d.dataset.uebOffen&&d.dataset.uebOffen in uebOffen)uebOffen[d.dataset.uebOffen]=!!d.open;
+},true);
+
 // ---- Lange Erklärtexte in den Massaufnahmen kürzen --------------------------------
 // Eine Erklärung (.info) mit mehr als UEB_LANG Zeichen zeigt nur die ersten Zeilen;
 // «mehr» klappt sie auf. Pro Gerät abschaltbar (Einstellungen → Anzeige).

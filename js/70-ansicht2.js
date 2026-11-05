@@ -817,7 +817,9 @@ function a2SeiteHeute(){
  // nicht rechnen kann - das ist dringender als jede Aufgabe darunter. Der
  // Stand wird in js/73 aus den echten Daten ABGELEITET; ist alles erfasst,
  // liefert einrKarteHtml() einen leeren String und hier steht nichts.
- if(typeof einrKarteHtml==="function")html+=einrKarteHtml();
+ // v3.433: eingeklappt mit Fortschrittsbalken (js/107) - die ausgeklappte Checkliste fuellte vorher den ganzen Bildschirm
+ if(typeof uebEinrichtungHtml==="function")html+=uebEinrichtungHtml();
+ else if(typeof einrKarteHtml==="function")html+=einrKarteHtml();
 
  // v3.186: Gleich darunter die Kontrolle - aber nur, wenn sie einen
  // echten Fehler gefunden hat. Blosse Hinweise gehoeren nicht jeden
@@ -833,7 +835,8 @@ function a2SeiteHeute(){
  // Der einmalige Hinweis nach der Umstellung. Er sagt, was sich geaendert
  // hat und wo der Weg zurueck steht - eine Ansicht, die sich ungefragt
  // aendert und nichts dazu sagt, ist eine Zumutung.
- if(a2HinweisNoetig()){
+ // v3.433: Eine neue Firma ohne Projekt braucht den Hinweis "Die Ansicht ist neu" nicht - sie kennt die alte nicht.
+ if(a2HinweisNoetig()&&(a2OffeneProjekte(false).length>0||a2OffeneProjekte(true).length>0)){
   html+=`<div class="a2-karte a2-karte-hinweis">
    <div class="a2-karte-titel">Die Ansicht ist neu</div>
    <p class="a2-karte-unter">Die App ist jetzt nach dem Arbeitsablauf
@@ -987,7 +990,8 @@ function a2SeiteHeute(){
    </div>
    <div id="a2HeuteProjListe">${a2HeuteProjListeHtml(auf)}</div></div>`;
  }
- return html+nebenher;
+ // v3.433: Nebeninformationen (Termine, Wetter, Zeitmessung) zugeklappt unter einer Zeile (js/107)
+ return html+((typeof uebNebenHtml==="function")?uebNebenHtml(nebenher):nebenher);
 }
 
 // Eine Aufgabe. Titel, Farbe und Knopfbeschriftung kommen aus js/45 - dieselbe
