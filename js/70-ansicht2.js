@@ -67,6 +67,10 @@ function a2HinweisWeg(){
  a2Zeichnen();
 }
 function a2Anwenden(){
+ // Premium-Startseite als Vorschau: nur mit ?premium-start=1 aktiv.
+ // Ohne diesen URL-Schalter bleibt die bisherige Darstellung unveraendert.
+ try{ document.documentElement.classList.toggle("a2-premium-start-test",new URLSearchParams(location.search).get("premium-start")==="1"); }
+ catch(e){ document.documentElement.classList.remove("a2-premium-start-test"); }
  // v3.218: Die Marke ist immer gesetzt - es gibt nur diese eine Ansicht.
  // Sie bleibt als Marke bestehen, weil das ganze Aussehen (css/05) daran
  // haengt; sie an rund dreihundert Stellen aus dem CSS zu streichen waere
