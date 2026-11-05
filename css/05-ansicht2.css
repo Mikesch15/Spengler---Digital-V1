@@ -1696,3 +1696,54 @@ html.a2-premium-start-test #a2Leiste button.ist-auf{border-radius:10px}
   html.a2-premium-start-test #a2Leiste button{transition:none}
 }
 /* ENDE PREMIUM-STARTSEITE TESTBRANCH */
+
+
+/* PREMIUM-START VORSCHAU v2: fruehe Aktivierung + unuebersehbarer Testhinweis.
+   Dieser gesamte Block bleibt auf ?premium-start=1 beschraenkt. */
+html.a2-premium-start-test::after{
+  content:"PREMIUM-VORSCHAU AKTIV";
+  position:fixed;right:12px;top:12px;z-index:2147483000;
+  display:block;padding:7px 11px;border-radius:999px;
+  background:#123d66;color:#fff;font:700 10px/1.2 system-ui,sans-serif;
+  letter-spacing:.08em;box-shadow:0 4px 16px rgba(0,0,0,.22);
+  pointer-events:none;
+}
+html.a2-premium-start-test body{
+  background:linear-gradient(145deg,#edf3f8 0%,#f7f9fc 55%,#eaf0f6 100%) !important;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute{
+  max-width:1240px;
+  padding-top:24px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero{
+  border-radius:20px;
+  box-shadow:0 16px 42px rgba(14,44,74,.18);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{
+  height:clamp(150px,20vw,230px);
+  object-position:center 43%;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{
+  padding:20px 24px 22px;
+  background:linear-gradient(110deg,#0e2f50 0%,#155b91 58%,#247eb5 100%);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-abschnitt-kopf h2{
+  font-size:14px;
+  letter-spacing:.075em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zahl{
+  border-radius:17px;
+  box-shadow:0 8px 22px rgba(14,44,74,.075);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-karte,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-zeile,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
+  border-radius:15px;
+  box-shadow:0 5px 18px rgba(14,44,74,.055);
+}
+@media(max-width:600px){
+ html.a2-premium-start-test::after{top:8px;right:8px;font-size:9px;padding:6px 9px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute{padding-top:16px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:132px}
+}
