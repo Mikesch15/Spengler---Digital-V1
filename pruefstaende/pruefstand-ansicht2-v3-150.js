@@ -77,7 +77,7 @@ const anmelden=page=>page.evaluate(()=>{
  await stubSchuetzen(page);
  await page.addInitScript(STUB);
  await page.goto(APP);
- await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true});   // v3.436: «Aufgaben und Montagen» und «Wichtige Hinweise» sind sonst zugeklappt
+ await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true;uebOffen.proj=true});   // v3.436: «Aufgaben und Montagen» und «Wichtige Hinweise» sind sonst zugeklappt
 
  // ===== A  Es gibt nur diese eine Ansicht (v3.218) =========================
  // Bis v3.217 stand hier: die Vorgabe greift, eine ausdrueckliche Wahl
@@ -99,7 +99,7 @@ const anmelden=page=>page.evaluate(()=>{
 
  // Ein alter Eintrag aus v3.150 darf niemanden aussperren.
  await page.evaluate(()=>localStorage.setItem("sd_ansicht2","nein"));
- await page.reload();
+ await page.reload(); await page.waitForTimeout(300); await page.evaluate(()=>{uebOffen.aufg=true;uebOffen.hinweise=true;uebOffen.proj=true});
  await page.waitForFunction(()=>typeof a2Aktiv==="function");
  await anmelden(page);
  // v3.218: Gezeichnet wurde die Ansicht bis v3.217 durch den Klick auf den
