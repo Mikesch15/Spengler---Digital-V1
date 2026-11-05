@@ -409,9 +409,11 @@ const anmelden=page=>page.evaluate(()=>{
  // v3.211 zusaetzlich, nicht ersatzweise: die Ansicht spricht ueberhaupt
  // nicht mit der Datenbank - auch nicht lesend. Das ist die eigentliche
  // Aussage hinter F1 und laesst sich nicht mit einem Set verwechseln.
- p(!/\bsb\s*\./.test(jsQ)&&!/\.from\(/.test(jsQ),
+ const dbLeseweg=/\b(?:sb|supabase)\s*\.\s*(?:from|rpc)\s*\(/g;
+ p(!dbLeseweg.test(jsQ),
    "F1b und ruft die Datenbank gar nicht erst auf",
-   (jsQ.match(/\bsb\s*\.[a-z]+/g)||[]).slice(0,5));
+   (jsQ.match(/\b(?:sb|supabase)\s*\.\s*(?:from|rpc)\s*\(/g)||[]).slice(0,5));
+
  p(!/\bsb\.from\(/.test(jsQ),"F2 js/70 fragt die Datenbank nicht selbst ab",jsQ.match(/sb\.from\([^)]*\)/g));
 
  // Jede Stilregel muss am Schalter oder an einer a2-Klasse haengen. Sonst
