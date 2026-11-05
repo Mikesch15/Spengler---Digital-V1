@@ -1747,3 +1747,157 @@ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-auf{
  html.a2-premium-start-test #a2Inhalt.a2-heute{padding-top:16px}
  html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:132px}
 }
+
+
+
+/* ==========================================================================
+   PREMIUM-DASHBOARD v1 - eigenstaendige Startseiten-Komposition
+   Aktiv ausschliesslich ueber ?premium-start=1. Keine Fachlogik / Datenpfade.
+   ========================================================================== */
+html.a2-premium-start-test #a2Inhalt.a2-heute{padding:18px 16px 42px;max-width:1280px;margin:0 auto}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-dashboard{max-width:1120px;margin:0 auto}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopf{
+  padding:14px;border:1px solid #dce5ee;border-radius:22px;
+  background:linear-gradient(145deg,#fff 0%,#f7faff 100%);
+  box-shadow:0 12px 34px rgba(16,45,74,.09);margin:0 0 22px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopfzeile{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:2px 3px 11px;color:#6b7d8e;font-size:10px;font-weight:850;
+  letter-spacing:.13em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopfzeile span:last-child{
+  color:#1769aa;background:#eaf3fb;border-radius:999px;padding:6px 9px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero{
+  overflow:hidden;border-radius:16px;margin:0 0 14px;
+  background:#123d66;box-shadow:0 8px 22px rgba(13,43,71,.14);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{
+  width:100%;height:clamp(132px,19vw,210px);aspect-ratio:auto;
+  object-fit:cover;object-position:center 47%;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{
+  padding:16px 19px 18px;
+  background:linear-gradient(105deg,#0d3558 0%,#14598b 65%,#1d70a8 100%);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-gruss{
+  font-size:clamp(21px,3vw,27px);font-weight:800;letter-spacing:-.035em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-unter{
+  margin-top:4px;font-size:13px;opacity:.84;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-schnell{
+  display:grid;grid-template-columns:minmax(0,1fr);gap:10px;margin:0 0 18px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen{gap:9px;margin:0}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{
+  flex:1 1 0;min-height:48px;border-radius:12px;padding:0 16px;
+  font-size:14px;font-weight:750;box-shadow:none;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-k-blau{
+  background:#1769aa;border-color:#1769aa;box-shadow:0 5px 13px rgba(23,105,170,.2);
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-k-grau{
+  background:#fff;border:1px solid #dce5ee;color:#29445b;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche{gap:8px;margin:0}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-feld{
+  min-height:48px;border-radius:12px;border:1px solid #dce5ee;
+  background:#fff;box-shadow:none;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-feld input{min-height:46px;font-size:14px}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hsuche-filter{
+  width:48px;min-height:48px;border-radius:12px;border:1px solid #dce5ee;background:#fff;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-stand{
+  padding:15px 15px 13px;border-radius:16px;background:#f0f5fa;
+  border:1px solid #e1e9f1;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-titel{
+  display:flex;flex-direction:column;gap:3px;margin:0 0 11px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-titel span{
+  color:#64809a;font-size:9px;font-weight:900;letter-spacing:.14em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-titel b{
+  color:#173b59;font-size:18px;font-weight:800;letter-spacing:-.025em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpis{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  grid-auto-flow:row;gap:9px;margin:0;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi{
+  min-height:108px;padding:12px;border:1px solid #e0e8f0;border-radius:13px;
+  background:#fff;box-shadow:0 3px 10px rgba(16,45,74,.035);
+  display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi i{margin:0 0 3px;color:#2874a8}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi b{
+  font-size:27px;line-height:1;font-weight:850;letter-spacing:-.04em;color:#1d5f91;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi span{
+  margin:0;color:#667888;font-size:11.5px;line-height:1.3;font-weight:650;
+  overflow-wrap:normal;word-break:normal;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi.a2-z-orange{
+  background:#fff9f0;border-color:#f1e4d2;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi.a2-z-orange b,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi.a2-z-orange i{color:#a96517}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi.a2-z-gruen b,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi.a2-z-gruen i{color:#218264}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-abschnitt{
+  margin:0 0 20px;padding:0 2px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-abschnitt-kopf{
+  min-height:34px;margin:0 0 9px;align-items:center;
+  border-bottom:1px solid #dce5ee;padding:0 0 8px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-abschnitt-kopf h2{
+  color:#173b59;font-size:11px;font-weight:900;letter-spacing:.12em;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-karte,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-zeile,
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-auf{
+  border-radius:13px;border:1px solid #e0e7ee;
+  box-shadow:0 3px 12px rgba(16,45,74,.035);background:#fff;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-auf{
+  border-left:4px solid #2874a8;padding:11px 13px;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-hinweise .a2-zeile{
+  background:#fff8f5;border-color:#f2ded7;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-register-klein button{
+  border-radius:9px;min-height:36px;font-weight:750;
+}
+html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-leer{
+  border-radius:13px;background:#f5f8fb;
+}
+html.dark.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopf{
+  background:linear-gradient(145deg,#17232d,#1c2c39);border-color:#344554;
+}
+html.dark.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopfzeile{color:#a8bac8}
+html.dark.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-stand{background:#1b2a36;border-color:#344554}
+html.dark.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-titel b{color:#e4edf4}
+html.dark.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-inhalt .a2-abschnitt-kopf h2{color:#e4edf4}
+@media(max-width:600px){
+ html.a2-premium-start-test #a2Inhalt.a2-heute{padding:12px 12px 34px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopf{padding:10px;border-radius:18px;margin-bottom:18px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopfzeile{padding:1px 2px 9px;font-size:9px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero{border-radius:13px;margin-bottom:11px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-bild{height:126px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-hero-fix .a2-hero-text{padding:12px 14px 13px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-schnell{gap:8px;margin-bottom:14px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-aktionen .a2-knopf{min-height:44px;padding:0 8px;font-size:13px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-stand{padding:12px;border-radius:13px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi{min-height:91px;padding:10px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi b{font-size:24px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-kpi span{font-size:11.5px}
+}
+@media(min-width:900px){
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-kopf{padding:20px}
+ html.a2-premium-start-test #a2Inhalt.a2-heute .a2-premium-schnell{grid-template-columns:minmax(260px,.85fr) minmax(320px,1.15fr);align-items:center}
+}
