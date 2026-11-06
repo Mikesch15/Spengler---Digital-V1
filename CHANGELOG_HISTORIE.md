@@ -34975,3 +34975,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.437 – Startbildschirm: Projekte zugeklappt, Wetter oben, Banner mit Begrüssung
 - Prüfstand D8; v3.436-Prüfstände nachgezogen.
+
+## v3.438 – Look auf alle Seiten, Projektübersicht zugeklappt
+- Prüfstand D9.

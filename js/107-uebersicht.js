@@ -156,7 +156,7 @@ ${schritt(3,"Zuschnitt und Rüstliste","Die Teile zuschneiden, abhaken und die R
 // Ansage des Anwenders: "Es soll nur das wichtigste sofort zu sehen sein. Alles, was Nebeninformationen sind,
 // zugeklappt oder an einem Ort, der nicht in den Hauptbildschirmen ist. Nicht verschachtelt."
 // Der aufgeklappte Zustand wird gemerkt, sonst klappt jedes Neuzeichnen der Seite (Daten laden) alles wieder zu.
-const uebOffen={einr:false,neben:false,hinweise:false,aufg:false,proj:false};
+const uebOffen={einr:false,neben:false,hinweise:false,aufg:false,proj:false,ablauf:false,umgebung:false,mengen:false,komplett:false,stand:false};
 // Allgemeine eingeklappte Zeile (v3.436): Titel + Kurzinfo, darunter der Inhalt. id optional (Sprungziel der Kennzahl-Kacheln).
 function uebKlappHtml(key,titel,info,inhalt,id,klasse){
  return `<details class="ueb-zeile ueb-klapp${klasse?" "+esc(klasse):""}" data-ueb-offen="${esc(key)}"${id?` id="${esc(id)}"`:""}${uebOffen[key]?" open":""}>

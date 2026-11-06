@@ -1845,3 +1845,33 @@ html.dark #a2Inhalt.a2-heute .a2-register-klein{background:var(--card-line)}
 #a2Inhalt.a2-heute .ueb-klapp .ueb-info{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #a2Inhalt.a2-heute .ueb-klapp .ueb-inhalt{padding-top:6px}
 #a2Inhalt.a2-heute .ueb-klapp .ueb-inhalt .a2-zeile{box-shadow:none}
+
+/* ---- v3.438: der Look der Startseite auf allen Seiten der neuen Ansicht (Projekte, Projekt, Mehr, ...) -------------------- */
+#a2Inhalt{--u-linie:#e3e8ee;--u-schatten:0 1px 2px rgba(16,24,40,.05);--u-radius:12px}
+html.dark #a2Inhalt{--u-linie:var(--card-line);--u-schatten:none}
+#a2Inhalt .a2-abschnitt{margin-bottom:16px}
+#a2Inhalt .a2-abschnitt-kopf{display:flex;align-items:center;gap:8px;margin:0 0 8px;border:0;padding:0}
+#a2Inhalt .a2-abschnitt-kopf h2{border:0;padding:0;margin:0;font-size:15px;font-weight:700;letter-spacing:-.01em;text-transform:none;color:var(--ink)}
+#a2Inhalt .a2-abschnitt-kopf>button{margin-left:auto;font-size:13px;font-weight:600;color:var(--blue);background:none;border:0;box-shadow:none;padding:4px 0;min-height:0}
+#a2Inhalt .a2-zeile{border-radius:var(--u-radius);border:0;background:var(--card-bg,#fff);box-shadow:0 0 0 1px var(--u-linie),var(--u-schatten)}   /* Linie als Ring: die Zeile wird nicht hoeher */
+#a2Inhalt .a2-zeile-text b{font-weight:600;letter-spacing:-.005em}
+#a2Inhalt .a2-karte{border-radius:var(--u-radius);border:1px solid var(--u-linie);box-shadow:var(--u-schatten);background:var(--card-bg,#fff)}
+#a2Inhalt .a2-leer{border:1px solid var(--u-linie);border-style:solid;border-radius:var(--u-radius);background:var(--card-bg,#fff);color:var(--muted);font-size:13.5px;padding:18px 14px;box-shadow:var(--u-schatten)}
+#a2Inhalt .a2-register-klein{display:inline-flex;flex-wrap:nowrap;gap:2px;padding:3px;margin:0 0 10px;border-radius:10px;background:#e9edf2;max-width:100%;overflow-x:auto;scrollbar-width:none}
+html.dark #a2Inhalt .a2-register-klein{background:var(--card-line)}
+#a2Inhalt .a2-register-klein::-webkit-scrollbar{display:none}
+#a2Inhalt .a2-register-klein button{flex:none;min-height:32px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:13px;font-weight:600;box-shadow:none}
+#a2Inhalt .a2-register-klein button.ist-auf{background:var(--card-bg,#fff);color:var(--ink);box-shadow:0 1px 2px rgba(16,24,40,.12)}
+/* eingeklappte Zeilen ueberall */
+#a2Inhalt .ueb-zeile{border-radius:var(--u-radius);border-color:var(--u-linie);box-shadow:var(--u-schatten)}
+#a2Inhalt .ueb-titel{font-size:14.5px;font-weight:600;flex:none}
+#a2Inhalt .ueb-klapp>summary{flex-wrap:nowrap}
+#a2Inhalt .ueb-klapp .ueb-info{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#a2Inhalt .ueb-klapp .ueb-inhalt{padding-top:6px}
+#a2Inhalt .ueb-klapp .ueb-inhalt .a2-zeile{box-shadow:none}
+#a2Inhalt .ueb-klapp .ueb-inhalt>.a2-abschnitt:first-child>.a2-abschnitt-kopf:first-child,#a2Inhalt .ueb-klapp .ueb-inhalt>.a2-karte-leise{margin-top:0}
+/* Projektdaten: Beschriftung leise, Wert deutlich */
+#a2Inhalt .a2-daten dt{text-transform:none;letter-spacing:0;font-size:12.5px;font-weight:500;color:var(--muted)}
+#a2Inhalt .a2-daten dd{font-size:14.5px;font-weight:500}
+#a2Inhalt .a2-karte .a2-knopf-reihe.a2-rechts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+#a2Inhalt .a2-karte .a2-knopf-reihe.a2-rechts .a2-knopf{min-height:42px;justify-content:center;font-size:13.5px}

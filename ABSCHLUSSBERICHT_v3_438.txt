@@ -1,0 +1,2 @@
+Abschlussbericht v3.438
+Look der Startseite auf Projekte/Projekt/Mehr; Projektübersicht: Nebenzeilen zugeklappt. Alle Prüfstände mit a2-Bezug lokal (inkl. Abstürze gezählt) grün; D9 + Gegenproben. Nicht geprüft: echtes Gerät. Offen: Dialoge (Massaufnahme, Einstellungen).

@@ -2065,28 +2065,32 @@ function a2RegUebersicht(p){
       title="Öffnet Google Maps mit der Projektadresse als Ziel"><i aria-hidden="true">${A2_ICON.navi}</i> Navigation starten</a>`:""}
      <button type="button" class="a2-knopf a2-knopf-klein a2-k-grau" data-a2-tu="stammdaten">
       <i aria-hidden="true">${A2_ICON.stift}</i> Stammdaten bearbeiten</button></div>
-    ${a2OrteHtml(p)}
    </div>
   </div>`;
+ // v3.438 (Anweisung: nur das Wichtigste sofort, Nebeninformationen zugeklappt, nicht verschachtelt): oben bleiben der Naechste
+ // Schritt, der Hinweis, die Projektdaten und der haeufigste Weg (Material & Zuschnitt). Alles andere ist je EINE zugeklappte Zeile.
+ const klapp=(key,titel,info,inhalt,klasse)=>inhalt&&String(inhalt).trim()
+  ?((typeof uebKlappHtml==="function")?uebKlappHtml(key,titel,info,inhalt,"",klasse):inhalt):"";
+ const orte=a2OrteHtml(p);
  const mengen=(typeof kaMengenKarteHtml==="function")?kaMengenKarteHtml():"";
- return `${schritt}
-  ${hinweis}
-  <div class="a2-dash">${kopfKarte}${mengen}</div>
-  ${(typeof kaA2Html==="function"&&(typeof modulAn!=="function"||modulAn("ausmass")))?kaA2Html():""}
-  <div class="a2-abschnitt a2-abschnitt-leise">
-   <div class="a2-abschnitt-kopf"><h2>Ablauf</h2></div>
-   <div class="a2-karte a2-karte-leise">${ablauf}</div>
-   ${schnell}
-  </div>
-  <div class="a2-abschnitt a2-abschnitt-leise">
-   <div class="a2-abschnitt-kopf"><h2>Stand</h2></div>
-   <div class="a2-zahlen a2-zahlen-leise">
+ const komplett=(typeof kaA2Html==="function"&&(typeof modulAn!=="function"||modulAn("ausmass")))?kaA2Html():"";
+ const aktuell=(jetzt>=0&&stationen[jetzt])?stationen[jetzt].name.replace("\u00ad",""):"abgeschlossen";
+ const standHtml=`<div class="a2-zahlen a2-zahlen-leise">
     <div class="a2-zahl a2-z-blau"><b>${a2Mess().length}</b><span>Massaufnahmen</span></div>
     ${(typeof modulAn!=="function"||modulAn("ausmass"))?`<div class="a2-zahl a2-z-gruen"><b>${a2Am().length}</b><span>Ausmasse</span></div>`:""}
     ${(typeof modulAn!=="function"||modulAn("regierapport"))?`<div class="a2-zahl a2-z-orange"><b>${a2Rep().length}</b><span>Rapporte</span></div>`:""}
    </div>
-   ${a2MengenZeilen()}
-  </div>`;
+   ${a2MengenZeilen()}`;
+ const standInfo=[a2Mess().length+" Massaufn.",(typeof modulAn!=="function"||modulAn("ausmass"))?a2Am().length+" Ausmass":"",(typeof modulAn!=="function"||modulAn("regierapport"))?a2Rep().length+" Rapporte":""].filter(Boolean).join(" · ");
+ return `${schritt}
+  ${hinweis}
+  ${kopfKarte}
+  ${schnell}
+  ${klapp("ablauf","Ablauf","jetzt: "+aktuell,`<div class="a2-karte a2-karte-leise">${ablauf}</div>`)}
+  ${klapp("umgebung","In der Nähe suchen","Metallhandel, Baumarkt, Kran …",orte)}
+  ${klapp("mengen","Material- und Mengenübersicht","",mengen)}
+  ${klapp("komplett","Komplettausmass","Übersicht aus den Massaufnahmen",komplett)}
+  ${klapp("stand","Stand",standInfo,standHtml)}`;
 }
 // v3.161: Die Zuteilung als Satz. Steht niemand drin, wird gesagt, was
 // dann gilt (der Ersteller) - "niemand" allein liesse offen, bei wem das

@@ -184,6 +184,16 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(r.sucheOeffnet===true,"Die Suche oben öffnet die zugeklappte Projektzeile",r);
  p(r.wetterVorHinweisen===true,"Das Wetter steht über «Wichtige Hinweise»",r);
  p(r.gruss==="Guten Morgen, Mike"||r.gruss==="Guten Tag, Mike"||r.gruss==="Guten Abend, Mike","Begrüssung mit Vorname",r);
+ console.log("\nD9 · Projektseite: Übersicht mit zugeklappten Nebenzeilen");
+ r=await ev(()=>{const pr={id:1,name:"Dach Nord",object:"Bahnhofstrasse 12, 3011 Bern",customer:"Muster AG",order_no:"26-1",status:"in_arbeit"};
+  const d=document.createElement("div");d.innerHTML=a2RegUebersicht(pr);
+  const ks=[...d.querySelectorAll("details.ueb-klapp")].map(x=>({k:x.dataset.uebOffen,zu:!x.open}));
+  const top=[...d.children].filter(x=>x.tagName!=="DETAILS").map(x=>x.textContent).join(" ");
+  return {ks,navi:!!d.querySelector("[data-a2-navi]"),stamm:!!d.querySelector('[data-a2-tu="stammdaten"]'),matzu:!!d.querySelector('[data-a2-tu="matzu"]'),
+   orteInDetails:!!d.querySelector('details[data-ueb-offen=umgebung] [data-a2-ort]'),orteDraussen:!!d.querySelector(':scope > .a2-orte, .a2-karte .a2-orte'),daten:/Muster AG/.test(top)}});
+ p(["ablauf","umgebung","mengen","komplett","stand"].every(k=>r.ks.some(x=>x.k===k&&x.zu)),"Ablauf, Umgebung, Mengenübersicht, Komplettausmass und Stand sind je EINE zugeklappte Zeile",r.ks);
+ p(r.navi&&r.stamm&&r.daten,"Sichtbar bleiben die Projektdaten mit «Navigation starten» und «Stammdaten bearbeiten»",r);
+ p(r.orteInDetails&&!r.orteDraussen,"«In der Nähe suchen» steckt in der zugeklappten Zeile, nicht mehr in der Projektkarte",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);
