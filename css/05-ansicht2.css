@@ -519,8 +519,8 @@ html.a2-an #measurementEditModal .ra-zeile{
 
 /* ---- Ueberschriften ------------------------------------------------------ */
 html.a2-an #measurementEditModal h2{
- font-size:12px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
- color:var(--muted);border-bottom:0;padding-bottom:0;
+ font-size:15px;font-weight:700;letter-spacing:-.01em;text-transform:none;   /* v3.439: normale Ueberschrift statt kleiner Grossbuchstaben */
+ color:var(--ink);border-bottom:0;padding-bottom:0;
 }
 
 /* ---- Felder -------------------------------------------------------------- */
@@ -1875,3 +1875,16 @@ html.dark #a2Inhalt .a2-register-klein{background:var(--card-line)}
 #a2Inhalt .a2-daten dd{font-size:14.5px;font-weight:500}
 #a2Inhalt .a2-karte .a2-knopf-reihe.a2-rechts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 #a2Inhalt .a2-karte .a2-knopf-reihe.a2-rechts .a2-knopf{min-height:42px;justify-content:center;font-size:13.5px}
+
+/* ---- v3.439: Dialoge und Formulare (Massaufnahme, Einstellungen, ...) im selben ruhigen Stil ------------------------------
+   Nur Schrift, Felder und Karten - keine Struktur, keine Logik. Beschriftungen in normaler Schreibweise statt Versalien. */
+html.a2-an .modal{--u-linie:#e3e8ee;--u-schatten:0 1px 2px rgba(16,24,40,.05)}
+html.dark.a2-an .modal{--u-linie:var(--card-line);--u-schatten:none}
+html.a2-an .modal label{font-size:12.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted);margin-bottom:5px}
+html.a2-an .modal h2{font-size:16px;font-weight:700;text-transform:none;letter-spacing:-.01em;color:var(--ink);border-bottom:0;padding-bottom:0;margin:0 0 12px}
+/* Feldgroesse und Schrift der Eingabefelder bleiben die des Grundstils (Ansage des Anwenders, pruefstand-*-optik) - hier nur Beschriftungen, Titel und Karten */
+html.a2-an .modal input:focus,html.a2-an .modal select:focus,html.a2-an .modal textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
+html.a2-an .modal .card{border-radius:14px;border:1px solid var(--u-linie);box-shadow:var(--u-schatten)}
+html.a2-an .modal .small{font-size:12.5px}
+html.a2-an .modal .info{font-size:13px;line-height:1.45;border-radius:10px}
+html.a2-an .modal .settings-section-head h2{margin:0}

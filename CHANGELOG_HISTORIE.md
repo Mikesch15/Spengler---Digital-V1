@@ -34978,3 +34978,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.438 – Look auf alle Seiten, Projektübersicht zugeklappt
 - Prüfstand D9.
+
+## v3.439 – Dialoge und Formulare im ruhigen Stil
+- Prüfstand D10; Prüfstände zu v3.438 nachgezogen.

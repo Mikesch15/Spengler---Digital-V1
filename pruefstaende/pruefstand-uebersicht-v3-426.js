@@ -194,6 +194,13 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
  p(["ablauf","umgebung","mengen","komplett","stand"].every(k=>r.ks.some(x=>x.k===k&&x.zu)),"Ablauf, Umgebung, Mengenübersicht, Komplettausmass und Stand sind je EINE zugeklappte Zeile",r.ks);
  p(r.navi&&r.stamm&&r.daten,"Sichtbar bleiben die Projektdaten mit «Navigation starten» und «Stammdaten bearbeiten»",r);
  p(r.orteInDetails&&!r.orteDraussen,"«In der Nähe suchen» steckt in der zugeklappten Zeile, nicht mehr in der Projektkarte",r);
+ console.log("\nD10 · Dialoge im ruhigen Stil");
+ r=await ev(()=>{document.documentElement.classList.add("a2-an");const m=document.getElementById("measurementEditModal");m.hidden=false;
+  const l=m.querySelector("label"),h=m.querySelector("h2"),i=m.querySelector("input:not([type=checkbox]):not([type=radio]):not([type=file]):not([hidden])");
+  const o={label:getComputedStyle(l).textTransform,h2:getComputedStyle(h).textTransform,h2fs:parseFloat(getComputedStyle(h).fontSize),inpR:i?parseFloat(getComputedStyle(i).borderRadius):0,inpH:i?i.getBoundingClientRect().height:0};
+  const sm=document.getElementById("settingsModal");sm.hidden=false;const sh=sm.querySelector(".settings-section-head h2");o.setMargin=sh?getComputedStyle(sh).marginBottom:"";m.hidden=true;sm.hidden=true;return o});
+ p(r.label==="none"&&r.h2==="none"&&r.h2fs>=15&&r.inpR>=9,"Massaufnahme-Formular: Beschriftungen und Überschriften in normaler Schreibweise, Felder mit runden Ecken",r);
+ p(r.setMargin==="0px","Einstellungen: Abschnittstitel ohne Leerraum darunter",r);
  console.log("\nE · Eingebunden");
  const idx=fs.readFileSync("index.html","utf8"),sw=fs.readFileSync("sw.js","utf8");
  p(idx.indexOf('src="js/107-uebersicht.js"')>idx.indexOf('src="js/98-')&&sw.indexOf('"./js/107-uebersicht.js"')>0,"js/107 in index.html (nach js/98) und in sw.js",null);

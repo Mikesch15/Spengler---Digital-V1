@@ -1,0 +1,2 @@
+Abschlussbericht v3.439
+Dialoge/Formulare: Beschriftungen und Titel normal geschrieben, Karten mit feiner Linie; Eingabefelder unverändert (Vorgabe). 88 Layout-Prüfstände lokal geprüft: die vier *-optik-Prüfstände haben eine erste Fassung mit grösseren Feldern abgelehnt - entfernt. D10 + Gegenprobe. Nicht geprüft: echtes Gerät.
