@@ -34981,3 +34981,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.439 – Dialoge und Formulare im ruhigen Stil
 - Prüfstand D10; Prüfstände zu v3.438 nachgezogen.
+
+## v3.440 – Seitenbreite: Kopfbild machte das Dokument 1414 px breit
+- Prüfstand seitenbreite-440; Karten in Dialogen flach.

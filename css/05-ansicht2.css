@@ -1884,7 +1884,13 @@ html.a2-an .modal label{font-size:12.5px;font-weight:600;text-transform:none;let
 html.a2-an .modal h2{font-size:16px;font-weight:700;text-transform:none;letter-spacing:-.01em;color:var(--ink);border-bottom:0;padding-bottom:0;margin:0 0 12px}
 /* Feldgroesse und Schrift der Eingabefelder bleiben die des Grundstils (Ansage des Anwenders, pruefstand-*-optik) - hier nur Beschriftungen, Titel und Karten */
 html.a2-an .modal input:focus,html.a2-an .modal select:focus,html.a2-an .modal textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px #1769aa26}
-html.a2-an .modal .card{border-radius:14px;border:1px solid var(--u-linie);box-shadow:var(--u-schatten)}
+html.a2-an .modal .card{border-radius:12px;border:1px solid var(--u-linie);box-shadow:none}   /* flach: Vorgabe pruefstand-design-einheitlich */
 html.a2-an .modal .small{font-size:12.5px}
 html.a2-an .modal .info{font-size:13px;line-height:1.45;border-radius:10px}
 html.a2-an .modal .settings-section-head h2{margin:0}
+
+/* v3.440: Gemeldet (Fotos Werkstatt, Lager, Archiv): Seiten standen mit leerem Streifen links und waren rechts abgeschnitten.
+   Ursache: das Kopfbild der Startseite (<img width=1400>) hatte ausserhalb der Heute-Seite keine Breitenbegrenzung und machte das
+   ganze Dokument 1414 px breit - der Browser zoomt dann heraus, die Desktop-Regeln (Seitenleiste, 226 px) greifen. Bilder werden nie breiter als ihr Behaelter. */
+#a2Inhalt img{max-width:100%;height:auto}
+#a2Inhalt .a2-hero-bild{width:100%;max-width:100%}

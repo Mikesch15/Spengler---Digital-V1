@@ -1,0 +1,2 @@
+Abschlussbericht v3.440
+Ursache des verschobenen Layouts bei Werkstatt/Lager/Archiv: Kopfbild (img width=1400) ausserhalb der Heute-Seite ohne Breitenbegrenzung -> Dokument 1414 px breit -> Browser zoomt heraus, Desktop-Regeln greifen. Fix + Prüfstand mit Gegenprobe. Nicht auf dem Gerät des Anwenders bestätigt.
