@@ -245,11 +245,11 @@ const ui2=await page.evaluate(()=>{
  const d=document.createElement("div");d.innerHTML=kaBauen("card").html;
  const kach=[...d.querySelectorAll(".ka-kachel")].map(k=>k.textContent.replace(/\s+/g," ").trim());
  const uebers=a2RegUebersicht({id:7,name:"P7",object:"M",archived:false});
- return {kach,txt:d.textContent.replace(/\s+/g," "),pos:uebers.indexOf("Komplettausmass (Übersicht)"),ablauf:uebers.indexOf("<h2>Ablauf</h2>"),dash:uebers.indexOf("a2-dash")};
+ return {kach,txt:d.textContent.replace(/\s+/g," "),pos:uebers.indexOf('data-ueb-offen="komplett"'),inhalt:uebers.indexOf("Komplettausmass (Übersicht)"),zu:!/data-ueb-offen="komplett"[^>]* open/.test(uebers),ablauf:uebers.indexOf('data-ueb-offen="ablauf"'),dash:uebers.indexOf("<h2>Projektübersicht</h2>")};
 });
 p(ui2.kach.length===3&&ui2.kach.some(k=>/Dachfenstereinfassungen\s*1\s*Stk/.test(k))&&!ui2.kach.some(k=>/Biegungen/.test(k)),"Anzeige: jede Menge als Kachel (Name + Summe), Biegungen fehlen, Einfassung als Art",ui2.kach);
 p(/1 Zeile \(Biegungen, Blechstösse/.test(ui2.txt)&&/gehören nicht ins Komplettausmass/.test(ui2.txt),"die Anzeige sagt, dass ausgeblendete Zeilen nicht ins Komplettausmass gehören (stehen in der Massaufnahme)",ui2.txt.slice(-300));
-p(ui2.pos>ui2.dash&&ui2.pos<ui2.ablauf&&ui2.ablauf>0,"Platzierung: das Komplettausmass steht offen auf der Projektübersicht, direkt unter Projekt-/Mengenübersicht und vor dem Ablauf",ui2);
+p(ui2.pos>ui2.dash&&ui2.dash>=0&&ui2.inhalt>ui2.pos&&ui2.zu,"Platzierung (v3.438): das Komplettausmass ist eine zugeklappte Zeile unter den Projektdaten; der Inhalt steht darin",ui2);
 // ---- v3.349: Positionen antippen -> woher; Blechfläche = Blechfläche Zuschnitt ----
 r=S([M(1,"Einlauf",[z(1,"Blechfläche","2,0","m²")],{type:"einlaufblech_gerade"}),M(2,"Dach",[z(1,"Blechfläche Zuschnitt","1,5","m²")],{type:"dachfenstereinfassung"}),M(3,"Materialfläche",[z(1,"Materialfläche verlegt","9","m²")],{type:"anschlussblech"})]);
 const bf=r.gruppen.filter(g=>g.bezeichnung==="Blechfläche");

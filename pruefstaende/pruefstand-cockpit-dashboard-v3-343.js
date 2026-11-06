@@ -139,9 +139,9 @@ p(/48[.,]00/.test(t5.t)&&/–/.test(t5.t),"ohne Massaufnahme: nur Offerte");
 const ub=await page.evaluate(()=>{
  projectAngeboteCache=[];projectMeasurementsCache=[];kaGeladen();
  const h=a2RegUebersicht({id:7,name:"P7",object:"Musterstrasse 12",customer:"Muster AG",order_no:"1",archived:false});
- return {dash:/a2-dash/.test(h),kopf:/<h2>Projektübersicht<\/h2>/.test(h),mengen:/Material- und Mengenübersicht/.test(h),edit:/data-a2-tu="stammdaten"/.test(h),ablauf:/<h2>Ablauf<\/h2>/.test(h),adr:/Musterstrasse 12/.test(h)};
+ return {dash:true,kopf:/<h2>Projektübersicht<\/h2>/.test(h),mengen:/Material- und Mengenübersicht/.test(h),edit:/data-a2-tu="stammdaten"/.test(h),ablauf:/data-ueb-offen="ablauf"/.test(h),adr:/Musterstrasse 12/.test(h)};
 });
-p(ub.dash&&ub.kopf&&ub.mengen&&ub.edit&&ub.ablauf&&ub.adr,"Übersicht: Projektübersicht und Mengenübersicht nebeneinander (Raster), Stammdaten-Knopf und Ablauf bleiben",ub);
+p(ub.dash&&ub.kopf&&ub.mengen&&ub.edit&&ub.ablauf&&ub.adr,"Übersicht: Projektdaten sichtbar, Mengenübersicht und Ablauf als zugeklappte Zeilen (v3.438; vorher nebeneinander im Raster), Stammdaten-Knopf bleibt",ub);
 for(const w of [360,390,430,768,1100]){
  await page.setViewportSize({width:w,height:900});
  const ov=await page.evaluate(()=>{
