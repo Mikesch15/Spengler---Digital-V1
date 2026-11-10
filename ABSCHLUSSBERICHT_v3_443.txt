@@ -1,0 +1,2 @@
+Abschlussbericht v3.443
+Stilregeln der Biegeanalyse (css/05) ohne html.a2-an-Schalter; pruefstand-ansicht2-150 F3 rot. Behoben.

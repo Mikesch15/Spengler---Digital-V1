@@ -34990,3 +34990,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.442 – Biegeanalyse überarbeitet
 - Biegewange bündig, automatische Folge (beste Folge als Rückfall), neue Darstellung.
+
+## v3.443 – Stilregeln der Biegeanalyse mit Schalter
+- css/05: html.a2-an vor #bgaModal.
