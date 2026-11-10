@@ -2,7 +2,7 @@
 // ===========================================================================
 // Biegeanalyse - Oberflaeche (v3.441, ueberarbeitet v3.442)
 // ===========================================================================
-// Seitenansicht einer Schwenkbiegemaschine mit echter Bewegung: Blech, Unter-/Klemmwange, Biegewange; abspielen, Schritt fuer
+// Seitenansicht einer Schwenkbiegemaschine mit echter Bewegung: Blech, Unter-/Oberwange, Biegewange; abspielen, Schritt fuer
 // Schritt oder mit dem Regler fahren. Rechnen tut js/108, die Maschinendaten kommen aus js/109. Geoeffnet wird sie aus dem
 // Freien Profil (Register «Zeichnung»). Nichts wird gespeichert - es ist eine Planungshilfe; die Massaufnahme bleibt unberuehrt.
 // Die Biegewange dreht buendig am Flansch um dessen Biegekante (js/108, bgaBeamPunkte).
@@ -85,7 +85,7 @@ function bgaBildHtml(){
  for(let y=gy0;y<=y0+H;y+=gs)gitter+=`<line x1="${x0}" y1="${y}" x2="${x0+W}" y2="${y}" stroke="${y%50===0?"#d7dde4":"#e9edf1"}" stroke-width="${px(y%50===0?.8:.5)}"/>`;
  const tischlinie=`<line x1="${x0}" y1="0" x2="${x0+W}" y2="0" stroke="#aab4be" stroke-width="${px(.9)}" stroke-dasharray="${px(5)} ${px(4)}"/>`;
  const tools=pose.unter.map(p=>poly(p,hat("Unterwange")?"url(#bgaRot)":"url(#bgaUnter)","#4d5a66")).join("")
-  +pose.klemm.map(p=>poly(p,hat("Klemmwange")?"url(#bgaRot)":"url(#bgaKlemm)","#46525d")).join("")
+  +pose.klemm.map(p=>poly(p,hat("Oberwange")?"url(#bgaRot)":"url(#bgaKlemm)","#46525d")).join("")
   +pose.beam.map(p=>poly(p,hat("Biegewange")?"url(#bgaRot)":(s.theta>0?"url(#bgaAuf)":"url(#bgaAb)"),s.theta>0?"#255d92":"#1f7a57")).join("");
  const pts=pose.punkte;
  const linie=pts.map(P).join(" ");
@@ -103,7 +103,7 @@ function bgaBildHtml(){
  }
  // Beschriftungen in Maschinenkoordinaten (Text nicht gespiegelt) und Massstab
  const beschr=(txt,x,y,farbe,ende)=>`<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) scale(1,-1)"><text${ende?' text-anchor="end"':""} font-size="${px(10.5)}" fill="${farbe}" font-family="system-ui,sans-serif" font-weight="600">${txt}</text></g>`;
- const labels=beschr("Unterwange",Math.max(x0+10/sc,-312),-62,"#4d5a66")+beschr("Klemmwange",-126,Math.min(y0+H-18/sc,130),"#4d5a66",true)
+ const labels=beschr("Unterwange",Math.max(x0+10/sc,-312),-62,"#4d5a66")+beschr("Oberwange",-126,Math.min(y0+H-18/sc,130),"#4d5a66",true)
   +beschr(s.theta>0?"Biegewange (auf)":"Biegewange (ab)",8,s.theta>0?-76:84,s.theta>0?"#255d92":"#1f7a57");
  const mm=W>420?100:50;
  const mx=x0+W-12/sc-mm,my=y0+16/sc;

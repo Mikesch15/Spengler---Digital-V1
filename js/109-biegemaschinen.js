@@ -3,7 +3,7 @@
 // Biegemaschinen (v3.441) - die Maschinendaten der Biegeanalyse (js/108, js/110)
 // ===========================================================================
 // Je Maschine: Arbeitslaenge, Mindest-Klemmbreite, maximale Winkel nach oben/unten, Toleranz und die QUERSCHNITTE von Unterwange,
-// Klemmwange und Biegewange (Polygone in mm; Biegekante = x 0, Tischoberkante = y 0, die Klemmwange wird fuer die Blechstaerke
+// Oberwange und Biegewange (Polygone in mm; Biegekante = x 0, Tischoberkante = y 0, die Oberwange wird fuer die Blechstaerke
 // um t nach oben gesetzt). Die Werte pflegt der Betrieb unter Einstellungen -> Firma -> Biegemaschinen; sie gelten firmenweit
 // (app_settings.massaufnahme_einstellungen, Schluessel sd_biegemaschinen, js/98). Es gibt KEINE erfundenen Standardwerte:
 // ohne Maschine gibt es keine Biegeanalyse. Nur Administratoren sehen zusaetzlich die Beispiel-Testmaschine (klar als solche markiert).
@@ -15,10 +15,10 @@ const BM_BEISPIEL=Object.freeze({
  laenge_mm:3000,min_klemm_mm:10,max_winkel_auf:120,toleranz_mm:0.3,
  // Unterwange: Block unter dem Tisch, Vorderseite nach hinten geneigt (Platz fuer bereits gebogene Schenkel)
  unterwange:[[[-320,0],[0,0],[-14,-60],[-40,-200],[-320,-200]]],
- // Klemmwange: schmale Klinge (120 mm tief), vorn unten 45 Grad abgeschraegt - dahinter ist Platz fuer bereits gebogene Schenkel
- klemmwange:[[[-120,0],[0,0],[-60,60],[-60,260],[-120,260]]],
+ // Oberwange: schmale Klinge (120 mm tief), vorn unten flach abgeschraegt - dahinter ist Platz fuer bereits gebogene Schenkel
+ klemmwange:[[[-120,0],[0,0],[-72,60],[-72,260],[-120,260]]],
  // Biegewange: Arbeitsflaeche in der Tischebene (y 0), dreht buendig am Flansch um die Biegekante
- biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[110,0],[110,-52]]],achse:[0,0]}
+ biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[20,0],[20,-52]]],achse:[0,0]}
 });
 function bmLaden(){
  let w=null;
@@ -51,7 +51,7 @@ function bmVorschauSvg(m,breite){
  const pg=polys.map(o=>`<polygon points="${o.p.map(q=>X(Number(q[0])||0).toFixed(1)+","+Y(Number(q[1])||0).toFixed(1)).join(" ")}" fill="${o.farbe}" fill-opacity=".55" stroke="${o.farbe}" stroke-width="1"/>`).join("");
  return `<svg viewBox="0 0 ${w} ${h.toFixed(0)}" width="100%" style="max-width:${w}px;background:#fff;border:1px solid var(--card-line);border-radius:8px" role="img" aria-label="Querschnitt der Maschine">
 <line x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}" stroke="#c4ccd4" stroke-dasharray="3 3"/><line x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}" stroke="#c4ccd4" stroke-dasharray="3 3"/>${pg}</svg>
-<div class="small">Grau: Unter- und Klemmwange · Blau: Biegewange nach oben · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
+<div class="small">Grau: Unter- und Oberwange · Blau: Biegewange nach oben · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
 }
 
 // ---- Einstellungen -> Firma -> Biegemaschinen (nur Administratoren) --------------------------
@@ -70,7 +70,7 @@ function bmKarteHtml(m,i){
  </div>
  <label style="margin-top:8px">Werkzeug-Querschnitte (JSON, mm)</label>
  <textarea data-bm-werkzeuge="${i}" rows="9" style="font-family:monospace;font-size:12px">${esc(bmWerkzeugeAlsText(m))}</textarea>
- <div class="small">Polygone: <code>[[x,y],…]</code>. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Klemmwange wird für die Blechstärke automatisch angehoben. Die <b>Arbeitsfläche der Biegewange</b> liegt in der Tischebene (y&nbsp;0; «auf»: Teile darunter, «ab»: darüber); sie dreht bündig am Flansch um die Biegekante. Optional: <code>achse</code> (Versatz der Drehachse, Standard [0,0]).</div>
+ <div class="small">Polygone: <code>[[x,y],…]</code>. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Oberwange wird für die Blechstärke automatisch angehoben. Die <b>Arbeitsfläche der Biegewange</b> liegt in der Tischebene (y&nbsp;0; «auf»: Teile darunter, «ab»: darüber); sie dreht bündig am Flansch um die Biegekante. Optional: <code>achse</code> (Versatz der Drehachse, Standard [0,0]).</div>
  <div id="bmVorschau${i}" style="margin-top:8px">${bmVorschauSvg(m)}</div>
  <label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-bm-feld="geprueft" data-bm-i="${i}"${m.geprueft?" checked":""}> Werte mit der Herstellerzeichnung geprüft (sonst warnt die Analyse)</label>
  <div class="bar"><button type="button" class="red" data-bm-weg="${i}">Maschine löschen</button></div>

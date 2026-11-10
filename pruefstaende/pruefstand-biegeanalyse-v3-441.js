@@ -28,9 +28,14 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  r=await ev(()=>{const P=bgaProfil([{laenge:60,winkel:0},{laenge:40,winkel:90},{laenge:60,winkel:90}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);
   const a=bgaFolgeAnalysieren(P,BM_BEISPIEL,1,[{k:1,klemm:"links",flip:false},{k:2,klemm:"links",flip:false}]);
   return {ok:f.ok,texte:a.schritte.flatMap(s=>s.probleme.map(x=>x.text))}});
- p(!r.ok&&r.texte.some(t=>/Unterwange|Klemmwange/.test(t)),"U-Profil mit Boden 40 mm: nicht machbar – der erste Schenkel stösst an die Werkzeuge (Klemmwange ist 60 mm tief)",r);
+ p(!r.ok&&r.texte.some(t=>/Unterwange|Oberwange/.test(t)),"U-Profil mit Boden 40 mm: nicht machbar – der erste Schenkel stösst an die Werkzeuge (Oberwange ist tief)",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:20,winkel:180}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);return {ok:f.ok,hin:f.ok?bgaFolgeAnalysieren(P,BM_BEISPIEL,1,f.schritte.map(s=>({k:s.k,klemm:s.cfg.klemm,flip:s.cfg.flip}))).schritte[0].hinweise:[]}});
  p(r.ok&&r.hin.some(h=>/Umschlag/.test(h)),"Umschlag 180°: wird bis zum Maschinenmaximum geprüft und als «zugedrückt» gekennzeichnet",r);
+ r=await ev(()=>{const P=bgaProfil([{laenge:12,winkel:270},{laenge:295,winkel:180},{laenge:28,winkel:100},{laenge:20,winkel:80},{laenge:8,winkel:-25}]);
+  const fo=[{k:1,klemm:"rechts",flip:false},{k:4,klemm:"links",flip:false},{k:3,klemm:"links",flip:true},{k:2,klemm:"links",flip:true}];
+  const a=bgaFolgeAnalysieren(P,BM_BEISPIEL,0.6,fo);const f=bgaFolgeSuchen(P,BM_BEISPIEL,0.6);
+  return {alle:a.schritte.every(x=>x.moeglich),umschlag:a.schritte[0].hinweise.join(" "),such:f.ok,w:f.wenden}});
+ p(r.alle&&/Oberwange zusammengedrückt/.test(r.umschlag)&&r.such,"Muster Dachrandblende (Auftrag 18191): Folge Umschlag, 4, 3, 2 ist machbar; der Umschlag liegt an der Oberwange an und wird zugedrückt; die Suche findet eine machbare Folge",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:140}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
  p(r===false,"140° ist grösser als das Maximum (120° nach oben): nicht machbar",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:8,winkel:0},{laenge:8,winkel:90}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
@@ -60,7 +65,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]);
   const lage=bgaLage(P,new Set(),1,{klemm:"rechts",flip:false},1);const a=bgaPose(lage,BM_BEISPIEL,1,45),c=bgaPose(lage,BM_BEISPIEL,1,90);
   return {kollisionen:a.kollisionen.length,piv:a.piv,punkte:a.punkte.length,beam:a.beam.length,y:Math.round(c.punkte[c.punkte.length-1][1])}});
- p(r.kollisionen===0&&r.piv[1]===1&&r.beam===1&&r.y>90,"Einzelbild der Bewegung: Drehpunkt an der Klemmwangen-Kante (y = Blechstärke), Biegewange dreht mit, Flansch steht bei 90° senkrecht",r);
+ p(r.kollisionen===0&&r.piv[1]===1&&r.beam===1&&r.y>90,"Einzelbild der Bewegung: Drehpunkt an der Oberwangen-Kante (y = Blechstärke), Biegewange dreht mit, Flansch steht bei 90° senkrecht",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:60,winkel:0},{laenge:100,winkel:90},{laenge:60,winkel:90},{laenge:60,winkel:-90},{laenge:60,winkel:90},{laenge:60,winkel:90},{laenge:60,winkel:-90}]);const t0=performance.now();const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);return {ms:Math.round(performance.now()-t0),n:P.biegungen.length,pr:f.pruefungen}});
  p(r.ms<4000,"Suche bei 6 Biegungen bleibt unter 4 Sekunden",r);
 

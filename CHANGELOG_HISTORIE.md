@@ -34996,3 +34996,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.444 – Biegemaschine nur nach oben
 - Keine Biegewange nach unten; Gegenrichtung durch Wenden. Beispielmaschine Mindest-Klemmbreite 10 mm.
+
+## v3.445 – Biegeanalyse: Oberwange, Umschlag
+- Benennung Oberwange; Umschlag liegt gewollt an der Oberwange an; Beispielmaschine angepasst.

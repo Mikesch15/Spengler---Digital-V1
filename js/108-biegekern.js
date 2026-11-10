@@ -5,15 +5,15 @@
 // Ansage des Anwenders: «3D-Live-Biegeanalyse mit Bewegung, Schwenkbiegemaschinen (Jorns 6 m, Schröder 3 m)».
 //
 // WAS DAS IST: eine reine Geometrie-Rechnung (kein DOM, keine Datenbank). Ein Freies Profil hat ueber die ganze Laenge denselben
-// Querschnitt; deshalb wird die Biegefolge im QUERSCHNITT (Seitenansicht) gerechnet: Blech, Unterwange, Klemmwange und Biegewange
+// Querschnitt; deshalb wird die Biegefolge im QUERSCHNITT (Seitenansicht) gerechnet: Blech, Unterwange, Oberwange und Biegewange
 // einer Schwenkbiegemaschine, mit echter Drehbewegung des Flansches um die Biegekante.
 //
 // MODELL (Seitenansicht, Millimeter, y nach oben):
-//   - Tischoberkante = y 0, Biegekante = x 0. Das Blech liegt auf der Unterwange (x < 0), die Klemmwange drueckt von oben
+//   - Tischoberkante = y 0, Biegekante = x 0. Das Blech liegt auf der Unterwange (x < 0), die Oberwange drueckt von oben
 //     (ihre Unterkante liegt bei y = Blechstaerke). Der Flansch (x > 0) wird um die Biegekante gedreht:
 //     Winkel > 0 = nach oben (Biegewange «auf»), < 0 = nach unten (Biegewange «ab»).
 //   - Die Werkzeug-Querschnitte stammen aus den MASCHINENDATEN des Betriebs (js/109). Der Kern erfindet keine Masse.
-//   - Pro Schritt wird der Flansch in kleinen Winkelschritten gedreht und gegen Unterwange, Klemmwange, den bereits geklemmten
+//   - Pro Schritt wird der Flansch in kleinen Winkelschritten gedreht und gegen Unterwange, Oberwange, den bereits geklemmten
 //     Teil des Blechs und die Biegewange geprueft (Polygon-Ueberlappung, Toleranz aus den Maschinendaten).
 //   - Folgensuche: Reihenfolge der Biegungen, Seite der Klemmung und Wenden des Blechs; wenige Wenden werden bevorzugt.
 //
@@ -112,7 +112,7 @@ function bgaVerschieben(poly,dx,dy){return poly.map(p=>[p[0]+dx,p[1]+dy])}
 // m: {laenge_mm,min_klemm_mm,max_winkel_auf,max_winkel_ab,toleranz_mm,
 //     unterwange:[poly,...], klemmwange:[poly,...], biegewange_auf:{teile:[poly,...],achse:[dx,dy]}, biegewange_ab:{...}}
 // Biegewange: Ihre ARBEITSFLAECHE liegt bei geschlossener Stellung in der Tischebene (y 0; «auf» = Teile darunter, y <= 0; «ab» = Teile
-// darueber, y >= 0 - sie werden fuer die Blechstaerke angehoben). Sie dreht um die Biegekante des Flansches (Klemmwangen-Kante bzw. Tischkante)
+// darueber, y >= 0 - sie werden fuer die Blechstaerke angehoben). Sie dreht um die Biegekante des Flansches (Oberwangen-Kante bzw. Tischkante)
 // mit demselben Winkel und bleibt dabei bündig am Flansch. «achse» ist ein optionaler Versatz der Drehachse (Standard [0,0]).
 // Alle Werkzeug-Polygone werden einmal in konvexe Dreiecke zerlegt (Zwischenspeicher je Maschinenobjekt).
 const BGA_CACHE=new WeakMap();
@@ -129,7 +129,7 @@ function bgaMaschineFehler(m){
  if(!m||typeof m!=="object")return ["Keine Maschine."];
  if(!(Number(m.laenge_mm)>0))f.push("Die Arbeitslänge fehlt.");
  if(!Array.isArray(m.unterwange)||!m.unterwange.length)f.push("Die Unterwange fehlt.");
- if(!Array.isArray(m.klemmwange)||!m.klemmwange.length)f.push("Die Klemmwange fehlt.");
+ if(!Array.isArray(m.klemmwange)||!m.klemmwange.length)f.push("Die Oberwange fehlt.");
  if(!(m.biegewange_auf&&Array.isArray(m.biegewange_auf.teile)&&m.biegewange_auf.teile.length)&&!(m.biegewange_ab&&Array.isArray(m.biegewange_ab.teile)&&m.biegewange_ab.teile.length))f.push("Es ist keine Biegewange eingetragen.");
  return f;
 }
@@ -161,7 +161,7 @@ function bgaLage(profil,erledigt,k,cfg,t){
  const theta=kappa*(cfg.klemm==="rechts"?-1:1)*(cfg.flip?-1:1);
  return {Q,vi,theta,vertex:[0,t/2],n,umgekehrt:cfg.klemm==="rechts"};
 }
-// Drehpunkt des Flansches: bei Biegungen nach oben die Klemmwangen-Kante (Oberseite des Blechs, y = t), nach unten die Tischkante (y = 0) -
+// Drehpunkt des Flansches: bei Biegungen nach oben die Oberwangen-Kante (Oberseite des Blechs, y = t), nach unten die Tischkante (y = 0) -
 // die Innenseite der Biegung bleibt an der Werkzeugkante (nicht die Mittellinie - sonst stiesse der Flansch an die Kante).
 function bgaDrehpunkt(theta,t){return [0,theta>=0?t:0]}
 // Lage der Biegewange: Arbeitsflaeche buendig am Flansch, Drehung um dessen Biegekante (plus Achsversatz). poly in Maschinenkoordinaten.
@@ -213,9 +213,9 @@ function bgaSchrittPruefen(profil,erledigt,k,cfg,m,t,opt){
  if(minK>0&&lc<minK-1e-6){fehl("klemmung","Der geklemmte Schenkel ("+Math.round(lc*10)/10+" mm) ist kürzer als die Mindest-Klemmbreite ("+minK+" mm).");if(o.schnell)return res}
  if(!beam&&o.schnell)return res;
  // Bewegung pruefen
- const istUmschlag=absTheta>BGA_HEM_PRUEF_GRAD+1e-6&&absTheta>=170;
+ const istUmschlag=absTheta>=170;
  const ziel=istUmschlag?(maxW>0?Math.min(BGA_HEM_PRUEF_GRAD,maxW):BGA_HEM_PRUEF_GRAD):absTheta;
- if(istUmschlag)res.hinweise.push("Umschlag: bis "+Math.round(ziel)+"° geprüft, danach wird er zugedrückt (Falzdicke nicht doppelt gerechnet).");
+ if(istUmschlag)res.hinweise.push("Umschlag: wird bis zum grössten Biegewinkel ("+Math.round(ziel)+"°) gebogen und danach von der Oberwange zusammengedrückt (Falzdicke nicht doppelt gerechnet).");
  const sign=auf?1:-1;
  const schritte=Math.max(1,Math.ceil(ziel/BGA_WINKEL_SCHRITT));
  const gefunden=new Set();
@@ -224,7 +224,7 @@ function bgaSchrittPruefen(profil,erledigt,k,cfg,m,t,opt){
  // statisch: geklemmter Teil gegen Werkzeuge
  const stat=bgaBlechPolys(lage,t,0);
  for(const s of stat.klemm){
-  for(const [namen,tri] of [["Unterwange",unter],["Klemmwange",klemmwange]]){
+  for(const [namen,tri] of [["Unterwange",unter],["Oberwange",klemmwange]]){
    const x=bgaKollidiert(s.poly,tri,tol);
    if(x&&!gefunden.has("K"+s.j+namen)){gefunden.add("K"+s.j+namen);
     fehl("kollision","Der bereits gebogene Teil des Blechs (Schenkel "+(bgaOrig(lage,s.j)+1)+") stösst an die "+namen+".",{winkel:0,teil:namen,schenkel:s.j,nr:bgaOrig(lage,s.j)+1,tiefe:x});if(o.schnell)return res}
@@ -237,9 +237,11 @@ function bgaSchrittPruefen(profil,erledigt,k,cfg,m,t,opt){
   // Biegewange: buendig am Flansch, mit ihm um die Biegekante gedreht
   let bTri=[];
   if(beam)bTri=beam.dreiecke.map(tr=>bgaBeamPunkte(tr,auf,t,beam,bgaRad(winkel),lage.theta));
+  let umschlagAnOber=false;
   for(const f of bp.flansch){
-   for(const [namen,tri] of [["Unterwange",unter],["Klemmwange",klemmwange]]){
+   for(const [namen,tri] of [["Unterwange",unter],["Oberwange",klemmwange]]){
     const x=bgaKollidiert(f.poly,tri,tol);
+    if(x&&istUmschlag&&namen==="Oberwange"&&f.j===lage.vi){umschlagAnOber=true;continue}
     if(x&&!gefunden.has("F"+f.j+namen)){gefunden.add("F"+f.j+namen);
      fehl("kollision","Der Flansch (Schenkel "+(bgaOrig(lage,f.j)+1)+") stösst bei "+Math.round(Math.abs(winkel))+"° an die "+namen+".",{winkel,teil:namen,schenkel:f.j,nr:bgaOrig(lage,f.j)+1,tiefe:x});if(o.schnell)return res}
    }
@@ -257,6 +259,7 @@ function bgaSchrittPruefen(profil,erledigt,k,cfg,m,t,opt){
      fehl("kollision","Schenkel "+(bgaOrig(lage,f.j)+1)+" und Schenkel "+(bgaOrig(lage,c.j)+1)+" stossen bei "+Math.round(Math.abs(winkel))+"° aufeinander.",{winkel,teil:"Blech",schenkel:f.j,nr:bgaOrig(lage,f.j)+1,tiefe:x});if(o.schnell)return res}
    }
   }
+  if(umschlagAnOber)break;   // Umschlag liegt an der Oberwange an: ab hier wird er zugedrueckt
  }
  return res;
 }
@@ -408,10 +411,10 @@ function bgaPose(lage,m,t,winkelGrad){
  const koll=[];
  const melde=(teil,j,tiefe)=>{if(!koll.some(k=>k.teil===teil&&k.schenkel===j))koll.push({teil,schenkel:j,nr:bgaOrig(lage,j)+1,tiefe})};
  for(const c of bp.klemm){
-  for(const [n,tri] of [["Unterwange",D.unter],["Klemmwange",klemmwange]]){const x=bgaKollidiert(c.poly,tri,tol);if(x)melde(n,c.j,x)}
+  for(const [n,tri] of [["Unterwange",D.unter],["Oberwange",klemmwange]]){const x=bgaKollidiert(c.poly,tri,tol);if(x)melde(n,c.j,x)}
  }
  for(const f of bp.flansch){
-  for(const [n,tri] of [["Unterwange",D.unter],["Klemmwange",klemmwange]]){const x=bgaKollidiert(f.poly,tri,tol);if(x)melde(n,f.j,x)}
+  for(const [n,tri] of [["Unterwange",D.unter],["Oberwange",klemmwange]]){const x=bgaKollidiert(f.poly,tri,tol);if(x)melde(n,f.j,x)}
   if(f.j>lage.vi){const x=bgaKollidiert(f.poly,bTri,tol);if(x)melde("Biegewange",f.j,x)}
   for(const c of bp.klemm){
    if(c.j===lage.vi-1&&f.j===lage.vi)continue;
