@@ -18,8 +18,8 @@
 //   - Folgensuche: Reihenfolge der Biegungen, Seite der Klemmung und Wenden des Blechs; wenige Wenden werden bevorzugt.
 //
 // GRENZEN (stehen auch in der Oberflaeche): Innenradius und Rueckfederung werden nicht gerechnet; Umschlaege (180 Grad) werden
-// bis 150 Grad geprueft und dann als «zugedrueckt» angenommen; die Biegewange dreht um ihren Drehpunkt mit demselben Winkel wie
-// der Flansch. Es ist eine Planungshilfe, keine zertifizierte Simulation.
+// bis 150 Grad geprueft und dann als «zugedrueckt» angenommen; die Biegewange dreht buendig am Flansch um dessen Biegekante
+// (mit demselben Winkel wie der Flansch). Es ist eine Planungshilfe, keine zertifizierte Simulation.
 // ===========================================================================
 
 const BGA_HEM_PRUEF_GRAD=150;      // Umschlaege: bis hierhin pruefen, danach gilt «wird zugedrueckt»
@@ -110,13 +110,16 @@ function bgaVerschieben(poly,dx,dy){return poly.map(p=>[p[0]+dx,p[1]+dy])}
 
 // ---- Maschine -----------------------------------------------------------------
 // m: {laenge_mm,min_klemm_mm,max_winkel_auf,max_winkel_ab,toleranz_mm,
-//     unterwange:[poly,...], klemmwange:[poly,...], biegewange_auf:{teile:[poly,...],drehpunkt:[x,y]}, biegewange_ab:{...}}
+//     unterwange:[poly,...], klemmwange:[poly,...], biegewange_auf:{teile:[poly,...],achse:[dx,dy]}, biegewange_ab:{...}}
+// Biegewange: Ihre ARBEITSFLAECHE liegt bei geschlossener Stellung in der Tischebene (y 0; «auf» = Teile darunter, y <= 0; «ab» = Teile
+// darueber, y >= 0 - sie werden fuer die Blechstaerke angehoben). Sie dreht um die Biegekante des Flansches (Klemmwangen-Kante bzw. Tischkante)
+// mit demselben Winkel und bleibt dabei bündig am Flansch. «achse» ist ein optionaler Versatz der Drehachse (Standard [0,0]).
 // Alle Werkzeug-Polygone werden einmal in konvexe Dreiecke zerlegt (Zwischenspeicher je Maschinenobjekt).
 const BGA_CACHE=new WeakMap();
 function bgaMaschineVorbereiten(m){
  if(m&&BGA_CACHE.has(m))return BGA_CACHE.get(m);
  const zer=teile=>[].concat(...(teile||[]).map(bgaDreiecke));
- const bw=b=>b&&Array.isArray(b.teile)?{dreiecke:zer(b.teile),drehpunkt:Array.isArray(b.drehpunkt)?b.drehpunkt.map(Number):[0,0]}:null;
+ const bw=b=>b&&Array.isArray(b.teile)?{dreiecke:zer(b.teile),achse:Array.isArray(b.achse)?b.achse.map(Number):[0,0]}:null;
  const d={unter:zer(m&&m.unterwange),klemm:zer(m&&m.klemmwange),auf:bw(m&&m.biegewange_auf),ab:bw(m&&m.biegewange_ab)};
  if(m&&typeof m==="object")BGA_CACHE.set(m,d);   // WeakMap: auch eingefrorene Objekte (Beispielmaschine) koennen zwischengespeichert werden
  return d;
@@ -156,11 +159,18 @@ function bgaLage(profil,erledigt,k,cfg,t){
  });
  const kappa=-profil.seg[k].winkel;                              // mathematisch, + = gegen den Uhrzeigersinn
  const theta=kappa*(cfg.klemm==="rechts"?-1:1)*(cfg.flip?-1:1);
- return {Q,vi,theta,vertex:[0,t/2]};
+ return {Q,vi,theta,vertex:[0,t/2],n,umgekehrt:cfg.klemm==="rechts"};
 }
 // Drehpunkt des Flansches: bei Biegungen nach oben die Klemmwangen-Kante (Oberseite des Blechs, y = t), nach unten die Tischkante (y = 0) -
 // die Innenseite der Biegung bleibt an der Werkzeugkante (nicht die Mittellinie - sonst stiesse der Flansch an die Kante).
 function bgaDrehpunkt(theta,t){return [0,theta>=0?t:0]}
+// Lage der Biegewange: Arbeitsflaeche buendig am Flansch, Drehung um dessen Biegekante (plus Achsversatz). poly in Maschinenkoordinaten.
+function bgaBeamPunkte(poly,auf,t,beamD,w,theta){
+ const piv=bgaDrehpunkt(theta,t),c=[piv[0]+beamD.achse[0],piv[1]+beamD.achse[1]];
+ return poly.map(p=>bgaDrehen([Number(p[0]),Number(p[1])+(auf?0:t)],c,w));
+}
+// Ursprungs-Nummer (0-basiert) eines Schenkels aus der Lage-Reihenfolge (bei Klemmung rechts ist die Reihenfolge umgekehrt)
+function bgaOrig(lage,j){return lage.umgekehrt?lage.n-1-j:j}
 // Blechsegmente (Polygone) des geklemmten Teils und des Flansches bei Drehwinkel w (Radiant)
 function bgaBlechPolys(lage,t,w){
  const {Q,vi}=lage;const vertex=bgaDrehpunkt(lage.theta,t);
@@ -217,37 +227,34 @@ function bgaSchrittPruefen(profil,erledigt,k,cfg,m,t,opt){
   for(const [namen,tri] of [["Unterwange",unter],["Klemmwange",klemmwange]]){
    const x=bgaKollidiert(s.poly,tri,tol);
    if(x&&!gefunden.has("K"+s.j+namen)){gefunden.add("K"+s.j+namen);
-    fehl("kollision","Der bereits gebogene Teil des Blechs (Schenkel "+(s.j+1)+") stösst an die "+namen+".",{winkel:0,teil:namen,schenkel:s.j,tiefe:x});if(o.schnell)return res}
+    fehl("kollision","Der bereits gebogene Teil des Blechs (Schenkel "+(bgaOrig(lage,s.j)+1)+") stösst an die "+namen+".",{winkel:0,teil:namen,schenkel:s.j,nr:bgaOrig(lage,s.j)+1,tiefe:x});if(o.schnell)return res}
   }
  }
  for(let i=1;i<=schritte;i++){
   const winkel=Math.min(ziel,i*BGA_WINKEL_SCHRITT)*sign;
   const bp=bgaBlechPolys(lage,t,bgaRad(winkel));
   res.maxWinkelGeprueft=Math.abs(winkel);
-  // Biegewange um ihren Drehpunkt mitdrehen
+  // Biegewange: buendig am Flansch, mit ihm um die Biegekante gedreht
   let bTri=[];
-  if(beam){
-   const b=bgaRad(winkel);
-   bTri=beam.dreiecke.map(tr=>tr.map(p=>bgaDrehen(auf?p:[p[0],p[1]+t],auf?beam.drehpunkt:[beam.drehpunkt[0],beam.drehpunkt[1]+t],b)));
-  }
+  if(beam)bTri=beam.dreiecke.map(tr=>bgaBeamPunkte(tr,auf,t,beam,bgaRad(winkel),lage.theta));
   for(const f of bp.flansch){
    for(const [namen,tri] of [["Unterwange",unter],["Klemmwange",klemmwange]]){
     const x=bgaKollidiert(f.poly,tri,tol);
     if(x&&!gefunden.has("F"+f.j+namen)){gefunden.add("F"+f.j+namen);
-     fehl("kollision","Der Flansch (Schenkel "+(f.j+1)+") stösst bei "+Math.round(Math.abs(winkel))+"° an die "+namen+".",{winkel,teil:namen,schenkel:f.j,tiefe:x});if(o.schnell)return res}
+     fehl("kollision","Der Flansch (Schenkel "+(bgaOrig(lage,f.j)+1)+") stösst bei "+Math.round(Math.abs(winkel))+"° an die "+namen+".",{winkel,teil:namen,schenkel:f.j,nr:bgaOrig(lage,f.j)+1,tiefe:x});if(o.schnell)return res}
    }
    // Biegewange: der erste Flansch liegt an ihr (gewollt), spaetere Schenkel duerfen sie nicht beruehren
    if(f.j>lage.vi){
     const x=bgaKollidiert(f.poly,bTri,tol);
     if(x&&!gefunden.has("F"+f.j+"Biegewange")){gefunden.add("F"+f.j+"Biegewange");
-     fehl("kollision","Schenkel "+(f.j+1)+" stösst bei "+Math.round(Math.abs(winkel))+"° an die Biegewange.",{winkel,teil:"Biegewange",schenkel:f.j,tiefe:x});if(o.schnell)return res}
+     fehl("kollision","Schenkel "+(bgaOrig(lage,f.j)+1)+" stösst bei "+Math.round(Math.abs(winkel))+"° an die Biegewange.",{winkel,teil:"Biegewange",schenkel:f.j,nr:bgaOrig(lage,f.j)+1,tiefe:x});if(o.schnell)return res}
    }
    // Flansch gegen den geklemmten Teil (ausser dem unmittelbar angrenzenden Schenkel)
    for(const c of bp.klemm){
     if(c.j===lage.vi-1&&f.j===lage.vi)continue;
     const x=bgaTiefe(f.poly,c.poly);
     if(x>tol&&!gefunden.has("S"+f.j+"_"+c.j)){gefunden.add("S"+f.j+"_"+c.j);
-     fehl("kollision","Schenkel "+(f.j+1)+" und Schenkel "+(c.j+1)+" stossen bei "+Math.round(Math.abs(winkel))+"° aufeinander.",{winkel,teil:"Blech",schenkel:f.j,tiefe:x});if(o.schnell)return res}
+     fehl("kollision","Schenkel "+(bgaOrig(lage,f.j)+1)+" und Schenkel "+(bgaOrig(lage,c.j)+1)+" stossen bei "+Math.round(Math.abs(winkel))+"° aufeinander.",{winkel,teil:"Blech",schenkel:f.j,nr:bgaOrig(lage,f.j)+1,tiefe:x});if(o.schnell)return res}
    }
   }
  }
@@ -272,30 +279,91 @@ function bgaFolgeSuchen(profil,m,t,opt){
   const v=r.moeglich?{theta:r.theta}:null;
   gueltig.set(key,v);return v;
  }
+ // Kandidaten eines Zustands: zuerst die Lagen mit dem LAENGSTEN geklemmten Schenkel (stabiler, mehr Auflage), dann von vorn nach hinten
+ function kandidaten(mask){
+  const l=[];
+  for(let i=0;i<n;i++){
+   if(mask&(1<<i))continue;
+   for(let ci=0;ci<4;ci++){
+    const lg=bgaLage(profil,maskeSet(mask),B[i],BGA_KONFIGS[ci],t);
+    const lc=lg?Math.hypot(lg.Q[lg.vi][0]-lg.Q[lg.vi-1][0],lg.Q[lg.vi][1]-lg.Q[lg.vi-1][1]):0;
+    l.push({i,ci,lc});
+   }
+  }
+  return l.sort((a,b)=>(b.lc-a.lc)||(a.i-b.i)||(a.ci-b.ci));
+ }
  function loesen(mask,seite){
   if(mask===voll)return {kosten:0,schritte:[]};
   const key=mask*3+(seite+1);
   if(memo.has(key))return memo.get(key);
   let best=null;
-  for(let i=0;i<n&&!abgebrochen;i++){
-   if(mask&(1<<i))continue;
-   for(let ci=0;ci<4;ci++){
-    if(!pruef(mask,i,ci))continue;
-    const cfg=BGA_KONFIGS[ci],s=bgaSeiteOben(cfg)==="L"?0:1;
-    const wenden=(seite>=0&&s!==seite)?1:0;
-    if(best&&wenden>=best.kosten)continue;
-    const rest=loesen(mask|(1<<i),s);
-    if(!rest)continue;
-    const kosten=wenden+rest.kosten;
-    if(!best||kosten<best.kosten){best={kosten,schritte:[{k:B[i],cfg}].concat(rest.schritte)};if(kosten===0)break}
-   }
-   if(best&&best.kosten===0)break;
+  for(const c of kandidaten(mask)){
+   if(abgebrochen)break;
+   const {i,ci}=c;
+   if(!pruef(mask,i,ci))continue;
+   const cfg=BGA_KONFIGS[ci],s=bgaSeiteOben(cfg)==="L"?0:1;
+   const wenden=(seite>=0&&s!==seite)?1:0;
+   if(best&&wenden>=best.kosten)continue;
+   const rest=loesen(mask|(1<<i),s);
+   if(!rest)continue;
+   const kosten=wenden+rest.kosten;
+   if(!best||kosten<best.kosten){best={kosten,schritte:[{k:B[i],cfg}].concat(rest.schritte)};if(kosten===0)break}
   }
   memo.set(key,best);return best;
  }
  const l=loesen(0,-1);
- if(!l)return {ok:false,abgebrochen,schritte:[],pruefungen};
+ if(!l){const b=bgaFolgeBeste(profil,m,t);return Object.assign({ok:false,abgebrochen,pruefungen},b)}
  return {ok:true,schritte:l.schritte,wenden:l.kosten,pruefungen};
+}
+// Wenn keine machbare Folge existiert: die Folge mit den WENIGSTEN Problemen (und dann den wenigsten Wenden) - damit die App trotzdem
+// einen Vorschlag macht und zeigt, was uebrig bleibt. Rechnet vollstaendig (alle Probleme je Schritt); bei zu grossem Umfang greedy.
+function bgaFolgeBeste(profil,m,t){
+ const B=profil.biegungen,n=B.length,voll=(1<<n)-1;
+ const memo=new Map(),bew=new Map();let n_auswertungen=0,greedy=false;
+ const maskeSet=mask=>{const s=new Set();for(let i=0;i<n;i++)if(mask&(1<<i))s.add(B[i]);return s};
+ function bewerte(mask,i,ci){
+  const key=mask*64+i*4+ci;
+  if(bew.has(key))return bew.get(key);
+  n_auswertungen++;
+  const r=bgaSchrittPruefen(profil,maskeSet(mask),B[i],BGA_KONFIGS[ci],m,t,{schnell:false});
+  const v={probleme:r.probleme.length,seite:bgaSeiteOben(BGA_KONFIGS[ci])==="L"?0:1};
+  bew.set(key,v);return v;
+ }
+ function dp(mask,seite){
+  if(mask===voll)return {kosten:0,schritte:[],probleme:0};
+  const key=mask*3+(seite+1);
+  if(memo.has(key))return memo.get(key);
+  let best=null;
+  for(let i=0;i<n;i++){
+   if(mask&(1<<i))continue;
+   for(let ci=0;ci<4;ci++){
+    if(n_auswertungen>BGA_MAX_PRUEFUNGEN/2){greedy=true;break}
+    const v=bewerte(mask,i,ci);
+    const wenden=(seite>=0&&v.seite!==seite)?1:0;
+    const rest=dp(mask|(1<<i),v.seite);
+    if(!rest)continue;
+    const kosten=v.probleme*10+wenden+rest.kosten;
+    if(!best||kosten<best.kosten)best={kosten,schritte:[{k:B[i],cfg:BGA_KONFIGS[ci]}].concat(rest.schritte),probleme:v.probleme+rest.probleme};
+   }
+   if(greedy)break;
+  }
+  if(!best&&greedy){
+   // Rueckfall: von vorn nach hinten, je Schritt die Lage mit den wenigsten Problemen
+   const s=[];let m2=mask,p=0;
+   for(let i=0;i<n;i++){
+    if(m2&(1<<i))continue;
+    let bc=0,bp=Infinity;
+    for(let ci=0;ci<4;ci++){const v=bewerte(m2,i,ci);if(v.probleme<bp){bp=v.probleme;bc=ci}}
+    s.push({k:B[i],cfg:BGA_KONFIGS[bc]});p+=bp;m2|=1<<i;
+   }
+   best={kosten:p*10,schritte:s,probleme:p};
+  }
+  memo.set(key,best);return best;
+ }
+ const l=dp(0,-1);
+ if(!l)return {schritte:[],beste:true,probleme:0};
+ let w=0,v=null;l.schritte.forEach(st=>{const sd=bgaSeiteOben(st.cfg);if(v!==null&&v!==sd)w++;v=sd});
+ return {schritte:l.schritte,beste:true,probleme:l.probleme,wenden:w,greedy};
 }
 // Prueft eine vorgegebene Folge ([{k,klemm,flip}]) vollstaendig (alle Probleme, nicht nur das erste).
 function bgaFolgeAnalysieren(profil,m,t,folge){
@@ -331,15 +399,14 @@ function bgaPose(lage,m,t,winkelGrad){
  let beamPolys=[];
  if(beam&&m){
   const b=auf?m.biegewange_auf:m.biegewange_ab;
-  const dp=beam.drehpunkt,c=auf?dp:[dp[0],dp[1]+t];
-  beamPolys=(b.teile||[]).map(poly=>poly.map(p=>bgaDrehen(auf?[Number(p[0]),Number(p[1])]:[Number(p[0]),Number(p[1])+t],c,w)));
+  beamPolys=(b.teile||[]).map(poly=>bgaBeamPunkte(poly,auf,t,beam,w,lage.theta));
  }
  const tol=Number(m&&m.toleranz_mm)>=0&&m&&m.toleranz_mm!==""&&m.toleranz_mm!=null?Number(m.toleranz_mm):0.3;
  const klemmwange=D.klemm.map(tr=>bgaVerschieben(tr,0,t));
  const bp=bgaBlechPolys(lage,t,w);
- let bTri=[];if(beam)bTri=beam.dreiecke.map(tr=>tr.map(p=>bgaDrehen(auf?p:[p[0],p[1]+t],auf?beam.drehpunkt:[beam.drehpunkt[0],beam.drehpunkt[1]+t],w)));
+ let bTri=[];if(beam)bTri=beam.dreiecke.map(tr=>bgaBeamPunkte(tr,auf,t,beam,w,lage.theta));
  const koll=[];
- const melde=(teil,j,tiefe)=>{if(!koll.some(k=>k.teil===teil&&k.schenkel===j))koll.push({teil,schenkel:j,tiefe})};
+ const melde=(teil,j,tiefe)=>{if(!koll.some(k=>k.teil===teil&&k.schenkel===j))koll.push({teil,schenkel:j,nr:bgaOrig(lage,j)+1,tiefe})};
  for(const c of bp.klemm){
   for(const [n,tri] of [["Unterwange",D.unter],["Klemmwange",klemmwange]]){const x=bgaKollidiert(c.poly,tri,tol);if(x)melde(n,c.j,x)}
  }

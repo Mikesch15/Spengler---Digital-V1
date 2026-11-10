@@ -214,7 +214,7 @@
      drei Stellen gelesen wird (js/70 zeigt sie unter "Mehr", js/07 schreibt
      sie in die Sicherung, js/67 vergleicht sie mit der zuletzt gesehenen) -
      eine Quelle, an einem Ort. -->
-<div id="appVersion">Version 3.441</div>
+<div id="appVersion">Version 3.442</div>
 </div>
 
 <!-- STARTBILDSCHIRM
@@ -809,16 +809,17 @@
      kommen aus dem gemeinsamen Zuschnitt (js/29, js/33); die Bedienung steht in js/105. -->
 <!-- v3.441: Biegeanalyse (js/108-110): Seitenansicht einer Schwenkbiegemaschine mit Bewegung, geoeffnet aus dem Freien Profil -->
 <div id="bgaModal" class="modal" hidden>
-<div class="modalbox">
-<div class="card">
-<h2>🔧 Biegeanalyse <button type="button" class="hilfe-knopf no-print" data-hilfe="biegeanalyse">i</button></h2>
-<div id="bgaKopf" class="small" style="color:var(--muted)"></div>
-<div id="bgaErgebnis" style="margin-top:8px"></div>
-<div id="bgaBild" style="margin-top:8px"></div>
+<div class="modalbox bga-box">
+<div class="card bga-haupt">
+<h2>Biegeanalyse <button type="button" class="hilfe-knopf no-print" data-hilfe="biegeanalyse">i</button></h2>
+<div id="bgaKopfZeile"></div>
+<div id="bgaErgebnis"></div>
+<div id="bgaBild"></div>
 <div id="bgaSteuerung"></div>
+<div id="bgaEmpfehlung"></div>
 </div>
 <div class="card"><h3>Biegefolge</h3><div id="bgaFolge"></div></div>
-<div class="card"><h3>Maschine und Blech</h3><div id="bgaEingabe"></div></div>
+<details class="card bga-details"><summary>Maschine und Blech</summary><div id="bgaEingabe"></div></details>
 <div class="bar"><button id="closeBga" class="gray">← Zurück</button></div>
 </div>
 </div>
@@ -2548,7 +2549,7 @@ einer wirkt nicht auf die anderen.</div>
 <div class="settings-section" data-section="anleitung">
 <div class="settings-section-head" data-toggle-section="anleitung"><h2>📖 Anleitung <button type="button" class="hilfe-knopf no-print" data-hilfe="anleitung">i</button></h2><span class="settings-section-chevron">›</span></div>
 <div class="settings-section-body">
-<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.441.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 123 Seiten)</a></div>
+<div class="bar"><a class="hilfe-pdf" id="anleitungOeffnen" href="anleitung/Spengler-DIGITAL-Anleitung-v3.442.pdf" target="_blank" rel="noopener">📖 Anleitung öffnen (PDF, 123 Seiten)</a></div>
 </div>
 </div>
 
@@ -3271,7 +3272,7 @@ wird <b>nicht noch einmal angezeigt</b>.</div>
    <div id="hilfeText" class="hilfe-text"></div>
    <div class="bar">
     <button type="button" class="blue" id="hilfeSchliessen">Verstanden</button>
-    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.441.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
+    <a class="hilfe-pdf" id="hilfeZurAnleitung" href="anleitung/Spengler-DIGITAL-Anleitung-v3.442.pdf" target="_blank" rel="noopener">📖 Ganze Anleitung (PDF)</a>
    </div>
   </div>
  </div>

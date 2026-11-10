@@ -3,7 +3,7 @@
 <style>
 @page{size:A4;margin:16mm 15mm 18mm;
  @bottom-right{content:counter(page) " / " counter(pages);font:8pt system-ui;color:#7a8894}
- @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.441";font:8pt system-ui;color:#7a8894}}
+ @bottom-left{content:"Spengler-DIGITAL · Anleitung · Version 3.442";font:8pt system-ui;color:#7a8894}}
 @page:first{@bottom-right{content:""} @bottom-left{content:""}}
 *{box-sizing:border-box}
 body{font:10.5pt/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:#17202a;margin:0}
@@ -50,7 +50,7 @@ nav ol{margin:2px 0 10px}
  <h1>Anleitung</h1>
  <div class="unter">Massaufnahme · Ausmass · Regierapport<br>für Schweizer Spenglerbetriebe</div>
  <div class="fuss">
-  Version 3.441<br>
+  Version 3.442<br>
   Stand 28. September 2026<br><br>
   Alle Bildschirmfotos in dieser Anleitung stammen aus der App selbst.<br>
   Sie zeigen eine Demo-Firma mit erfundenen Daten.
@@ -3139,15 +3139,15 @@ Für Zuschnitte, die zu einem Projekt gehören, ist weiterhin der Zuschnitt in d
 <h2 class="seite">28 · Biegeanalyse: die Biegung vorab durchspielen</h2>
 <p>Bei einem <strong>Freien Profil</strong> zeigt die <strong>Biegeanalyse</strong>, ob sich das Profil auf einer Schwenkbiegemaschine überhaupt biegen lässt – mit echter Bewegung. Sie steht im Register <em>Zeichnung</em> (Knopf <strong>🔧 Biegeanalyse</strong>, sobald das Profil eine Biegung hat). Gespeichert wird dabei nichts; die Massaufnahme bleibt unberührt.</p>
 <h3>Was man sieht</h3>
-<p>Die Seitenansicht der Maschine: Unterwange, Klemmwange, Biegewange und das Blech. <strong>▶ Abspielen</strong> fährt alle Biegungen nacheinander, <strong>⏮ ⏭</strong> springen von Schritt zu Schritt, der <strong>Regler</strong> fährt den Winkel des aktuellen Schritts von Hand. Stösst etwas an, wird die Stelle <strong>rot</strong>, und der Schritt nennt, woran (z.&nbsp;B. «Flansch stösst bei 69° an die Klemmwange»). Grün gestrichelt ist die Endlage der Biegung.</p>
+<p>Die Seitenansicht der Maschine: Unterwange, Klemmwange, Biegewange und das Blech. Die <strong>Biegewange liegt bündig am Flansch</strong> und dreht mit ihm um die Biegekante; der Winkel steht als Bogen am Drehpunkt. <strong>▶ Abspielen</strong> fährt alle Biegungen nacheinander, <strong>⏮ ⏭</strong> springen von Schritt zu Schritt, der <strong>Regler</strong> fährt den Winkel des aktuellen Schritts von Hand. Stösst etwas an, wird die Stelle <strong>rot</strong>, und der Schritt nennt, woran (z.&nbsp;B. «Flansch stösst bei 69° an die Klemmwange»). Grün gestrichelt ist die Endlage der Biegung.</p>
 <h3>Die Biegefolge</h3>
-<p>Die App schlägt Reihenfolge, Klemmseite und Wenden des Blechs vor – mit <strong>möglichst wenig Wenden</strong>. Unter «Biegefolge» lässt sich jeder Schritt von Hand ändern (↑ ↓, Klemmseite, «Blech gedreht eingelegt»); die Folge wird sofort neu geprüft. «Neu vorschlagen» stellt den Vorschlag wieder her. Geprüft wird: Winkel gegen das Maximum der Maschine nach oben bzw. unten, Mindest-Klemmbreite des geklemmten Schenkels, Anstossen an Unter- und Klemmwange, Anstossen des Blechs an sich selbst oder an die Biegewange und die Länge des Teils gegen die Arbeitslänge der Maschine.</p>
+<p>Die App schlägt Reihenfolge, Klemmseite und Wenden des Blechs <strong>automatisch</strong> vor – mit <strong>möglichst wenig Wenden</strong>, und sie klemmt nach Möglichkeit den <strong>längeren Schenkel</strong>. Gibt es auf der Maschine keine machbare Folge, zeigt sie die <strong>beste gefundene Folge</strong> mit den wenigsten Problemen und nennt, was bleibt. Unter «Biegefolge» lässt sich jeder Schritt von Hand ändern (↑ ↓, Klemmseite, «Blech gedreht eingelegt»); die Folge wird sofort neu geprüft. «Neu vorschlagen» stellt den Vorschlag wieder her. Geprüft wird: Winkel gegen das Maximum der Maschine nach oben bzw. unten, Mindest-Klemmbreite des geklemmten Schenkels, Anstossen an Unter- und Klemmwange, Anstossen des Blechs an sich selbst oder an die Biegewange und die Länge des Teils gegen die Arbeitslänge der Maschine.</p>
 <h3>Die Maschinen</h3>
-<p>Die Maschinen (z.&nbsp;B. Jorns 6&nbsp;m, Schröder 3&nbsp;m) tragen Administratoren unter <strong>Einstellungen → Firma → Biegemaschinen</strong> ein: Arbeitslänge, Mindest-Klemmbreite, maximale Winkel, Toleranz und die <strong>Querschnitte</strong> von Unter-, Klemm- und Biegewange (Polygone in mm, mit Vorschau). Es gibt <strong>keine Standardwerte</strong> – die Querschnitte kommen aus der Herstellerzeichnung. Ist «mit der Herstellerzeichnung geprüft» nicht angehakt, warnt die Analyse. Administratoren sehen zusätzlich eine <strong>Beispiel-Testmaschine</strong>, die klar als «nicht eure Maschine» gekennzeichnet ist. Die Maschinen gelten für die ganze Firma.</p>
+<p>Die Maschinen (z.&nbsp;B. Jorns 6&nbsp;m, Schröder 3&nbsp;m) tragen Administratoren unter <strong>Einstellungen → Firma → Biegemaschinen</strong> ein: Arbeitslänge, Mindest-Klemmbreite, maximale Winkel, Toleranz und die <strong>Querschnitte</strong> von Unter-, Klemm- und Biegewange (Polygone in mm, mit Vorschau). Die <strong>Arbeitsfläche der Biegewange</strong> liegt dabei in der Tischebene (y&nbsp;0); optional gibt es einen Versatz der Drehachse. Es gibt <strong>keine Standardwerte</strong> – die Querschnitte kommen aus der Herstellerzeichnung. Ist «mit der Herstellerzeichnung geprüft» nicht angehakt, warnt die Analyse. Administratoren sehen zusätzlich eine <strong>Beispiel-Testmaschine</strong>, die klar als «nicht eure Maschine» gekennzeichnet ist. Die Maschinen gelten für die ganze Firma.</p>
 <div class="hin"><strong>Grenzen:</strong> Gerechnet wird im Querschnitt (ein Freies Profil hat über die Länge denselben Schnitt). Nicht berücksichtigt sind der Innenradius, die Rückfederung und bei Umschlägen die doppelte Blechdicke (Umschläge werden bis zum Maschinenmaximum geprüft und dann als zugedrückt angenommen). Die Biegewange dreht mit demselben Winkel wie der Flansch. Es ist eine Planungshilfe, keine zertifizierte Simulation – die Werkstatt entscheidet.</div>
 
 <h2 class="seite">29 · Zu diesem Dokument</h2>
-<p>Diese Anleitung beschreibt <strong>Version 3.441</strong>, Stand 5. Oktober 2026.</p>
+<p>Diese Anleitung beschreibt <strong>Version 3.442</strong>, Stand 5. Oktober 2026.</p>
 <h3>Woher die Bildschirmfotos stammen</h3>
 <p>Alle Bilder wurden aus der App selbst erzeugt: die echte Programmoberfläche wurde in
 einem Browser geöffnet und automatisch fotografiert. Es sind keine nachgebauten oder

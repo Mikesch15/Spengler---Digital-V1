@@ -37,8 +37,26 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(r===false,"Beide Schenkel kürzer als die Mindest-Klemmbreite (30 mm): nicht machbar",r);
  r=await ev(()=>({lang:bgaTeilLaengePruefen(BM_BEISPIEL,3500),kurz:bgaTeilLaengePruefen(BM_BEISPIEL,2500)}));
  p(/länger als die Maschine/.test(r.lang)&&r.kurz==="","Teillänge gegen Arbeitslänge der Maschine",r);
- r=await ev(()=>{const P=bgaProfil([{laenge:50,winkel:0},{laenge:40,winkel:90},{laenge:50,winkel:-90}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);return {ok:f.ok,w:f.wenden}});
- p(r.ok&&r.w===0,"Z-Profil: machbar ohne Wenden (die Suche wählt Klemmseite und Richtung)",r);
+ r=await ev(()=>{const f1=bgaFolgeSuchen(bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]),BM_BEISPIEL,1),f2=bgaFolgeSuchen(bgaProfil([{laenge:50,winkel:0},{laenge:100,winkel:90}]),BM_BEISPIEL,1);
+  return {a:f1.ok&&f1.schritte[0].cfg.klemm,b:f2.ok&&f2.schritte[0].cfg.klemm,w:f1.wenden+f2.wenden}});
+ p(r.a==="links"&&r.b==="rechts"&&r.w===0,"Vorschlag klemmt den LÄNGEREN Schenkel: 100/50 → links, 50/100 → rechts (der kurze ist der Flansch)",r);
+ r=await ev(()=>{const P=bgaProfil([{laenge:60,winkel:0},{laenge:40,winkel:90},{laenge:60,winkel:90}]);const f=bgaFolgeSuchen(P,{...BM_BEISPIEL,klemmwange:[[[-300,0],[0,0],[-60,100],[-300,100]]]},1);
+  return {ok:f.ok,beste:f.beste,n:f.schritte.length,probleme:f.probleme,hatCfg:f.schritte.every(s=>s.cfg&&typeof s.k==="number")}});
+ p(r.ok===false&&r.beste===true&&r.n===2&&r.probleme>0&&r.hatCfg,"Ist nichts machbar, schlägt die App trotzdem die BESTE Folge vor (zwei Schritte, wenigste Probleme) und nennt, was bleibt",r);
+ r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]);
+  // Biegewange: die Arbeitsflaeche (Punkt [7,0] und [110,0]) muss bei jedem Winkel auf der Unterseite des Flansches liegen
+  const lage=bgaLage(P,new Set(),1,{klemm:"rechts",flip:false},1);const o=[];
+  for(const w of [20,45,90]){const pose=bgaPose(lage,BM_BEISPIEL,1,w);const th=w*Math.PI/180;
+   const piv=pose.piv,pu=[piv[0]+Math.sin(th)*1,piv[1]-Math.cos(th)*1];   // Unterseite des Flansches durch den Drehpunkt (Abstand t = 1)
+   const d=[Math.cos(th),Math.sin(th)];
+   const bp=pose.beam[0].filter(q=>true);
+   // die zwei Punkte der Arbeitsflaeche = jene mit dem kleinsten Abstand zur Unterseite
+   const abst=bp.map(q=>Math.abs((q[0]-pu[0])*d[1]-(q[1]-pu[1])*d[0]));
+   o.push(Math.round(Math.min(...abst)*1000)/1000+"|"+abst.filter(a=>a<1e-6).length);
+  }
+  return o}
+ );
+ p(r.every(x=>x.startsWith("0|")&&Number(x.split("|")[1])>=2),"Biegewange dreht bündig am Flansch: ihre Arbeitsfläche liegt bei 20°, 45° und 90° genau auf der Flansch-Unterseite (Drehung um die Biegekante)",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]);
   const lage=bgaLage(P,new Set(),1,{klemm:"rechts",flip:false},1);const a=bgaPose(lage,BM_BEISPIEL,1,45),c=bgaPose(lage,BM_BEISPIEL,1,90);
   return {kollisionen:a.kollisionen.length,piv:a.piv,punkte:a.punkte.length,beam:a.beam.length,y:Math.round(c.punkte[c.punkte.length-1][1])}});
@@ -67,7 +85,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  console.log("\nC · Oberfläche");
  r=await ev(()=>{bgaS.maschineId="";bgaOeffnen([{laenge:80,winkel:0},{laenge:100,winkel:90},{laenge:60,winkel:90}],{staerke:1,laenge:2000,titel:"Freies Profil"});const jorns=/nicht als «mit der Herstellerzeichnung geprüft»/.test($("bgaErgebnis").textContent);bgaS.maschineId="beispiel";bgaNeuRechnen(true);bgaZeichnen();window.__jorns=jorns;
   const m=$("bgaModal");return {offen:!m.hidden,svg:!!$("bgaBild").querySelector("svg"),folge:document.querySelectorAll("#bgaFolge .bga-schritt").length,machbar:/Machbar/.test($("bgaErgebnis").textContent),
-   banner:/BEISPIEL-Testmaschine/.test($("bgaErgebnis").textContent),jorns,regler:!!$("bgaRegler"),kopf:$("bgaKopf").textContent}});
+   banner:/BEISPIEL-Testmaschine/.test($("bgaErgebnis").textContent),jorns,regler:!!$("bgaRegler"),kopf:$("bgaKopfZeile").textContent}});
  p(r.offen&&r.svg&&r.folge===2&&r.machbar&&r.banner&&r.jorns&&r.regler,"Biegeanalyse öffnet: Seitenansicht, zwei Schritte, «Machbar», Beispiel-Banner; eine nicht als geprüft markierte Maschine warnt; Regler",r);
  r=await ev(()=>{const f=bgaS.folge.map(x=>x.k);bgaFolgeVerschieben(0,1);const g=bgaS.folge.map(x=>x.k);return {vorher:f,nachher:g,auto:bgaS.auto,schritte:bgaS.analyse.schritte.length}});
  p(r.vorher[0]===r.nachher[1]&&r.auto===false&&r.schritte===2,"Reihenfolge von Hand ändern: Folge wird neu geprüft, «Vorschlag» ist aus",r);

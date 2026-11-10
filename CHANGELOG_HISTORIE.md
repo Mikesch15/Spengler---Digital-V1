@@ -34987,3 +34987,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.441 – Biegeanalyse Stufe 1 (App)
 - Rechenkern, Maschinendaten, Oberfläche, Einstieg im Freien Profil. Prüfstand biegeanalyse-441.
+
+## v3.442 – Biegeanalyse überarbeitet
+- Biegewange bündig, automatische Folge (beste Folge als Rückfall), neue Darstellung.

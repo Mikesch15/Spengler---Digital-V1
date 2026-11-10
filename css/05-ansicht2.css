@@ -1894,3 +1894,61 @@ html.a2-an .modal .settings-section-head h2{margin:0}
    ganze Dokument 1414 px breit - der Browser zoomt dann heraus, die Desktop-Regeln (Seitenleiste, 226 px) greifen. Bilder werden nie breiter als ihr Behaelter. */
 #a2Inhalt img{max-width:100%;height:auto}
 #a2Inhalt .a2-hero-bild{width:100%;max-width:100%}
+
+/* ---- v3.442: Biegeanalyse (Dialog #bgaModal) - ruhiges, professionelles Bild ---------------------------------------------- */
+#bgaModal .bga-haupt{padding-bottom:12px}
+#bgaModal .bga-klein{font-size:12.5px;color:var(--muted);line-height:1.4}
+#bgaModal .bga-kopfzeile{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 10px}
+#bgaModal .bga-kopfzeile b{font-size:15px}
+#bgaModal .bga-pille{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:13px;font-weight:700;white-space:nowrap}
+#bgaModal .bga-pille.ok{background:var(--green-light);color:var(--green-dark)}
+#bgaModal .bga-pille.fehler{background:var(--red-light);color:var(--red)}
+#bgaModal .bga-pille.warn{background:#fdf1dc;color:#9a5b00}
+#bgaModal .bga-hinweis{border:1px solid var(--card-line);border-left:3px solid var(--blue);border-radius:10px;padding:9px 12px;margin:0 0 8px;font-size:13px;line-height:1.45;background:var(--card-bg,#fff)}
+#bgaModal .bga-hinweis.ok{border-left-color:var(--green)}
+#bgaModal .bga-hinweis.fehler{border-left-color:var(--red)}
+#bgaModal .bga-hinweis.warn{border-left-color:#d97706}
+#bgaModal .bga-leer{border:1px solid var(--card-line);border-radius:10px;padding:16px 14px;font-size:13.5px;color:var(--muted);background:#fafbfc;line-height:1.5}
+#bgaModal .bga-bild-rahmen{position:relative;border:1px solid var(--card-line);border-radius:12px;overflow:hidden;background:#f7f9fb;margin:4px 0 10px}
+#bgaModal .bga-bild-rahmen svg{display:block;width:100%;height:auto}
+#bgaModal .bga-koll{position:absolute;left:10px;top:10px;display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;background:rgba(255,240,239,.96);color:var(--red);font-size:12.5px;font-weight:700;box-shadow:0 1px 3px rgba(16,24,40,.18)}
+#bgaModal .bga-player{display:flex;align-items:center;gap:8px;margin:0 0 8px}
+#bgaModal .bga-knopf{flex:none;width:44px;height:44px;border-radius:12px;border:1px solid var(--card-line);background:var(--card-bg,#fff);color:var(--ink);display:inline-flex;align-items:center;justify-content:center;padding:0;box-shadow:none;cursor:pointer}
+#bgaModal .bga-knopf.bga-gross{width:52px;height:52px;border-radius:50%;background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 2px 6px rgba(23,105,170,.35)}
+#bgaModal .bga-regler-box{flex:1 1 auto;min-width:0}
+#bgaModal .bga-regler-text{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted);margin-top:2px}
+#bgaModal input[type=range]{width:100%;height:28px;margin:0;padding:0;border:0;background:transparent;accent-color:var(--blue)}
+#bgaModal .bga-chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+#bgaModal .bga-chip{min-width:34px;height:34px;border-radius:999px;border:1px solid var(--card-line);background:var(--card-bg,#fff);color:var(--ink);font-weight:700;font-size:13px;padding:0 10px;box-shadow:none;cursor:pointer}
+#bgaModal .bga-chip.ist-auf{background:var(--blue);border-color:var(--blue);color:#fff}
+#bgaModal .bga-chip.ist-fehler:not(.ist-auf){border-color:var(--red);color:var(--red)}
+#bgaModal .bga-empf{border-top:1px solid var(--card-line);padding-top:10px}
+#bgaModal .bga-folge-zeile{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:5px 0 4px;font-size:14px;font-weight:600}
+#bgaModal .bga-schrittchip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--blue-light);color:var(--blue-dark);font-size:12px;font-weight:800;margin-right:2px}
+#bgaModal .bga-pfeil{color:var(--muted);margin:0 2px}
+#bgaModal .bga-schritt{border:1px solid var(--card-line);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:var(--card-bg,#fff)}
+#bgaModal .bga-schritt.ist-auf{border-color:var(--blue);box-shadow:0 0 0 1px var(--blue)}
+#bgaModal .bga-schritt.ist-fehler:not(.ist-auf){border-color:#f0b4ae}
+#bgaModal .bga-schritt-kopf{display:flex;align-items:center;gap:10px}
+#bgaModal .bga-nr{flex:none;width:30px;height:30px;border-radius:50%;border:0;background:var(--blue-light);color:var(--blue-dark);font-weight:800;font-size:13px;padding:0;box-shadow:none;cursor:pointer}
+#bgaModal .bga-schritt.ist-auf .bga-nr{background:var(--blue);color:#fff}
+#bgaModal .bga-schritt-titel{flex:1 1 auto;min-width:0;font-size:14px}
+#bgaModal .bga-status{display:inline-flex}
+#bgaModal .bga-status.ok{color:var(--green)}
+#bgaModal .bga-status.fehler{color:var(--red)}
+#bgaModal .bga-schieber{display:inline-flex;gap:4px}
+#bgaModal .bga-mini{width:30px;height:30px;border-radius:8px;border:1px solid var(--card-line);background:var(--card-bg,#fff);color:var(--ink);padding:0;font-size:14px;box-shadow:none;cursor:pointer}
+#bgaModal .bga-mini:disabled{opacity:.35;cursor:default}
+#bgaModal .bga-schritt-zeile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:8px}
+#bgaModal .bga-feld{display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:600;color:var(--muted)}
+#bgaModal .bga-feld select{min-height:34px;width:auto;font-size:13px}
+#bgaModal .bga-pruef{display:inline-flex;align-items:center;gap:6px;margin:0;font-size:12.5px;font-weight:500;color:var(--ink)}
+#bgaModal .bga-pruef input{min-height:0;width:auto}
+#bgaModal .bga-wenden{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:600;color:#9a5b00}
+#bgaModal .bga-problem{display:flex;gap:6px;align-items:flex-start;margin-top:6px;font-size:12.5px;line-height:1.4;color:var(--red)}
+#bgaModal .bga-problem svg{flex:none;margin-top:1px}
+#bgaModal .bga-details>summary{cursor:pointer;font-weight:700;font-size:15px;list-style:none;display:flex;align-items:center;justify-content:space-between}
+#bgaModal .bga-details>summary::-webkit-details-marker{display:none}
+#bgaModal .bga-details>summary::after{content:"›";font-size:20px;color:var(--muted);transition:transform .15s}
+#bgaModal .bga-details[open]>summary::after{transform:rotate(90deg)}
+#bgaModal .bga-details[open]>summary{margin-bottom:10px}

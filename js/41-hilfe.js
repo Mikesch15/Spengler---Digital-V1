@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.441.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.442.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1112,7 +1112,7 @@ tatsächlich rechnet.</p>`},
 <p><b>Passbahn:</b> Mit «+ Passbahn» fügst du an der gewünschten Stelle («nach Schar Nr. …») eine Passbahn ein. Ohne feste Breite ist sie der Rest, sodass alle anderen Scharen volle Breite haben. Mehrere Passbahnen teilen sich den Rest gleichmässig. Ohne Passbahn nimmt die letzte Schar die Restbreite. Hat die Fläche eine Aussparung, kann eine Bahn aus mehreren Teilen bestehen.</p>`},
 "biegeanalyse":{titel:"Biegeanalyse",text:`
 <p>Zeigt in der <b>Seitenansicht</b> einer Schwenkbiegemaschine, ob sich das Profil biegen lässt – mit Bewegung. <b>▶ Abspielen</b> fährt alle Biegungen, <b>⏮ ⏭</b> wechseln den Schritt, der <b>Regler</b> fährt den Winkel von Hand. Stösst etwas an, wird die Stelle <b>rot</b>, und der Schritt nennt, woran.</p>
-<p>Die App schlägt <b>Reihenfolge, Klemmseite und Wenden</b> vor (möglichst wenig Wenden). Jeder Schritt lässt sich von Hand ändern und wird sofort neu geprüft.</p>
+<p>Die App schlägt <b>Reihenfolge, Klemmseite und Wenden</b> automatisch vor (möglichst wenig Wenden, der längere Schenkel wird geklemmt). Gibt es keine machbare Folge, zeigt sie die <b>beste gefundene</b> und nennt, was bleibt. Jeder Schritt lässt sich von Hand ändern und wird sofort neu geprüft. Die Biegewange dreht bündig am Flansch um die Biegekante.</p>
 <p>Die <b>Maschine</b> tragen Administratoren unter Einstellungen → Firma → Biegemaschinen ein (Querschnitte aus der Herstellerzeichnung, keine Standardwerte). Die <b>Blechstärke</b> kommt aus der Massaufnahme. Nicht gerechnet: Innenradius, Rückfederung, doppelte Dicke bei Umschlägen – eine Planungshilfe, keine zertifizierte Simulation.</p>`},
 "zuschnittrechner":{titel:"Zuschnittrechner",text:`
 <p>Ein freies Werkzeug ohne Projekt: <b>Blechformat</b> wählen (Rolle mit Breite, oder Tafel mit Breite × Länge), die <b>Zuschnittmasse</b> eintragen oder aus Excel/CSV importieren – die App erstellt den Zuschnittplan: ein Schnittbild im Massstab 1:1 und die Liste mit der Lage jedes Stücks. Stücke verschiedener Breite dürfen auf derselben Tafel liegen. Alles ist auf der Tafelschere zuschneidbar (nur durchgehende Schnitte). Die Option «Schnittschritte» zeigt die Reihenfolge der Schnitte, die «Schere» (grösste Schnittlänge) berücksichtigt die Länge Ihrer Maschine.</p>

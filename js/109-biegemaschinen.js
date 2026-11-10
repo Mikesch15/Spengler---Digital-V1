@@ -12,11 +12,14 @@
 const BM_SCHLUESSEL="sd_biegemaschinen";
 const BM_BEISPIEL=Object.freeze({
  id:"beispiel",name:"BEISPIEL – nicht eure Maschine (Test)",beispiel:true,geprueft:false,
- laenge_mm:3000,min_klemm_mm:30,max_winkel_auf:120,max_winkel_ab:90,toleranz_mm:0.3,
- unterwange:[[[-250,0],[0,0],[-20,-100],[-250,-100]]],
- klemmwange:[[[-60,0],[0,0],[-80,100],[-160,100]]],
- biegewange_auf:{teile:[[[4,-70],[4,-6],[20,-6],[20,-70]]],drehpunkt:[0,-40]},
- biegewange_ab:{teile:[[[4,6],[4,70],[20,70],[20,6]]],drehpunkt:[0,40]}
+ laenge_mm:3000,min_klemm_mm:30,max_winkel_auf:120,max_winkel_ab:100,toleranz_mm:0.3,
+ // Unterwange: Block unter dem Tisch, Vorderseite nach hinten geneigt (Platz fuer Biegungen nach unten)
+ unterwange:[[[-320,0],[0,0],[-14,-60],[-40,-200],[-320,-200]]],
+ // Klemmwange: schmale Klinge (120 mm tief), vorn unten 45 Grad abgeschraegt - dahinter ist Platz fuer bereits gebogene Schenkel
+ klemmwange:[[[-120,0],[0,0],[-60,60],[-60,260],[-120,260]]],
+ // Biegewange: Arbeitsflaeche in der Tischebene (y 0), dreht buendig am Flansch um die Biegekante
+ biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[110,0],[110,-52]]],achse:[0,0]},
+ biegewange_ab:{teile:[[[3,52],[3,3],[7,0],[110,0],[110,52]]],achse:[0,0]}
 });
 function bmLaden(){
  let w=null;
@@ -69,7 +72,7 @@ function bmKarteHtml(m,i){
  </div>
  <label style="margin-top:8px">Werkzeug-Querschnitte (JSON, mm)</label>
  <textarea data-bm-werkzeuge="${i}" rows="9" style="font-family:monospace;font-size:12px">${esc(bmWerkzeugeAlsText(m))}</textarea>
- <div class="small">Polygone: <code>[[x,y],…]</code>. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Klemmwange wird für die Blechstärke automatisch angehoben. Die Biegewange hat zusätzlich einen <code>drehpunkt</code>.</div>
+ <div class="small">Polygone: <code>[[x,y],…]</code>. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Klemmwange wird für die Blechstärke automatisch angehoben. Die <b>Arbeitsfläche der Biegewange</b> liegt in der Tischebene (y&nbsp;0; «auf»: Teile darunter, «ab»: darüber); sie dreht bündig am Flansch um die Biegekante. Optional: <code>achse</code> (Versatz der Drehachse, Standard [0,0]).</div>
  <div id="bmVorschau${i}" style="margin-top:8px">${bmVorschauSvg(m)}</div>
  <label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-bm-feld="geprueft" data-bm-i="${i}"${m.geprueft?" checked":""}> Werte mit der Herstellerzeichnung geprüft (sonst warnt die Analyse)</label>
  <div class="bar"><button type="button" class="red" data-bm-weg="${i}">Maschine löschen</button></div>

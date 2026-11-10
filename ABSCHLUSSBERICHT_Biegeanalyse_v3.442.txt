@@ -1,0 +1,2 @@
+Abschlussbericht v3.442 – Biegeanalyse überarbeitet
+Rückmeldung des Anwenders: Biegewangendrehung stimmt nicht; Reihenfolge soll automatisch vorgeschlagen werden; Darstellung wirkt gebastelt. Umgesetzt: Biegewange bündig am Flansch (Konvention der Maschinendaten geändert), Folgensuche mit Längster-Schenkel-Heuristik und bester Folge als Rückfall, neue Darstellung. Prüfstand 36 Fälle + Gegenproben. Nicht geprüft: echte Maschinendaten, Gerät.
