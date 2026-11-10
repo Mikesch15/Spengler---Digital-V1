@@ -381,7 +381,8 @@ ${fpaFeld("Ansichtspfeil",`<select id="fpa_ansicht2">${ansOpt}</select>`)}
 <tbody>${a.schenkel.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(fpaMm(s.laenge))}</td>
 <td>${esc(fpaMm(s.winkel))}</td><td>${fpaIstUmschlag(s)?"Umschlag":(i&&fpaZahl(s.winkel)!==0?"Biegung":"gerade")}</td></tr>`).join("")}</tbody>
 </table></div>
-<div class="small" style="margin-top:6px">${a.schenkel.length} Schenkel · ${fpaBiegungen()} Biegung(en)${fpaUmschlaege()?" · davon "+fpaUmschlaege()+" Umschlag/Umschläge":""}.</div>`;
+<div class="small" style="margin-top:6px">${a.schenkel.length} Schenkel · ${fpaBiegungen()} Biegung(en)${fpaUmschlaege()?" · davon "+fpaUmschlaege()+" Umschlag/Umschläge":""}.</div>
+${fpaBiegungen()?`<div class="bar" style="margin-top:8px"><button type="button" class="blue" data-bga-offen="fpa">🔧 Biegeanalyse</button></div>`:""}`;
 }
 function fpaSkizzeHtml(){
  return `<div class="info">Skizze oder Foto → Erkennung → <b>Vorschau</b> → bestätigen. Erst „Übernehmen“

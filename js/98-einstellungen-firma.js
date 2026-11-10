@@ -26,6 +26,8 @@ const EFIRMA_LISTE=[
  {key:"sd_rinneHalbrundSettings",laden:()=>{rinneHalbrundSettings=raNahtEinstellungenLaden()}},
  {key:"sd_ablaufrohrSettings",laden:()=>{ablaufrohrSettings=arEinstellungenLaden()}},
  // v3.426: Funktionen & Ansicht (js/107) - welche Arten und Werkzeuge die Firma anbietet
+ // v3.441: Biegemaschinen (js/109) - Maschinendaten der Biegeanalyse
+ {key:"sd_biegemaschinen",laden:()=>{if(typeof bmLaden==="function")bmDaten=bmLaden()}},
  {key:"sd_firmaAnsicht",laden:()=>{if(typeof uebLaden==="function"){uebAnsicht=uebLaden();uebNeuAnwenden()}}}
 ];
 let efFirma={};

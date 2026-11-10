@@ -139,6 +139,7 @@ const A2_BEREICHE={
  zaehlwerkModal:    {zu:"closeZaehlwerk"},
  abwicklungModal:   {zu:"closeAbwicklung"},
  zrModal:           {zu:"closeZr"},   // v3.418: Zuschnittrechner
+ bgaModal:          {zu:"closeBga"},   // v3.441: Biegeanalyse
  termineModal:      {zu:"closeTermine"},
  // v3.251: Das Lieferanten-Lager ist seit der Abschaffung der alten
  // Lagerverwaltung der Schirm des Lager-Knopfs. Vorher stand hier

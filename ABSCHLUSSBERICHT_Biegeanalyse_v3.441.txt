@@ -1,0 +1,2 @@
+Abschlussbericht v3.441 – Biegeanalyse Stufe 1
+Neu: js/108 (Rechenkern), js/109 (Maschinen), js/110 (Oberfläche); Einstieg Freies Profil → Zeichnung. Querschnitt-Simulation Schwenkbiegemaschine mit Bewegung, Kollisionsprüfung, Folgensuche. Keine Standardwerte; Beispiel-Testmaschine nur für Admins und markiert. Prüfstand mit Gegenproben. Nicht geprüft: echte Maschinendaten (folgen), Fusion-Add-in (Stufe 3), echtes Gerät. Grenzen: kein Innenradius, keine Rückfederung, Umschläge vereinfacht.

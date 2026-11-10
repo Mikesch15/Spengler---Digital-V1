@@ -34984,3 +34984,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.440 – Seitenbreite: Kopfbild machte das Dokument 1414 px breit
 - Prüfstand seitenbreite-440; Karten in Dialogen flach.
+
+## v3.441 – Biegeanalyse Stufe 1 (App)
+- Rechenkern, Maschinendaten, Oberfläche, Einstieg im Freien Profil. Prüfstand biegeanalyse-441.
