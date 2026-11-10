@@ -34993,3 +34993,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.443 – Stilregeln der Biegeanalyse mit Schalter
 - css/05: html.a2-an vor #bgaModal.
+
+## v3.444 – Biegemaschine nur nach oben
+- Keine Biegewange nach unten; Gegenrichtung durch Wenden. Beispielmaschine Mindest-Klemmbreite 10 mm.

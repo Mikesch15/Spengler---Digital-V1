@@ -12,14 +12,13 @@
 const BM_SCHLUESSEL="sd_biegemaschinen";
 const BM_BEISPIEL=Object.freeze({
  id:"beispiel",name:"BEISPIEL – nicht eure Maschine (Test)",beispiel:true,geprueft:false,
- laenge_mm:3000,min_klemm_mm:30,max_winkel_auf:120,max_winkel_ab:100,toleranz_mm:0.3,
- // Unterwange: Block unter dem Tisch, Vorderseite nach hinten geneigt (Platz fuer Biegungen nach unten)
+ laenge_mm:3000,min_klemm_mm:10,max_winkel_auf:120,toleranz_mm:0.3,
+ // Unterwange: Block unter dem Tisch, Vorderseite nach hinten geneigt (Platz fuer bereits gebogene Schenkel)
  unterwange:[[[-320,0],[0,0],[-14,-60],[-40,-200],[-320,-200]]],
  // Klemmwange: schmale Klinge (120 mm tief), vorn unten 45 Grad abgeschraegt - dahinter ist Platz fuer bereits gebogene Schenkel
  klemmwange:[[[-120,0],[0,0],[-60,60],[-60,260],[-120,260]]],
  // Biegewange: Arbeitsflaeche in der Tischebene (y 0), dreht buendig am Flansch um die Biegekante
- biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[110,0],[110,-52]]],achse:[0,0]},
- biegewange_ab:{teile:[[[3,52],[3,3],[7,0],[110,0],[110,52]]],achse:[0,0]}
+ biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[110,0],[110,-52]]],achse:[0,0]}
 });
 function bmLaden(){
  let w=null;
@@ -44,7 +43,6 @@ function bmVorschauSvg(m,breite){
  const add=(teile,farbe)=>(teile||[]).forEach(p=>{if(Array.isArray(p)&&p.length>=3)polys.push({p,farbe})});
  add(m.unterwange,"#8a97a3");add(m.klemmwange,"#6b7a88");
  if(m.biegewange_auf)add(m.biegewange_auf.teile,"#1769aa");
- if(m.biegewange_ab)add(m.biegewange_ab.teile,"#16845c");
  if(!polys.length)return '<div class="small">Noch keine Werkzeug-Querschnitte.</div>';
  const xs=[],ys=[];polys.forEach(o=>o.p.forEach(q=>{xs.push(Number(q[0])||0);ys.push(Number(q[1])||0)}));
  const x0=Math.min(...xs,-20),x1=Math.max(...xs,40),y0=Math.min(...ys,-20),y1=Math.max(...ys,40);
@@ -53,12 +51,12 @@ function bmVorschauSvg(m,breite){
  const pg=polys.map(o=>`<polygon points="${o.p.map(q=>X(Number(q[0])||0).toFixed(1)+","+Y(Number(q[1])||0).toFixed(1)).join(" ")}" fill="${o.farbe}" fill-opacity=".55" stroke="${o.farbe}" stroke-width="1"/>`).join("");
  return `<svg viewBox="0 0 ${w} ${h.toFixed(0)}" width="100%" style="max-width:${w}px;background:#fff;border:1px solid var(--card-line);border-radius:8px" role="img" aria-label="Querschnitt der Maschine">
 <line x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}" stroke="#c4ccd4" stroke-dasharray="3 3"/><line x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}" stroke="#c4ccd4" stroke-dasharray="3 3"/>${pg}</svg>
-<div class="small">Grau: Unter- und Klemmwange · Blau: Biegewange nach oben · Grün: nach unten · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
+<div class="small">Grau: Unter- und Klemmwange · Blau: Biegewange nach oben · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
 }
 
 // ---- Einstellungen -> Firma -> Biegemaschinen (nur Administratoren) --------------------------
 function bmWerkzeugeAlsText(m){
- const o={unterwange:m.unterwange||[],klemmwange:m.klemmwange||[],biegewange_auf:m.biegewange_auf||null,biegewange_ab:m.biegewange_ab||null};
+ const o={unterwange:m.unterwange||[],klemmwange:m.klemmwange||[],biegewange_auf:m.biegewange_auf||null};
  return JSON.stringify(o,null,1);
 }
 function bmKarteHtml(m,i){
@@ -67,7 +65,7 @@ function bmKarteHtml(m,i){
  <div class="grid">
   <div class="wide"><label>Name</label><input data-bm-feld="name" data-bm-i="${i}" value="${esc(m.name||"")}" placeholder="z. B. Jorns 6 m"></div>
   ${f("Arbeitslänge (mm)","laenge_mm",m.laenge_mm)}${f("Mindest-Klemmbreite (mm)","min_klemm_mm",m.min_klemm_mm)}
-  ${f("Max. Winkel nach oben (°)","max_winkel_auf",m.max_winkel_auf)}${f("Max. Winkel nach unten (°)","max_winkel_ab",m.max_winkel_ab)}
+  ${f("Max. Winkel nach oben (°)","max_winkel_auf",m.max_winkel_auf)}
   ${f("Toleranz Kollision (mm)","toleranz_mm",m.toleranz_mm,"0.1")}
  </div>
  <label style="margin-top:8px">Werkzeug-Querschnitte (JSON, mm)</label>
@@ -113,7 +111,7 @@ function bmAusFormular(){
   try{w=JSON.parse(ta.value)}catch(e){fehler.push({i,text:"Die Werkzeug-Querschnitte sind kein gültiges JSON ("+(e&&e.message||e)+")."})}
   if(w){
    m.unterwange=Array.isArray(w.unterwange)?w.unterwange:[];m.klemmwange=Array.isArray(w.klemmwange)?w.klemmwange:[];
-   m.biegewange_auf=w.biegewange_auf||null;m.biegewange_ab=w.biegewange_ab||null;
+   m.biegewange_auf=w.biegewange_auf||null;
    const f=typeof bgaMaschineFehler==="function"?bgaMaschineFehler(m):[];
    if(!m.name)f.unshift("Der Name fehlt.");
    f.forEach(t=>fehler.push({i,text:t}));
@@ -141,7 +139,7 @@ document.addEventListener("click",e=>{
  if(t.id==="bmSpeichern"){bmSpeichern();return}
  // vor dem Hinzufuegen/Loeschen den Stand der Felder sichern (ohne Pflichtpruefung)
  const stand=bmAusFormular().maschinen;
- if(t.id==="bmNeu"){bmDaten={maschinen:stand.concat([{id:bmNeueId(),name:"",laenge_mm:"",min_klemm_mm:"",max_winkel_auf:"",max_winkel_ab:"",toleranz_mm:0.3,geprueft:false,unterwange:[],klemmwange:[],biegewange_auf:null,biegewange_ab:null}])}}
+ if(t.id==="bmNeu"){bmDaten={maschinen:stand.concat([{id:bmNeueId(),name:"",laenge_mm:"",min_klemm_mm:"",max_winkel_auf:"",toleranz_mm:0.3,geprueft:false,unterwange:[],klemmwange:[],biegewange_auf:null}])}}
  else if(t.id==="bmVorlage"){const k=JSON.parse(JSON.stringify(BM_BEISPIEL));k.id=bmNeueId();k.name="Neue Maschine (aus Vorlage – Werte prüfen)";delete k.beispiel;k.geprueft=false;bmDaten={maschinen:stand.concat([k])}}
  else{const i=Number(t.getAttribute("data-bm-weg"));bmDaten={maschinen:stand.filter((x,j)=>j!==i)}}
  bmEinstellungenZeichnen();
@@ -153,7 +151,7 @@ document.addEventListener("input",e=>{
  if(!ta)return;
  const i=ta.getAttribute("data-bm-werkzeuge"),box=$("bmVorschau"+i);
  if(!box)return;
- try{const w=JSON.parse(ta.value);box.innerHTML=bmVorschauSvg({unterwange:w.unterwange,klemmwange:w.klemmwange,biegewange_auf:w.biegewange_auf,biegewange_ab:w.biegewange_ab})}
+ try{const w=JSON.parse(ta.value);box.innerHTML=bmVorschauSvg({unterwange:w.unterwange,klemmwange:w.klemmwange,biegewange_auf:w.biegewange_auf})}
  catch(x){box.innerHTML='<div class="small" style="color:var(--red)">Kein gültiges JSON – die Vorschau bleibt leer.</div>'}
 });
 (function bmStart(){

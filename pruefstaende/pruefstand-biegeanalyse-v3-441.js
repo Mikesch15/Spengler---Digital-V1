@@ -22,7 +22,7 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);
   return {ok:f.ok,w:f.wenden,n:f.schritte.length,cfgs:BGA_KONFIGS.map(c=>{const x=bgaSchrittPruefen(P,new Set(),1,c,BM_BEISPIEL,1,{});return [Math.round(x.theta),x.moeglich]})}});
  p(r.ok&&r.w===0&&r.n===1,"L-Profil 100/50, 90°: machbar ohne Wenden",r);
- p(r.cfgs.every(c=>c[1])&&r.cfgs.map(c=>c[0]).sort((a,b)=>a-b).join()==="-90,-90,90,90","Alle vier Lagen (Klemmseite × gedreht) sind machbar; zwei biegen nach oben, zwei nach unten",r.cfgs);
+ p(r.cfgs.filter(c=>c[0]>0).every(c=>c[1])&&r.cfgs.filter(c=>c[0]<0).every(c=>!c[1])&&r.cfgs.filter(c=>c[0]>0).length===2,"Maschine biegt nur nach oben: die zwei Lagen nach oben sind machbar, die zwei nach unten nicht (Blech wenden)",r.cfgs);
  r=await ev(()=>{const P=bgaProfil([{laenge:60,winkel:0},{laenge:100,winkel:90},{laenge:60,winkel:90}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);return {ok:f.ok,w:f.wenden,n:f.schritte.length}});
  p(r.ok&&r.n===2,"U-Profil mit Boden 100 mm: machbar",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:60,winkel:0},{laenge:40,winkel:90},{laenge:60,winkel:90}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);
@@ -32,9 +32,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:20,winkel:180}]);const f=bgaFolgeSuchen(P,BM_BEISPIEL,1);return {ok:f.ok,hin:f.ok?bgaFolgeAnalysieren(P,BM_BEISPIEL,1,f.schritte.map(s=>({k:s.k,klemm:s.cfg.klemm,flip:s.cfg.flip}))).schritte[0].hinweise:[]}});
  p(r.ok&&r.hin.some(h=>/Umschlag/.test(h)),"Umschlag 180°: wird bis zum Maschinenmaximum geprüft und als «zugedrückt» gekennzeichnet",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:140}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
- p(r===false,"140° ist grösser als das Maximum (120° nach oben, 90° nach unten): nicht machbar",r);
- r=await ev(()=>{const P=bgaProfil([{laenge:20,winkel:0},{laenge:20,winkel:90}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
- p(r===false,"Beide Schenkel kürzer als die Mindest-Klemmbreite (30 mm): nicht machbar",r);
+ p(r===false,"140° ist grösser als das Maximum (120° nach oben): nicht machbar",r);
+ r=await ev(()=>{const P=bgaProfil([{laenge:8,winkel:0},{laenge:8,winkel:90}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
+ p(r===false,"Beide Schenkel kürzer als die Mindest-Klemmbreite (10 mm): nicht machbar",r);
  r=await ev(()=>({lang:bgaTeilLaengePruefen(BM_BEISPIEL,3500),kurz:bgaTeilLaengePruefen(BM_BEISPIEL,2500)}));
  p(/länger als die Maschine/.test(r.lang)&&r.kurz==="","Teillänge gegen Arbeitslänge der Maschine",r);
  r=await ev(()=>{const f1=bgaFolgeSuchen(bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:90}]),BM_BEISPIEL,1),f2=bgaFolgeSuchen(bgaProfil([{laenge:50,winkel:0},{laenge:100,winkel:90}]),BM_BEISPIEL,1);

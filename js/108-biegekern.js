@@ -120,7 +120,7 @@ function bgaMaschineVorbereiten(m){
  if(m&&BGA_CACHE.has(m))return BGA_CACHE.get(m);
  const zer=teile=>[].concat(...(teile||[]).map(bgaDreiecke));
  const bw=b=>b&&Array.isArray(b.teile)?{dreiecke:zer(b.teile),achse:Array.isArray(b.achse)?b.achse.map(Number):[0,0]}:null;
- const d={unter:zer(m&&m.unterwange),klemm:zer(m&&m.klemmwange),auf:bw(m&&m.biegewange_auf),ab:bw(m&&m.biegewange_ab)};
+ const d={unter:zer(m&&m.unterwange),klemm:zer(m&&m.klemmwange),auf:bw(m&&m.biegewange_auf),ab:null}  // Schwenkbiegemaschine biegt nur nach oben; Gegenrichtung = Blech wenden;
  if(m&&typeof m==="object")BGA_CACHE.set(m,d);   // WeakMap: auch eingefrorene Objekte (Beispielmaschine) koennen zwischengespeichert werden
  return d;
 }
