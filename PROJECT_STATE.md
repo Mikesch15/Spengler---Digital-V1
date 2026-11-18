@@ -3,7 +3,7 @@
 ## AKTUELLER STAND
 
 - Branch: `main`
-- Aktueller Entwicklungsstand: `v3.445`
+- Aktueller Entwicklungsstand: `v3.446`
 - Der aktuelle Code auf `main` ist die verbindliche Grundlage.
 - Alte Abschlussberichte, Prototypen und frühere Versionen sind nicht automatisch aktuell.
 - v3.374: Wetter auf der Startseite kommt von MeteoSchweiz über die Edge Function `wetter-meteoschweiz` (Ort = PLZ der Firmenadresse, Zwischenspeicher-Tabelle `wetter_cache` ohne Policy). Kein Wind. Live-Abruf nicht aus der Sandbox testbar. Details: `CHANGELOG_HISTORIE.md`.
@@ -23,6 +23,7 @@
 - v3.389: Modulregister vollständig inventarisiert (`module_registry.schaltbar`): schaltbar = angebote, lager, nachkalkulation, termine (je RESTRICTIVE-Policies; Edge Functions `outlook-sync`/`kalender-abo` prüfen das Modul zusätzlich); Kern (nicht einzeln schaltbar, immer an) = projekte, massaufnahme, ausmass, regierapport, leistungen. `meine_module()` + `firmaModule`/`modulAn()` (js/05a) für die Anzeige, Admin-Übersicht `system_admin_module_uebersicht()`.
 - v3.390: `ausmass` (+ausmass_kandidaten), `regierapport` (reports), `leistungen` (+leistung_massaufnahmen) pro Firma schaltbar (RESTRICTIVE `modul_boundary_*`, jetzt 19 Policies); Nachkalkulation hängt von angebote UND regierapport ab. Kern bleibt: projekte, massaufnahme. Oberfläche: Body-Klassen `modul-aus-*` (`modulKlassenSetzen`, css/04-rechte.css) + `modulAn()`-Filter in js/70 + `modulPruefen()`-Guards.
 - v3.391: Dachrandblech (js/89): Stossart «Schieber» (SIA 271 wie Mauerabdeckung: `madMaterialTabelle`, `calcDilaPositionsInStretch`, Zugabe = `madSchieberMass` oder Wert der Massaufnahme) und Eckschieber als Gehrung pro Ecke mit eigenem Abzug (`dachrand.stoss`, `dachrand.schieber{zugabe,abzug}`, `kanten[].eckschieber`). Alt-Daten bleiben Überlappung. Keine DB-Änderung.
+- v3.446: Die Karte «Zeit messen» erscheint nicht mehr im Ausdruck des Regierapports (css/03: `@media print{.a2-zm,[data-zm-ort]{display:none}}`). Prüfstand zeitmessung-376 erweitert.
 - v3.445: Biegeanalyse: Teilenamen Unterwange/Oberwange/Biegewange (statt Klemmwange; JSON-Schlüssel `klemmwange` bleibt); Umschlag wird bis zum grössten Biegewinkel gebogen, Anliegen an der Oberwange ist gewollt (kein Fehler); Beispielmaschine: Biegewange 20 mm tief, Oberwange flacher abgeschrägt, damit die Folge Umschlag/4/3/2 für Muster Dachrandblende (18191) machbar ist. Prüfstand biegeanalyse-441 erweitert.
 - v3.444: Biegeanalyse: Maschine biegt nur von unten nach oben (keine Biegewange nach unten, kein Max.-Winkel nach unten; Gegenrichtung = Wenden). Beispielmaschine Mindest-Klemmbreite 10 mm (30 war unrealistisch streng, für Muster Dachrandblende gab es keine Folge). Prüfstand biegeanalyse-441 angepasst.
 - v3.443: Korrektur zu v3.442: die Stilregeln der Biegeanalyse in css/05 hatten kein `html.a2-an` vor `#bgaModal` (pruefstand-ansicht2-150 F3 «keine Stilregel wirkt ohne den Schalter» rot in CI) – jetzt gesetzt. LEHRE (zum dritten Mal): vor dem Push ALLE Prüfstände, die css/05 oder die Ansicht berühren (ansicht2-150, design-einheitlich-359, bereiche-156 …), nicht nur die eigenen; bei Änderungen an css/05 am besten die volle Regression lokal vorab.

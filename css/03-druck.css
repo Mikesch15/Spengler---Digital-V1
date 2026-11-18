@@ -290,3 +290,6 @@ td input,td select{width:100%!important;font-size:6.5pt!important}
     max-width:85mm;max-height:70mm;object-fit:contain;border:1px solid #ccc}
   #reportFotoGalerie:empty{display:none}
 }
+
+/* v3.446: Die Karte «Zeit messen» ist ein Bedienelement und gehoert nicht auf den Ausdruck */
+@media print{.a2-zm,[data-zm-ort]{display:none!important}}

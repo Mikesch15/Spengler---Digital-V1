@@ -34999,3 +34999,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.445 – Biegeanalyse: Oberwange, Umschlag
 - Benennung Oberwange; Umschlag liegt gewollt an der Oberwange an; Beispielmaschine angepasst.
+
+## v3.446 – Zeit messen nicht im Ausdruck
+- css/03: Karte im Druck ausgeblendet.
