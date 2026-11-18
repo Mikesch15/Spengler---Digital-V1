@@ -35002,3 +35002,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.446 – Zeit messen nicht im Ausdruck
 - css/03: Karte im Druck ausgeblendet.
+
+## v3.447 – Startseite ohne zweites Suchfeld
+- a2HeuteSucheHtml entfernt.

@@ -178,10 +178,10 @@ const INIT=()=>{window.supabase={createClient:()=>({auth:{getSession:async()=>({
   const I=document.getElementById("a2Inhalt");const pj=I.querySelector("details[data-ueb-offen=proj]");const h=I.innerHTML;
   const o={zu:!!pj&&!pj.open,id:pj&&pj.id,info:pj&&pj.querySelector(".ueb-info").textContent,liste:!!(pj&&pj.querySelector("#a2HeuteProjListe")),chips:pj?pj.querySelectorAll("[data-a2-pfilter]").length:0,
    wetterVorHinweisen:h.indexOf("tWetter2")>=0&&h.indexOf("tWetter2")<h.indexOf('data-ueb-offen="hinweise"'),gruss:(I.querySelector(".a2-hero-gruss")||{}).textContent};
-  const s=document.getElementById("a2HeuteSuche");s.value="Dach";s.dispatchEvent(new Event("input",{bubbles:true}));o.sucheOeffnet=document.getElementById("a2HeuteProjekte").open;
+  o.sucheWeg=!document.getElementById("a2HeuteSuche");
   window.wetterKarteHtml=alt;uebOffen.proj=false;return o});
  p(r.zu&&r.id==="a2HeuteProjekte"&&r.info==="1 offen"&&r.liste&&r.chips>=3,"«Offene Projekte» ist eine zugeklappte Zeile («1 offen»), Filter und Liste liegen darin",r);
- p(r.sucheOeffnet===true,"Die Suche oben öffnet die zugeklappte Projektzeile",r);
+ p(r.sucheWeg===true,"Auf der Startseite gibt es nur noch den «Suche»-Knopf, kein zweites Suchfeld",r);
  p(r.wetterVorHinweisen===true,"Das Wetter steht über «Wichtige Hinweise»",r);
  p(r.gruss==="Guten Morgen, Mike"||r.gruss==="Guten Tag, Mike"||r.gruss==="Guten Abend, Mike","Begrüssung mit Vorname",r);
  console.log("\nD9 · Projektseite: Übersicht mit zugeklappten Nebenzeilen");

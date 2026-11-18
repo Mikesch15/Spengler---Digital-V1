@@ -690,14 +690,7 @@ function a2HeuteHeroHtml(){
   </div>
  </div>`;
 }
-// Suchfeld der Startseite: filtert NUR die Liste der Projekte darunter (dieselbe Suchregel wie die Projektliste); der Filterknopf öffnet Archiv und Filter.
-function a2HeuteSucheHtml(){
- return `<div class="a2-hsuche"><div class="a2-hsuche-feld">
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4-4"/></svg>
-  <input id="a2HeuteSuche" type="search" placeholder="Projekte suchen …" value="${esc(a2HeuteSuche)}" autocomplete="off" enterkeyhint="search" aria-label="Projekte suchen"></div>
-  <button type="button" class="a2-hsuche-filter" data-a2-tu="projektarchiv" aria-label="Archiv und Filter">
-   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M7 12h10M10 17h4"/></svg></button></div>`;
-}
+// v3.447: Das Suchfeld der Startseite ist entfernt (doppelt zum «Suche»-Knopf); a2HeuteSuche bleibt leer und die Liste ungefiltert.
 let a2HeuteSuche="";
 const A2_KPI_ICON={
  projekte:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
@@ -805,7 +798,7 @@ function a2HeuteProjListeHtml(auf){
 function a2SeiteHeute(){
  const auf=a2Aufgaben();
  let html=a2HeuteHeroHtml();
- html+=a2HeuteAktionenHtml()+a2HeuteSucheHtml()+a2HeuteStandHtml(auf);
+ html+=a2HeuteAktionenHtml()+a2HeuteStandHtml(auf);
  // v3.430: Wetter (js/90, nur wenn eingeschaltet), nächste Termine (js/92) und Zeitmessung (js/93) stehen
  // NACH Aufgaben und Projekten - zuerst kommt, womit man arbeitet. Gesammelt in "nebenher", unten angehängt.
  let nebenher="";
@@ -1730,12 +1723,6 @@ document.addEventListener("click",async e=>{
 // nicht das Feld - sonst verloere es bei jedem Anschlag den Fokus.
 document.addEventListener("input",e=>{
  if(!a2Aktiv())return;
- if(e.target&&e.target.id==="a2HeuteSuche"){
-  a2HeuteSuche=e.target.value;
-  const l=$("a2HeuteProjListe");
-  if(l)l.innerHTML=a2HeuteProjListeHtml(a2Aufgaben());
-  return;
- }
  if(!e.target||e.target.id!=="a2Suche")return;
  a2Zustand.suche=e.target.value;
  const liste=$("a2ProjListe");

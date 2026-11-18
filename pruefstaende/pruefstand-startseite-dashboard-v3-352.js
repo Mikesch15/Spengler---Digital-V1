@@ -124,16 +124,9 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   const r={};
   a2Zustand.seite="heute";a2ProjektFilter="alle";a2HeuteSuche="";a2Zeichnen();
   r.hero=!!document.querySelector("#a2Inhalt .a2-hero .a2-hero-gruss")&&/^Guten (Morgen|Tag|Abend)(, \S+)?$/.test(document.querySelector(".a2-hero-gruss").textContent);
-  r.suche=!!document.getElementById("a2HeuteSuche");r.filterKnopf=!!document.querySelector('#a2Inhalt .a2-hsuche-filter[data-a2-tu="projektarchiv"]');
+  r.suche=!!document.getElementById("a2HeuteSuche")||!!document.querySelector("#a2Inhalt .a2-hsuche");
   const alle=a2OffeneProjekte(false);
   r.alle=document.querySelectorAll("#a2HeuteProjListe .a2-karte-klick").length;r.alleSoll=Math.min(8,alle.length);
-  // Suche: ein Name der Liste findet genau diese Projekte
-  const name=(alle[0].name||alle[0].object||"").slice(0,6);
-  const i=document.getElementById("a2HeuteSuche");i.value=name;i.dispatchEvent(new Event("input",{bubbles:true}));
-  const soll=alle.filter(q=>projektPasstZuSuche(q,name)).length;
-  r.suchTreffer=document.querySelectorAll("#a2HeuteProjListe .a2-karte-klick").length;r.suchSoll=Math.min(8,soll);
-  i.value="zzzqqq";i.dispatchEvent(new Event("input",{bubbles:true}));
-  r.leer=/Kein Projekt passt/.test(document.getElementById("a2HeuteProjListe").textContent);
   a2HeuteSuche="";a2Zeichnen();
   // Filter In Arbeit
   a2ProjektFilter="in_arbeit";a2Zeichnen();
@@ -153,9 +146,8 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   return r;
  });
  p(g.hero,"Kopfbereich mit Begrüssung (Guten Morgen/Tag/Abend)",g.hero);
- p(g.suche&&g.filterKnopf,"Suchfeld und Filterknopf (Archiv und Filter) vorhanden",g);
+ p(!g.suche,"Kein zweites Suchfeld auf der Startseite (v3.447: der «Suche»-Knopf genügt)",g);
  p(g.alle===g.alleSoll,"Liste „Alle“ zeigt die offenen Projekte",[g.alle,g.alleSoll]);
- p(g.suchTreffer===g.suchSoll&&g.suchTreffer>0&&g.leer,"Suche filtert nach derselben Regel wie die Projektliste; ohne Treffer klare Meldung",g);
  p(g.arbeit.length===Math.min(8,g.arbeitSoll)&&g.arbeit.every(x=>x==="In Arbeit"),"Filter „In Arbeit“ zeigt nur Projekte mit Status In Arbeit",g.arbeit);
  p(g.chips.length>=3&&/^Meine \(\d+\)$/.test(g.chips[0])&&/^Alle \(\d+\)$/.test(g.chips[1])&&/^In Arbeit \(\d+\)$/.test(g.chips[2]),"Filter-Chips mit Anzahl",g.chips);
  p(JSON.stringify(g.nah)===JSON.stringify(g.nahSoll),"Nahe Montage: nur Termin heute bis 7 Tage; später oder ohne Termin zählt nicht",g.nah);

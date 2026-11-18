@@ -163,13 +163,6 @@ function uebKlappHtml(key,titel,info,inhalt,id,klasse){
 <summary><span class="ueb-titel">${esc(titel)}</span><span class="ueb-info">${esc(info)}</span></summary>
 <div class="ueb-inhalt">${inhalt}</div></details>`;
 }
-// Wer oben nach einem Projekt sucht, will das Ergebnis sehen: die zugeklappte Zeile «Offene Projekte» geht dabei auf.
-document.addEventListener("input",e=>{
- if(e.target&&e.target.id==="a2HeuteSuche"){
-  const z=document.getElementById("a2HeuteProjekte");
-  if(z&&z.tagName==="DETAILS"&&!z.open)z.open=true;
- }
-});
 // Die Kennzahl «Offene Aufgaben» springt zur Zeile - ist sie zugeklappt, wird sie dabei geoeffnet (vor dem Sprung in js/70).
 document.addEventListener("click",e=>{
  const k=e.target&&e.target.closest?e.target.closest("[data-a2-scroll]"):null;
