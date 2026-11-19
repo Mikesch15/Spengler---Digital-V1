@@ -36,6 +36,15 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
   const a=bgaFolgeAnalysieren(P,BM_BEISPIEL,0.6,fo);const f=bgaFolgeSuchen(P,BM_BEISPIEL,0.6);
   return {alle:a.schritte.every(x=>x.moeglich),umschlag:a.schritte[0].hinweise.join(" "),such:f.ok,w:f.wenden}});
  p(r.alle&&/Oberwange zusammengedrückt/.test(r.umschlag)&&r.such,"Muster Dachrandblende (Auftrag 18191): Folge Umschlag, 4, 3, 2 ist machbar; der Umschlag liegt an der Oberwange an und wird zugedrückt; die Suche findet eine machbare Folge",r);
+ // v3.448: drehbare Oberwange mit Werkzeugen Scharf/Geissfuss
+ r=await ev(()=>{const M=BM_VORLAGE_SCHROEDER;const wz=bgaWerkzeuge(M).map(w=>w.name);
+  const a=bgaMitWerkzeug(M,0),b=bgaMitWerkzeug(M,1);
+  // U-Profil Boden 20, Schenkel 30: beim Schliessen liegt der 30-mm-Schenkel waagrecht ueber der Oberwange - nur im Freiraum des Geissfusses (30 mm) hat er Platz
+  const P=bgaProfil([{laenge:60,winkel:0},{laenge:20,winkel:90},{laenge:30,winkel:90}]);
+  const fs=bgaFolgeSuchen(P,a,1),fg=bgaFolgeSuchen(P,b,1),w=bgaWerkzeugWaehlen(P,M,1);
+  return {wz,cache:bgaMitWerkzeug(M,1)===b,kl:[a.klemmwange.length,b.klemmwange.length],name:b.werkzeugName,scharf:fs.ok,geiss:fg.ok,wahl:w.nr,ohne:bgaMitWerkzeug(BM_BEISPIEL,1)===BM_BEISPIEL,fehler:bgaMaschineFehler(Object.assign({},M,{klemmwange:[]}))}});
+ p(r.wz.join()==="Scharf,Geissfuss"&&r.cache&&r.kl.join()==="2,2"&&r.name==="Geissfuss"&&r.ohne&&r.fehler.length===0,"Drehbare Oberwange: zwei Werkzeuge, das gewählte wird an den Körper gehängt; ohne Werkzeuge bleibt die Maschine unverändert",r);
+ p(r.scharf===false&&r.geiss===true&&r.wahl===1,"U-Profil (Boden 20, Schenkel 30): mit Scharf nicht machbar, mit Geissfuss schon – automatisch wird der Geissfuss gewählt",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:100,winkel:0},{laenge:50,winkel:140}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
  p(r===false,"140° ist grösser als das Maximum (120° nach oben): nicht machbar",r);
  r=await ev(()=>{const P=bgaProfil([{laenge:8,winkel:0},{laenge:8,winkel:90}]);return bgaFolgeSuchen(P,BM_BEISPIEL,1).ok});
@@ -104,6 +113,15 @@ const p=(b,t,z)=>{if(b){ok++;console.log("  ok  "+t)}else{fail++;console.log("  
  p(r.schritt===1||r.fort>0,"Beim Abspielen folgt nach dem ersten Schritt der zweite",r);
  r=await ev(()=>{bgaOeffnen([{laenge:60,winkel:0},{laenge:40,winkel:90},{laenge:60,winkel:90}],{staerke:1});const t=$("bgaErgebnis").textContent;return {nicht:/nicht machbar/.test(t),rot:/stösst/.test($("bgaFolge").textContent),farbe:!!$("bgaBild").querySelector("line[stroke='#d92d20'],svg")}});
  p(r.nicht&&r.rot,"Nicht machbares Profil: «So nicht machbar» und die Kollision steht beim Schritt",r);
+ // v3.448: Werkzeugwahl in der Oberflaeche (Schroeder-Vorlage per Knopf in den Einstellungen angelegt)
+ r=await ev(()=>{const alt=bmDaten;const k=JSON.parse(JSON.stringify(BM_VORLAGE_SCHROEDER));k.id="s1";bmDaten={maschinen:[k]};
+  bgaS.maschineId="s1";bgaOeffnen([{laenge:60,winkel:0},{laenge:20,winkel:90},{laenge:30,winkel:90}],{staerke:1});
+  const sel=$("bgaWerkzeug");const o={opt:sel?[...sel.options].map(x=>x.textContent):[],auto:sel&&sel.value,name:($("bgaEmpfehlung").querySelector("[data-bga-werkzeug-name]")||{}).textContent,ok:!/nicht machbar/.test($("bgaErgebnis").textContent)};
+  sel.value="0";sel.dispatchEvent(new Event("change",{bubbles:true}));
+  o.name2=($("bgaEmpfehlung").querySelector("[data-bga-werkzeug-name]")||{}).textContent;o.nicht2=/stösst/.test($("bgaFolge").textContent);
+  bgaSchliessen();bmDaten=alt;bgaS.maschineId="";return o});
+ p(r.opt.length===3&&r.auto==="auto"&&r.name==="Geissfuss"&&r.ok,"Oberfläche: Auswahl «Automatisch / Scharf / Geissfuss»; automatisch wird der Geissfuss gewählt und angezeigt",r);
+ p(r.name2==="Scharf"&&r.nicht2,"Fest «Scharf» gewählt: die Analyse rechnet damit und zeigt die Kollision",r);
  r=await ev(()=>{bgaOeffnen([{laenge:100,winkel:0},{laenge:50,winkel:90}],{staerke:0});return {meldung:/Blechstärke fehlt/.test($("bgaBild").textContent),folge:bgaS.folge.length}});
  p(r.meldung&&r.folge===0,"Ohne Blechstärke keine Rechnung – die Meldung nennt, was fehlt (keine erfundene Stärke)",r);
  r=await ev(()=>{currentProfile={role:"mitarbeiter",id:"u2",first_name:"M",last_name:"M",company_id:"c1"};localStorage.setItem("sd_biegemaschinen","{\"maschinen\":[]}");bmDaten=bmLaden();bgaS.maschineId="";bgaOeffnen([{laenge:100,winkel:0},{laenge:50,winkel:90}],{staerke:1});const t=$("bgaBild").textContent;currentProfile={id:"u1",role:"admin",first_name:"A",last_name:"B",company_id:"c1"};return /Keine Maschine gewählt/.test(t)});

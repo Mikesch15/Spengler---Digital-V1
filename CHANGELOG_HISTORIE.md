@@ -35005,3 +35005,6 @@ Ansage des Anwenders: Resultate der Zuschnittberechnung unter einem Projekt able
 
 ## v3.447 – Startseite ohne zweites Suchfeld
 - a2HeuteSucheHtml entfernt.
+
+## v3.448 – Biegeanalyse: Oberwangen-Werkzeuge Scharf/Geissfuss
+- Werkzeugwahl, Schröder-Vorlage (ca.-Werte), Warnsymbol-Fix.

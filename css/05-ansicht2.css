@@ -1952,3 +1952,5 @@ html.a2-an #bgaModal .bga-details>summary::-webkit-details-marker{display:none}
 html.a2-an #bgaModal .bga-details>summary::after{content:"›";font-size:20px;color:var(--muted);transition:transform .15s}
 html.a2-an #bgaModal .bga-details[open]>summary::after{transform:rotate(90deg)}
 html.a2-an #bgaModal .bga-details[open]>summary{margin-bottom:10px}
+/* v3.448: das Warnsymbol im Kollisionshinweis behaelt seine Groesse (die Regel fuer die Zeichnung zog es auf volle Breite) */
+html.a2-an #bgaModal .bga-bild-rahmen .bga-koll svg{width:16px;height:16px;flex:none;display:inline-block}

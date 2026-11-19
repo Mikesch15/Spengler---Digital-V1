@@ -17,7 +17,7 @@
 // (der Umschalter in js/07 haengt als bubbelnder document-Handler daran).
 
 // Pfad zur Anleitung, relativ zur App - liegt im Repo unter anleitung/.
-const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.447.pdf";
+const HILFE_PDF="anleitung/Spengler-DIGITAL-Anleitung-v3.448.pdf";
 
 // {titel, text} - text darf <p>, <ul>/<li>, <b> enthalten (fester Text aus
 // dieser Datei, kein Benutzerinhalt).
@@ -1114,6 +1114,7 @@ tatsächlich rechnet.</p>`},
 <p>Zeigt in der <b>Seitenansicht</b> einer Schwenkbiegemaschine, ob sich das Profil biegen lässt – mit Bewegung. <b>▶ Abspielen</b> fährt alle Biegungen, <b>⏮ ⏭</b> wechseln den Schritt, der <b>Regler</b> fährt den Winkel von Hand. Stösst etwas an, wird die Stelle <b>rot</b>, und der Schritt nennt, woran.</p>
 <p>Die Maschinenteile heissen <b>Unterwange</b>, <b>Oberwange</b> (klemmt das Blech) und <b>Biegewange</b>. Ein <b>Umschlag</b> wird nur bis zum grössten Biegewinkel der Maschine gebogen und danach von der Oberwange zusammengedrückt.</p>
 <p>Die Maschine biegt <b>nur von unten nach oben</b>. Biegungen in die Gegenrichtung entstehen durch <b>Wenden</b> des Blechs.</p>
+<p>Hat die Maschine eine <b>drehbare Oberwange</b> mit mehreren Werkzeugen (z. B. <b>Scharf</b> und <b>Geissfuss</b>), wählt die Analyse automatisch das passende. Unter «Maschine und Blech» lässt es sich auch fest wählen. Der Geissfuss hat hinter der Spitze einen Freiraum für bereits hochgebogene Schenkel.</p>
 <p>Die App schlägt <b>Reihenfolge, Klemmseite und Wenden</b> automatisch vor (möglichst wenig Wenden, der längere Schenkel wird geklemmt). Gibt es keine machbare Folge, zeigt sie die <b>beste gefundene</b> und nennt, was bleibt. Jeder Schritt lässt sich von Hand ändern und wird sofort neu geprüft. Die Biegewange dreht bündig am Flansch um die Biegekante.</p>
 <p>Die <b>Maschine</b> tragen Administratoren unter Einstellungen → Firma → Biegemaschinen ein (Querschnitte aus der Herstellerzeichnung, keine Standardwerte). Die <b>Blechstärke</b> kommt aus der Massaufnahme. Nicht gerechnet: Innenradius, Rückfederung, doppelte Dicke bei Umschlägen – eine Planungshilfe, keine zertifizierte Simulation.</p>`},
 "zuschnittrechner":{titel:"Zuschnittrechner",text:`

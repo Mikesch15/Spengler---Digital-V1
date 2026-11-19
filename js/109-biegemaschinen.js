@@ -20,6 +20,21 @@ const BM_BEISPIEL=Object.freeze({
  // Biegewange: Arbeitsflaeche in der Tischebene (y 0), dreht buendig am Flansch um die Biegekante
  biegewange_auf:{teile:[[[3,-52],[3,-3],[7,0],[20,0],[20,-52]]],achse:[0,0]}
 });
+// v3.448: Vorlage einer Schröder-Schwenkbiegemaschine mit drehbarer Oberwange (Scharf + Geissfuss). UNGEFAEHRE Werte aus
+// Haendlerprospekten (Geissfussschiene ca. 130 mm hoch, 30 Grad, Freiraum 30 mm, Fussbreite 50 mm; Biegewangen-Schiene 10/25 mm) -
+// NICHT an der eigenen Maschine gemessen. Wird nur auf Knopfdruck als neue, ungepruefte Maschine angelegt.
+const BM_VORLAGE_SCHROEDER=Object.freeze({
+ name:"Schröder 3 m (ca.-Werte aus Prospekten – nachmessen)",
+ laenge_mm:3040,min_klemm_mm:10,max_winkel_auf:145,toleranz_mm:0.3,
+ unterwange:[[[-320,0],[0,0],[-14,-60],[-40,-200],[-320,-200]]],
+ // Koerper der drehbaren Oberwange (ueber den Werkzeugen)
+ klemmwange:[[[-50,130],[-260,130],[-260,330],[-120,330]]],
+ oberwange_werkzeuge:[
+  {name:"Scharf",teile:[[[0,0],[-17,10],[-48,130],[-60,130],[-60,0]]]},
+  {name:"Geissfuss",teile:[[[0,0],[-17,10],[-30,14],[-30,110],[-5,118],[-5,130],[-60,130],[-60,0]]]}
+ ],
+ biegewange_auf:{teile:[[[3,-60],[3,-3],[7,0],[20,0],[20,-60]]],achse:[0,0]}
+});
 function bmLaden(){
  let w=null;
  try{w=JSON.parse(localStorage.getItem(BM_SCHLUESSEL)||"null")}catch(e){}
@@ -42,6 +57,7 @@ function bmVorschauSvg(m,breite){
  const polys=[];
  const add=(teile,farbe)=>(teile||[]).forEach(p=>{if(Array.isArray(p)&&p.length>=3)polys.push({p,farbe})});
  add(m.unterwange,"#8a97a3");add(m.klemmwange,"#6b7a88");
+ (Array.isArray(m.oberwange_werkzeuge)?m.oberwange_werkzeuge:[]).forEach((w,i)=>add(w&&w.teile,i===0?"#6b7a88":"#b06a00"));
  if(m.biegewange_auf)add(m.biegewange_auf.teile,"#1769aa");
  if(!polys.length)return '<div class="small">Noch keine Werkzeug-Querschnitte.</div>';
  const xs=[],ys=[];polys.forEach(o=>o.p.forEach(q=>{xs.push(Number(q[0])||0);ys.push(Number(q[1])||0)}));
@@ -51,12 +67,13 @@ function bmVorschauSvg(m,breite){
  const pg=polys.map(o=>`<polygon points="${o.p.map(q=>X(Number(q[0])||0).toFixed(1)+","+Y(Number(q[1])||0).toFixed(1)).join(" ")}" fill="${o.farbe}" fill-opacity=".55" stroke="${o.farbe}" stroke-width="1"/>`).join("");
  return `<svg viewBox="0 0 ${w} ${h.toFixed(0)}" width="100%" style="max-width:${w}px;background:#fff;border:1px solid var(--card-line);border-radius:8px" role="img" aria-label="Querschnitt der Maschine">
 <line x1="${X(x0)}" y1="${Y(0)}" x2="${X(x1)}" y2="${Y(0)}" stroke="#c4ccd4" stroke-dasharray="3 3"/><line x1="${X(0)}" y1="${Y(y0)}" x2="${X(0)}" y2="${Y(y1)}" stroke="#c4ccd4" stroke-dasharray="3 3"/>${pg}</svg>
-<div class="small">Grau: Unter- und Oberwange · Blau: Biegewange nach oben · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
+<div class="small">Grau: Unter- und Oberwange${Array.isArray(m.oberwange_werkzeuge)&&m.oberwange_werkzeuge.length>1?" (erstes Werkzeug) · Orange: weitere Oberwangen-Werkzeuge":""} · Blau: Biegewange nach oben · gestrichelt: Biegekante (x 0) und Tischoberkante (y 0).</div>`;
 }
 
 // ---- Einstellungen -> Firma -> Biegemaschinen (nur Administratoren) --------------------------
 function bmWerkzeugeAlsText(m){
  const o={unterwange:m.unterwange||[],klemmwange:m.klemmwange||[],biegewange_auf:m.biegewange_auf||null};
+ if(Array.isArray(m.oberwange_werkzeuge)&&m.oberwange_werkzeuge.length)o.oberwange_werkzeuge=m.oberwange_werkzeuge;
  return JSON.stringify(o,null,1);
 }
 function bmKarteHtml(m,i){
@@ -70,7 +87,7 @@ function bmKarteHtml(m,i){
  </div>
  <label style="margin-top:8px">Werkzeug-Querschnitte (JSON, mm)</label>
  <textarea data-bm-werkzeuge="${i}" rows="9" style="font-family:monospace;font-size:12px">${esc(bmWerkzeugeAlsText(m))}</textarea>
- <div class="small">Polygone: <code>[[x,y],…]</code>. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Oberwange wird für die Blechstärke automatisch angehoben. Die <b>Arbeitsfläche der Biegewange</b> liegt in der Tischebene (y&nbsp;0; «auf»: Teile darunter, «ab»: darüber); sie dreht bündig am Flansch um die Biegekante. Optional: <code>achse</code> (Versatz der Drehachse, Standard [0,0]).</div>
+ <div class="small">Polygone: <code>[[x,y],…]</code>. Drehbare Oberwange mit mehreren Werkzeugen: <code>oberwange_werkzeuge: [{"name":"Scharf","teile":[…]},…]</code> – <code>klemmwange</code> ist dann der gemeinsame Körper darüber. Biegekante x&nbsp;0, Tischoberkante y&nbsp;0; die Oberwange wird für die Blechstärke automatisch angehoben. Die <b>Arbeitsfläche der Biegewange</b> liegt in der Tischebene (y&nbsp;0; «auf»: Teile darunter, «ab»: darüber); sie dreht bündig am Flansch um die Biegekante. Optional: <code>achse</code> (Versatz der Drehachse, Standard [0,0]).</div>
  <div id="bmVorschau${i}" style="margin-top:8px">${bmVorschauSvg(m)}</div>
  <label class="ra-schalter" style="margin-top:8px"><input type="checkbox" data-bm-feld="geprueft" data-bm-i="${i}"${m.geprueft?" checked":""}> Werte mit der Herstellerzeichnung geprüft (sonst warnt die Analyse)</label>
  <div class="bar"><button type="button" class="red" data-bm-weg="${i}">Maschine löschen</button></div>
@@ -91,7 +108,7 @@ function bmEinstellungenZeichnen(){
  if(!body)return;
  body.innerHTML=`<div class="small" style="margin-bottom:8px">Die Maschinen für die <b>Biegeanalyse</b> (Freies Profil → Zeichnung). Ohne Maschine gibt es keine Analyse. Es gibt keine Standardwerte – die Querschnitte kommen aus der Herstellerzeichnung. Gilt für die ganze Firma.</div>
 ${bmDaten.maschinen.map(bmKarteHtml).join("")||'<div class="empty">Noch keine Maschine eingetragen.</div>'}
-<div class="bar"><button type="button" class="gray" id="bmNeu">＋ Leere Maschine</button><button type="button" class="gray" id="bmVorlage">＋ Aus der Beispiel-Vorlage</button><button type="button" class="green" id="bmSpeichern">💾 Speichern</button></div>`;
+<div class="bar"><button type="button" class="gray" id="bmNeu">＋ Leere Maschine</button><button type="button" class="gray" id="bmVorlage">＋ Aus der Beispiel-Vorlage</button><button type="button" class="gray" id="bmVorlageSchroeder">＋ Schröder (ca.-Werte)</button><button type="button" class="green" id="bmSpeichern">💾 Speichern</button></div>`;
 }
 // Liest die Karten aus der Oberflaeche. Gibt {ok,maschinen,fehler:[{i,text}]} zurueck.
 function bmAusFormular(){
@@ -112,6 +129,7 @@ function bmAusFormular(){
   if(w){
    m.unterwange=Array.isArray(w.unterwange)?w.unterwange:[];m.klemmwange=Array.isArray(w.klemmwange)?w.klemmwange:[];
    m.biegewange_auf=w.biegewange_auf||null;
+   if(Array.isArray(w.oberwange_werkzeuge)&&w.oberwange_werkzeuge.length)m.oberwange_werkzeuge=w.oberwange_werkzeuge;
    const f=typeof bgaMaschineFehler==="function"?bgaMaschineFehler(m):[];
    if(!m.name)f.unshift("Der Name fehlt.");
    f.forEach(t=>fehler.push({i,text:t}));
@@ -134,13 +152,14 @@ async function bmSpeichern(){
  if(typeof efMelden==="function")await efMelden(BM_SCHLUESSEL,"Biegemaschinen gespeichert");
 }
 document.addEventListener("click",e=>{
- const t=e.target&&e.target.closest?e.target.closest("#bmNeu,#bmVorlage,#bmSpeichern,[data-bm-weg]"):null;
+ const t=e.target&&e.target.closest?e.target.closest("#bmNeu,#bmVorlage,#bmVorlageSchroeder,#bmSpeichern,[data-bm-weg]"):null;
  if(!t)return;
  if(t.id==="bmSpeichern"){bmSpeichern();return}
  // vor dem Hinzufuegen/Loeschen den Stand der Felder sichern (ohne Pflichtpruefung)
  const stand=bmAusFormular().maschinen;
  if(t.id==="bmNeu"){bmDaten={maschinen:stand.concat([{id:bmNeueId(),name:"",laenge_mm:"",min_klemm_mm:"",max_winkel_auf:"",toleranz_mm:0.3,geprueft:false,unterwange:[],klemmwange:[],biegewange_auf:null}])}}
  else if(t.id==="bmVorlage"){const k=JSON.parse(JSON.stringify(BM_BEISPIEL));k.id=bmNeueId();k.name="Neue Maschine (aus Vorlage – Werte prüfen)";delete k.beispiel;k.geprueft=false;bmDaten={maschinen:stand.concat([k])}}
+ else if(t.id==="bmVorlageSchroeder"){const k=JSON.parse(JSON.stringify(BM_VORLAGE_SCHROEDER));k.id=bmNeueId();k.geprueft=false;bmDaten={maschinen:stand.concat([k])}}
  else{const i=Number(t.getAttribute("data-bm-weg"));bmDaten={maschinen:stand.filter((x,j)=>j!==i)}}
  bmEinstellungenZeichnen();
  const sec=$("bmAbschnitt");if(sec)sec.classList.add("open");
@@ -151,7 +170,7 @@ document.addEventListener("input",e=>{
  if(!ta)return;
  const i=ta.getAttribute("data-bm-werkzeuge"),box=$("bmVorschau"+i);
  if(!box)return;
- try{const w=JSON.parse(ta.value);box.innerHTML=bmVorschauSvg({unterwange:w.unterwange,klemmwange:w.klemmwange,biegewange_auf:w.biegewange_auf})}
+ try{const w=JSON.parse(ta.value);box.innerHTML=bmVorschauSvg({unterwange:w.unterwange,klemmwange:w.klemmwange,biegewange_auf:w.biegewange_auf,oberwange_werkzeuge:w.oberwange_werkzeuge})}
  catch(x){box.innerHTML='<div class="small" style="color:var(--red)">Kein gültiges JSON – die Vorschau bleibt leer.</div>'}
 });
 (function bmStart(){

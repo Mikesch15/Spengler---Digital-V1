@@ -129,9 +129,39 @@ function bgaMaschineFehler(m){
  if(!m||typeof m!=="object")return ["Keine Maschine."];
  if(!(Number(m.laenge_mm)>0))f.push("Die Arbeitslänge fehlt.");
  if(!Array.isArray(m.unterwange)||!m.unterwange.length)f.push("Die Unterwange fehlt.");
- if(!Array.isArray(m.klemmwange)||!m.klemmwange.length)f.push("Die Oberwange fehlt.");
+ if((!Array.isArray(m.klemmwange)||!m.klemmwange.length)&&!bgaWerkzeuge(m).length)f.push("Die Oberwange fehlt.");
  if(!(m.biegewange_auf&&Array.isArray(m.biegewange_auf.teile)&&m.biegewange_auf.teile.length)&&!(m.biegewange_ab&&Array.isArray(m.biegewange_ab.teile)&&m.biegewange_ab.teile.length))f.push("Es ist keine Biegewange eingetragen.");
  return f;
+}
+
+// ---- Oberwangen-Werkzeuge (v3.448) ---------------------------------------------------
+// Eine drehbare Oberwange traegt mehrere Werkzeuge (z. B. «Scharf» und «Geissfuss»): m.oberwange_werkzeuge = [{name,teile:[poly,...]},...].
+// m.klemmwange ist dann der gemeinsame Koerper der Oberwange (darf leer sein); fuer die Rechnung wird das gewaehlte Werkzeug angehaengt.
+function bgaWerkzeuge(m){
+ const l=m&&Array.isArray(m.oberwange_werkzeuge)?m.oberwange_werkzeuge:[];
+ return l.filter(w=>w&&Array.isArray(w.teile)&&w.teile.some(p=>Array.isArray(p)&&p.length>=3));
+}
+const BGA_WZ_CACHE=new WeakMap();
+// Maschine mit dem Werkzeug Nr. i als Oberwange (ohne Werkzeuge: die Maschine selbst). Gleiches Objekt bei gleichem i (Zwischenspeicher).
+function bgaMitWerkzeug(m,i){
+ const l=bgaWerkzeuge(m);
+ if(!l.length)return m;
+ const j=Math.max(0,Math.min(l.length-1,Number(i)||0));
+ let c=BGA_WZ_CACHE.get(m);if(!c){c=new Map();BGA_WZ_CACHE.set(m,c)}
+ if(!c.has(j))c.set(j,Object.assign({},m,{klemmwange:(Array.isArray(m.klemmwange)?m.klemmwange:[]).concat(l[j].teile),werkzeugName:String(l[j].name||("Werkzeug "+(j+1))),werkzeugNr:j}));
+ return c.get(j);
+}
+// Sucht mit jedem Werkzeug und nimmt das beste: zuerst machbar, dann wenig Wenden, dann die Reihenfolge der Liste (erstes = Standard).
+function bgaWerkzeugWaehlen(profil,m,t){
+ const l=bgaWerkzeuge(m);
+ if(!l.length)return {nr:-1,ergebnis:bgaFolgeSuchen(profil,m,t)};
+ let best=null;
+ l.forEach((w,i)=>{
+  const r=bgaFolgeSuchen(profil,bgaMitWerkzeug(m,i),t);
+  const k=[r.ok?0:1,r.ok?r.wenden:(r.probleme||99),i];
+  if(!best||k[0]<best.k[0]||(k[0]===best.k[0]&&(k[1]<best.k[1])))best={k,nr:i,ergebnis:r};
+ });
+ return {nr:best.nr,ergebnis:best.ergebnis};
 }
 
 // ---- Ein Schritt: Lage und Pruefung --------------------------------------------

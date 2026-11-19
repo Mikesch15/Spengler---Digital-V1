@@ -10,10 +10,13 @@
 
 const bgaS={
  offen:false,schenkel:[],profil:null,maschineId:"",t:0,laenge:0,titel:"",
+ werkzeugWahl:"auto",werkzeugNr:0,   // v3.448: Oberwangen-Werkzeug (auto = das beste suchen)
  folge:[],auto:true,autoErgebnis:null,analyse:null,fehler:[],
  schritt:0,fortschritt:0,spielt:false,pauseBis:0,letzt:0,raf:0
 };
-function bgaMaschine(){return bmFinden(bgaS.maschineId)}
+function bgaMaschineBasis(){return bmFinden(bgaS.maschineId)}
+// Die Maschine, mit der gerechnet wird: bei drehbarer Oberwange mit dem gewaehlten Werkzeug
+function bgaMaschine(){const b=bgaMaschineBasis();return b?bgaMitWerkzeug(b,bgaS.werkzeugNr):null}
 
 // ---- Symbole (einheitliche Linien-Symbole statt Emoji) ---------------------------------------
 const BGA_IKON={
@@ -43,13 +46,15 @@ function bgaNeuRechnen(neuVorschlagen){
  if(bgaS.fehler.length){bgaS.folge=[];bgaS.schritt=0;bgaS.fortschritt=0;return}
  const m=bgaMaschine();
  if(neuVorschlagen||bgaS.auto||!bgaS.folge.length){
-  const r=bgaFolgeSuchen(bgaS.profil,m,bgaS.t);
+  const basis=bgaMaschineBasis();let r;
+  if(bgaWerkzeuge(basis).length&&bgaS.werkzeugWahl==="auto"){const w=bgaWerkzeugWaehlen(bgaS.profil,basis,bgaS.t);bgaS.werkzeugNr=w.nr;r=w.ergebnis}
+  else{bgaS.werkzeugNr=bgaS.werkzeugWahl==="auto"?0:Number(bgaS.werkzeugWahl)||0;r=bgaFolgeSuchen(bgaS.profil,bgaMaschine(),bgaS.t)}
   bgaS.autoErgebnis=r;
   if(r.schritte&&r.schritte.length)bgaS.folge=r.schritte.map(s=>({k:s.k,klemm:s.cfg.klemm,flip:s.cfg.flip}));
   else bgaS.folge=bgaS.profil.biegungen.map(k=>({k,klemm:"links",flip:false}));
   bgaS.auto=true;
  }
- bgaS.analyse=bgaFolgeAnalysieren(bgaS.profil,m,bgaS.t,bgaS.folge);
+ bgaS.analyse=bgaFolgeAnalysieren(bgaS.profil,bgaMaschine(),bgaS.t,bgaS.folge);
  if(bgaS.schritt>=bgaS.folge.length)bgaS.schritt=Math.max(0,bgaS.folge.length-1);
 }
 function bgaZ(n){return String(Math.round(n*10)/10).replace(".",",")}
@@ -180,7 +185,7 @@ function bgaEmpfehlungHtml(){
  const teile=a.schritte.map((r,i)=>`<span class="bga-schrittchip">${i+1}</span> Biegung ${bn(bgaS.folge[i].k)}`).join('<span class="bga-pfeil">→</span>');
  const seiten=[...new Set(bgaS.folge.map(f=>f.klemm))];
  return `<div class="bga-empf"><div class="bga-klein">${bgaS.auto?"Empfohlene Reihenfolge":"Eigene Reihenfolge"}</div><div class="bga-folge-zeile">${teile}</div>`
-  +`<div class="bga-klein">${a.wenden===0?"Kein Wenden":a.wenden+" × Wenden"} · Klemmen ${seiten.length===1?seiten[0]+" der Biegung":"links bzw. rechts der Biegung"}</div></div>`;
+  +`<div class="bga-klein">${a.wenden===0?"Kein Wenden":a.wenden+" × Wenden"} · Klemmen ${seiten.length===1?seiten[0]+" der Biegung":"links bzw. rechts der Biegung"}${(()=>{const m=bgaMaschine();return m&&m.werkzeugName?` · Oberwange: <b data-bga-werkzeug-name>${esc(m.werkzeugName)}</b>`:""})()}</div></div>`;
 }
 function bgaFolgeHtml(){
  const a=bgaS.analyse;
@@ -207,8 +212,10 @@ function bgaFolgeHtml(){
 function bgaEingabeHtml(){
  const l=bmListe();
  const opt=l.map(m=>`<option value="${esc(m.id)}"${String(m.id)===String(bgaS.maschineId)?" selected":""}>${esc(m.name||"(ohne Name)")}</option>`).join("");
+ const wz=bgaWerkzeuge(bgaMaschineBasis());
+ const wzFeld=wz.length?`<div class="wide"><label>Oberwangen-Werkzeug</label><select id="bgaWerkzeug"><option value="auto"${bgaS.werkzeugWahl==="auto"?" selected":""}>Automatisch – das passende wählen</option>${wz.map((w,i)=>`<option value="${i}"${String(bgaS.werkzeugWahl)===String(i)?" selected":""}>${esc(w.name||("Werkzeug "+(i+1)))}</option>`).join("")}</select></div>`:"";
  return `<div class="grid">
-  <div class="wide"><label>Maschine</label><select id="bgaMaschine">${opt||'<option value="">– keine Maschine eingetragen –</option>'}</select></div>
+  <div class="wide"><label>Maschine</label><select id="bgaMaschine">${opt||'<option value="">– keine Maschine eingetragen –</option>'}</select></div>${wzFeld}
   <div><label>Blechstärke (mm)</label><input id="bgaStaerke" type="number" step="0.1" min="0" value="${esc(bgaS.t||"")}"></div>
   <div><label>Teillänge (mm, optional)</label><input id="bgaLaenge" type="number" step="10" min="0" value="${esc(bgaS.laenge||"")}"></div>
  </div>
@@ -275,6 +282,7 @@ function bgaOeffnen(schenkel,opt){
  bgaS.titel=o.titel||"";
  const l=bmListe();
  if(!l.some(x=>String(x.id)===String(bgaS.maschineId)))bgaS.maschineId=l.length?l[0].id:"";
+ bgaS.werkzeugWahl="auto";
  bgaS.auto=true;bgaS.schritt=0;bgaS.fortschritt=0;bgaStopp();
  bgaS.offen=true;
  bgaNeuRechnen(true);
@@ -319,7 +327,8 @@ document.addEventListener("change",e=>{
  const t=e.target;
  if(!t||!t.closest||!t.closest("#bgaModal"))return;
  const neu=()=>{bgaS.auto=true;bgaS.schritt=0;bgaS.fortschritt=0;bgaNeuRechnen(true);bgaZeichnen()};
- if(t.id==="bgaMaschine"){bgaS.maschineId=t.value;neu();return}
+ if(t.id==="bgaMaschine"){bgaS.maschineId=t.value;bgaS.werkzeugWahl="auto";neu();return}
+ if(t.id==="bgaWerkzeug"){bgaS.werkzeugWahl=t.value;neu();return}
  if(t.id==="bgaStaerke"){const v=Number(String(t.value).replace(",","."));bgaS.t=v>0?v:0;neu();return}
  if(t.id==="bgaLaenge"){bgaS.laenge=Number(t.value)>0?Number(t.value):0;bgaZeichnen();return}
  if(t.hasAttribute("data-bga-klemm")){const i=Number(t.getAttribute("data-bga-klemm"));bgaS.folge[i].klemm=t.value;bgaS.auto=false;bgaNeuRechnen(false);bgaZeichnen();return}
